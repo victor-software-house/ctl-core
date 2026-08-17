@@ -14,6 +14,12 @@ use crate::model::{Envelope, ErrorBody};
 pub trait Render {
     /// Human view. Must not depend on [`View::format`].
     fn render_pretty(&self) -> String;
+
+    /// Pretty view honoring `color`. Default ignores it.
+    fn render_pretty_colored(&self, color: ColorMode) -> String {
+        let _ = color;
+        self.render_pretty()
+    }
 }
 
 /// A serializable model whose pretty view is a Jinja template.
@@ -62,7 +68,7 @@ impl View {
 
     /// JSON writes the model. Pretty writes [`Render::render_pretty`].
     pub fn show(self, value: &(impl Serialize + Render)) -> io::Result<()> {
-        self.emit(value, &value.render_pretty())
+        self.emit(value, &value.render_pretty_colored(self.color))
     }
 
     /// JSON writes the model. Pretty renders [`Pretty::TEMPLATE`] against it.
