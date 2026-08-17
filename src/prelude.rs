@@ -14,7 +14,7 @@
 pub use std::process::ExitCode;
 
 pub use clap::{Args, Parser, Subcommand};
-pub use indoc::{formatdoc, indoc, writedoc};
+pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
 pub use crate::color::ColorMode;
 #[cfg(feature = "cli")]

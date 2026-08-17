@@ -52,7 +52,7 @@ pub use flags::{
     emit_warnings, resolve_color, switch, warn_opposites,
 };
 pub use format::OutputFormat;
-pub use indoc::{formatdoc, indoc, writedoc};
+pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]
 pub use run::main as run;

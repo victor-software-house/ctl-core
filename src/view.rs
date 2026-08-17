@@ -7,6 +7,7 @@ use serde::Serialize;
 
 use crate::color::ColorMode;
 use crate::format::OutputFormat;
+use crate::formatdoc;
 use crate::model::{Envelope, ErrorBody};
 
 /// Pretty text for a model. Implement with [`formatdoc`](crate::formatdoc).
@@ -71,7 +72,7 @@ impl View {
         if self.format.is_json() {
             return emit_json(&Envelope::<()>::err(error));
         }
-        write_stderr(format!("{bin}: {message}\n").as_bytes(), self.color)
+        write_stderr(formatdoc!("{bin}: {message}\n").as_bytes(), self.color)
     }
 }
 

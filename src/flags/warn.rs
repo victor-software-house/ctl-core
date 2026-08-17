@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use crate::{formatdoc, writedoc};
+
 /// How two (or more) flags fight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WarningKind {
@@ -26,21 +28,25 @@ impl FlagWarning {
     /// `{bin}: warning: …` for stderr.
     #[must_use]
     pub fn line(&self, bin: &str) -> String {
-        format!("{bin}: warning: {self}")
+        formatdoc!("{bin}: warning: {self}")
     }
 }
 
 impl fmt::Display for FlagWarning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let names = match self.kind {
+            WarningKind::Repeated => self.names.join("/"),
+            WarningKind::Contradictory | WarningKind::Redundant => self.names.join(" and "),
+        };
         match self.kind {
             WarningKind::Repeated => {
-                write!(f, "{} repeated; last value wins", self.names.join("/"))
+                writedoc!(f, "{names} repeated; last value wins")
             }
             WarningKind::Contradictory => {
-                write!(f, "{} both set; last wins", self.names.join(" and "))
+                writedoc!(f, "{names} both set; last wins")
             }
             WarningKind::Redundant => {
-                write!(f, "{} are the same flag", self.names.join(" and "))
+                writedoc!(f, "{names} are the same flag")
             }
         }
     }
