@@ -13,7 +13,10 @@ fn kinds(args: &[&str]) -> Vec<WarningKind> {
 
 #[test]
 fn silent_when_flags_are_clean() {
-    assert!(kinds(&["status", "--format", "json", "--color", "never"]).is_empty());
+    assert_eq!(
+        kinds(&["status", "--format", "json", "--color", "never"]),
+        Vec::<WarningKind>::new()
+    );
 }
 
 #[test]
@@ -47,7 +50,10 @@ fn short_and_long_quiet_is_repeated() {
 fn opposite_pair_helper() {
     let hits = warn_opposites(["--pr", "--no-pr", "prepare"], &["--pr"], &["--no-pr"]);
     assert_eq!(hits[0].kind, WarningKind::Contradictory);
-    assert!(warn_opposites(["--pr", "prepare"], &["--pr"], &["--no-pr"]).is_empty());
+    assert_eq!(
+        warn_opposites(["--pr", "prepare"], &["--pr"], &["--no-pr"]),
+        Vec::<ctl_core::FlagWarning>::new()
+    );
 }
 
 #[test]

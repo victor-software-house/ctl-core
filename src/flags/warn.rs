@@ -202,7 +202,7 @@ fn repeat(name: &str) -> FlagWarning {
 
 #[cfg(test)]
 mod tests {
-    use super::{WarningKind, chassis_warnings, warn_opposites};
+    use super::{FlagWarning, WarningKind, chassis_warnings, warn_opposites};
 
     fn kinds(args: &[&str]) -> Vec<WarningKind> {
         chassis_warnings(args.iter().copied())
@@ -231,8 +231,14 @@ mod tests {
 
     #[test]
     fn stops_at_double_dash() {
-        assert!(kinds(&["--format", "json", "--", "--format", "pretty"]).is_empty());
-        assert!(warn_opposites(["--pr", "--", "--no-pr"], &["--pr"], &["--no-pr"]).is_empty());
+        assert_eq!(
+            kinds(&["--format", "json", "--", "--format", "pretty"]),
+            Vec::<WarningKind>::new()
+        );
+        assert_eq!(
+            warn_opposites(["--pr", "--", "--no-pr"], &["--pr"], &["--no-pr"]),
+            Vec::<FlagWarning>::new()
+        );
     }
 
     #[test]
