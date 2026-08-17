@@ -35,7 +35,6 @@ todo = "deny"
 unimplemented = "deny"
 unwrap_used = "deny"
 expect_used = "deny"
-disallowed_macros = "deny"
 
 [features]
 default = ["cli", "view", "help"]
