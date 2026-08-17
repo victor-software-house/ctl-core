@@ -17,7 +17,8 @@ ctl-core = { version = "0.0.1", default-features = false, features = ["json"] }
 
 Models (`Envelope`, `ColorMode`, `OutputFormat`) come first. `View`
 picks pretty, JSON, or colorless. Pretty may contain ANSI; JSON never
-does.
+does. Prepare the data; `Pretty` + a Jinja template (`View::show_pretty`)
+owns loops and `{% if %}`. `formatdoc` stays for one-liners.
 
 Domain verbs stay in each CLI. This crate owns:
 

@@ -57,4 +57,4 @@ pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]
 pub use run::main as run;
 #[cfg(feature = "view")]
-pub use view::{Render, View};
+pub use view::{Pretty, Render, View, render_template};

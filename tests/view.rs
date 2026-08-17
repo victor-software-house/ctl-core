@@ -2,7 +2,11 @@
 #![allow(missing_docs)]
 #![cfg(feature = "view")]
 
-use ctl_core::{ColorMode, Envelope, ErrorBody, OutputFormat, Render, View, formatdoc};
+use ctl_core::{
+    ColorMode, Envelope, ErrorBody, OutputFormat, Pretty, Render, View, formatdoc, indoc,
+    render_template,
+};
+use serde::Serialize;
 
 #[test]
 fn json_view_is_the_model() {
@@ -56,6 +60,37 @@ fn envelope_err_tag() {
     let json = serde_json::to_value(Envelope::<()>::err(ErrorBody::new("toy", "nope"))).unwrap();
     assert_eq!(json["status"], "err");
     assert_eq!(json["error"]["bin"], "toy");
+}
+
+#[derive(Serialize)]
+struct PublishDemo {
+    crates: Vec<String>,
+    release: Option<String>,
+    dry_run: bool,
+}
+
+impl Pretty for PublishDemo {
+    const TEMPLATE: &'static str = indoc! {"
+        {%- for entry in crates %}crate   {{ entry }}
+        {% endfor -%}
+        {%- if release %}release {{ release }}
+        {% endif -%}
+        {%- if dry_run %}dry-run (nothing published)
+        {%- endif -%}
+    "};
+}
+
+#[test]
+fn pretty_template_owns_the_ifs() {
+    let demo = PublishDemo {
+        crates: vec!["ctl-core@0.0.1 (cargo)".into()],
+        release: Some("would create v0.0.1".into()),
+        dry_run: true,
+    };
+    let pretty = render_template(PublishDemo::TEMPLATE, &demo).unwrap();
+    assert!(pretty.contains("crate   ctl-core@0.0.1 (cargo)"));
+    assert!(pretty.contains("release would create v0.0.1"));
+    assert!(pretty.contains("dry-run (nothing published)"));
 }
 
 #[test]

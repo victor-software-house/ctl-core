@@ -28,4 +28,4 @@ pub use crate::parser::verify;
 #[cfg(feature = "cli")]
 pub use crate::run::{go, main_with_help};
 #[cfg(feature = "view")]
-pub use crate::view::{Render, View};
+pub use crate::view::{Pretty, Render, View, render_template};

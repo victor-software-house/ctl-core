@@ -10,10 +10,25 @@ use crate::format::OutputFormat;
 use crate::formatdoc;
 use crate::model::{Envelope, ErrorBody};
 
-/// Pretty text for a model. Implement with [`formatdoc`](crate::formatdoc).
+/// Pretty text for a model. Prefer [`Pretty`] + a Jinja template.
 pub trait Render {
     /// Human view. Must not depend on [`View::format`].
     fn render_pretty(&self) -> String;
+}
+
+/// A serializable model whose pretty view is a Jinja template.
+///
+/// Prepare the data. The template owns `{% if %}`, loops, and alignment.
+pub trait Pretty: Serialize {
+    /// `include_str!` of a `.jinja` file next to the binary crate.
+    const TEMPLATE: &'static str;
+}
+
+/// Render `value` through a Jinja template. Used by [`View::show_pretty`].
+pub fn render_template(source: &str, value: &impl Serialize) -> Result<String, minijinja::Error> {
+    let mut env = minijinja::Environment::new();
+    env.add_template("pretty", source)?;
+    env.get_template("pretty")?.render(value)
 }
 
 /// How to present a model. JSON never contains ANSI.
@@ -48,6 +63,23 @@ impl View {
     /// JSON writes the model. Pretty writes [`Render::render_pretty`].
     pub fn show(self, value: &(impl Serialize + Render)) -> io::Result<()> {
         self.emit(value, &value.render_pretty())
+    }
+
+    /// JSON writes the model. Pretty renders [`Pretty::TEMPLATE`] against it.
+    pub fn show_pretty<T: Pretty>(self, value: &T) -> io::Result<()> {
+        self.show_template(value, T::TEMPLATE)
+    }
+
+    /// JSON writes the model. Pretty renders `template` against it.
+    pub fn show_template(self, value: &impl Serialize, template: &str) -> io::Result<()> {
+        if self.quiet {
+            return Ok(());
+        }
+        if self.format.is_json() {
+            return emit_json(value);
+        }
+        let pretty = render_template(template, value).map_err(io::Error::other)?;
+        write_stdout(pretty.as_bytes(), self.color)
     }
 
     /// JSON writes `value`. Pretty writes `pretty` (already styled or plain).

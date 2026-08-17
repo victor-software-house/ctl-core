@@ -15,9 +15,9 @@ queue:
       - A GitHub tag/release exists for that version.
       - verctl, then qctl/forkctl, can depend on ctl-core = "x.y.z".
     notes: >-
-      Repo is public. Do not wait for QCTL-001. verctl currently pins a
-      git rev. Cargo.lock is gitignored; either commit the lock or drop
-      --locked when this ships.
+      Publish only through verctl (version-packages PR, then
+      actions/publish). Never cargo publish by hand. Need
+      CARGO_REGISTRY_TOKEN on the repo. verctl currently pins a git rev.
 
 horizon:
   - id: CTC-003
