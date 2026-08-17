@@ -59,16 +59,16 @@ help = ["cli", "color", "dep:comfy-table"]
 view = ["color", "json"]
 
 [dependencies]
-anyhow = { version = "1.0.100", optional = true }
+anyhow = { version = "1.0.104", optional = true }
 anstream = { version = "1.0.0", optional = true }
 anstyle = { version = "1.0.14", optional = true }
-clap = { version = "4.6.5", optional = true, features = ["derive", "env"] }
-comfy-table = { version = "7.2.2", optional = true, default-features = false, features = ["custom_styling"] }
+clap = { version = "4.6.6", optional = true, features = ["derive", "env"] }
+comfy-table = { version = "8.0.0", optional = true, default-features = false, features = ["custom_styling", "tty"] }
 document-features = "0.2.12"
 indoc = "2.0.7"
 schemars = { version = "1.2.2", optional = true }
-serde = { version = "1.0.228", optional = true, features = ["derive"] }
-serde_json = { version = "1.0.145", optional = true }
+serde = { version = "1.0.229", optional = true, features = ["derive"] }
+serde_json = { version = "1.0.151", optional = true }
 
 [dev-dependencies]
 indoc = "2.0.7"

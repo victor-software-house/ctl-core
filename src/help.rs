@@ -168,7 +168,7 @@ fn section(output: &mut String, title: &str, rows: Vec<Vec<String>>) {
     }
     let mut table = Table::new();
     table
-        .load_preset(UTF8_FULL_CONDENSED)
+        .load_style(UTF8_FULL_CONDENSED)
         .set_content_arrangement(ContentArrangement::Dynamic);
     layout::constrain(&mut table);
     for row in rows {

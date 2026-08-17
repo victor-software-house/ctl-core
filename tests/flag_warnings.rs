@@ -67,13 +67,11 @@ fn warning_line_is_gnu_shaped() {
 
 #[test]
 fn mixed_clashes_are_all_reported() {
+    #[rustfmt::skip]
     let hits = kinds(&[
-        "--format",
-        "json",
-        "--format",
-        "pretty",
-        "--color",
-        "always",
+        "--format", "json",
+        "--format", "pretty",
+        "--color", "always",
         "--no-color",
         "--dry-run",
         "--preview",

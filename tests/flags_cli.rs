@@ -67,11 +67,10 @@ fn defaults() {
 
 #[test]
 fn all_long_and_all_short() {
+    #[rustfmt::skip]
     let long = parse(&[
-        "--format",
-        "json",
-        "--color",
-        "never",
+        "--format", "json",
+        "--color", "never",
         "--quiet",
         "--dry-run",
         "status",

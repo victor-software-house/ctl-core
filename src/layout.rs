@@ -33,7 +33,7 @@ pub fn wrap(value: &str) -> String {
 fn wrap_to(value: &str, width: u16) -> String {
     let mut table = Table::new();
     table
-        .load_preset(NOTHING)
+        .load_style(NOTHING)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_width(width)
         .add_row([value]);
