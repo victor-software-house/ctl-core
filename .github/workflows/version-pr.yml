@@ -35,5 +35,3 @@ jobs:
       - name: Install verctl
         run: cargo install --git https://github.com/victor-software-house/verctl --locked --force
       - uses: victor-software-house/verctl/actions/version-pr@main
-        with:
-          command: verctl prepare --pr
