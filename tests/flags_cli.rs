@@ -54,6 +54,7 @@ fn format_args_flatten_is_global_after_the_verb() {
     let cli = SplitCmd::parse_from([
         "x", "status", "--format", "json", "--quiet", "--color", "never",
     ]);
+    assert!(matches!(cli.command, ToyCmd::Status));
     assert!(cli.format.format.is_json());
     assert!(cli.format.quiet);
     assert_eq!(cli.color.color(), ColorMode::Never);
