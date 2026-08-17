@@ -1,5 +1,10 @@
 # ctl-core
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+  <img src="docs/banner.svg" alt="ctl-core — Shared clap chassis for the *ctl CLIs. Not a command.">
+</picture>
+
 Shared clap chassis for the `*ctl` CLIs (`forkctl`, `qctl`, `verctl`)
 and `state-sync`. Not a command. Import it as `ctl_core`.
 
