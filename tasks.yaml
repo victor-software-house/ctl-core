@@ -1,23 +1,9 @@
 # yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.0.1/tasks.schema.json
 schema_version: 1
 prefix: CTC
-active: CTC-002
+active: null
 
-queue:
-  - id: CTC-002
-    title: Publish ctl-core to crates.io
-    scope: ctl-core
-    outcome: >-
-      Consumers pin a crates.io version instead of a git rev.
-    blocked_by: []
-    acceptance:
-      - cargo publish --locked succeeds for ctl-core.
-      - A GitHub tag/release exists for that version.
-      - verctl, then qctl/forkctl, can depend on ctl-core = "x.y.z".
-    notes: >-
-      Publish only through verctl (version-packages PR, then
-      actions/publish). Never cargo publish by hand. Need
-      CARGO_REGISTRY_TOKEN on the repo. verctl currently pins a git rev.
+queue: []
 
 horizon:
   - id: CTC-003
@@ -32,6 +18,18 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-002
+    title: Publish ctl-core to crates.io
+    scope: ctl-core
+    completed: "2026-08-17"
+    disposition: completed
+    outcome: >-
+      Consumers pin a crates.io version instead of a git rev.
+    evidence:
+      - "crates.io ctl-core 0.0.1"
+      - "github.com/victor-software-house/ctl-core/releases/tag/v0.0.1"
+      - "Actions run 31993816035 via verctl publish"
+
   - id: CTC-004
     title: Harden ctl-core tests before any consumer migration
     scope: ctl-core
