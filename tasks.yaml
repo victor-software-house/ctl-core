@@ -13,14 +13,10 @@ queue:
       temp root.
     blocked_by: []
     acceptance:
-      - A `#[cfg(test)]` or `ctl-core` test feature exposes the helper
-        (not a new public runtime crate unless we need one).
-      - `root.file("bunfig.toml", indoc! { ... })` (or equivalent) is
-        the write path. Nested paths create parents.
-      - `Suite::new("publish")` / `suite.scenario("bunfig-github")`
-        each own a TempDir that drops at the end of the test.
-      - verctl (then qctl/forkctl) can drop the copy-pasted fs::write
-        fixtures after pinning that ctl-core version.
+      - "A cfg(test) or ctl-core test feature exposes the helper (not a new public runtime crate unless we need one)."
+      - "root.file(path, body) (or equivalent) is the write path. Nested paths create parents."
+      - "Suite::new(name) / suite.scenario(name) each own a TempDir that drops at the end of the test."
+      - "verctl (then qctl/forkctl) can drop the copy-pasted fs::write fixtures after pinning that ctl-core version."
     notes: >-
       Triggered by verctl tests (prepare_stage, changelog, publish).
       Do not invent a second tempfile wrapper in each *ctl.
