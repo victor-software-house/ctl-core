@@ -1,7 +1,8 @@
+//! Envelope JSON and `Render` + formatdoc.
 #![allow(missing_docs)]
 #![cfg(feature = "view")]
 
-use ctl_core::{ColorMode, Envelope, OutputFormat, Render, View, formatdoc};
+use ctl_core::{ColorMode, Envelope, ErrorBody, OutputFormat, Render, View, formatdoc};
 
 #[test]
 fn json_view_is_the_model() {
@@ -41,4 +42,27 @@ fn pretty_uses_formatdoc() {
     assert!(!pretty.contains('{'));
     let view = View::new(OutputFormat::Pretty, ColorMode::Never);
     assert_eq!(view.format, OutputFormat::Pretty);
+}
+
+#[test]
+fn envelope_ok_tag() {
+    let json = serde_json::to_value(Envelope::ok("demo")).unwrap();
+    assert_eq!(json["status"], "ok");
+    assert_eq!(json["schema_version"], 1);
+}
+
+#[test]
+fn envelope_err_tag() {
+    let json = serde_json::to_value(Envelope::<()>::err(ErrorBody::new("toy", "nope"))).unwrap();
+    assert_eq!(json["status"], "err");
+    assert_eq!(json["error"]["bin"], "toy");
+}
+
+#[test]
+fn quiet_builder() {
+    assert!(
+        View::new(OutputFormat::Pretty, ColorMode::Never)
+            .quiet(true)
+            .quiet
+    );
 }
