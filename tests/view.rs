@@ -71,12 +71,15 @@ struct PublishDemo {
 
 impl Pretty for PublishDemo {
     const TEMPLATE: &'static str = indoc! {"
-        {%- for entry in crates %}crate   {{ entry }}
+        {% for entry in crates -%}
+        crate   {{ entry }}
         {% endfor -%}
-        {%- if release %}release {{ release }}
+        {% if release -%}
+        release {{ release }}
         {% endif -%}
-        {%- if dry_run %}dry-run (nothing published)
-        {%- endif -%}
+        {% if dry_run -%}
+        dry-run (nothing published)
+        {% endif %}
     "};
 }
 
@@ -88,9 +91,14 @@ fn pretty_template_owns_the_ifs() {
         dry_run: true,
     };
     let pretty = render_template(PublishDemo::TEMPLATE, &demo).unwrap();
-    assert!(pretty.contains("crate   ctl-core@0.0.1 (cargo)"));
-    assert!(pretty.contains("release would create v0.0.1"));
-    assert!(pretty.contains("dry-run (nothing published)"));
+    assert_eq!(
+        pretty,
+        indoc! {"
+            crate   ctl-core@0.0.1 (cargo)
+            release would create v0.0.1
+            dry-run (nothing published)
+        "}
+    );
 }
 
 #[test]
