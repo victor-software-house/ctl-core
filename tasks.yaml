@@ -45,6 +45,9 @@ archive:
       - "tests/{color_argv,format_tokens,flags_cli,flag_warnings,help_render,view,parse}"
       - "peek --color --no-color; first-party concat! still fails clippy"
       - "chassis last-wins + {bin}: warning: on clashes"
+    notes: >-
+      Do not pad empty tests to out-count forkctl+qctl+verctl. Named
+      public-path coverage is the bar.
 
   - id: CTC-001
     title: Shared clap chassis, views, and formatdoc
