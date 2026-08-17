@@ -3,7 +3,27 @@ schema_version: 1
 prefix: CTC
 active: null
 
-queue: []
+queue:
+  - id: CTC-006
+    title: Test fixture tree and per-suite temp dirs
+    scope: ctl-core
+    outcome: >-
+      Integration tests write files through a small fixture API, not
+      repeated fs::write + indoc. Each suite or scenario gets its own
+      temp root.
+    blocked_by: []
+    acceptance:
+      - A `#[cfg(test)]` or `ctl-core` test feature exposes the helper
+        (not a new public runtime crate unless we need one).
+      - `root.file("bunfig.toml", indoc! { ... })` (or equivalent) is
+        the write path. Nested paths create parents.
+      - `Suite::new("publish")` / `suite.scenario("bunfig-github")`
+        each own a TempDir that drops at the end of the test.
+      - verctl (then qctl/forkctl) can drop the copy-pasted fs::write
+        fixtures after pinning that ctl-core version.
+    notes: >-
+      Triggered by verctl tests (prepare_stage, changelog, publish).
+      Do not invent a second tempfile wrapper in each *ctl.
 
 horizon:
   - id: CTC-003
