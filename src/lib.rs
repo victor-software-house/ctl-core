@@ -41,6 +41,9 @@ pub mod run;
 /// ANSI styles for pretty views.
 #[cfg(feature = "color")]
 pub mod style;
+/// Compact pretty tables for command output.
+#[cfg(feature = "view")]
+pub mod table;
 /// Pretty / JSON / colorless emitters.
 #[cfg(feature = "view")]
 pub mod view;
@@ -56,5 +59,7 @@ pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]
 pub use run::main as run;
+#[cfg(feature = "view")]
+pub use table::{grid, kv};
 #[cfg(feature = "view")]
 pub use view::{Pretty, Render, View, render_template};

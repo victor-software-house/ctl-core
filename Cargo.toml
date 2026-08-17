@@ -1,6 +1,6 @@
 [package]
 name = "ctl-core"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 rust-version = "1.97.1"
 description = "Shared clap chassis for the *ctl CLIs"
@@ -56,7 +56,7 @@ schema = ["json", "dep:schemars"]
 help = ["cli", "color", "dep:comfy-table"]
 
 ## Pretty / JSON / colorless emitters over serializable models.
-view = ["color", "json", "dep:minijinja"]
+view = ["color", "json", "dep:minijinja", "dep:comfy-table"]
 
 [dependencies]
 anyhow = { version = "1.0.104", optional = true }
