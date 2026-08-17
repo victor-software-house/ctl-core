@@ -18,7 +18,9 @@ pub use indoc::{formatdoc, indoc, writedoc};
 
 pub use crate::color::ColorMode;
 #[cfg(feature = "cli")]
-pub use crate::flags::{ColorLong, DryRunArgs, FormatArgs, OutputArgs};
+pub use crate::flags::{
+    ColorLong, DryRunArgs, FormatArgs, OutputArgs, chassis_warnings, emit_warnings, warn_opposites,
+};
 pub use crate::format::OutputFormat;
 pub use crate::model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]

@@ -1,8 +1,9 @@
 #![allow(missing_docs)]
 #![cfg(feature = "cli")]
 
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs, switch};
+use ctl_core::parser::apply_defaults;
 use ctl_core::{ColorMode, OutputFormat};
 
 #[derive(Parser, Debug)]
@@ -33,7 +34,10 @@ struct PrepareArgs {
 fn parse(args: &[&str]) -> Cli {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);
-    Cli::try_parse_from(words).expect("parse")
+    let matches = apply_defaults(Cli::command())
+        .try_get_matches_from(&words)
+        .expect("parse");
+    Cli::from_arg_matches(&matches).expect("from matches")
 }
 
 #[test]

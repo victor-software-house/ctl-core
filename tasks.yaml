@@ -15,6 +15,7 @@ queue:
       - Color/format parse, last-wins --no-color, clap shorts/longs, Envelope JSON, help, and View are table-driven.
       - `--color --no-color` does not swallow the negation (peek, do not take).
       - A first-party concat! still fails clippy. schemars expands stay isolated.
+      - Duplicate / contradictory / redundant chassis flags last-win and emit `{bin}: warning:`.
     notes: >-
       Do not publish or migrate qctl/forkctl until this is archived.
 

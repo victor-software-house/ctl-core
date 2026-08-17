@@ -1,7 +1,8 @@
 #![allow(dead_code, missing_docs)]
 
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs};
+use ctl_core::parser::apply_defaults;
 use ctl_core::prelude::*;
 
 #[derive(Parser, Debug)]
@@ -24,5 +25,8 @@ pub enum ToyCmd {
 pub fn parse(args: &[&str]) -> Toy {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);
-    Toy::try_parse_from(words).expect("parse")
+    let matches = apply_defaults(Toy::command())
+        .try_get_matches_from(&words)
+        .expect("parse");
+    Toy::from_arg_matches(&matches).expect("from matches")
 }

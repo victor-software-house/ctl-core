@@ -5,11 +5,14 @@ use clap::{ColorChoice, Command};
 /// Apply the *ctl parser contract to a clap command.
 ///
 /// `-h/--help` and `-V/--version` stay on. `disable_help_flag` is forbidden.
+/// Repeated flags last-win (`args_override_self`);
+/// [`crate::flags::chassis_warnings`] still reports the clash.
 #[must_use]
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
     command
         .arg_required_else_help(true)
+        .args_override_self(true)
         .color(ColorChoice::Auto)
         .disable_help_flag(false)
         .disable_version_flag(false)
@@ -66,6 +69,7 @@ mod tests {
     fn derive_keeps_help_and_version() {
         let mut command = apply_defaults(Toy::command());
         assert_help_enabled(&command);
+        assert!(command.is_args_override_self());
         let help = command.render_long_help().to_string();
         assert!(help.contains("-h, --help"));
         assert!(help.contains("-V, --version"));

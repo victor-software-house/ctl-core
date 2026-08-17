@@ -67,7 +67,9 @@ fn main() -> ExitCode {
 
 Boolean pairs that are domain-specific (`--pr` / `--no-pr`) stay in the
 CLI. Use clap `overrides_with` both ways; the last flag wins. See
-`ctl_core::flags::switch`.
+`ctl_core::flags::switch`. Call `warn_opposites` so `--pr --no-pr` is
+not silent. Chassis `go` already warns on repeated `--format`/`--color`,
+`--color` plus `--no-color`, and `--dry-run` plus `--preview`.
 
 `state-sync` already uses `-c` for `--config`. Flatten `ColorLong`
 instead of `OutputArgs` so `-c` is not stolen.

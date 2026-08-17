@@ -113,6 +113,22 @@ fn switch_follows_the_on_flag() {
     assert!(!switch(false, true));
 }
 
+#[test]
+fn last_format_wins() {
+    assert_eq!(
+        parse(&["--format", "json", "--format", "pretty", "status"])
+            .output
+            .format,
+        OutputFormat::Pretty
+    );
+}
+
+#[test]
+fn dry_run_preview_pair_still_parses() {
+    assert!(parse(&["--dry-run", "--preview", "status"]).dry.dry_run);
+    assert!(parse(&["--preview", "--dry-run", "status"]).dry.dry_run);
+}
+
 #[derive(Parser, Debug)]
 struct Split {
     #[command(flatten)]

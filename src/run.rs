@@ -16,7 +16,19 @@ pub fn go<C: clap::Parser + CommandFactory>(
     bin: &str,
     body: impl FnOnce(C) -> Result<()>,
 ) -> ExitCode {
-    main_with_help::<C>(bin, || body(C::parse()))
+    main_with_help::<C>(bin, || {
+        let raw: Vec<std::ffi::OsString> = std::env::args_os().collect();
+        let words: Vec<String> = raw
+            .iter()
+            .skip(1)
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        let warnings = crate::flags::chassis_warnings(words.iter().map(String::as_str));
+        crate::flags::emit_warnings(bin, &warnings);
+        let matches = crate::parser::apply_defaults(C::command()).get_matches_from(&raw);
+        let cli = C::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
+        body(cli)
+    })
 }
 
 /// Parse-free entry: print `{bin}: {error:#}` and return 1.
