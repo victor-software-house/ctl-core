@@ -32,6 +32,35 @@ fn format_short_and_long() {
 }
 
 #[test]
+fn output_flags_work_after_the_subcommand() {
+    let after = parse(&["status", "--format", "json", "--color", "never", "--quiet"]);
+    assert!(after.output.format.is_json());
+    assert!(after.output.quiet);
+    assert_eq!(after.output.color(), ColorMode::Never);
+    assert!(
+        parse(&["status", "-f", "json", "-q"])
+            .output
+            .format
+            .is_json()
+    );
+    assert_eq!(
+        parse(&["status", "--no-color"]).output.color(),
+        ColorMode::Never
+    );
+}
+
+#[test]
+fn format_args_flatten_is_global_after_the_verb() {
+    let cli = SplitCmd::parse_from([
+        "x", "status", "--format", "json", "--quiet", "--color", "never",
+    ]);
+    assert!(matches!(cli.command, ToyCmd::Status));
+    assert!(cli.format.format.is_json());
+    assert!(cli.format.quiet);
+    assert_eq!(cli.color.color(), ColorMode::Never);
+}
+
+#[test]
 fn color_short_long_and_negation() {
     assert_eq!(
         parse(&["-c", "never", "status"]).output.color(),
@@ -144,4 +173,14 @@ fn color_long_leaves_short_c_for_config() {
     assert_eq!(cli.config.as_deref(), Some("cfg.toml"));
     assert_eq!(cli.color.color(), ColorMode::Never);
     assert!(cli.format.format.is_json());
+}
+
+#[derive(Parser, Debug)]
+struct SplitCmd {
+    #[command(flatten)]
+    format: FormatArgs,
+    #[command(flatten)]
+    color: ColorLong,
+    #[command(subcommand)]
+    command: ToyCmd,
 }
