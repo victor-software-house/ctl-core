@@ -31,7 +31,10 @@ jobs:
         with:
           version: 2026.8.2
           cache: true
-      - run: mise install --locked
-      - name: Install verctl
-        run: cargo install --git https://github.com/victor-software-house/verctl --locked --force
+          install: false
+      - name: Install released verctl
+        run: |
+          set -euo pipefail
+          mise install --locked github:victor-software-house/verctl
+          echo "$(dirname "$(mise which verctl)")" >> "$GITHUB_PATH"
       - uses: victor-software-house/verctl/actions/version-pr@main
