@@ -1,0 +1,80 @@
+[package]
+name = "ctl-core"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.97.1"
+description = "Shared clap chassis for the *ctl CLIs"
+license = "MIT"
+repository = "https://github.com/victor-software-house/ctl-core"
+homepage = "https://github.com/victor-software-house/ctl-core"
+readme = "README.md"
+keywords = ["clap", "cli", "help", "color"]
+categories = ["command-line-interface", "development-tools"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "deny"
+invalid_html_tags = "deny"
+invalid_codeblock_attributes = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+disallowed_macros = "deny"
+
+[features]
+default = ["cli", "view", "help"]
+
+## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
+cli = ["dep:clap", "dep:anyhow"]
+
+## ANSI streams (`anstream` / `anstyle`).
+color = ["dep:anstream", "dep:anstyle"]
+
+## Serde models and the JSON view.
+json = ["dep:serde", "dep:serde_json"]
+
+## JSON Schema for the envelope and enums (`schemars`).
+schema = ["json", "dep:schemars"]
+
+## Styled `-h/--help` tables (forkctl / state-sync).
+help = ["cli", "color", "dep:comfy-table"]
+
+## Pretty / JSON / colorless emitters over serializable models.
+view = ["color", "json"]
+
+[dependencies]
+anyhow = { version = "1.0.100", optional = true }
+anstream = { version = "1.0.0", optional = true }
+anstyle = { version = "1.0.14", optional = true }
+clap = { version = "4.6.5", optional = true, features = ["derive", "env"] }
+comfy-table = { version = "7.2.2", optional = true, default-features = false, features = ["custom_styling"] }
+document-features = "0.2.12"
+indoc = "2.0.7"
+schemars = { version = "1.2.2", optional = true }
+serde = { version = "1.0.228", optional = true, features = ["derive"] }
+serde_json = { version = "1.0.145", optional = true }
+
+[dev-dependencies]
+indoc = "2.0.7"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = "symbols"
