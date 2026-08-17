@@ -18,6 +18,18 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-005
+    title: ColorMode tables for command pretty output
+    scope: ctl-core
+    completed: "2026-08-17"
+    disposition: completed
+    outcome: >-
+      kv/grid take ColorMode. never emits no ANSI. View.show
+      passes the view color. Consumers do not strip ANSI.
+    evidence:
+      - "crates.io ctl-core 0.0.3"
+      - "src/table.rs; tests use ColorMode::Never"
+
   - id: CTC-002
     title: Publish ctl-core to crates.io
     scope: ctl-core
@@ -26,9 +38,9 @@ archive:
     outcome: >-
       Consumers pin a crates.io version instead of a git rev.
     evidence:
-      - "crates.io ctl-core 0.0.1"
-      - "github.com/victor-software-house/ctl-core/releases/tag/v0.0.1"
-      - "Actions run 31993816035 via verctl publish"
+      - "crates.io ctl-core 0.0.3"
+      - "github.com/victor-software-house/ctl-core/releases/tag/v0.0.3"
+      - "mise github:victor-software-house/verctl@0.0.1 for publish"
 
   - id: CTC-004
     title: Harden ctl-core tests before any consumer migration
