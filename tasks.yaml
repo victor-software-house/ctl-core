@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.0.1/tasks.schema.json
+schema_version: 1
+prefix: CTC
+active: CTC-002
+
+queue:
+  - id: CTC-002
+    title: Publish ctl-core to crates.io
+    scope: ctl-core
+    outcome: >-
+      Consumers pin a crates.io version instead of a git rev.
+    blocked_by: []
+    acceptance:
+      - cargo publish --locked succeeds for ctl-core.
+      - A GitHub tag/release exists for that version.
+      - verctl, then qctl/forkctl, can depend on ctl-core = "x.y.z".
+    notes: >-
+      Repo is public. Do not wait for QCTL-001. verctl currently pins a
+      git rev.
+
+horizon:
+  - id: CTC-003
+    title: Optional per-user daemon sharing one session and view
+    scope: ctl-core
+    kind: evaluation
+    outcome: >-
+      Multiple *ctl clients attach to one local session (skill-cli shape).
+    open: >-
+      Pretty/JSON views must be adopted by qctl and forkctl first (QCTL-008).
+      Do not pull tokio into default features.
+    notes: Same idea as QCTL-007. Keep one implementation, in this crate.
+
+archive:
+  - id: CTC-001
+    title: Shared clap chassis, views, and formatdoc
+    scope: ctl-core
+    completed: "2026-08-17"
+    disposition: completed
+    outcome: >-
+      ctl-core owns flatten flags, styled help, Envelope/View, and
+      formatdoc. Not a command.
+    evidence:
+      - "github.com/victor-software-house/ctl-core main 02c7e9f"
+      - "prelude, Render, FormatArgs/ColorLong, cargo features"
+      - "verctl already consumes it"
