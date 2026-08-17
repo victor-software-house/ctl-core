@@ -12,6 +12,7 @@ env:
   GIT_CONFIG_COUNT: "1"
   GIT_CONFIG_KEY_0: init.defaultBranch
   GIT_CONFIG_VALUE_0: main
+  MISE_ENV: release
 
 concurrency:
   group: version-pr-${{ github.ref }}
@@ -32,6 +33,4 @@ jobs:
           version: 2026.8.2
           cache: true
       - run: mise install --locked
-      - name: Install verctl
-        run: cargo install --git https://github.com/victor-software-house/verctl --locked --force
       - uses: victor-software-house/verctl/actions/version-pr@main
