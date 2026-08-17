@@ -47,7 +47,7 @@ pub mod view;
 
 pub use color::ColorMode;
 #[cfg(feature = "cli")]
-pub use flags::{ColorLong, DryRunArgs, FormatArgs, OutputArgs};
+pub use flags::{ColorLong, DryRunArgs, FormatArgs, OutputArgs, resolve_color, switch};
 pub use format::OutputFormat;
 pub use indoc::{formatdoc, indoc, writedoc};
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};

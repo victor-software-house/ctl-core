@@ -39,15 +39,17 @@ pub struct OutputArgs {
     pub quiet: bool,
 }
 
+/// `--no-color` wins over a `--color` value.
+#[must_use]
+pub fn resolve_color(color: ColorMode, no_color: bool) -> ColorMode {
+    if no_color { ColorMode::Never } else { color }
+}
+
 impl OutputArgs {
     /// Effective color after `--no-color`.
     #[must_use]
     pub fn color(&self) -> ColorMode {
-        if self.no_color {
-            ColorMode::Never
-        } else {
-            self.color
-        }
+        resolve_color(self.color, self.no_color)
     }
 
     #[cfg(feature = "view")]
@@ -106,11 +108,7 @@ impl ColorLong {
     /// Effective color after `--no-color`.
     #[must_use]
     pub fn color(&self) -> ColorMode {
-        if self.no_color {
-            ColorMode::Never
-        } else {
-            self.color
-        }
+        resolve_color(self.color, self.no_color)
     }
 }
 
@@ -127,9 +125,8 @@ pub struct DryRunArgs {
     pub dry_run: bool,
 }
 
-/// Last-wins boolean pair after clap `overrides_with`.
-#[must_use]
 /// Last-wins boolean after clap `overrides_with`. `on` is the yes flag.
+#[must_use]
 pub fn switch(on: bool, _off: bool) -> bool {
     on
 }

@@ -51,7 +51,10 @@ impl ColorMode {
                 continue;
             }
             let value = match arg {
-                "-c" | "--color" => args.next().filter(|next| !next.starts_with('-')),
+                "-c" | "--color" => match args.peek() {
+                    Some(next) if !next.starts_with('-') => args.next(),
+                    _ => None,
+                },
                 other => other.strip_prefix("--color="),
             };
             if let Some(parsed) = value.and_then(|value| value.parse().ok()) {
