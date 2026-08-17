@@ -83,22 +83,76 @@ impl Pretty for PublishDemo {
     "};
 }
 
+struct PrettyCase {
+    name: &'static str,
+    crates: &'static [&'static str],
+    release: Option<&'static str>,
+    dry_run: bool,
+    expected: &'static str,
+}
+
 #[test]
-fn pretty_template_owns_the_ifs() {
-    let demo = PublishDemo {
-        crates: vec!["ctl-core@0.0.1 (cargo)".into()],
-        release: Some("would create v0.0.1".into()),
-        dry_run: true,
-    };
-    let pretty = render_template(PublishDemo::TEMPLATE, &demo).unwrap();
-    assert_eq!(
-        pretty,
-        indoc! {"
-            crate   ctl-core@0.0.1 (cargo)
-            release would create v0.0.1
-            dry-run (nothing published)
-        "}
-    );
+fn pretty_template_varies_by_data() {
+    let cases = [
+        PrettyCase {
+            name: "crate, release, dry-run",
+            crates: &["ctl-core@0.0.1 (cargo)"],
+            release: Some("would create v0.0.1"),
+            dry_run: true,
+            expected: indoc! {"
+                crate   ctl-core@0.0.1 (cargo)
+                release would create v0.0.1
+                dry-run (nothing published)
+            "},
+        },
+        PrettyCase {
+            name: "two crates only",
+            crates: &["ctl-core@0.0.1 (cargo)", "verctl@0.0.1 (cargo)"],
+            release: None,
+            dry_run: false,
+            expected: indoc! {"
+                crate   ctl-core@0.0.1 (cargo)
+                crate   verctl@0.0.1 (cargo)
+            "},
+        },
+        PrettyCase {
+            name: "release without dry-run",
+            crates: &["ctl-core@0.0.1 (cargo)"],
+            release: Some("https://github.com/victor-software-house/ctl-core/releases/tag/v0.0.1"),
+            dry_run: false,
+            expected: indoc! {"
+                crate   ctl-core@0.0.1 (cargo)
+                release https://github.com/victor-software-house/ctl-core/releases/tag/v0.0.1
+            "},
+        },
+        PrettyCase {
+            name: "empty model is empty pretty",
+            crates: &[],
+            release: None,
+            dry_run: false,
+            expected: "",
+        },
+        PrettyCase {
+            name: "dry-run only",
+            crates: &[],
+            release: None,
+            dry_run: true,
+            expected: "dry-run (nothing published)\n",
+        },
+    ];
+    for case in cases {
+        let demo = PublishDemo {
+            crates: case
+                .crates
+                .iter()
+                .map(|entry| (*entry).to_owned())
+                .collect(),
+            release: case.release.map(str::to_owned),
+            dry_run: case.dry_run,
+        };
+        let pretty = render_template(PublishDemo::TEMPLATE, &demo).expect(case.name);
+        assert_eq!(pretty, case.expected, "{}", case.name);
+    }
 }
 
 #[test]
