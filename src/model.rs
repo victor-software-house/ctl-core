@@ -3,31 +3,49 @@
 /// Bump when the envelope shape changes.
 pub const SCHEMA_VERSION: u32 = 1;
 
-/// Machine envelope. Pretty views ignore this and render `data` / `error`.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "json", serde(tag = "status", rename_all = "snake_case"))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub enum Envelope<T> {
-    /// Successful payload.
-    Ok {
-        /// Envelope schema version.
-        schema_version: u32,
-        /// Command result.
-        data: T,
-    },
-    /// Failed payload.
-    Err {
-        /// Envelope schema version.
-        schema_version: u32,
-        /// Error body.
-        error: ErrorBody,
-    },
+/// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
+mod data {
+    #![allow(clippy::disallowed_macros)]
+
+    /// Machine envelope. Pretty views ignore this and render `data` / `error`.
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+    #[cfg_attr(feature = "json", serde(tag = "status", rename_all = "snake_case"))]
+    #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+    pub enum Envelope<T> {
+        /// Successful payload.
+        Ok {
+            /// Envelope schema version.
+            schema_version: u32,
+            /// Command result.
+            data: T,
+        },
+        /// Failed payload.
+        Err {
+            /// Envelope schema version.
+            schema_version: u32,
+            /// Error body.
+            error: ErrorBody,
+        },
+    }
+
+    /// Human and machine error payload.
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+    #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+    pub struct ErrorBody {
+        /// Binary name (`qctl`, `verctl`, …).
+        pub bin: String,
+        /// Display message. Use `{error:#}` when the source is `anyhow`.
+        pub message: String,
+    }
 }
 
+pub use data::{Envelope, ErrorBody};
+
 impl<T> Envelope<T> {
-    #[must_use]
     /// Wrap `data` in a current-version success envelope.
+    #[must_use]
     pub fn ok(data: T) -> Self {
         Self::Ok {
             schema_version: SCHEMA_VERSION,
@@ -35,8 +53,8 @@ impl<T> Envelope<T> {
         }
     }
 
-    #[must_use]
     /// Wrap `error` in a current-version failure envelope.
+    #[must_use]
     pub fn err(error: ErrorBody) -> Self {
         Self::Err {
             schema_version: SCHEMA_VERSION,
@@ -45,20 +63,9 @@ impl<T> Envelope<T> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-/// Human and machine error payload.
-pub struct ErrorBody {
-    /// Binary name (`qctl`, `verctl`, …).
-    pub bin: String,
-    /// Display message. Use `{error:#}` when the source is `anyhow`.
-    pub message: String,
-}
-
 impl ErrorBody {
-    #[must_use]
     /// Build an error from a binary name and message.
+    #[must_use]
     pub fn new(bin: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             bin: bin.into(),

@@ -1,21 +1,28 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Pretty-output color policy. JSON never contains ANSI.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
-#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub enum ColorMode {
-    #[default]
-    /// Honor the stream: color if it is a TTY.
-    Auto,
-    /// Always emit ANSI.
-    Always,
-    /// Never emit ANSI.
-    Never,
+/// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
+mod data {
+    #![allow(clippy::disallowed_macros)]
+
+    /// Pretty-output color policy. JSON never contains ANSI.
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
+    #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+    #[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]
+    #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+    pub enum ColorMode {
+        #[default]
+        /// Honor the stream: color if it is a TTY.
+        Auto,
+        /// Always emit ANSI.
+        Always,
+        /// Never emit ANSI.
+        Never,
+    }
 }
+
+pub use data::ColorMode;
 
 impl ColorMode {
     /// Map to `anstream`'s color choice.

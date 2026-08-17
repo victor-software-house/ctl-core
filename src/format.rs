@@ -1,19 +1,26 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Output representation. Models serialize first; views pick one of these.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
-#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub enum OutputFormat {
-    #[default]
-    /// Human text, optionally colored.
-    Pretty,
-    /// Machine JSON. Never contains ANSI.
-    Json,
+/// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
+mod data {
+    #![allow(clippy::disallowed_macros)]
+
+    /// Output representation. Models serialize first; views pick one of these.
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
+    #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+    #[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]
+    #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+    pub enum OutputFormat {
+        #[default]
+        /// Human text, optionally colored.
+        Pretty,
+        /// Machine JSON. Never contains ANSI.
+        Json,
+    }
 }
+
+pub use data::OutputFormat;
 
 impl OutputFormat {
     #[must_use]
