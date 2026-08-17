@@ -1,37 +1,23 @@
 # yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.0.1/tasks.schema.json
 schema_version: 1
 prefix: CTC
-active: CTC-004
+active: CTC-002
 
 queue:
-  - id: CTC-004
-    title: Harden ctl-core tests before any consumer migration
-    scope: ctl-core
-    outcome: >-
-      Public API is covered harder than forkctl+qctl+verctl chassis
-      tests. No extra clap/help copies land until this is green.
-    blocked_by: []
-    acceptance:
-      - Color/format parse, last-wins --no-color, clap shorts/longs, Envelope JSON, help, and View are table-driven.
-      - `--color --no-color` does not swallow the negation (peek, do not take).
-      - A first-party concat! still fails clippy. schemars expands stay isolated.
-      - Duplicate / contradictory / redundant chassis flags last-win and emit `{bin}: warning:`.
-    notes: >-
-      Do not publish or migrate qctl/forkctl until this is archived.
-
   - id: CTC-002
     title: Publish ctl-core to crates.io
     scope: ctl-core
     outcome: >-
       Consumers pin a crates.io version instead of a git rev.
-    blocked_by: [CTC-004]
+    blocked_by: []
     acceptance:
       - cargo publish --locked succeeds for ctl-core.
       - A GitHub tag/release exists for that version.
       - verctl, then qctl/forkctl, can depend on ctl-core = "x.y.z".
     notes: >-
       Repo is public. Do not wait for QCTL-001. verctl currently pins a
-      git rev.
+      git rev. Cargo.lock is gitignored; either commit the lock or drop
+      --locked when this ships.
 
 horizon:
   - id: CTC-003
@@ -46,6 +32,20 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-004
+    title: Harden ctl-core tests before any consumer migration
+    scope: ctl-core
+    completed: "2026-08-17"
+    disposition: completed
+    outcome: >-
+      Public API is covered harder than forkctl+qctl+verctl chassis
+      tests. No extra clap/help copies land until this is green.
+    evidence:
+      - "github.com/victor-software-house/ctl-core main fdf6e67"
+      - "tests/{color_argv,format_tokens,flags_cli,flag_warnings,help_render,view,parse}"
+      - "peek --color --no-color; first-party concat! still fails clippy"
+      - "chassis last-wins + {bin}: warning: on clashes"
+
   - id: CTC-001
     title: Shared clap chassis, views, and formatdoc
     scope: ctl-core
