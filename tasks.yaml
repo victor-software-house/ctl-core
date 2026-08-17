@@ -34,6 +34,19 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-007
+    title: Version PR uses the released verctl tarball
+    scope: ci
+    completed: "2026-08-17"
+    disposition: completed
+    outcome: >-
+      Version PR execs github:verctl from PATH. No cargo install --git.
+      mise envs match verctl: rust in dev, tarball in release.
+    evidence:
+      - "github.com/victor-software-house/ctl-core/pull/3"
+      - "MISE_ENV=release on Version PR; mise install --locked"
+      - "MISE_ENV=dev,release on Publish"
+
   - id: CTC-005
     title: ColorMode tables for command pretty output
     scope: ctl-core
