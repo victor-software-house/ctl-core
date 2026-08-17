@@ -5,6 +5,7 @@ lockfile = true
 committed = "1.1.11"
 lefthook = "2.1.10"
 rust = { version = "nightly", components = "rustfmt,clippy" }
+"github:victor-software-house/verctl" = "0.0.1"
 
 [tasks.format]
 description = "rustfmt check"
