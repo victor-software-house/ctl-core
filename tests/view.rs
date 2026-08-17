@@ -140,18 +140,21 @@ fn pretty_template_varies_by_data() {
             expected: "dry-run (nothing published)\n",
         },
     ];
-    for case in cases {
+    for PrettyCase {
+        name,
+        crates,
+        release,
+        dry_run,
+        expected,
+    } in cases
+    {
         let demo = PublishDemo {
-            crates: case
-                .crates
-                .iter()
-                .map(|entry| (*entry).to_owned())
-                .collect(),
-            release: case.release.map(str::to_owned),
-            dry_run: case.dry_run,
+            crates: crates.iter().map(|entry| (*entry).to_owned()).collect(),
+            release: release.map(str::to_owned),
+            dry_run,
         };
-        let pretty = render_template(PublishDemo::TEMPLATE, &demo).expect(case.name);
-        assert_eq!(pretty, case.expected, "{}", case.name);
+        let pretty = render_template(PublishDemo::TEMPLATE, &demo).expect(name);
+        assert_eq!(pretty, expected, "{name}");
     }
 }
 
