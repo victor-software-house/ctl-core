@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 env:
   GIT_CONFIG_COUNT: "1"
@@ -23,7 +22,7 @@ concurrency:
 jobs:
   verify:
     name: Verify
-    runs-on: nscloud-ubuntu-24.04-amd64-4x8
+    runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
