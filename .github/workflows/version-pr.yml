@@ -7,7 +7,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 env:
   GIT_CONFIG_COUNT: "1"
@@ -34,4 +33,4 @@ jobs:
           version: 2026.8.2
           cache: true
       - run: mise install --locked
-      - uses: victor-software-house/verctl/actions/version-pr@main
+      - uses: victor-software-house/verctl/actions/version-pr@cc87aba821a504f3b7c1d35af40201f4609eaf0d # v0.0.3

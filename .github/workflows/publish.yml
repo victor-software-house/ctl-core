@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 env:
   GIT_CONFIG_COUNT: "1"
@@ -36,10 +35,8 @@ jobs:
         with:
           version: 2026.8.2
           cache: true
-          # This run is a closed pull request: its merge ref no longer
-          # exists, so the Actions cache refuses every write. Read only.
-          cache_save: false
+          cache_save: ${{ github.event_name == 'workflow_dispatch' }}
       - run: mise install --locked
-      - uses: victor-software-house/verctl/actions/publish@main
+      - uses: victor-software-house/verctl/actions/publish@cc87aba821a504f3b7c1d35af40201f4609eaf0d # v0.0.3
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
