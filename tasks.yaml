@@ -21,6 +21,30 @@ queue:
       Triggered by verctl tests (prepare_stage, changelog, publish).
       Do not invent a second tempfile wrapper in each *ctl.
 
+  - id: CTC-008
+    title: Own the declared-input layer every ctl CLI parses config with
+    scope: ctl-core
+    outcome: >-
+      One implementation of "read it, parse the shape, validate it once,
+      complain in the repo's own words" — instead of one per CLI, drifting.
+    blocked_by: []
+    acceptance:
+      - "The shared validators live here: a path that must stay inside the repository, a single file name, a list that needs at least one entry, a value that cannot be empty."
+      - "Each one is a garde `custom` rule generic over the context, so it works in a schema validated against nothing and in one validated against the whole document."
+      - "A complaint says what a person changes (\"must declare at least one label\"), never a stock validator's wording (\"length is lower than 1\")."
+      - One entry point loads a file: read, serde for shape, garde once at the boundary, nothing downstream re-checking.
+      - "verctl drops its own src/schema.rs after pinning that ctl-core version, and no copy is left behind."
+      - "The declare-your-own-target template renderer is available to any ctl CLI, not only verctl."
+    notes: >-
+      2026-08-18: verctl built this while shipping served files (VER-018,
+      and VER-022 is the matching row there). It is already shared between
+      two unrelated schemas in that repo — a TOML config file and a Jinja
+      template's own exports — which is the evidence it is not
+      verctl-shaped. Do this row before VER-022 so that one is a move
+      rather than a fork. Related: qctl's schemars work and VER-021 want
+      JSON Schema generated from these same types, so keep the types
+      derive-friendly.
+
 horizon:
   - id: CTC-003
     title: Optional per-user daemon sharing one session and view
