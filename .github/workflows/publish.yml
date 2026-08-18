@@ -36,6 +36,9 @@ jobs:
         with:
           version: 2026.8.2
           cache: true
+          # This run is a closed pull request: its merge ref no longer
+          # exists, so the Actions cache refuses every write. Read only.
+          cache_save: false
       - run: mise install --locked
       - uses: victor-software-house/verctl/actions/publish@main
         env:
