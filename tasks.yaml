@@ -1,6 +1,10 @@
-# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.0.1/tasks.schema.json
-schema_version: 1
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.1.2/tasks.schema.json
+schema_version: 3
 prefix: CTC
+
+style:
+  timezone: "-03:00"
+  section_order: [queue, horizon, archive]
 active: null
 
 queue:
@@ -87,7 +91,7 @@ archive:
   - id: CTC-007
     title: Version PR uses the released verctl tarball
     scope: ci
-    completed: "2026-08-17"
+    completed: "2026-08-17T05:59:57"
     disposition: completed
     outcome: >-
       Version PR execs github:verctl from PATH. No cargo install --git.
@@ -100,7 +104,7 @@ archive:
   - id: CTC-005
     title: ColorMode tables for command pretty output
     scope: ctl-core
-    completed: "2026-08-17"
+    completed: "2026-08-17T02:21:47"
     disposition: completed
     outcome: >-
       kv/grid take ColorMode. never emits no ANSI. View.show
@@ -112,7 +116,7 @@ archive:
   - id: CTC-002
     title: Publish ctl-core to crates.io
     scope: ctl-core
-    completed: "2026-08-17"
+    completed: "2026-08-17T01:23:25"
     disposition: completed
     outcome: >-
       Consumers pin a crates.io version instead of a git rev.
@@ -124,7 +128,7 @@ archive:
   - id: CTC-004
     title: Harden ctl-core tests before any consumer migration
     scope: ctl-core
-    completed: "2026-08-17"
+    completed: "2026-08-17T00:17:36"
     disposition: completed
     outcome: >-
       Public API is covered harder than forkctl+qctl+verctl chassis
@@ -141,7 +145,7 @@ archive:
   - id: CTC-001
     title: Shared clap chassis, views, and formatdoc
     scope: ctl-core
-    completed: "2026-08-17"
+    completed: "2026-08-16T23:13:19"
     disposition: completed
     outcome: >-
       ctl-core owns flatten flags, styled help, Envelope/View, and
