@@ -44,6 +44,9 @@ pub mod style;
 /// Compact pretty tables for command output.
 #[cfg(feature = "view")]
 pub mod table;
+/// Mise Usage spec from a clap command.
+#[cfg(feature = "usage")]
+pub mod usage;
 /// Pretty / JSON / colorless emitters.
 #[cfg(feature = "view")]
 pub mod view;
@@ -61,5 +64,7 @@ pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 pub use run::main as run;
 #[cfg(feature = "view")]
 pub use table::{grid, kv};
+#[cfg(feature = "usage")]
+pub use usage::{mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
 pub use view::{Pretty, Render, View, render_template};

@@ -29,5 +29,7 @@ pub use crate::parser::verify;
 pub use crate::run::{go, main_with_help};
 #[cfg(feature = "view")]
 pub use crate::table::{grid, kv};
+#[cfg(feature = "usage")]
+pub use crate::usage::{mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
 pub use crate::view::{Pretty, Render, View, render_template};
