@@ -5,9 +5,35 @@ prefix: CTC
 style:
   timezone: "-03:00"
   section_order: [queue, horizon, archive]
-active: null
+active: CTC-009
 
 queue:
+  - id: CTC-009
+    title: Prove this repo's release lane by shipping one release through it
+    scope: ctl-core
+    outcome: >-
+      The next ctl-core version comes out of a Version PR, so the lane is
+      known to work here rather than assumed to because it works elsewhere.
+    blocked_by: []
+    acceptance:
+      - A .changeset fragment on a real PR produces a Version PR that bumps Cargo.toml and writes the CHANGELOG section.
+      - "`[prepare].after` runs: Cargo.lock is refreshed by `cargo update --workspace` and staged on that commit."
+      - The tag's tree carries the bumped Cargo.lock, so `cargo publish --locked` works from it.
+      - The verctl pin here is at or past 0.0.4, the release that commits served files and rewrites pins on the Version PR commit.
+    notes: >-
+      2026-08-18, checked rather than assumed. The lane is wired and green —
+      Version PR ran twice on main today — but it has never carried a
+      release: there is no changeset, so every run no-ops. v0.0.1 through
+      v0.0.3 were cut by hand, which the history shows plainly, because
+      CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no
+      "version packages" commit exists at all. `[prepare]` arrived after that
+      in cf11ac2 (#6) and has therefore never run. This matters because
+      ctl-core is about to become the home of the declared-input layer
+      (CTC-008), and verctl will pin it — a release path nobody has walked is
+      a bad thing to discover while migrating two other repos onto it.
+      The pin here is still verctl 0.0.3, so this repo has neither served
+      files nor pins-on-the-Version-PR yet.
+
   - id: CTC-006
     title: Test fixture tree and per-suite temp dirs
     scope: ctl-core
@@ -48,32 +74,6 @@ queue:
       rather than a fork. Related: qctl's schemars work and VER-021 want
       JSON Schema generated from these same types, so keep the types
       derive-friendly.
-
-  - id: CTC-009
-    title: Prove this repo's release lane by shipping one release through it
-    scope: ctl-core
-    outcome: >-
-      The next ctl-core version comes out of a Version PR, so the lane is
-      known to work here rather than assumed to because it works elsewhere.
-    blocked_by: []
-    acceptance:
-      - A .changeset fragment on a real PR produces a Version PR that bumps Cargo.toml and writes the CHANGELOG section.
-      - "`[prepare].after` runs: Cargo.lock is refreshed by `cargo update --workspace` and staged on that commit."
-      - The tag's tree carries the bumped Cargo.lock, so `cargo publish --locked` works from it.
-      - The verctl pin here is at or past 0.0.4, the release that commits served files and rewrites pins on the Version PR commit.
-    notes: >-
-      2026-08-18, checked rather than assumed. The lane is wired and green —
-      Version PR ran twice on main today — but it has never carried a
-      release: there is no changeset, so every run no-ops. v0.0.1 through
-      v0.0.3 were cut by hand, which the history shows plainly, because
-      CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no
-      "version packages" commit exists at all. `[prepare]` arrived after that
-      in cf11ac2 (#6) and has therefore never run. This matters because
-      ctl-core is about to become the home of the declared-input layer
-      (CTC-008), and verctl will pin it — a release path nobody has walked is
-      a bad thing to discover while migrating two other repos onto it.
-      The pin here is still verctl 0.0.3, so this repo has neither served
-      files nor pins-on-the-Version-PR yet.
 
 horizon:
   - id: CTC-003
