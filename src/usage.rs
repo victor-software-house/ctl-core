@@ -12,6 +12,8 @@ use std::process::ExitCode;
 use clap::Command;
 use usage::Spec;
 
+use crate::formatdoc;
+
 /// Render a Usage KDL spec for a mise-mounted task named `bin`.
 #[must_use]
 pub fn spec(mut command: Command, bin: &str) -> String {
@@ -25,7 +27,9 @@ pub fn spec(mut command: Command, bin: &str) -> String {
 /// The `#USAGE mount` line a served mise file task carries.
 #[must_use]
 pub fn mount_line(task: &str) -> String {
-    format!("#USAGE mount \"mise run --quiet {task} -- --usage-spec={task}\"")
+    formatdoc! {r#"
+        #USAGE mount "mise run --quiet {task} -- --usage-spec={task}"
+    "#}
 }
 
 /// If argv contains `--usage-spec[=BIN]`, print the spec for `C` and return
@@ -65,6 +69,7 @@ mod tests {
     use clap::{CommandFactory, Parser};
 
     use super::{mount_line, spec, spec_bin};
+    use crate::indoc;
 
     #[derive(Parser)]
     #[command(name = "toy")]
@@ -96,7 +101,9 @@ mod tests {
     fn mount_line_is_the_mise_bootstrap() {
         assert_eq!(
             mount_line("q"),
-            "#USAGE mount \"mise run --quiet q -- --usage-spec=q\""
+            indoc! {r#"
+                #USAGE mount "mise run --quiet q -- --usage-spec=q"
+            "#}
         );
     }
 }
