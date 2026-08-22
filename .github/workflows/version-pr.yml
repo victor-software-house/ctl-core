@@ -38,4 +38,4 @@ jobs:
         with:
           shared-key: ctl-core-verify
           save-if: false
-      - uses: victor-software-house/verctl/actions/version-pr@52a7d3742bfd30c5a7144316403d7e0655341b14 # v0.1.0
+      - uses: victor-software-house/verctl/actions/version-pr@bbff495dc585a95175d8a0e421748d33633ad7a4 # v0.2.0
