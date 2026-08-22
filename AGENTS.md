@@ -86,7 +86,9 @@ mise run verify
 ```
 
 `verify` is format, clippy, nextest, doc-tests, cargo-deny, and cargo-machete.
-Do not `&&` those in a new task; `depends` is the mise form.
+Do not `&&` those in a new task; `depends` is the mise form. Those cargo
+invocations share `target/`; the package-cache lock serializes them. Do not
+invent extra `CARGO_TARGET_DIR` trees to hide that.
 
 ## Git
 
