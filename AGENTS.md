@@ -85,6 +85,9 @@ packages with `--locked`. Prove the lane by shipping through it (`CTC-009`).
 mise run verify
 ```
 
+`verify` is format, clippy, nextest, doc-tests, cargo-deny, and cargo-machete.
+Do not `&&` those in a new task; `depends` is the mise form.
+
 ## Git
 
 Conventional commits. lefthook. No `--no-verify`. Branch `type/number-desc`.
