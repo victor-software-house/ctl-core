@@ -9,8 +9,8 @@
 
 use std::process::ExitCode;
 
+use ::usage::Spec;
 use clap::Command;
-use usage::Spec;
 
 use crate::formatdoc;
 
@@ -50,6 +50,9 @@ pub fn spec_bin(
 ) -> Option<String> {
     for arg in args {
         let arg = arg.as_ref();
+        if arg == "--" {
+            break;
+        }
         if arg == "--usage-spec" {
             return Some(default_bin.to_owned());
         }
@@ -89,6 +92,11 @@ mod tests {
         assert_eq!(spec_bin(["--usage-spec"], "qctl").as_deref(), Some("qctl"));
         assert_eq!(spec_bin(["--usage-spec=q"], "qctl").as_deref(), Some("q"));
         assert_eq!(spec_bin(["status"], "qctl"), None);
+        assert_eq!(spec_bin(["status", "--", "--usage-spec"], "qctl"), None);
+        assert_eq!(
+            spec_bin(["--usage-spec=q", "--", "status"], "qctl").as_deref(),
+            Some("q")
+        );
     }
 
     #[test]
