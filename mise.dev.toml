@@ -31,7 +31,7 @@ run = "cargo deny check"
 
 [tasks.deps]
 description = "Unused crate analysis"
-run = "cargo-machete"
+run = "cargo-machete --with-metadata"
 
 [tasks.commit-msg]
 description = "Lint the git commit-msg file with committed"
