@@ -28,8 +28,8 @@ ctl-core owns:
   stream selection;
 - `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and
-  unwrapped verbatim blocks that remove terminal controls, bidi controls, and
-  Unicode line separators while preserving preformatted text;
+  unwrapped verbatim blocks that remove terminal controls, Unicode line
+  separators, and unsafe invisible format characters;
 - semantic roles and the one visual theme;
 - width detection, wrapping, table layout, ANSI policy, stdout, and stderr;
 - JSON emission and generic error envelopes.
