@@ -92,7 +92,8 @@ pub enum Block {
     /// Wrapped prose.
     Paragraph(Text),
     /// Preformatted text kept unwrapped inside the document newline contract.
-    /// Unsafe control characters are removed; tabs and line breaks survive.
+    /// Terminal controls, bidi controls, and Unicode line separators are
+    /// removed.
     Verbatim(String),
     /// Key/value fields.
     Fields(Fields),

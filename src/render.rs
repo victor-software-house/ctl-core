@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 
 use comfy_table::presets::{NOTHING, UTF8_FULL_CONDENSED};
 use comfy_table::{Cell, ContentArrangement, Table as EngineTable};
+use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
 
@@ -293,20 +294,28 @@ fn sanitize_verbatim(value: &str) -> String {
     value
         .chars()
         .filter(|character| {
-            *character == '\n'
-                || *character == '\t'
-                || (!character.is_control()
-                    && get_general_category(*character) != GeneralCategory::Format)
+            *character == '\n' || *character == '\t' || !is_unsafe_verbatim(*character)
         })
         .collect::<String>()
         .trim_end_matches('\n')
         .to_owned()
 }
 
+fn is_unsafe_verbatim(character: char) -> bool {
+    character.is_control()
+        || matches!(
+            character,
+            ALM | FSI | LRE | LRI | LRM | LRO | PDF | PDI | RLE | RLI | RLM | RLO
+        )
+        || matches!(
+            get_general_category(character),
+            GeneralCategory::LineSeparator | GeneralCategory::ParagraphSeparator
+        )
+}
+
 #[cfg(test)]
 mod tests {
     use indoc::{formatdoc, indoc};
-    use unicode_general_category::{GeneralCategory, get_general_category};
 
     use super::RenderOptions;
     use crate::color::ColorMode;
@@ -365,15 +374,11 @@ mod tests {
     }
 
     #[test]
-    fn verbatim_text_removes_unsafe_controls_and_keeps_tabs() {
+    fn verbatim_text_removes_unsafe_controls_and_keeps_text_formatting() {
         let rendered = Document::new()
-            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\tvalue")
+            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\tjoiner\u{200d}soft\u{ad}")
             .render(RenderOptions::new(ColorMode::Never).width(5));
-        assert_eq!(rendered, "]52;clipboard\tvalue\n");
-        assert!(!rendered.chars().any(|character| {
-            (character != '\n' && character != '\t' && character.is_control())
-                || get_general_category(character) == GeneralCategory::Format
-        }));
+        assert_eq!(rendered, "]52;clipboard\tjoiner\u{200d}soft\u{ad}\n");
     }
 
     #[test]

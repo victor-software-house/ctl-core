@@ -52,8 +52,9 @@ feature graph. The GitHub README is not rustdoc.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`,
    `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI,
    width, or streams. Verbatim is for preformatted Markdown or protocol text
-   whose line boundaries must survive rendering. It removes unsafe controls,
-   preserves tabs/newlines, and normalizes trailing newlines to the document.
+   whose line boundaries must survive rendering. It removes terminal controls,
+   bidi controls, and Unicode line separators; preserves tabs, newlines, and
+   text-format characters; and normalizes trailing newlines to the document.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output.
