@@ -15,6 +15,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Compact command tables: `kv` / `grid` (take `ColorMode`)
 - Process exit wrapper: `go` / `run` (`{bin}: {error:#}` + JSON error object)
 - Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`
+- Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_line`, so
+  consumers run `mise run q status` with no `--`. Forkctl completion
+  overlays stay in forkctl.
 
 Domain verbs stay in each CLI. Boolean pairs that are domain-specific
 (`--pr` / `--no-pr`) stay in the CLI — use clap `overrides_with` both ways and

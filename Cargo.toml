@@ -58,6 +58,9 @@ help = ["cli", "color", "dep:comfy-table"]
 ## Pretty / JSON / colorless emitters over serializable models.
 view = ["color", "json", "dep:minijinja", "dep:comfy-table"]
 
+## Mise Usage spec from clap (`--usage-spec`, served-task mount).
+usage = ["cli", "dep:usage-lib"]
+
 [dependencies]
 anyhow = { version = "1.0.104", optional = true }
 anstream = { version = "1.0.0", optional = true }
@@ -70,6 +73,7 @@ minijinja = { version = "2.24.0", optional = true }
 schemars = { version = "1.2.2", optional = true }
 serde = { version = "1.0.229", optional = true, features = ["derive"] }
 serde_json = { version = "1.0.151", optional = true }
+usage-lib = { version = "6.0.0", default-features = false, features = ["clap"], optional = true }
 
 [dev-dependencies]
 indoc = "2.0.7"
