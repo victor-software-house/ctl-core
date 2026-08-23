@@ -4,6 +4,8 @@ use std::fmt::Write as _;
 
 use comfy_table::presets::{NOTHING, UTF8_FULL_CONDENSED};
 use comfy_table::{Cell, ContentArrangement, Table as EngineTable};
+use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
+use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
 
 use crate::color::ColorMode;
@@ -79,6 +81,7 @@ impl Renderer {
         match block {
             Block::Heading(text) => self.text_with_default(text, Role::Heading),
             Block::Paragraph(text) => self.wrap(&self.text(text), 0),
+            Block::Verbatim(value) => sanitize_verbatim(value),
             Block::Fields(fields) => self.fields(fields),
             Block::Table(table) => self.table(table),
             Block::Section(section) => self.section(section),
@@ -287,6 +290,29 @@ impl Document {
     }
 }
 
+fn sanitize_verbatim(value: &str) -> String {
+    value
+        .chars()
+        .filter(|character| {
+            *character == '\n' || *character == '\t' || !is_unsafe_verbatim(*character)
+        })
+        .collect::<String>()
+        .trim_end_matches('\n')
+        .to_owned()
+}
+
+fn is_unsafe_verbatim(character: char) -> bool {
+    character.is_control()
+        || matches!(
+            character,
+            ALM | FSI | LRE | LRI | LRM | LRO | PDF | PDI | RLE | RLI | RLM | RLO
+        )
+        || matches!(
+            get_general_category(character),
+            GeneralCategory::LineSeparator | GeneralCategory::ParagraphSeparator
+        )
+}
+
 #[cfg(test)]
 mod tests {
     use indoc::{formatdoc, indoc};
@@ -332,6 +358,36 @@ mod tests {
             .table(table)
             .render(RenderOptions::new(ColorMode::Never).width(40));
         assert_eq!(rendered, "  -f --format\n    Output representation\n");
+    }
+
+    #[test]
+    fn verbatim_text_ignores_explicit_width() {
+        let source = indoc! {"
+            ```text
+            this line stays longer than five
+            ```
+        "};
+        let rendered = Document::new()
+            .verbatim(source)
+            .render(RenderOptions::new(ColorMode::Never).width(5));
+        assert_eq!(rendered, source);
+    }
+
+    #[test]
+    fn verbatim_text_removes_terminal_bidi_and_line_controls() {
+        let rendered = Document::new()
+            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\tvalue")
+            .render(RenderOptions::new(ColorMode::Never).width(5));
+        assert_eq!(rendered, "]52;clipboard\tvalue\n");
+    }
+
+    #[test]
+    fn verbatim_text_preserves_other_unicode_formatting() {
+        let source = "\u{600}\u{6dd}\u{70f}\u{110bd}\u{200b}\u{2060}\u{feff}\u{fff9}\u{1d173}\u{e0001}\u{200c}\u{200d}\u{ad}";
+        let rendered = Document::new()
+            .verbatim(source)
+            .render(RenderOptions::new(ColorMode::Never).width(5));
+        assert_eq!(rendered, format!("{source}\n"));
     }
 
     #[test]
