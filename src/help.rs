@@ -153,12 +153,6 @@ pub fn document(mut command: Command) -> Document {
     output
 }
 
-/// Render help with automatic width and forced semantic color.
-#[must_use]
-pub fn render(command: Command) -> String {
-    document(command).render(RenderOptions::new(ColorMode::Always))
-}
-
 fn value_label(arg: &clap::Arg) -> String {
     if matches!(
         arg.get_action(),
@@ -217,7 +211,7 @@ fn description(arg: &clap::Arg) -> Text {
 mod tests {
     use clap::{CommandFactory, Parser};
 
-    use super::{document, render, try_emit_from};
+    use super::{document, try_emit_from};
     use crate::color::ColorMode;
     use crate::flags::{DryRunArgs, OutputArgs};
     use crate::render::RenderOptions;
@@ -240,8 +234,8 @@ mod tests {
     }
 
     #[test]
-    fn render_lists_commands_and_flags() {
-        let text = render(Toy::command());
+    fn document_lists_commands_and_flags() {
+        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(text.contains("Commands"));
         assert!(text.contains("status"));
         assert!(text.contains("--dry-run"));
