@@ -27,8 +27,8 @@ Clap types ──→ App ──→ typed domain result ──┬──→ JSON
 grids, sections, notices, and rules. It carries meaning, not ANSI or table
 borders. The renderer chooses style, wrapping, width, and color; verbatim blocks
 preserve preformatted Markdown and protocol lines without wrapping, remove
-terminal controls, Unicode line separators, and unsafe invisible format
-characters, and normalize trailing newlines to the document contract.
+terminal controls, bidi controls, and Unicode line separators, preserve other
+Unicode formatting, and normalize trailing newlines to the document contract.
 
 ## Use
 

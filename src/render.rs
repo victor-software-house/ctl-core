@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 
 use comfy_table::presets::{NOTHING, UTF8_FULL_CONDENSED};
 use comfy_table::{Cell, ContentArrangement, Table as EngineTable};
+use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
 
@@ -301,14 +302,15 @@ fn sanitize_verbatim(value: &str) -> String {
 }
 
 fn is_unsafe_verbatim(character: char) -> bool {
-    let category = get_general_category(character);
     character.is_control()
         || matches!(
-            category,
+            character,
+            ALM | FSI | LRE | LRI | LRM | LRO | PDF | PDI | RLE | RLI | RLM | RLO
+        )
+        || matches!(
+            get_general_category(character),
             GeneralCategory::LineSeparator | GeneralCategory::ParagraphSeparator
         )
-        || (category == GeneralCategory::Format
-            && !matches!(character, '\u{ad}' | '\u{200c}' | '\u{200d}'))
 }
 
 #[cfg(test)]
@@ -372,14 +374,20 @@ mod tests {
     }
 
     #[test]
-    fn verbatim_text_removes_unsafe_controls_and_keeps_text_formatting() {
+    fn verbatim_text_removes_terminal_bidi_and_line_controls() {
         let rendered = Document::new()
-            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\u{e0001}\u{fff9}\u{200b}\u{2060}\u{feff}\tjoiner\u{200c}\u{200d}soft\u{ad}")
+            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\tvalue")
             .render(RenderOptions::new(ColorMode::Never).width(5));
-        assert_eq!(
-            rendered,
-            "]52;clipboard\tjoiner\u{200c}\u{200d}soft\u{ad}\n"
-        );
+        assert_eq!(rendered, "]52;clipboard\tvalue\n");
+    }
+
+    #[test]
+    fn verbatim_text_preserves_other_unicode_formatting() {
+        let source = "\u{600}\u{6dd}\u{70f}\u{110bd}\u{200b}\u{2060}\u{feff}\u{fff9}\u{1d173}\u{e0001}\u{200c}\u{200d}\u{ad}";
+        let rendered = Document::new()
+            .verbatim(source)
+            .render(RenderOptions::new(ColorMode::Never).width(5));
+        assert_eq!(rendered, format!("{source}\n"));
     }
 
     #[test]
