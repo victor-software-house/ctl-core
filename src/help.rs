@@ -60,18 +60,25 @@ pub(crate) fn emit_bare<C: CommandFactory>(color: ColorMode) -> io::Result<()> {
 }
 
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {
-    let root = C::command();
-    let mut command = select_command(root, args.get(1..).unwrap_or(&[]));
-    command.build();
-    command
+    let declared = C::command();
+    let mut root = declared.clone();
+    root.build();
+    select_command(root, declared, args.get(1..).unwrap_or(&[]))
 }
 
-fn select_command(mut command: Command, args: &[String]) -> Command {
+fn select_command(mut command: Command, mut declared: Command, args: &[String]) -> Command {
     for value in args {
         if value == "-h" || value == "--help" {
             break;
         }
         if value.starts_with('-') {
+            continue;
+        }
+        let declared_next = declared
+            .get_subcommands()
+            .find(|subcommand| subcommand.get_name() == value)
+            .cloned();
+        if value == "help" && declared_next.is_none() {
             continue;
         }
         let Some(next) = command
@@ -82,6 +89,9 @@ fn select_command(mut command: Command, args: &[String]) -> Command {
             continue;
         };
         command = next;
+        if let Some(next) = declared_next {
+            declared = next;
+        }
     }
     command
 }
@@ -302,6 +312,13 @@ mod tests {
     fn help_subcommand_selects_the_requested_command() {
         let args = ["toy", "help", "status"].map(String::from);
         assert_eq!(help_command::<Toy>(&args).get_name(), "status");
+    }
+
+    #[test]
+    fn subcommand_help_keeps_parent_usage_and_globals() {
+        let command = help_command::<Toy>(&["toy", "status", "--help"].map(String::from));
+        assert_eq!(command.get_bin_name(), Some("ctl-core status"));
+        assert!(command.get_arguments().any(|arg| arg.get_id() == "format"));
     }
 
     #[test]
