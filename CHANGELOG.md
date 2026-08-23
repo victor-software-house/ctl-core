@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.1.1
+
+- `features = ["usage"]` compiles without `help`. Prelude re-exports `go` only when help is on.
+
 ## ctl-core 0.1.0
 
 - Verify runs nextest, cargo-deny (licenses/bans/sources locally; advisories on CI), and cargo-machete.
