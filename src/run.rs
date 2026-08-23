@@ -25,10 +25,15 @@ pub fn go<C: clap::Parser + CommandFactory>(
             .collect();
         let warnings = crate::flags::chassis_warnings(words.iter().map(String::as_str));
         crate::flags::emit_warnings(bin, &warnings);
-        let matches = crate::parser::apply_defaults(C::command()).get_matches_from(&raw);
+        let matches = legacy_command::<C>().get_matches_from(&raw);
         let cli = C::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
         body(cli)
     })
+}
+
+#[cfg(feature = "help")]
+fn legacy_command<C: CommandFactory>() -> clap::Command {
+    crate::parser::apply_defaults(C::command()).arg_required_else_help(true)
 }
 
 /// Parse-free entry: print `{bin}: {error:#}` and return 1.
@@ -66,10 +71,31 @@ pub fn main_with(
 #[cfg(feature = "help")]
 #[must_use]
 pub fn main_with_help<C: CommandFactory>(bin: &str, body: impl FnOnce() -> Result<()>) -> ExitCode {
+    let raw = std::env::args_os().collect::<Vec<_>>();
+    if raw.len() == 1 && crate::parser::requires_input::<C>() {
+        return crate::help::emit_bare::<C>(ColorMode::Auto)
+            .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
+    }
     match crate::help::try_emit::<C>() {
         Ok(true) => return ExitCode::SUCCESS,
         Ok(false) => {}
         Err(_) => return ExitCode::FAILURE,
     }
     main(bin, body)
+}
+
+#[cfg(all(test, feature = "help"))]
+mod tests {
+    use clap::Parser;
+
+    use super::legacy_command;
+
+    #[derive(Parser)]
+    #[command(version)]
+    struct OptionalCli {}
+
+    #[test]
+    fn legacy_go_keeps_bare_help_required() {
+        assert!(legacy_command::<OptionalCli>().is_arg_required_else_help_set());
+    }
 }

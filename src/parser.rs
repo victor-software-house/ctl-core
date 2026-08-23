@@ -1,6 +1,81 @@
 //! Parser defaults. `-h` / `--help` and `-V` / `--version` stay on.
 
+#[cfg(any(feature = "view", feature = "help"))]
+use std::ffi::OsString;
+
 use clap::{ColorChoice, Command};
+
+#[cfg(any(feature = "view", feature = "help"))]
+use crate::{ColorMode, OutputFormat};
+
+/// Output policy recovered with the authoritative Clap graph before a full
+/// parse succeeds.
+#[cfg(any(feature = "view", feature = "help"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ParsedOutput {
+    pub(crate) format: OutputFormat,
+    pub(crate) color: ColorMode,
+}
+
+/// Best-effort output policy for help and parse errors.
+///
+/// Clap still owns option placement, attached short values, domain option
+/// values, global propagation, and `--` semantics.
+#[cfg(any(feature = "view", feature = "help"))]
+pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> ParsedOutput {
+    let command = C::command()
+        .arg_required_else_help(false)
+        .args_override_self(true)
+        .disable_help_flag(true)
+        .disable_version_flag(true)
+        .ignore_errors(true)
+        .color(ColorChoice::Never);
+    let Ok(matches) = command.try_get_matches_from(raw) else {
+        return ParsedOutput {
+            format: OutputFormat::Pretty,
+            color: ColorMode::Auto,
+        };
+    };
+    let format = matches
+        .try_get_one::<OutputFormat>("format")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or_default();
+    let color = matches
+        .try_get_one::<ColorMode>("color")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or_default();
+    let no_color = matches
+        .try_get_one::<bool>("no_color")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or(false);
+    ParsedOutput {
+        format,
+        color: crate::flags::resolve_color(color, no_color),
+    }
+}
+
+/// Whether Clap interprets this invocation as an explicit help request.
+#[cfg(feature = "help")]
+pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
+    let command = apply_defaults(C::command()).color(ColorChoice::Never);
+    matches!(
+        command.try_get_matches_from(raw),
+        Err(error) if error.kind() == clap::error::ErrorKind::DisplayHelp
+    )
+}
+
+/// Whether the command's Clap grammar rejects a bare invocation with help.
+#[cfg(feature = "help")]
+pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
+    let command = C::command();
+    command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
+}
 
 /// Apply the *ctl parser contract to a clap command.
 ///
@@ -11,7 +86,6 @@ use clap::{ColorChoice, Command};
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
     command
-        .arg_required_else_help(true)
         .args_override_self(true)
         .color(ColorChoice::Auto)
         .disable_help_flag(false)
@@ -73,6 +147,12 @@ mod tests {
         let help = command.render_long_help().to_string();
         assert!(help.contains("-h, --help"));
         assert!(help.contains("-V, --version"));
+    }
+
+    #[test]
+    fn preserves_bare_invocation_policy() {
+        let command = apply_defaults(Toy::command().arg_required_else_help(false));
+        assert!(!command.is_arg_required_else_help_set());
     }
 
     #[test]

@@ -1,76 +1,52 @@
-//! Compact pretty tables for command output.
-
-use comfy_table::presets::UTF8_FULL_CONDENSED;
-use comfy_table::{Cell, ContentArrangement, Table};
+//! Compatibility helpers over the semantic document renderer.
+//!
+//! New consumers should compose [`Fields`](crate::Fields) and
+//! [`Table`](crate::Table) inside a [`Document`](crate::Document).
 
 use crate::color::ColorMode;
-use crate::style::{HEADING, OPTION, styled};
+use crate::document::{Document, Fields, Table};
+use crate::render::RenderOptions;
 
-/// Two-column token / value table. Tokens are styled unless `color` is never.
+/// Two-column token/value fields. Tokens are styled unless `color` is never.
 #[must_use]
 pub fn kv(
     color: ColorMode,
     rows: impl IntoIterator<Item = (impl AsRef<str>, impl AsRef<str>)>,
 ) -> String {
-    let cells = rows
+    let fields = rows
         .into_iter()
-        .map(|(token, value)| vec![token.as_ref().to_owned(), value.as_ref().to_owned()]);
-    render(color, None, cells, true)
+        .fold(Fields::new(), |fields, (token, value)| {
+            fields.row(token.as_ref(), value.as_ref())
+        });
+    Document::new()
+        .fields(fields)
+        .render(RenderOptions::new(color))
+        .trim_end()
+        .to_owned()
 }
 
-/// Headered grid. Styled unless `color` is never.
+/// Headered grid. Headers and the first column carry semantic styles.
 #[must_use]
 pub fn grid(
     color: ColorMode,
     headers: &[&str],
     rows: impl IntoIterator<Item = Vec<String>>,
 ) -> String {
-    render(color, Some(headers), rows, true)
-}
-
-fn paint(color: ColorMode, style: anstyle::Style, value: &str) -> String {
-    if color == ColorMode::Never {
-        value.to_owned()
-    } else {
-        styled(style, value)
-    }
-}
-
-fn render(
-    color: ColorMode,
-    headers: Option<&[&str]>,
-    rows: impl IntoIterator<Item = Vec<String>>,
-    token_first: bool,
-) -> String {
-    let mut table = Table::new();
-    table
-        .load_style(UTF8_FULL_CONDENSED)
-        .set_content_arrangement(ContentArrangement::Dynamic);
-    if let Some(headers) = headers {
-        table.set_header(
-            headers
-                .iter()
-                .map(|header| Cell::new(paint(color, HEADING, header))),
-        );
-    }
-    for row in rows {
-        let cells = row.into_iter().enumerate().map(|(index, cell)| {
-            if token_first && index == 0 {
-                Cell::new(paint(color, OPTION, &cell))
-            } else {
-                Cell::new(cell)
-            }
-        });
-        table.add_row(cells);
-    }
-    format!("{table}")
+    let table = rows.into_iter().fold(
+        Table::new(headers.iter().copied()).token_column(0),
+        Table::row,
+    );
+    Document::new()
+        .table(table)
+        .render(RenderOptions::new(color))
+        .trim_end()
+        .to_owned()
 }
 
 #[cfg(test)]
 mod tests {
     use super::{grid, kv};
     use crate::color::ColorMode;
-    use crate::style::OPTION;
 
     #[test]
     fn kv_is_a_table_not_spaces() {
@@ -82,7 +58,7 @@ mod tests {
         assert!(out.contains("demo@0.0.1"), "{out}");
         assert!(out.contains("package"), "{out}");
         assert!(out.contains('│') || out.contains('|'), "{out}");
-        assert!(!out.contains(&OPTION.render().to_string()), "{out}");
+        assert!(!out.contains('\u{1b}'), "{out:?}");
     }
 
     #[test]

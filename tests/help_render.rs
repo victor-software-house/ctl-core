@@ -1,4 +1,4 @@
-//! Styled help tables and `try_emit`.
+//! Help extraction through the public semantic document.
 #![allow(missing_docs)]
 #![cfg(feature = "help")]
 
@@ -6,17 +6,22 @@ mod common;
 
 use clap::CommandFactory;
 use common::Toy;
+use ctl_core::{ColorMode, RenderOptions};
+
+fn help() -> String {
+    ctl_core::help::document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80))
+}
 
 #[test]
 fn lists_commands() {
-    let text = ctl_core::help::render(Toy::command());
+    let text = help();
     assert!(text.contains("Commands"));
     assert!(text.contains("status"));
 }
 
 #[test]
 fn lists_output_flags() {
-    let text = ctl_core::help::render(Toy::command());
+    let text = help();
     for needle in ["--format", "--color", "--no-color", "--quiet", "--dry-run"] {
         assert!(text.contains(needle), "missing {needle}");
     }
