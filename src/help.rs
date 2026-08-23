@@ -36,12 +36,11 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
     args: &[String],
     color: ColorMode,
 ) -> io::Result<bool> {
-    let wants_help = args
+    let raw = args
         .iter()
-        .skip(1)
-        .take_while(|arg| arg.as_str() != "--")
-        .any(|arg| arg == "-h" || arg == "--help");
-    if !wants_help {
+        .map(std::ffi::OsString::from)
+        .collect::<Vec<_>>();
+    if !crate::parser::wants_help::<C>(&raw) {
         return Ok(false);
     }
     let mut root = C::command();
@@ -249,7 +248,14 @@ mod tests {
     #[derive(clap::Subcommand)]
     enum ToyCmd {
         /// Show status.
-        Status,
+        Status(StatusArgs),
+    }
+
+    #[derive(clap::Args)]
+    struct StatusArgs {
+        /// Domain text that may begin with a hyphen.
+        #[arg(short = 'm', long, allow_hyphen_values = true)]
+        message: Option<String>,
     }
 
     #[test]
@@ -271,6 +277,15 @@ mod tests {
     #[test]
     fn try_emit_skips_without_help() {
         let args = ["toy", "status"]
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>();
+        assert!(!try_emit_from::<Toy>(&args).unwrap());
+    }
+
+    #[test]
+    fn try_emit_ignores_help_used_as_a_domain_value() {
+        let args = ["toy", "status", "-m", "--help"]
             .into_iter()
             .map(String::from)
             .collect::<Vec<_>>();

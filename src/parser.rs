@@ -60,6 +60,16 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
     }
 }
 
+/// Whether Clap interprets this invocation as an explicit help request.
+#[cfg(feature = "help")]
+pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
+    let command = apply_defaults(C::command()).color(ColorChoice::Never);
+    matches!(
+        command.try_get_matches_from(raw),
+        Err(error) if error.kind() == clap::error::ErrorKind::DisplayHelp
+    )
+}
+
 /// Apply the *ctl parser contract to a clap command.
 ///
 /// `-h/--help` and `-V/--version` stay on. `disable_help_flag` is forbidden.

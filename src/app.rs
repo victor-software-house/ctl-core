@@ -308,6 +308,18 @@ mod tests {
     }
 
     #[test]
+    fn explicit_help_used_as_a_domain_value_reaches_execution() {
+        let ran = Rc::new(Cell::new(false));
+        let observed = Rc::clone(&ran);
+        let code = App::<Cli>::new("toy").run_from(["toy", "status", "-m", "--help"], move |_| {
+            observed.set(true);
+            Ok(Status { pending: 0 })
+        });
+        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert!(ran.get());
+    }
+
+    #[test]
     fn raw_view_uses_clap_to_separate_globals_from_domain_values() {
         let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
         let view = raw_view::<Cli>(&domain_value);
