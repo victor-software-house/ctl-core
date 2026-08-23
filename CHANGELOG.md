@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.2.0
+
+- Add the typed `App` chassis and fluent semantic `Document` presentation API. Pretty, colorless, JSON, help, errors, quiet behavior, and terminal layout now share one ctl-core-owned path; terminal engine types stay private.
+
 ## ctl-core 0.1.1
 
 - `features = ["usage"]` compiles without `help`. Prelude re-exports `go` only when help is on.
