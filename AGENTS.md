@@ -30,8 +30,10 @@ compile `clap` or `comfy-table`. Prefer explicit feature sets over defaults
 when the binary does not need help/view:
 
 ```toml
-ctl-core = { version = "0.0.3", default-features = false, features = ["json"] }
+ctl-core = { version = "0.1.0", default-features = false, features = ["json"] }
 ```
+
+`features = ["usage"]` does not pull `help`. Do not add `help` only to make the prelude compile.
 
 Crate docs (`src/lib.rs` + `document_features`) are authoritative for the
 feature graph. The GitHub README is not rustdoc.

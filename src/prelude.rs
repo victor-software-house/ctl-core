@@ -13,6 +13,7 @@
 
 pub use std::process::ExitCode;
 
+#[cfg(feature = "cli")]
 pub use clap::{Args, Parser, Subcommand};
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
@@ -25,7 +26,7 @@ pub use crate::format::OutputFormat;
 pub use crate::model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]
 pub use crate::parser::verify;
-#[cfg(feature = "cli")]
+#[cfg(feature = "help")]
 pub use crate::run::{go, main_with_help};
 #[cfg(feature = "view")]
 pub use crate::table::{grid, kv};
