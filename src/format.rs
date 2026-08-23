@@ -39,6 +39,9 @@ impl OutputFormat {
         let mut format = Self::Pretty;
         let mut args = args.into_iter().peekable();
         while let Some(arg) = args.next() {
+            if arg == "--" {
+                break;
+            }
             let value = match arg {
                 "-f" | "--format" => match args.peek() {
                     Some(next) if !next.starts_with('-') => args.next(),
@@ -107,6 +110,10 @@ mod tests {
         assert_eq!(
             OutputFormat::from_args(["toy", "--format=json"]),
             OutputFormat::Json
+        );
+        assert_eq!(
+            OutputFormat::from_args(["--format", "pretty", "--", "--format=json"]),
+            OutputFormat::Pretty
         );
     }
 }

@@ -120,10 +120,7 @@ where
         if self.emit_warnings(&warnings, &words).is_err() {
             return ExitCode::FAILURE;
         }
-        let raw_view = View::new(
-            OutputFormat::from_args(words.iter().map(String::as_str)),
-            ColorMode::from_args(words.iter().map(String::as_str)),
-        );
+        let raw_view = raw_view(&words);
         let mut command = crate::parser::apply_defaults(C::command());
         if raw_view.format.is_json() {
             command = command.color(clap::ColorChoice::Never);
@@ -147,7 +144,7 @@ where
 
     fn clap_error(&self, error: &clap::Error, view: View) -> ExitCode {
         let code = exit_code(error.exit_code());
-        if error.kind() == clap::error::ErrorKind::DisplayVersion {
+        if is_clap_display(error.kind()) {
             let _ = error.print();
             return code;
         }
@@ -177,6 +174,23 @@ where
     }
 }
 
+fn raw_view(words: &[String]) -> View {
+    let args = words.iter().skip(1).map(String::as_str);
+    View::new(
+        OutputFormat::from_args(args.clone()),
+        ColorMode::from_args(args),
+    )
+}
+
+fn is_clap_display(kind: clap::error::ErrorKind) -> bool {
+    matches!(
+        kind,
+        clap::error::ErrorKind::DisplayVersion
+            | clap::error::ErrorKind::DisplayHelp
+            | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    )
+}
+
 fn exit_code(code: i32) -> ExitCode {
     u8::try_from(code).map_or(ExitCode::FAILURE, ExitCode::from)
 }
@@ -189,7 +203,7 @@ mod tests {
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::App;
+    use super::{App, is_clap_display, raw_view};
     use crate::document::{Document, Fields};
     use crate::view::{Present, View};
     use crate::{ColorMode, OutputArgs, OutputFormat};
@@ -205,6 +219,28 @@ mod tests {
 
     #[derive(Subcommand)]
     enum Command {
+        /// Show status.
+        Status,
+    }
+
+    #[derive(Parser)]
+    #[command(version, about = "nested toy")]
+    struct NestedCli {
+        #[command(subcommand)]
+        command: NestedCommand,
+    }
+
+    #[derive(Subcommand)]
+    enum NestedCommand {
+        /// Group commands.
+        Group {
+            #[command(subcommand)]
+            command: GroupCommand,
+        },
+    }
+
+    #[derive(Subcommand)]
+    enum GroupCommand {
         /// Show status.
         Status,
     }
@@ -259,5 +295,32 @@ mod tests {
         });
         let code = app.run_from(["toy", "status"], |_| Ok(Status { pending: 0 }));
         assert_eq!(code, std::process::ExitCode::SUCCESS);
+    }
+
+    #[test]
+    fn clap_help_kinds_stay_on_claps_display_path() {
+        use clap::error::ErrorKind;
+
+        assert!(is_clap_display(ErrorKind::DisplayVersion));
+        assert!(is_clap_display(ErrorKind::DisplayHelp));
+        assert!(is_clap_display(
+            ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        ));
+        assert!(!is_clap_display(ErrorKind::UnknownArgument));
+    }
+
+    #[test]
+    fn missing_nested_subcommand_uses_claps_help_exit() {
+        let code =
+            App::<NestedCli>::new("toy").run_from(["toy", "group"], |_| Ok(Status { pending: 0 }));
+        assert_eq!(code, std::process::ExitCode::from(2));
+    }
+
+    #[test]
+    fn raw_view_skips_binary_and_stops_at_separator() {
+        let words = ["--format=json", "status", "--", "--color=always"].map(String::from);
+        let view = raw_view(&words);
+        assert_eq!(view.format, OutputFormat::Pretty);
+        assert_eq!(view.color, ColorMode::Auto);
     }
 }

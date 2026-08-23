@@ -175,7 +175,9 @@ impl Renderer {
                 .map(|value| self.text(value))
                 .collect::<Vec<_>>()
                 .join(" ");
-            let _ = writeln!(output, "  {}", self.wrap(&labels, 2));
+            for line in self.wrap(&labels, 2).lines() {
+                let _ = writeln!(output, "  {line}");
+            }
             if !description.is_empty() {
                 let wrapped = self.wrap(&description, 4);
                 for line in wrapped.lines() {
@@ -287,7 +289,7 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use indoc::indoc;
+    use indoc::{formatdoc, indoc};
 
     use super::RenderOptions;
     use crate::color::ColorMode;
@@ -330,5 +332,26 @@ mod tests {
             .table(table)
             .render(RenderOptions::new(ColorMode::Never).width(40));
         assert_eq!(rendered, "  -f --format\n    Output representation\n");
+    }
+
+    #[test]
+    fn wrapped_stacked_labels_keep_indentation() {
+        let table = Table::plain()
+            .stacked_below(64, 1)
+            .row(["one two three four five", "description"]);
+        let rendered = Document::new()
+            .table(table)
+            .render(RenderOptions::new(ColorMode::Never).width(14));
+        let expected = formatdoc! {"
+            {label}one two
+            {label}three four
+            {label}five
+            {description}descriptio
+            {description}n
+            ",
+            label = "  ",
+            description = "    ",
+        };
+        assert_eq!(rendered, expected);
     }
 }

@@ -46,6 +46,9 @@ impl ColorMode {
         let mut mode = Self::Auto;
         let mut args = args.into_iter().peekable();
         while let Some(arg) = args.next() {
+            if arg == "--" {
+                break;
+            }
             if arg == "--no-color" {
                 mode = Self::Never;
                 continue;
@@ -126,6 +129,14 @@ mod tests {
         );
         assert_eq!(
             ColorMode::from_args(["x", "-c", "always"]),
+            ColorMode::Always
+        );
+    }
+
+    #[test]
+    fn separator_ends_raw_color_scan() {
+        assert_eq!(
+            ColorMode::from_args(["--color", "always", "--", "--color=never"]),
             ColorMode::Always
         );
     }

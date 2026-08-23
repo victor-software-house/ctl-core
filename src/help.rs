@@ -20,7 +20,12 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
 
 /// Same as [`try_emit`] with explicit argv.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
-    let wants_help = args.len() == 1 || args.iter().any(|arg| arg == "-h" || arg == "--help");
+    let wants_help = args.len() == 1
+        || args
+            .iter()
+            .skip(1)
+            .take_while(|arg| arg.as_str() != "--")
+            .any(|arg| arg == "-h" || arg == "--help");
     if !wants_help {
         return Ok(false);
     }
@@ -252,6 +257,15 @@ mod tests {
     #[test]
     fn try_emit_skips_without_help() {
         let args = ["toy", "status"]
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>();
+        assert!(!try_emit_from::<Toy>(&args).unwrap());
+    }
+
+    #[test]
+    fn try_emit_ignores_help_after_separator() {
+        let args = ["toy", "status", "--", "--help"]
             .into_iter()
             .map(String::from)
             .collect::<Vec<_>>();
