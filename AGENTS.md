@@ -50,7 +50,9 @@ feature graph. The GitHub README is not rustdoc.
 2. **One model, every mode.** `Present` maps that model to a semantic `Document`.
    JSON serializes the model directly. Colorless renders the same document.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`,
-   `Notice`, and `Text`; they never choose borders, ANSI, width, or streams.
+   `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI,
+   width, or streams. Verbatim is for preformatted Markdown or protocol text
+   whose line boundaries must survive rendering.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output.

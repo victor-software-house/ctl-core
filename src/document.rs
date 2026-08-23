@@ -35,6 +35,12 @@ impl Document {
         self.block(Block::Paragraph(value.into()))
     }
 
+    /// Append preformatted text without wrapping or semantic styling.
+    #[must_use]
+    pub fn verbatim(self, value: impl Into<String>) -> Self {
+        self.block(Block::Verbatim(value.into()))
+    }
+
     /// Append key/value fields.
     #[must_use]
     pub fn fields(self, fields: Fields) -> Self {
@@ -85,6 +91,9 @@ pub enum Block {
     Heading(Text),
     /// Wrapped prose.
     Paragraph(Text),
+    /// Preformatted text kept byte-for-byte inside the document newline
+    /// contract.
+    Verbatim(String),
     /// Key/value fields.
     Fields(Fields),
     /// Headered or headerless table.

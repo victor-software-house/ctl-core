@@ -23,9 +23,10 @@ Clap types ──→ App ──→ typed domain result ──┬──→ JSON
                                              └──→ Document ──→ pretty/colorless
 ```
 
-`Document` is a fluent semantic tree: headings, prose, fields, grids,
-sections, notices, and rules. It carries meaning, not ANSI or table borders.
-The renderer chooses style, wrapping, width, and color.
+`Document` is a fluent semantic tree: headings, prose, verbatim blocks, fields,
+grids, sections, notices, and rules. It carries meaning, not ANSI or table
+borders. The renderer chooses style, wrapping, width, and color; verbatim blocks
+preserve preformatted Markdown and protocol text without wrapping.
 
 ## Use
 

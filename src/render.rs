@@ -79,6 +79,7 @@ impl Renderer {
         match block {
             Block::Heading(text) => self.text_with_default(text, Role::Heading),
             Block::Paragraph(text) => self.wrap(&self.text(text), 0),
+            Block::Verbatim(value) => value.clone(),
             Block::Fields(fields) => self.fields(fields),
             Block::Table(table) => self.table(table),
             Block::Section(section) => self.section(section),
@@ -332,6 +333,19 @@ mod tests {
             .table(table)
             .render(RenderOptions::new(ColorMode::Never).width(40));
         assert_eq!(rendered, "  -f --format\n    Output representation\n");
+    }
+
+    #[test]
+    fn verbatim_text_ignores_explicit_width() {
+        let source = indoc! {"
+            ```text
+            this line stays longer than five
+            ```
+        "};
+        let rendered = Document::new()
+            .verbatim(source.trim_end())
+            .render(RenderOptions::new(ColorMode::Never).width(5));
+        assert_eq!(rendered, source);
     }
 
     #[test]

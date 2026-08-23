@@ -27,7 +27,8 @@ ctl-core owns:
 - Usage mounts, pre-parse short-circuits, help, Clap parsing, exit codes, and
   stream selection;
 - `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
-- `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, and `Rule`;
+- `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and
+  unwrapped verbatim blocks for preformatted Markdown or protocol text;
 - semantic roles and the one visual theme;
 - width detection, wrapping, table layout, ANSI policy, stdout, and stderr;
 - JSON emission and generic error envelopes.
