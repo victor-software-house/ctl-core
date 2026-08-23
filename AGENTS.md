@@ -85,6 +85,15 @@ packages with `--locked`. Prove the lane by shipping through it (`CTC-009`).
 mise run verify
 ```
 
+`verify` is format, clippy, nextest, doc-tests, cargo-deny licenses/bans/sources, and cargo-machete.
+Do not `&&` those in a new task; `depends` is the mise form. Those cargo
+invocations share `target/`; the package-cache lock serializes them. Do not
+invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked
+crates) are `mise run deny:advisories` on CI only, so a pre-push `verify`
+does not need the network. An unfixable RUSTSEC or yank is listed in
+`deny.toml` `[advisories].ignore` with a reason, not by weakening `yanked`
+or `unmaintained`.
+
 ## Git
 
 Conventional commits. lefthook. No `--no-verify`. Branch `type/number-desc`.
