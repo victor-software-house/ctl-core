@@ -26,8 +26,12 @@ description = "Doc-tests (nextest does not run these)"
 run = "cargo test --doc --all-features"
 
 [tasks.deny]
-description = "License, advisory, and source policy"
-run = "cargo deny check"
+description = "License, ban, and source policy (offline)"
+run = "cargo deny check licenses bans sources"
+
+[tasks."deny:advisories"]
+description = "RustSec advisories and yanked crates (network)"
+run = "cargo deny check advisories"
 
 [tasks.deps]
 description = "Unused crate analysis"

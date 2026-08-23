@@ -40,5 +40,7 @@ jobs:
           cache-on-failure: true
       - name: Verify
         run: mise run verify
+      - name: Advisories
+        run: mise run deny:advisories
       - name: Package
         run: cargo package --locked --all-features
