@@ -35,37 +35,6 @@ impl ColorMode {
             Self::Never => anstream::ColorChoice::Never,
         }
     }
-
-    /// Last `-c/--color` / `--no-color` in `args` wins. Help runs before clap
-    /// parse.
-    #[must_use]
-    pub fn from_args<'a, I>(args: I) -> Self
-    where
-        I: IntoIterator<Item = &'a str>,
-    {
-        let mut mode = Self::Auto;
-        let mut args = args.into_iter().peekable();
-        while let Some(arg) = args.next() {
-            if arg == "--" {
-                break;
-            }
-            if arg == "--no-color" {
-                mode = Self::Never;
-                continue;
-            }
-            let value = match arg {
-                "-c" | "--color" => match args.peek() {
-                    Some(next) if !next.starts_with('-') => args.next(),
-                    _ => None,
-                },
-                other => other.strip_prefix("--color="),
-            };
-            if let Some(parsed) = value.and_then(|value| value.parse().ok()) {
-                mode = parsed;
-            }
-        }
-        mode
-    }
 }
 
 impl FromStr for ColorMode {
@@ -108,38 +77,6 @@ mod tests {
     use indoc::indoc;
 
     use super::ColorMode;
-
-    #[test]
-    fn last_flag_wins() {
-        assert_eq!(
-            ColorMode::from_args(["bin", "--color", "always", "--no-color"]),
-            ColorMode::Never
-        );
-        assert_eq!(
-            ColorMode::from_args(["bin", "--no-color", "--color", "always"]),
-            ColorMode::Always
-        );
-    }
-
-    #[test]
-    fn short_long_and_equals() {
-        assert_eq!(
-            ColorMode::from_args(["x", "--color=never"]),
-            ColorMode::Never
-        );
-        assert_eq!(
-            ColorMode::from_args(["x", "-c", "always"]),
-            ColorMode::Always
-        );
-    }
-
-    #[test]
-    fn separator_ends_raw_color_scan() {
-        assert_eq!(
-            ColorMode::from_args(["--color", "always", "--", "--color=never"]),
-            ColorMode::Always
-        );
-    }
 
     #[test]
     fn parse_rejects_junk() {

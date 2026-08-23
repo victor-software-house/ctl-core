@@ -86,7 +86,7 @@ runtime lifecycle.
 - JSON always goes to stdout and never contains ANSI.
 - Human failures go to stderr. Quiet suppresses successful human output only.
 - Help comes from the Clap graph and uses the same document renderer.
-- `App` runs Usage, pre-parse hooks, help, warnings, Clap, execution, and
+- `App` runs Usage, pre-parse hooks, help, Clap, execution, and
   presentation in that order.
 - `parser::apply_defaults` keeps `-h`/`--help` and `-V`/`--version` enabled.
 

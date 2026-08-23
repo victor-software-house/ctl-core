@@ -11,8 +11,8 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
 - Shared flags: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`/`--preview`,
   `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
-- `App`: pre-parse hooks, Usage, help, warnings, parsing, execution, streams,
-  errors, and exit codes
+- `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and
+  exit codes
 - `Document` and the fluent semantic primitives used by help and command output
 - Pretty / JSON / colorless `View` over one serializable domain model
 - The only terminal theme, width detection, wrapping, and table configuration

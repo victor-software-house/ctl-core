@@ -12,24 +12,38 @@ const NARROW_HELP_WIDTH: u16 = 64;
 
 /// Styled `-h` / `--help`. Returns `true` when help ran.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
-    let args = std::env::args_os()
+    let raw = std::env::args_os().collect::<Vec<_>>();
+    let args = raw
+        .iter()
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
-    try_emit_from::<C>(&args)
+    let color = crate::parser::parsed_output::<C>(&raw).color;
+    try_emit_from_with_color::<C>(&args, color)
 }
 
 /// Same as [`try_emit`] with explicit argv.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
-    let wants_help = args.len() == 1
-        || args
-            .iter()
-            .skip(1)
-            .take_while(|arg| arg.as_str() != "--")
-            .any(|arg| arg == "-h" || arg == "--help");
+    let raw = args
+        .iter()
+        .map(std::ffi::OsString::from)
+        .collect::<Vec<_>>();
+    let color = crate::parser::parsed_output::<C>(&raw).color;
+    try_emit_from_with_color::<C>(args, color)
+}
+
+/// Explicit-argv help with a policy already recovered by Clap.
+pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
+    args: &[String],
+    color: ColorMode,
+) -> io::Result<bool> {
+    let wants_help = args
+        .iter()
+        .skip(1)
+        .take_while(|arg| arg.as_str() != "--")
+        .any(|arg| arg == "-h" || arg == "--help");
     if !wants_help {
         return Ok(false);
     }
-    let color = ColorMode::from_args(args.iter().map(String::as_str));
     let mut root = C::command();
     root.build();
     let command = select_command(root, args.get(1..).unwrap_or(&[]));
@@ -269,6 +283,12 @@ mod tests {
             .into_iter()
             .map(String::from)
             .collect::<Vec<_>>();
+        assert!(!try_emit_from::<Toy>(&args).unwrap());
+    }
+
+    #[test]
+    fn try_emit_does_not_claim_bare_invocation() {
+        let args = ["toy"].map(String::from);
         assert!(!try_emit_from::<Toy>(&args).unwrap());
     }
 }

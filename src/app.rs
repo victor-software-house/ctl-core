@@ -8,7 +8,6 @@ use anyhow::Result;
 use clap::{CommandFactory, Parser};
 
 use crate::color::ColorMode;
-use crate::document::{Document, Notice, NoticeLevel, Text};
 use crate::format::OutputFormat;
 use crate::render::RenderOptions;
 use crate::view::{Present, View};
@@ -110,18 +109,19 @@ where
             }
         }
 
-        match crate::help::try_emit_from::<C>(&words) {
+        let raw_view = raw_view::<C>(&raw);
+        if words.len() == 1 {
+            let help =
+                crate::help::document(C::command()).render(RenderOptions::new(raw_view.color));
+            return crate::view::write_stderr(help.as_bytes(), raw_view.color)
+                .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
+        }
+        match crate::help::try_emit_from_with_color::<C>(&words, raw_view.color) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
             Err(_) => return ExitCode::FAILURE,
         }
 
-        let leading = leading_chassis_args(&words);
-        let warnings = crate::flags::chassis_warnings(leading.iter().copied());
-        if self.emit_warnings(&warnings, &leading).is_err() {
-            return ExitCode::FAILURE;
-        }
-        let raw_view = raw_view(&leading);
         let mut command = crate::parser::apply_defaults(C::command());
         if raw_view.format.is_json() {
             command = command.color(clap::ColorChoice::Never);
@@ -152,62 +152,11 @@ where
         view.emit_err(&self.bin, error.to_string().trim())
             .map_or(ExitCode::FAILURE, |_| code)
     }
-
-    fn emit_warnings(
-        &self,
-        warnings: &[crate::flags::FlagWarning],
-        args: &[&str],
-    ) -> std::io::Result<()> {
-        if warnings.is_empty() {
-            return Ok(());
-        }
-        let document = warnings.iter().fold(Document::new(), |document, warning| {
-            document.notice(Notice::new(
-                NoticeLevel::Warning,
-                Text::new()
-                    .token(self.bin.clone())
-                    .then(": ")
-                    .then(warning.to_string()),
-            ))
-        });
-        let color = ColorMode::from_args(args.iter().copied());
-        crate::view::write_stderr(document.render(RenderOptions::new(color)).as_bytes(), color)
-    }
 }
 
-fn leading_chassis_args(words: &[String]) -> Vec<&str> {
-    let mut leading = Vec::new();
-    let mut args = words.iter().skip(1).map(String::as_str).peekable();
-    while let Some(arg) = args.next() {
-        if arg == "--" {
-            break;
-        }
-        if matches!(
-            arg,
-            "-q" | "--quiet" | "-n" | "--dry-run" | "--preview" | "--no-color"
-        ) || arg.starts_with("--format=")
-            || arg.starts_with("--color=")
-        {
-            leading.push(arg);
-            continue;
-        }
-        if matches!(arg, "-f" | "--format" | "-c" | "--color") {
-            leading.push(arg);
-            if let Some(value) = args.next() {
-                leading.push(value);
-            }
-            continue;
-        }
-        break;
-    }
-    leading
-}
-
-fn raw_view(args: &[&str]) -> View {
-    View::new(
-        OutputFormat::from_args(args.iter().copied()),
-        ColorMode::from_args(args.iter().copied()),
-    )
+fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
+    let parsed = crate::parser::parsed_output::<C>(raw);
+    View::new(parsed.format, parsed.color)
 }
 
 fn is_clap_display(kind: clap::error::ErrorKind) -> bool {
@@ -226,12 +175,13 @@ fn exit_code(code: i32) -> ExitCode {
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
+    use std::ffi::OsString;
     use std::rc::Rc;
 
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::{App, is_clap_display, leading_chassis_args, raw_view};
+    use super::{App, is_clap_display, raw_view};
     use crate::document::{Document, Fields};
     use crate::view::{Present, View};
     use crate::{ColorMode, OutputArgs, OutputFormat};
@@ -248,7 +198,14 @@ mod tests {
     #[derive(Subcommand)]
     enum Command {
         /// Show status.
-        Status,
+        Status(StatusArgs),
+    }
+
+    #[derive(clap::Args)]
+    struct StatusArgs {
+        /// Domain text that may begin with a hyphen.
+        #[arg(short = 'm', long, allow_hyphen_values = true)]
+        message: Option<String>,
     }
 
     #[derive(Parser)]
@@ -345,29 +302,21 @@ mod tests {
     }
 
     #[test]
-    fn raw_view_skips_binary_and_stops_at_separator() {
-        let words = ["--format=json", "status", "--", "--color=always"].map(String::from);
-        let leading = leading_chassis_args(&words);
-        let view = raw_view(&leading);
-        assert_eq!(view.format, OutputFormat::Pretty);
-        assert_eq!(view.color, ColorMode::Auto);
+    fn bare_invocation_is_usage_error() {
+        let code = App::<Cli>::new("toy").run_from(["toy"], |_| Ok(Status { pending: 0 }));
+        assert_eq!(code, std::process::ExitCode::from(2));
     }
 
     #[test]
-    fn leading_chassis_scan_consumes_values_then_stops_at_subcommand() {
-        let words = [
-            "toy",
-            "--format",
-            "json",
-            "--color=never",
-            "status",
-            "-m",
-            "--format=pretty",
-        ]
-        .map(String::from);
-        let leading = leading_chassis_args(&words);
-        assert_eq!(leading, ["--format", "json", "--color=never"]);
-        let view = raw_view(&leading);
+    fn raw_view_uses_clap_to_separate_globals_from_domain_values() {
+        let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
+        let view = raw_view::<Cli>(&domain_value);
+        assert_eq!(view.format, OutputFormat::Pretty);
+        assert_eq!(view.color, ColorMode::Auto);
+
+        let global_after_subcommand =
+            ["toy", "status", "-fjson", "-cnever", "--bogus"].map(OsString::from);
+        let view = raw_view::<Cli>(&global_after_subcommand);
         assert_eq!(view.format, OutputFormat::Json);
         assert_eq!(view.color, ColorMode::Never);
     }

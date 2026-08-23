@@ -24,8 +24,8 @@ Clap graph ──→ App ──→ domain handler ──→ Result model
 
 ctl-core owns:
 
-- Usage mounts, pre-parse short-circuits, help, warnings, Clap parsing, exit
-  codes, and stream selection;
+- Usage mounts, pre-parse short-circuits, help, Clap parsing, exit codes, and
+  stream selection;
 - `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, and `Rule`;
 - semantic roles and the one visual theme;
