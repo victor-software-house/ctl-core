@@ -43,14 +43,22 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
     if !crate::parser::wants_help::<C>(&raw) {
         return Ok(false);
     }
-    let mut root = C::command();
-    root.build();
-    let command = select_command(root, args.get(1..).unwrap_or(&[]));
+    let command = help_command::<C>(args);
     let output = document(command).render(RenderOptions::new(color));
     let mut stream = anstream::AutoStream::new(io::stdout().lock(), color.choice());
     stream.write_all(output.as_bytes())?;
     stream.flush()?;
     Ok(true)
+}
+
+fn help_command<C: CommandFactory>(args: &[String]) -> Command {
+    let mut root = C::command();
+    root.build();
+    let mut path = args.get(1..).unwrap_or(&[]);
+    if path.first().is_some_and(|arg| arg == "help") {
+        path = &path[1..];
+    }
+    select_command(root, path)
 }
 
 fn select_command(mut command: Command, args: &[String]) -> Command {
@@ -229,7 +237,7 @@ fn description(arg: &clap::Arg) -> Text {
 mod tests {
     use clap::{CommandFactory, Parser};
 
-    use super::{document, try_emit_from};
+    use super::{document, help_command, try_emit_from};
     use crate::color::ColorMode;
     use crate::flags::{DryRunArgs, OutputArgs};
     use crate::render::RenderOptions;
@@ -272,6 +280,12 @@ mod tests {
     fn colorless_help_has_no_ansi() {
         let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(!text.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn help_subcommand_selects_the_requested_command() {
+        let args = ["toy", "help", "status"].map(String::from);
+        assert_eq!(help_command::<Toy>(&args).get_name(), "status");
     }
 
     #[test]
