@@ -72,7 +72,7 @@ pub fn main_with(
 #[must_use]
 pub fn main_with_help<C: CommandFactory>(bin: &str, body: impl FnOnce() -> Result<()>) -> ExitCode {
     let raw = std::env::args_os().collect::<Vec<_>>();
-    if raw.len() == 1 {
+    if raw.len() == 1 && crate::parser::requires_input::<C>() {
         return crate::help::emit_bare::<C>(ColorMode::Auto)
             .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
     }

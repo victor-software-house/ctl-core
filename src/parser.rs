@@ -71,7 +71,7 @@ pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
 }
 
 /// Whether the command's Clap grammar rejects a bare invocation with help.
-#[cfg(feature = "app")]
+#[cfg(feature = "help")]
 pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
     let command = C::command();
     command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
