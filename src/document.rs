@@ -316,7 +316,13 @@ pub struct Table {
 }
 
 impl Table {
-    /// Start a table with headers. An empty iterator makes a headerless table.
+    /// Start a headerless table.
+    #[must_use]
+    pub fn plain() -> Self {
+        Self::default()
+    }
+
+    /// Start a table with headers.
     #[must_use]
     pub fn new(headers: impl IntoIterator<Item = impl Into<Text>>) -> Self {
         Self {

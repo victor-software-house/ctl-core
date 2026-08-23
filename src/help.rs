@@ -68,19 +68,16 @@ pub fn document(mut command: Command) -> Document {
     let commands = command
         .get_subcommands()
         .filter(|subcommand| !subcommand.is_hide_set())
-        .fold(
-            Table::new(Vec::<Text>::new()).token_column(0),
-            |table, subcommand| {
-                table.row([
-                    Text::plain(subcommand.get_name()),
-                    Text::plain(
-                        subcommand
-                            .get_about()
-                            .map_or_else(String::new, ToString::to_string),
-                    ),
-                ])
-            },
-        );
+        .fold(Table::plain().token_column(0), |table, subcommand| {
+            table.row([
+                Text::plain(subcommand.get_name()),
+                Text::plain(
+                    subcommand
+                        .get_about()
+                        .map_or_else(String::new, ToString::to_string),
+                ),
+            ])
+        });
     if !commands.is_empty() {
         output = output.section(Section::new(
             "Commands",
@@ -91,7 +88,7 @@ pub fn document(mut command: Command) -> Document {
     let positionals = command
         .get_positionals()
         .filter(|arg| !arg.is_hide_set())
-        .fold(Table::new(Vec::<Text>::new()), |table, arg| {
+        .fold(Table::plain(), |table, arg| {
             table.row([
                 Text::new(),
                 Text::new().value(value_label(arg)),
@@ -136,7 +133,7 @@ pub fn document(mut command: Command) -> Document {
                     && arg.get_id().as_str() != "help"
                     && arg.get_help_heading().map_or("Options", |value| value) == heading
             })
-            .fold(Table::new(Vec::<Text>::new()), |table, arg| {
+            .fold(Table::plain(), |table, arg| {
                 table.row([
                     arg.get_short()
                         .map_or_else(Text::new, |value| Text::new().token(format!("-{value}"))),

@@ -322,11 +322,10 @@ mod tests {
 
     #[test]
     fn narrow_table_stacks() {
-        let table = Table::new(Vec::<Text>::new()).stacked_below(64, 2).row([
-            "-f",
-            "--format",
-            "Output representation",
-        ]);
+        let table =
+            Table::plain()
+                .stacked_below(64, 2)
+                .row(["-f", "--format", "Output representation"]);
         let rendered = Document::new()
             .table(table)
             .render(RenderOptions::new(ColorMode::Never).width(40));

@@ -36,7 +36,7 @@ pub use crate::parser::verify;
 pub use crate::render::{RenderOptions, Renderer};
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;
-#[cfg(feature = "view")]
+#[cfg(feature = "render")]
 pub use crate::table::{grid, kv};
 #[cfg(feature = "usage")]
 pub use crate::usage::{mount_line, spec, spec_bin, take};
