@@ -51,6 +51,14 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
     Ok(true)
 }
 
+/// Render root help to stderr for a bare invocation that requires input.
+pub(crate) fn emit_bare<C: CommandFactory>(color: ColorMode) -> io::Result<()> {
+    let output = document(C::command()).render(RenderOptions::new(color));
+    let mut stream = anstream::AutoStream::new(io::stderr().lock(), color.choice());
+    stream.write_all(output.as_bytes())?;
+    stream.flush()
+}
+
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {
     let root = C::command();
     let mut command = select_command(root, args.get(1..).unwrap_or(&[]));

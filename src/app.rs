@@ -9,7 +9,6 @@ use clap::{CommandFactory, Parser};
 
 use crate::color::ColorMode;
 use crate::format::OutputFormat;
-use crate::render::RenderOptions;
 use crate::view::{Present, View};
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
@@ -111,9 +110,7 @@ where
 
         let raw_view = raw_view::<C>(&raw);
         if words.len() == 1 && crate::parser::requires_input::<C>() {
-            let help =
-                crate::help::document(C::command()).render(RenderOptions::new(raw_view.color));
-            return crate::view::write_stderr(help.as_bytes(), raw_view.color)
+            return crate::help::emit_bare::<C>(raw_view.color)
                 .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
         }
         match crate::help::try_emit_from_with_color::<C>(&words, raw_view.color) {
