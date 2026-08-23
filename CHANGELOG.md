@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.3.0
+
+- Add semantic verbatim document blocks for preformatted Markdown and protocol text that must bypass terminal-width wrapping.
+
 ## ctl-core 0.2.0
 
 - Add the typed `App` chassis and fluent semantic `Document` presentation API. Pretty, colorless, JSON, help, errors, quiet behavior, and terminal layout now share one ctl-core-owned path; terminal engine types stay private.
