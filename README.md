@@ -2,45 +2,39 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
-  <img src="docs/banner.svg" alt="ctl-core — Shared clap chassis for the *ctl CLIs. Not a command.">
+  <img src="docs/banner.svg" alt="ctl-core — Shared Rust CLI chassis and presentation kernel.">
 </picture>
 
-Shared clap chassis for the `*ctl` CLIs (`forkctl`, `qctl`, `verctl`)
-and `state-sync`. Not a command. Import it as `ctl_core`.
+Shared Rust CLI chassis and presentation kernel for `forkctl`, `qctl`,
+`verctl`, and `state-sync`. It is a library, not a command.
 
-Cargo features are the Rust equivalent of tree-shaking: a consumer that
-only needs the enums does not compile `clap` or `comfy-table`.
+A consumer owns typed domain requests and results. ctl-core owns parsing,
+help, Usage mounts, color policy, terminal layout, streams, errors, and JSON
+emission. The same serializable result feeds pretty, colorless, and JSON
+output.
 
-```toml
-ctl-core = { version = "0.0.1", default-features = false, features = ["json"] }
+Comfy Table, Anstyle, and Anstream are private rendering engines. Consumer
+crates compose ctl-core semantic documents and never import terminal engines.
+
+## Model
+
+```text
+Clap types ──→ App ──→ typed domain result ──┬──→ JSON
+                                             └──→ Document ──→ pretty/colorless
 ```
 
-Models (`Envelope`, `ColorMode`, `OutputFormat`) come first. `View`
-picks pretty, JSON, or colorless. Pretty may contain ANSI; JSON never
-does. Prepare the data; `Pretty` + a Jinja template (`View::show_pretty`)
-owns loops and `{% if %}`. Command output uses `kv` / `grid` tables
-with styled tokens, not space-padded labels. `formatdoc` stays for
-one-liners.
-
-Domain verbs stay in each CLI. This crate owns:
-
-- `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
-- short **and** long forms on shared flags
-- `--foo` / `--no-foo` negations (`--no-color` wins over `--color`)
-- `-c` / `--color` `auto|always|never` (or `--color` only when `-c` is taken)
-- `-f` / `--format` `pretty|json`
-- `-n` / `--dry-run` / `--preview`
-- `-q` / `--quiet`
-- styled help (same table as forkctl / state-sync)
-- `{bin}: {error:#}` plus a JSON error object
+`Document` is a fluent semantic tree: headings, prose, fields, grids,
+sections, notices, and rules. It carries meaning, not ANSI or table borders.
+The renderer chooses style, wrapping, width, and color.
 
 ## Use
 
 ```rust,ignore
 use ctl_core::prelude::*;
+use serde::Serialize;
 
 #[derive(Parser)]
-#[command(version, about = "example", arg_required_else_help = true)]
+#[command(version, about = "example")]
 struct Cli {
     #[command(flatten)]
     output: OutputArgs,
@@ -50,48 +44,55 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Show status.
     Status,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 struct Status {
     pending: usize,
 }
 
-impl Render for Status {
-    fn render_pretty(&self) -> String {
-        formatdoc!("pending  {n}", n = self.pending)
+impl Present for Status {
+    fn present(&self) -> Document {
+        Document::new().fields(
+            Fields::new().row("pending", self.pending.to_string()),
+        )
     }
 }
 
 fn main() -> ExitCode {
-    go::<Cli, _>("example", |cli| {
-        let view = cli.output.view();
-        view.show(&Status { pending: 0 })?;
-        Ok(())
-    })
+    App::<Cli>::new("example")
+        .mounted_as("example")
+        .view(|cli| cli.output.view())
+        .run(|cli| match cli.command {
+            Command::Status => Ok(Status { pending: 0 }),
+        })
 }
 ```
 
-Boolean pairs that are domain-specific (`--pr` / `--no-pr`) stay in the
-CLI. Use clap `overrides_with` both ways; the last flag wins. See
-`ctl_core::flags::switch`. Call `warn_opposites` so `--pr --no-pr` is
-not silent. Chassis `go` already warns on repeated `--format`/`--color`,
-`--color` plus `--no-color`, and `--dry-run` plus `--preview`.
-
-`state-sync` already uses `-c` for `--config`. Flatten `ColorLong`
-instead of `OutputArgs` so `-c` is not stolen.
+Enable `app` plus `usage` for that shape. Features remain additive and
+explicit: `document` has no terminal engine, `render` adds terminal layout,
+`view` adds JSON emission, `help` adds Clap help, and `app` composes the
+runtime lifecycle.
 
 ## Contract
 
-`parser::apply_defaults` sets `arg_required_else_help` and panics if
-help or version were disabled. Consumers must not set
-`disable_help_flag`.
+- Domain handlers return data. They do not print, inspect terminal state,
+  choose output format, or construct engine tables.
+- `Present` maps a serializable result to a semantic `Document`.
+- `View` serializes the result directly for JSON and renders its document for
+  pretty/colorless output.
+- JSON always goes to stdout and never contains ANSI.
+- Human failures go to stderr. Quiet suppresses successful human output only.
+- Help comes from the Clap graph and uses the same document renderer.
+- `App` runs Usage, pre-parse hooks, help, warnings, Clap, execution, and
+  presentation in that order.
+- `parser::apply_defaults` keeps `-h`/`--help` and `-V`/`--version` enabled.
 
-A per-user daemon that shares one session across clients (skill-cli
-Unix-socket + NDJSON protocol) is **not** in this crate yet. That is
-horizon work.
+Boolean pairs that are domain-specific (`--pr` / `--no-pr`) remain in the
+consumer. Use Clap `overrides_with` both ways and `warn_opposites`; the last
+flag wins without silence.
 
-Crate docs live in `src/lib.rs`. Do not `include_str!` a parent-directory
-README. Same-directory `include_str!("instructions.md")` is the usual
-Rust embed. `concat!` is banned via clippy `disallowed_macros`.
+See [`docs/presentation.md`](docs/presentation.md) for the architecture and
+migration boundary.

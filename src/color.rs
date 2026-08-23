@@ -26,9 +26,9 @@ pub use data::ColorMode;
 
 impl ColorMode {
     /// Map to `anstream`'s color choice.
-    #[cfg(feature = "color")]
+    #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub fn choice(self) -> anstream::ColorChoice {
+    pub(crate) fn choice(self) -> anstream::ColorChoice {
         match self {
             Self::Auto => anstream::ColorChoice::Auto,
             Self::Always => anstream::ColorChoice::Always,

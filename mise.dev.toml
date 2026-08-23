@@ -21,12 +21,15 @@ run = "cargo clippy --all-targets --all-features -- -D warnings"
 description = "Compile each advertised feature set without extra features"
 run = [
   "cargo check --no-default-features",
+  "cargo check --no-default-features --features document",
+  "cargo check --no-default-features --features render",
   "cargo check --no-default-features --features usage",
   "cargo check --no-default-features --features json",
   "cargo check --no-default-features --features cli",
-  "cargo check --no-default-features --features color",
   "cargo check --no-default-features --features view",
   "cargo check --no-default-features --features help",
+  "cargo check --no-default-features --features app",
+  "cargo check --no-default-features --features app,usage",
   "cargo check --no-default-features --features schema",
 ]
 

@@ -1,17 +1,16 @@
-use std::fmt::Write as _;
+//! Styled help extracted from Clap and rendered as a semantic document.
+
 use std::io::{self, Write};
 
 use clap::{Command, CommandFactory};
-use comfy_table::presets::UTF8_FULL_CONDENSED;
-use comfy_table::{ContentArrangement, Table};
 
 use crate::color::ColorMode;
-use crate::layout;
-use crate::style::{HEADING, MUTED, OPTION, VALUE, styled};
+use crate::document::{Document, Section, Table, Text};
+use crate::render::RenderOptions;
 
 const NARROW_HELP_WIDTH: u16 = 64;
 
-/// Styled `-h/--help` used by forkctl and state-sync. Returns true if help ran.
+/// Styled `-h` / `--help`. Returns `true` when help ran.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     let args = std::env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
@@ -19,7 +18,7 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     try_emit_from::<C>(&args)
 }
 
-/// Same as [`try_emit`] with an explicit argv (tests).
+/// Same as [`try_emit`] with explicit argv.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     let wants_help = args.len() == 1 || args.iter().any(|arg| arg == "-h" || arg == "--help");
     if !wants_help {
@@ -29,7 +28,7 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     let mut root = C::command();
     root.build();
     let command = select_command(root, args.get(1..).unwrap_or(&[]));
-    let output = render(command);
+    let output = document(command).render(RenderOptions::new(color));
     let mut stream = anstream::AutoStream::new(io::stdout().lock(), color.choice());
     stream.write_all(output.as_bytes())?;
     stream.flush()?;
@@ -56,56 +55,57 @@ fn select_command(mut command: Command, args: &[String]) -> Command {
     command
 }
 
+/// Extract one semantic help document from a Clap command.
 #[must_use]
-/// Render styled help for `command` (no I/O).
-pub fn render(mut command: Command) -> String {
+pub fn document(mut command: Command) -> Document {
     command.build();
-    if let Some(width) = layout::terminal_width() {
-        command = command.term_width(usize::from(width));
-    }
-    let mut output = String::new();
-    let usage = format!(
-        "{}{}{}",
-        HEADING.render(),
-        command.render_usage().to_string().trim(),
-        HEADING.render_reset()
-    );
-    layout::push_line(&mut output, &usage);
-    output.push('\n');
+    let usage = command.render_usage().to_string();
+    let mut output = Document::new().heading(usage.trim().to_owned());
     if let Some(about) = command.get_about() {
-        layout::push_line(&mut output, &about.to_string());
-        output.push('\n');
+        output = output.paragraph(about.to_string());
     }
-    let subcommands = command
+
+    let commands = command
         .get_subcommands()
         .filter(|subcommand| !subcommand.is_hide_set())
-        .map(|subcommand| {
-            vec![
-                styled(HEADING, subcommand.get_name()),
-                subcommand
-                    .get_about()
-                    .map_or_else(String::new, ToString::to_string),
-            ]
-        })
-        .collect::<Vec<_>>();
-    if !subcommands.is_empty() {
-        section(&mut output, "Commands", subcommands);
+        .fold(
+            Table::new(Vec::<Text>::new()).token_column(0),
+            |table, subcommand| {
+                table.row([
+                    Text::plain(subcommand.get_name()),
+                    Text::plain(
+                        subcommand
+                            .get_about()
+                            .map_or_else(String::new, ToString::to_string),
+                    ),
+                ])
+            },
+        );
+    if !commands.is_empty() {
+        output = output.section(Section::new(
+            "Commands",
+            Document::new().table(commands.stacked_below(NARROW_HELP_WIDTH, 1)),
+        ));
     }
+
     let positionals = command
         .get_positionals()
         .filter(|arg| !arg.is_hide_set())
-        .map(|arg| {
-            vec![
-                String::new(),
-                styled(VALUE, &value_label(arg)),
-                String::new(),
+        .fold(Table::new(Vec::<Text>::new()), |table, arg| {
+            table.row([
+                Text::new(),
+                Text::new().value(value_label(arg)),
+                Text::new(),
                 description(arg),
-            ]
-        })
-        .collect::<Vec<_>>();
+            ])
+        });
     if !positionals.is_empty() {
-        section(&mut output, "Arguments", positionals);
+        output = output.section(Section::new(
+            "Arguments",
+            Document::new().table(positionals.stacked_below(NARROW_HELP_WIDTH, 3)),
+        ));
     }
+
     let mut headings = Vec::<String>::new();
     for arg in command
         .get_arguments()
@@ -113,7 +113,7 @@ pub fn render(mut command: Command) -> String {
     {
         let heading = arg
             .get_help_heading()
-            .map_or_else(|| "Options".to_string(), ToString::to_string);
+            .map_or_else(|| "Options".to_owned(), ToString::to_string);
         if !headings.contains(&heading) {
             headings.push(heading);
         }
@@ -136,68 +136,30 @@ pub fn render(mut command: Command) -> String {
                     && arg.get_id().as_str() != "help"
                     && arg.get_help_heading().map_or("Options", |value| value) == heading
             })
-            .map(|arg| {
-                vec![
+            .fold(Table::new(Vec::<Text>::new()), |table, arg| {
+                table.row([
                     arg.get_short()
-                        .map_or_else(String::new, |value| styled(OPTION, &format!("-{value}"))),
+                        .map_or_else(Text::new, |value| Text::new().token(format!("-{value}"))),
                     arg.get_long()
-                        .map_or_else(String::new, |value| styled(OPTION, &format!("--{value}"))),
-                    styled(VALUE, &value_label(arg)),
+                        .map_or_else(Text::new, |value| Text::new().token(format!("--{value}"))),
+                    Text::new().value(value_label(arg)),
                     description(arg),
-                ]
-            })
-            .collect::<Vec<_>>();
+                ])
+            });
         if !rows.is_empty() {
-            section(&mut output, &heading, rows);
+            output = output.section(Section::new(
+                heading,
+                Document::new().table(rows.stacked_below(NARROW_HELP_WIDTH, 3)),
+            ));
         }
     }
     output
 }
 
-fn section(output: &mut String, title: &str, rows: Vec<Vec<String>>) {
-    let _ = writeln!(
-        output,
-        "{}{}{}",
-        HEADING.render(),
-        title,
-        HEADING.render_reset()
-    );
-    if layout::terminal_width().is_some_and(|width| width < NARROW_HELP_WIDTH) {
-        narrow_rows(output, rows);
-        return;
-    }
-    let mut table = Table::new();
-    table
-        .load_style(UTF8_FULL_CONDENSED)
-        .set_content_arrangement(ContentArrangement::Dynamic);
-    layout::constrain(&mut table);
-    for row in rows {
-        table.add_row(row);
-    }
-    let _ = writeln!(output, "{table}");
-}
-
-fn narrow_rows(output: &mut String, rows: Vec<Vec<String>>) {
-    for row in rows {
-        let (label, description) = if row.len() == 2 {
-            (row[0].clone(), row[1].clone())
-        } else {
-            (
-                row.iter()
-                    .take(3)
-                    .filter(|value| !value.is_empty())
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" "),
-                row.get(3).cloned().unwrap_or_default(),
-            )
-        };
-        layout::push_indented(output, &label, 2);
-        if !description.is_empty() {
-            layout::push_indented(output, &description, 4);
-        }
-    }
-    output.push('\n');
+/// Render help with automatic width and forced semantic color.
+#[must_use]
+pub fn render(command: Command) -> String {
+    document(command).render(RenderOptions::new(ColorMode::Always))
 }
 
 fn value_label(arg: &clap::Arg) -> String {
@@ -224,7 +186,7 @@ fn value_label(arg: &clap::Arg) -> String {
         .get_possible_values()
         .into_iter()
         .filter(|value| !value.is_hide_set())
-        .map(|value| value.get_name().to_string())
+        .map(|value| value.get_name().to_owned())
         .collect::<Vec<_>>();
     if choices.is_empty() {
         names
@@ -233,36 +195,35 @@ fn value_label(arg: &clap::Arg) -> String {
     }
 }
 
-fn description(arg: &clap::Arg) -> String {
-    let mut description = arg.get_help().map_or_else(String::new, ToString::to_string);
+fn description(arg: &clap::Arg) -> Text {
+    let description = arg.get_help().map_or_else(String::new, ToString::to_string);
     let defaults = arg
         .get_default_values()
         .iter()
         .map(|value| value.to_string_lossy())
         .collect::<Vec<_>>();
-    if !defaults.is_empty()
-        && !matches!(
+    if defaults.is_empty()
+        || matches!(
             arg.get_action(),
             clap::ArgAction::SetTrue | clap::ArgAction::SetFalse
         )
     {
-        if !description.is_empty() {
-            description.push(' ');
-        }
-        description.push_str(&styled(
-            MUTED,
-            &format!("[default: {}]", defaults.join(", ")),
-        ));
+        return Text::plain(description);
     }
-    description
+    let separator = if description.is_empty() { "" } else { " " };
+    Text::plain(description)
+        .then(separator)
+        .muted(format!("[default: {}]", defaults.join(", ")))
 }
 
 #[cfg(test)]
 mod tests {
     use clap::{CommandFactory, Parser};
 
-    use super::{render, try_emit_from};
+    use super::{document, render, try_emit_from};
+    use crate::color::ColorMode;
     use crate::flags::{DryRunArgs, OutputArgs};
+    use crate::render::RenderOptions;
 
     #[derive(Parser)]
     #[command(version, about = "toy ctl", arg_required_else_help = true)]
@@ -289,6 +250,12 @@ mod tests {
         assert!(text.contains("--dry-run"));
         assert!(text.contains("--format"));
         assert!(text.contains("--no-color"));
+    }
+
+    #[test]
+    fn colorless_help_has_no_ansi() {
+        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
+        assert!(!text.contains('\u{1b}'));
     }
 
     #[test]

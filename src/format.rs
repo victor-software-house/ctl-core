@@ -28,6 +28,30 @@ impl OutputFormat {
     pub fn is_json(self) -> bool {
         self == Self::Json
     }
+
+    /// Last `-f/--format` in raw argv wins. Parser errors use this before Clap
+    /// can produce a typed CLI value.
+    #[must_use]
+    pub fn from_args<'a, I>(args: I) -> Self
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        let mut format = Self::Pretty;
+        let mut args = args.into_iter().peekable();
+        while let Some(arg) = args.next() {
+            let value = match arg {
+                "-f" | "--format" => match args.peek() {
+                    Some(next) if !next.starts_with('-') => args.next(),
+                    _ => None,
+                },
+                other => other.strip_prefix("--format="),
+            };
+            if let Some(parsed) = value.and_then(|value| value.parse().ok()) {
+                format = parsed;
+            }
+        }
+        format
+    }
 }
 
 impl FromStr for OutputFormat {
@@ -72,5 +96,17 @@ mod tests {
         assert!(OutputFormat::Json.is_json());
         assert!(!OutputFormat::Pretty.is_json());
         assert_eq!("json".parse::<OutputFormat>().unwrap(), OutputFormat::Json);
+    }
+
+    #[test]
+    fn raw_argv_is_last_wins() {
+        assert_eq!(
+            OutputFormat::from_args(["toy", "--format", "json", "-f", "pretty"]),
+            OutputFormat::Pretty
+        );
+        assert_eq!(
+            OutputFormat::from_args(["toy", "--format=json"]),
+            OutputFormat::Json
+        );
     }
 }

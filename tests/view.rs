@@ -1,51 +1,104 @@
-//! Envelope JSON and `Render` + formatdoc.
+//! One typed model across pretty, colorless, and JSON.
 #![allow(missing_docs)]
 #![cfg(feature = "view")]
 
 use ctl_core::{
-    ColorMode, Envelope, ErrorBody, OutputFormat, Pretty, Render, View, formatdoc, indoc,
-    render_template,
+    ColorMode, Document, Envelope, ErrorBody, Fields, MessageKind, OutputFormat, Present, Stream,
+    View,
 };
 use serde::Serialize;
 
-#[test]
-fn json_view_is_the_model() {
-    let view = View::new(OutputFormat::Json, ColorMode::Never);
-    let env = Envelope::ok(["demo"]);
-    let encoded = serde_json::to_string(&env).unwrap();
-    assert!(encoded.contains("\"status\":\"ok\""));
-    assert!(encoded.contains("demo"));
-    let _ = view;
+#[derive(Serialize)]
+struct Status {
+    pending: usize,
+    failed: bool,
 }
 
-struct Demo {
-    name: &'static str,
-    to: &'static str,
-}
+impl Present for Status {
+    fn present(&self) -> Document {
+        Document::new().fields(Fields::new().row("pending", self.pending.to_string()))
+    }
 
-impl Render for Demo {
-    fn render_pretty(&self) -> String {
-        formatdoc! {"
-            bump    {name} -> {to}
-            dry-run (no files written)
-            ",
-            name = self.name,
-            to = self.to,
+    fn message_kind(&self) -> MessageKind {
+        if self.failed {
+            MessageKind::Error
+        } else {
+            MessageKind::Success
         }
+    }
+
+    fn exit_code(&self) -> u8 {
+        if self.failed { 2 } else { 0 }
     }
 }
 
 #[test]
-fn pretty_uses_formatdoc() {
-    let demo = Demo {
-        name: "verctl",
-        to: "0.0.1",
+fn same_model_feeds_pretty_and_json() {
+    let status = Status {
+        pending: 2,
+        failed: false,
     };
-    let pretty = demo.render_pretty();
-    assert!(pretty.contains("bump    verctl -> 0.0.1"));
-    assert!(!pretty.contains('{'));
-    let view = View::new(OutputFormat::Pretty, ColorMode::Never);
-    assert_eq!(view.format, OutputFormat::Pretty);
+    let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+        .width(60)
+        .capture(&status)
+        .unwrap();
+    let json = View::new(OutputFormat::Json, ColorMode::Always)
+        .capture(&status)
+        .unwrap();
+
+    assert_eq!(pretty.stream(), Stream::Stdout);
+    assert!(pretty.text().contains("pending"));
+    assert!(pretty.text().contains('2'));
+    assert!(!pretty.text().contains('\u{1b}'));
+    assert_eq!(json.stream(), Stream::Stdout);
+    assert_eq!(json.text(), "{\"pending\":2,\"failed\":false}\n");
+    assert!(!json.text().contains('\u{1b}'));
+}
+
+#[test]
+fn error_pretty_uses_stderr_and_failure_exit() {
+    let status = Status {
+        pending: 1,
+        failed: true,
+    };
+    let captured = View::new(OutputFormat::Pretty, ColorMode::Never)
+        .width(60)
+        .capture(&status)
+        .unwrap();
+    assert_eq!(captured.stream(), Stream::Stderr);
+    assert_eq!(captured.exit_code(), std::process::ExitCode::from(2));
+}
+
+#[test]
+fn quiet_suppresses_only_successful_pretty_output() {
+    let success = Status {
+        pending: 0,
+        failed: false,
+    };
+    let failure = Status {
+        pending: 1,
+        failed: true,
+    };
+    let quiet_pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+        .quiet(true)
+        .capture(&success)
+        .unwrap();
+    let quiet_error = View::new(OutputFormat::Pretty, ColorMode::Never)
+        .quiet(true)
+        .width(60)
+        .capture(&failure)
+        .unwrap();
+    let quiet_json = View::new(OutputFormat::Json, ColorMode::Never)
+        .quiet(true)
+        .capture(&success)
+        .unwrap();
+
+    assert_eq!(quiet_pretty.stream(), Stream::None);
+    assert_eq!(quiet_pretty.bytes(), &[] as &[u8]);
+    assert_eq!(quiet_error.stream(), Stream::Stderr);
+    assert_ne!(quiet_error.bytes(), &[] as &[u8]);
+    assert_eq!(quiet_json.stream(), Stream::Stdout);
+    assert_ne!(quiet_json.bytes(), &[] as &[u8]);
 }
 
 #[test]
@@ -60,109 +113,4 @@ fn envelope_err_tag() {
     let json = serde_json::to_value(Envelope::<()>::err(ErrorBody::new("toy", "nope"))).unwrap();
     assert_eq!(json["status"], "err");
     assert_eq!(json["error"]["bin"], "toy");
-}
-
-#[derive(Serialize)]
-struct PublishDemo {
-    crates: Vec<String>,
-    release: Option<String>,
-    dry_run: bool,
-}
-
-impl Pretty for PublishDemo {
-    const TEMPLATE: &'static str = indoc! {"
-        {% for entry in crates -%}
-        crate   {{ entry }}
-        {% endfor -%}
-        {% if release -%}
-        release {{ release }}
-        {% endif -%}
-        {% if dry_run -%}
-        dry-run (nothing published)
-        {% endif %}
-    "};
-}
-
-struct PrettyCase {
-    name: &'static str,
-    crates: &'static [&'static str],
-    release: Option<&'static str>,
-    dry_run: bool,
-    expected: &'static str,
-}
-
-#[test]
-fn pretty_template_varies_by_data() {
-    let cases = [
-        PrettyCase {
-            name: "crate, release, dry-run",
-            crates: &["ctl-core@0.0.1 (cargo)"],
-            release: Some("would create v0.0.1"),
-            dry_run: true,
-            expected: indoc! {"
-                crate   ctl-core@0.0.1 (cargo)
-                release would create v0.0.1
-                dry-run (nothing published)
-            "},
-        },
-        PrettyCase {
-            name: "two crates only",
-            crates: &["ctl-core@0.0.1 (cargo)", "verctl@0.0.1 (cargo)"],
-            release: None,
-            dry_run: false,
-            expected: indoc! {"
-                crate   ctl-core@0.0.1 (cargo)
-                crate   verctl@0.0.1 (cargo)
-            "},
-        },
-        PrettyCase {
-            name: "release without dry-run",
-            crates: &["ctl-core@0.0.1 (cargo)"],
-            release: Some("https://github.com/victor-software-house/ctl-core/releases/tag/v0.0.1"),
-            dry_run: false,
-            expected: indoc! {"
-                crate   ctl-core@0.0.1 (cargo)
-                release https://github.com/victor-software-house/ctl-core/releases/tag/v0.0.1
-            "},
-        },
-        PrettyCase {
-            name: "empty model is empty pretty",
-            crates: &[],
-            release: None,
-            dry_run: false,
-            expected: "",
-        },
-        PrettyCase {
-            name: "dry-run only",
-            crates: &[],
-            release: None,
-            dry_run: true,
-            expected: "dry-run (nothing published)\n",
-        },
-    ];
-    for PrettyCase {
-        name,
-        crates,
-        release,
-        dry_run,
-        expected,
-    } in cases
-    {
-        let demo = PublishDemo {
-            crates: crates.iter().map(|entry| (*entry).to_owned()).collect(),
-            release: release.map(str::to_owned),
-            dry_run,
-        };
-        let pretty = render_template(PublishDemo::TEMPLATE, &demo).expect(name);
-        assert_eq!(pretty, expected, "{name}");
-    }
-}
-
-#[test]
-fn quiet_builder() {
-    assert!(
-        View::new(OutputFormat::Pretty, ColorMode::Never)
-            .quiet(true)
-            .quiet
-    );
 }

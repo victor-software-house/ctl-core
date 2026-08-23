@@ -5,9 +5,21 @@ prefix: CTC
 style:
   timezone: "-03:00"
   section_order: [queue, horizon, archive]
-active: CTC-006
+active: CTC-010
 
 queue:
+  - id: CTC-010
+    title: Own the unified ctl presentation kernel
+    scope: ctl-core and all ctl consumers
+    outcome: One typed Rust chassis in ctl-core renders pretty, colorless, JSON, help, notices, and errors through composable semantic primitives; consumer CLIs own domain data and import no terminal renderer.
+    blocked_by: []
+    acceptance:
+      - ctl-core exposes a fluent chassis and semantic Document API with no Comfy Table types in its public surface.
+      - Pretty and colorless output, JSON envelopes, errors, quiet mode, help, usage-spec, and pre-parse hooks are proven by one toy CLI.
+      - Help, fields, and grids use the same ctl-core renderer and explicit-width snapshots are deterministic.
+      - Verctl, forkctl, and qctl can migrate without importing Comfy Table, Anstyle, Anstream, or terminal-width helpers.
+      - The old go entry point is removed after every owned consumer migrates; no compatibility alias remains.
+
   - id: CTC-006
     title: Test fixture tree and per-suite temp dirs
     scope: ctl-core

@@ -1,40 +1,98 @@
-//! Multi-view emit: one serializable model, pretty or JSON, color or not.
+//! Pretty, colorless, and JSON emission from one typed model.
 
 use std::io::{self, Write};
+use std::process::ExitCode;
 
 use anstream::AutoStream;
 use serde::Serialize;
 
 use crate::color::ColorMode;
+use crate::document::{Document, Text};
 use crate::format::OutputFormat;
-use crate::formatdoc;
 use crate::model::{Envelope, ErrorBody};
+use crate::render::RenderOptions;
 
-/// Pretty text for a model. Prefer [`Pretty`] + a Jinja template.
-pub trait Render {
-    /// Human view. Must not depend on [`View::format`].
-    fn render_pretty(&self) -> String;
+/// A serializable domain model with one semantic human presentation.
+pub trait Present: Serialize {
+    /// Build the human document. JSON serializes `self` directly.
+    fn present(&self) -> Document;
 
-    /// Pretty view honoring `color`. Default ignores it.
-    fn render_pretty_colored(&self, color: ColorMode) -> String {
-        let _ = color;
-        self.render_pretty()
+    /// Whether this value represents success or failure.
+    fn message_kind(&self) -> MessageKind {
+        MessageKind::Success
+    }
+
+    /// Process exit code. Typed protocols can distinguish usage errors from
+    /// operational failures without changing their presentation stream.
+    fn exit_code(&self) -> u8 {
+        self.message_kind().default_exit_code()
     }
 }
 
-/// A serializable model whose pretty view is a Jinja template.
-///
-/// Prepare the data. The template owns `{% if %}`, loops, and alignment.
-pub trait Pretty: Serialize {
-    /// `include_str!` of a `.jinja` file next to the binary crate.
-    const TEMPLATE: &'static str;
+/// Human stream and exit semantics for a presented model.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MessageKind {
+    /// Successful command result.
+    #[default]
+    Success,
+    /// Failed command result.
+    Error,
 }
 
-/// Render `value` through a Jinja template. Used by [`View::show_pretty`].
-pub fn render_template(source: &str, value: &impl Serialize) -> Result<String, minijinja::Error> {
-    let mut env = minijinja::Environment::new();
-    env.add_template("pretty", source)?;
-    env.get_template("pretty")?.render(value)
+impl MessageKind {
+    /// Default process exit code.
+    #[must_use]
+    pub const fn default_exit_code(self) -> u8 {
+        match self {
+            Self::Success => 0,
+            Self::Error => 1,
+        }
+    }
+}
+
+/// Destination selected by a view.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Stream {
+    /// No output, used for quiet successful pretty output.
+    None,
+    /// Standard output.
+    Stdout,
+    /// Standard error.
+    Stderr,
+}
+
+/// Rendered bytes plus their destination and exit semantics.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Captured {
+    stream: Stream,
+    content: String,
+    exit_code: u8,
+}
+
+impl Captured {
+    /// Destination stream.
+    #[must_use]
+    pub const fn stream(&self) -> Stream {
+        self.stream
+    }
+
+    /// Rendered bytes.
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        self.content.as_bytes()
+    }
+
+    /// UTF-8 rendered content.
+    #[must_use]
+    pub fn text(&self) -> &str {
+        &self.content
+    }
+
+    /// Process exit code.
+    #[must_use]
+    pub fn exit_code(&self) -> ExitCode {
+        ExitCode::from(self.exit_code)
+    }
 }
 
 /// How to present a model. JSON never contains ANSI.
@@ -46,76 +104,100 @@ pub struct View {
     pub color: ColorMode,
     /// Suppress successful pretty output.
     pub quiet: bool,
+    width: Option<u16>,
 }
 
 impl View {
-    #[must_use]
     /// Build a view that prints successes.
-    pub fn new(format: OutputFormat, color: ColorMode) -> Self {
+    #[must_use]
+    pub const fn new(format: OutputFormat, color: ColorMode) -> Self {
         Self {
             format,
             color,
             quiet: false,
+            width: None,
         }
     }
 
-    #[must_use]
     /// Suppress successful pretty output when `quiet` is set.
-    pub fn quiet(mut self, quiet: bool) -> Self {
+    #[must_use]
+    pub const fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = quiet;
         self
     }
 
-    /// JSON writes the model. Pretty writes [`Render::render_pretty`].
-    pub fn show(self, value: &(impl Serialize + Render)) -> io::Result<()> {
-        self.emit(value, &value.render_pretty_colored(self.color))
+    /// Force an explicit presentation width.
+    #[must_use]
+    pub const fn width(mut self, width: u16) -> Self {
+        self.width = Some(width);
+        self
     }
 
-    /// JSON writes the model. Pretty renders [`Pretty::TEMPLATE`] against it.
-    pub fn show_pretty<T: Pretty>(self, value: &T) -> io::Result<()> {
-        self.show_template(value, T::TEMPLATE)
-    }
-
-    /// JSON writes the model. Pretty renders `template` against it.
-    pub fn show_template(self, value: &impl Serialize, template: &str) -> io::Result<()> {
-        if self.quiet {
-            return Ok(());
-        }
+    /// Render without writing. Tests and alternate transports use this path.
+    pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
+        let kind = value.message_kind();
+        let exit_code = value.exit_code();
         if self.format.is_json() {
-            return emit_json(value);
+            let mut content = serde_json::to_string(value)?;
+            content.push('\n');
+            return Ok(Captured {
+                stream: Stream::Stdout,
+                content,
+                exit_code,
+            });
         }
-        let pretty = render_template(template, value).map_err(io::Error::other)?;
-        write_stdout(pretty.as_bytes(), self.color)
+        if self.quiet && kind == MessageKind::Success {
+            return Ok(Captured {
+                stream: Stream::None,
+                content: String::new(),
+                exit_code,
+            });
+        }
+        let options = self.width.map_or_else(
+            || RenderOptions::new(self.color),
+            |width| RenderOptions::new(self.color).width(width),
+        );
+        let content = value.present().render(options);
+        Ok(Captured {
+            stream: match kind {
+                MessageKind::Success => Stream::Stdout,
+                MessageKind::Error => Stream::Stderr,
+            },
+            content,
+            exit_code,
+        })
     }
 
-    /// JSON writes `value`. Pretty writes `pretty` (already styled or plain).
-    pub fn emit(self, value: &impl Serialize, pretty: &str) -> io::Result<()> {
-        if self.quiet {
-            return Ok(());
+    /// Render and write one typed model. Returns its process exit semantics.
+    pub fn show(self, value: &impl Present) -> io::Result<ExitCode> {
+        let captured = self.capture(value)?;
+        match captured.stream() {
+            Stream::None => {}
+            Stream::Stdout => write_stdout(captured.bytes(), self.color)?,
+            Stream::Stderr => write_stderr(captured.bytes(), self.color)?,
         }
-        if self.format.is_json() {
-            return emit_json(value);
-        }
-        write_stdout(pretty.as_bytes(), self.color)
-    }
-
-    /// Emit a success [`Envelope`].
-    pub fn emit_ok<T: Serialize>(self, data: &T, pretty: &str) -> io::Result<()> {
-        self.emit(&Envelope::ok(data), pretty)
+        Ok(captured.exit_code())
     }
 
     /// Emit `{bin}: {message}` or a JSON error envelope.
-    pub fn emit_err(self, bin: &str, message: &str) -> io::Result<()> {
-        let error = ErrorBody::new(bin, message);
+    pub fn emit_err(self, bin: &str, message: &str) -> io::Result<ExitCode> {
         if self.format.is_json() {
-            return emit_json(&Envelope::<()>::err(error));
+            emit_json(&Envelope::<()>::err(ErrorBody::new(bin, message)))?;
+            return Ok(ExitCode::FAILURE);
         }
-        write_stderr(formatdoc!("{bin}: {message}\n").as_bytes(), self.color)
+        let options = self.width.map_or_else(
+            || RenderOptions::new(self.color),
+            |width| RenderOptions::new(self.color).width(width),
+        );
+        let document =
+            Document::new().paragraph(Text::new().error(bin).then(": ").then(message.to_owned()));
+        write_stderr(document.render(options).as_bytes(), self.color)?;
+        Ok(ExitCode::FAILURE)
     }
 }
 
 /// Write `value` as one JSON line to stdout. No ANSI.
-pub fn emit_json<T: Serialize>(value: &T) -> io::Result<()> {
+pub(crate) fn emit_json<T: Serialize>(value: &T) -> io::Result<()> {
     let stdout = io::stdout();
     let mut lock = stdout.lock();
     serde_json::to_writer(&mut lock, value)?;
@@ -124,14 +206,14 @@ pub fn emit_json<T: Serialize>(value: &T) -> io::Result<()> {
 }
 
 /// Write raw bytes to stdout with `color`.
-pub fn write_stdout(bytes: &[u8], color: ColorMode) -> io::Result<()> {
+pub(crate) fn write_stdout(bytes: &[u8], color: ColorMode) -> io::Result<()> {
     let mut stream = AutoStream::new(io::stdout().lock(), color.choice());
     stream.write_all(bytes)?;
     stream.flush()
 }
 
 /// Write raw bytes to stderr with `color`.
-pub fn write_stderr(bytes: &[u8], color: ColorMode) -> io::Result<()> {
+pub(crate) fn write_stderr(bytes: &[u8], color: ColorMode) -> io::Result<()> {
     let mut stream = AutoStream::new(io::stderr().lock(), color.choice());
     stream.write_all(bytes)?;
     stream.flush()

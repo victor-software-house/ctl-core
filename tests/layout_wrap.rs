@@ -1,20 +1,28 @@
-//! Terminal wrap / indent helpers.
+//! Public semantic layout contract.
 #![allow(missing_docs)]
-#![cfg(feature = "help")]
+#![cfg(feature = "render")]
+
+use ctl_core::{ColorMode, Document, RenderOptions, Table, Text};
 
 #[test]
-fn push_line_terminates() {
-    for text in ["hello", "Usage: toy <COMMAND>", "--dry-run", "x"] {
-        let mut out = String::new();
-        ctl_core::layout::push_line(&mut out, text);
-        assert!(out.ends_with('\n'), "{out:?}");
-        assert!(out.contains(text.trim()), "{out}");
-    }
+fn paragraph_wraps_to_explicit_width() {
+    let text = "one two three four five six seven eight";
+    let rendered = Document::new()
+        .paragraph(text)
+        .render(RenderOptions::new(ColorMode::Never).width(16));
+    assert!(rendered.lines().count() > 1, "{rendered:?}");
+    assert!(rendered.ends_with('\n'), "{rendered:?}");
 }
 
 #[test]
-fn indent_prefixes() {
-    let mut out = String::new();
-    ctl_core::layout::push_indented(&mut out, "flag", 2);
-    assert!(out.starts_with("  flag"), "{out:?}");
+fn narrow_table_stacks_labels_and_description() {
+    let table = Table::new(Vec::<Text>::new()).stacked_below(64, 2).row([
+        "-f",
+        "--format",
+        "Output representation",
+    ]);
+    let rendered = Document::new()
+        .table(table)
+        .render(RenderOptions::new(ColorMode::Never).width(40));
+    assert_eq!(rendered, "  -f --format\n    Output representation\n");
 }
