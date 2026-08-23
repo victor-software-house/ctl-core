@@ -110,7 +110,7 @@ where
         }
 
         let raw_view = raw_view::<C>(&raw);
-        if words.len() == 1 {
+        if words.len() == 1 && crate::parser::requires_input::<C>() {
             let help =
                 crate::help::document(C::command()).render(RenderOptions::new(raw_view.color));
             return crate::view::write_stderr(help.as_bytes(), raw_view.color)
@@ -209,6 +209,10 @@ mod tests {
     }
 
     #[derive(Parser)]
+    #[command(version, about = "optional toy")]
+    struct OptionalCli {}
+
+    #[derive(Parser)]
     #[command(version, about = "nested toy")]
     struct NestedCli {
         #[command(subcommand)]
@@ -305,6 +309,18 @@ mod tests {
     fn bare_invocation_is_usage_error() {
         let code = App::<Cli>::new("toy").run_from(["toy"], |_| Ok(Status { pending: 0 }));
         assert_eq!(code, std::process::ExitCode::from(2));
+    }
+
+    #[test]
+    fn bare_invocation_executes_when_the_root_accepts_it() {
+        let ran = Rc::new(Cell::new(false));
+        let observed = Rc::clone(&ran);
+        let code = App::<OptionalCli>::new("toy").run_from(["toy"], move |_| {
+            observed.set(true);
+            Ok(Status { pending: 0 })
+        });
+        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert!(ran.get());
     }
 
     #[test]

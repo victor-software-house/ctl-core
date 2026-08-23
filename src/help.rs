@@ -52,13 +52,10 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
 }
 
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {
-    let mut root = C::command();
-    root.build();
-    let mut path = args.get(1..).unwrap_or(&[]);
-    if path.first().is_some_and(|arg| arg == "help") {
-        path = &path[1..];
-    }
-    select_command(root, path)
+    let root = C::command();
+    let mut command = select_command(root, args.get(1..).unwrap_or(&[]));
+    command.build();
+    command
 }
 
 fn select_command(mut command: Command, args: &[String]) -> Command {
@@ -257,6 +254,17 @@ mod tests {
     enum ToyCmd {
         /// Show status.
         Status(StatusArgs),
+        /// Group commands.
+        Group {
+            #[command(subcommand)]
+            command: GroupCmd,
+        },
+    }
+
+    #[derive(clap::Subcommand)]
+    enum GroupCmd {
+        /// Show a nested item.
+        Show,
     }
 
     #[derive(clap::Args)]
@@ -286,6 +294,12 @@ mod tests {
     fn help_subcommand_selects_the_requested_command() {
         let args = ["toy", "help", "status"].map(String::from);
         assert_eq!(help_command::<Toy>(&args).get_name(), "status");
+    }
+
+    #[test]
+    fn nested_help_subcommand_selects_the_requested_command() {
+        let args = ["toy", "group", "help", "show"].map(String::from);
+        assert_eq!(help_command::<Toy>(&args).get_name(), "show");
     }
 
     #[test]

@@ -70,6 +70,13 @@ pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
     )
 }
 
+/// Whether the command's Clap grammar rejects a bare invocation with help.
+#[cfg(feature = "app")]
+pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
+    let command = C::command();
+    command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
+}
+
 /// Apply the *ctl parser contract to a clap command.
 ///
 /// `-h/--help` and `-V/--version` stay on. `disable_help_flag` is forbidden.
@@ -79,7 +86,6 @@ pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
     command
-        .arg_required_else_help(true)
         .args_override_self(true)
         .color(ColorChoice::Auto)
         .disable_help_flag(false)
@@ -141,6 +147,12 @@ mod tests {
         let help = command.render_long_help().to_string();
         assert!(help.contains("-h, --help"));
         assert!(help.contains("-V, --version"));
+    }
+
+    #[test]
+    fn preserves_bare_invocation_policy() {
+        let command = apply_defaults(Toy::command().arg_required_else_help(false));
+        assert!(!command.is_arg_required_else_help_set());
     }
 
     #[test]
