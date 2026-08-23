@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 
 use comfy_table::presets::{NOTHING, UTF8_FULL_CONDENSED};
 use comfy_table::{Cell, ContentArrangement, Table as EngineTable};
+use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
 
 use crate::color::ColorMode;
@@ -291,7 +292,12 @@ impl Document {
 fn sanitize_verbatim(value: &str) -> String {
     value
         .chars()
-        .filter(|character| *character == '\n' || *character == '\t' || !character.is_control())
+        .filter(|character| {
+            *character == '\n'
+                || *character == '\t'
+                || (!character.is_control()
+                    && get_general_category(*character) != GeneralCategory::Format)
+        })
         .collect::<String>()
         .trim_end_matches('\n')
         .to_owned()
@@ -300,6 +306,7 @@ fn sanitize_verbatim(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use indoc::{formatdoc, indoc};
+    use unicode_general_category::{GeneralCategory, get_general_category};
 
     use super::RenderOptions;
     use crate::color::ColorMode;
@@ -360,14 +367,13 @@ mod tests {
     #[test]
     fn verbatim_text_removes_unsafe_controls_and_keeps_tabs() {
         let rendered = Document::new()
-            .verbatim("\u{1b}]52;clipboard\u{7}\tvalue")
+            .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\tvalue")
             .render(RenderOptions::new(ColorMode::Never).width(5));
         assert_eq!(rendered, "]52;clipboard\tvalue\n");
-        assert!(
-            !rendered.chars().any(|character| {
-                character != '\n' && character != '\t' && character.is_control()
-            })
-        );
+        assert!(!rendered.chars().any(|character| {
+            (character != '\n' && character != '\t' && character.is_control())
+                || get_general_category(character) == GeneralCategory::Format
+        }));
     }
 
     #[test]
