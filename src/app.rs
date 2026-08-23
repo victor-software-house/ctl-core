@@ -116,11 +116,12 @@ where
             Err(_) => return ExitCode::FAILURE,
         }
 
-        let warnings = crate::flags::chassis_warnings(words.iter().skip(1).map(String::as_str));
-        if self.emit_warnings(&warnings, &words).is_err() {
+        let leading = leading_chassis_args(&words);
+        let warnings = crate::flags::chassis_warnings(leading.iter().copied());
+        if self.emit_warnings(&warnings, &leading).is_err() {
             return ExitCode::FAILURE;
         }
-        let raw_view = raw_view(&words);
+        let raw_view = raw_view(&leading);
         let mut command = crate::parser::apply_defaults(C::command());
         if raw_view.format.is_json() {
             command = command.color(clap::ColorChoice::Never);
@@ -155,7 +156,7 @@ where
     fn emit_warnings(
         &self,
         warnings: &[crate::flags::FlagWarning],
-        args: &[String],
+        args: &[&str],
     ) -> std::io::Result<()> {
         if warnings.is_empty() {
             return Ok(());
@@ -169,16 +170,43 @@ where
                     .then(warning.to_string()),
             ))
         });
-        let color = ColorMode::from_args(args.iter().map(String::as_str));
+        let color = ColorMode::from_args(args.iter().copied());
         crate::view::write_stderr(document.render(RenderOptions::new(color)).as_bytes(), color)
     }
 }
 
-fn raw_view(words: &[String]) -> View {
-    let args = words.iter().skip(1).map(String::as_str);
+fn leading_chassis_args(words: &[String]) -> Vec<&str> {
+    let mut leading = Vec::new();
+    let mut args = words.iter().skip(1).map(String::as_str).peekable();
+    while let Some(arg) = args.next() {
+        if arg == "--" {
+            break;
+        }
+        if matches!(
+            arg,
+            "-q" | "--quiet" | "-n" | "--dry-run" | "--preview" | "--no-color"
+        ) || arg.starts_with("--format=")
+            || arg.starts_with("--color=")
+        {
+            leading.push(arg);
+            continue;
+        }
+        if matches!(arg, "-f" | "--format" | "-c" | "--color") {
+            leading.push(arg);
+            if let Some(value) = args.next() {
+                leading.push(value);
+            }
+            continue;
+        }
+        break;
+    }
+    leading
+}
+
+fn raw_view(args: &[&str]) -> View {
     View::new(
-        OutputFormat::from_args(args.clone()),
-        ColorMode::from_args(args),
+        OutputFormat::from_args(args.iter().copied()),
+        ColorMode::from_args(args.iter().copied()),
     )
 }
 
@@ -203,7 +231,7 @@ mod tests {
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::{App, is_clap_display, raw_view};
+    use super::{App, is_clap_display, leading_chassis_args, raw_view};
     use crate::document::{Document, Fields};
     use crate::view::{Present, View};
     use crate::{ColorMode, OutputArgs, OutputFormat};
@@ -319,8 +347,28 @@ mod tests {
     #[test]
     fn raw_view_skips_binary_and_stops_at_separator() {
         let words = ["--format=json", "status", "--", "--color=always"].map(String::from);
-        let view = raw_view(&words);
+        let leading = leading_chassis_args(&words);
+        let view = raw_view(&leading);
         assert_eq!(view.format, OutputFormat::Pretty);
         assert_eq!(view.color, ColorMode::Auto);
+    }
+
+    #[test]
+    fn leading_chassis_scan_consumes_values_then_stops_at_subcommand() {
+        let words = [
+            "toy",
+            "--format",
+            "json",
+            "--color=never",
+            "status",
+            "-m",
+            "--format=pretty",
+        ]
+        .map(String::from);
+        let leading = leading_chassis_args(&words);
+        assert_eq!(leading, ["--format", "json", "--color=never"]);
+        let view = raw_view(&leading);
+        assert_eq!(view.format, OutputFormat::Json);
+        assert_eq!(view.color, ColorMode::Never);
     }
 }
