@@ -4,6 +4,8 @@ all-features = true
 [advisories]
 yanked = "deny"
 unmaintained = "all"
+# RUSTSEC ids and yanked crates that cannot be upgraded yet. Not a lint-level downgrade.
+ignore = []
 
 [licenses]
 allow = [
