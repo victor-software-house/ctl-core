@@ -91,8 +91,8 @@ pub enum Block {
     Heading(Text),
     /// Wrapped prose.
     Paragraph(Text),
-    /// Preformatted text kept byte-for-byte inside the document newline
-    /// contract.
+    /// Preformatted text kept unwrapped inside the document newline contract.
+    /// Unsafe control characters are removed; tabs and line breaks survive.
     Verbatim(String),
     /// Key/value fields.
     Fields(Fields),

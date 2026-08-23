@@ -28,7 +28,8 @@ ctl-core owns:
   stream selection;
 - `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and
-  unwrapped verbatim blocks for preformatted Markdown or protocol text;
+  unwrapped verbatim blocks that remove unsafe controls and preserve
+  preformatted Markdown or protocol lines;
 - semantic roles and the one visual theme;
 - width detection, wrapping, table layout, ANSI policy, stdout, and stderr;
 - JSON emission and generic error envelopes.
