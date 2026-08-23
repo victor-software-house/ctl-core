@@ -17,6 +17,14 @@ run = "cargo fmt --all -- --check"
 description = "clippy -D warnings"
 run = "cargo clippy --all-targets --all-features -- -D warnings"
 
+[tasks."check:features"]
+description = "Compile each advertised feature set without extra features"
+run = [
+  "cargo check --no-default-features --features usage",
+  "cargo check --no-default-features --features json",
+  "cargo check --no-default-features --features cli",
+]
+
 [tasks.test]
 description = "Parallel tests via nextest"
 run = "cargo nextest run --all-features"
@@ -48,5 +56,5 @@ usage = 'arg "[commits]" default="HEAD" help="Commit or range"'
 run = 'committed "${usage_commits}"'
 
 [tasks.verify]
-description = "Format, lint, nextest, doc-tests, deny, unused crates"
-depends = ["format", "lint", "test", "test:doc", "deny", "deps"]
+description = "Format, lint, feature sets, nextest, doc-tests, deny, unused crates"
+depends = ["format", "lint", "check:features", "test", "test:doc", "deny", "deps"]
