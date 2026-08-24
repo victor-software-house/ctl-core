@@ -74,10 +74,11 @@ fn main() -> ExitCode {
 }
 ```
 
-Enable `app` plus `usage` for that shape. Features remain additive and
-explicit: `document` has no terminal engine, `render` adds terminal layout,
-`view` adds JSON emission, `help` adds Clap help, and `app` composes the
-runtime lifecycle.
+Enable `app` plus `usage` for that shape. A CLI that already owns `-f` composes
+`FormatLong` with `ColorLong`; one that owns `-c` composes `FormatArgs` with
+`ColorLong`. Features remain additive and explicit: `document` has no terminal
+engine, `render` adds terminal layout, `view` adds JSON emission, `help` adds
+Clap help, and `app` composes the runtime lifecycle.
 
 ## Contract
 

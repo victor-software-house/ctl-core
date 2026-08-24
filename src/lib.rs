@@ -67,8 +67,8 @@ pub use document::{
 };
 #[cfg(feature = "cli")]
 pub use flags::{
-    ColorLong, DryRunArgs, FlagWarning, FormatArgs, OutputArgs, WarningKind, chassis_warnings,
-    emit_warnings, resolve_color, switch, warn_opposites,
+    ColorLong, DryRunArgs, FlagWarning, FormatArgs, FormatLong, OutputArgs, WarningKind,
+    chassis_warnings, emit_warnings, resolve_color, switch, warn_opposites,
 };
 pub use format::OutputFormat;
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};

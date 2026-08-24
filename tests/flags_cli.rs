@@ -6,7 +6,7 @@ mod common;
 
 use clap::{CommandFactory, Parser};
 use common::{Toy, ToyCmd, parse};
-use ctl_core::flags::{FormatArgs, switch};
+use ctl_core::flags::{FormatArgs, FormatLong, switch};
 use ctl_core::prelude::*;
 
 #[test]
@@ -18,6 +18,8 @@ fn flatten_mixins_do_not_replace_the_root_long_about() {
     );
     assert!(command.get_long_about().is_none());
     assert!(SplitCmd::command().get_long_about().is_none());
+    assert!(FileSplit::command().get_about().is_none());
+    assert!(FileSplit::command().get_long_about().is_none());
 }
 
 #[test]
@@ -184,6 +186,36 @@ fn color_long_leaves_short_c_for_config() {
     assert_eq!(cli.config.as_deref(), Some("cfg.toml"));
     assert_eq!(cli.color.color(), ColorMode::Never);
     assert!(cli.format.format.is_json());
+}
+
+#[derive(Parser, Debug)]
+struct FileSplit {
+    #[command(flatten)]
+    format: FormatLong,
+    #[command(flatten)]
+    color: ColorLong,
+    #[arg(short = 'f', long)]
+    file: Option<String>,
+    #[command(subcommand)]
+    command: ToyCmd,
+}
+
+#[test]
+fn format_long_leaves_short_f_for_file() {
+    let cli = FileSplit::parse_from([
+        "x",
+        "-f",
+        "tasks.yaml",
+        "status",
+        "--format",
+        "json",
+        "--quiet",
+        "--no-color",
+    ]);
+    assert_eq!(cli.file.as_deref(), Some("tasks.yaml"));
+    assert!(cli.format.format.is_json());
+    assert!(cli.format.quiet);
+    assert_eq!(cli.color.color(), ColorMode::Never);
 }
 
 #[derive(Parser, Debug)]
