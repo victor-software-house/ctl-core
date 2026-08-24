@@ -5,6 +5,7 @@ use crate::flags::resolve_color;
 
 /// `--color` without `-c`, for CLIs that already use `-c` for config.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+#[command(about = None, long_about = None)]
 pub struct ColorLong {
     /// Pretty-output color policy. JSON never contains ANSI.
     #[arg(

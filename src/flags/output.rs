@@ -56,6 +56,7 @@ impl OutputArgs {
 
 /// `-f/--format` and `-q/--quiet` without `-c`.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+#[command(about = None, long_about = None)]
 pub struct FormatArgs {
     /// Output representation.
     #[arg(
