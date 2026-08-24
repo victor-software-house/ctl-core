@@ -157,8 +157,8 @@ impl Surface {
     /// Extract an operator surface from a Clap command graph.
     #[must_use]
     pub fn from_command(mut command: Command, mount: impl Into<String>) -> Self {
-        let mut declared_commands = BTreeSet::new();
-        collect_command_paths(&command, "", &mut declared_commands);
+        let mut declared_arguments = BTreeMap::new();
+        collect_declarations(&command, "", &mut declared_arguments);
         command.build();
         let mount = mount.into();
         let binary = command.get_name().to_owned();
@@ -167,11 +167,15 @@ impl Surface {
             .map(ToString::to_string)
             .unwrap_or_default();
         let version = command.get_version().map(ToOwned::to_owned);
-        let arguments = command.get_arguments().map(argument).collect();
+        let arguments = command
+            .get_arguments()
+            .filter(|argument| declared_argument(&declared_arguments, "", argument))
+            .map(argument)
+            .collect();
         let commands = command
             .get_subcommands()
-            .filter(|child| declared_commands.contains(child.get_name()))
-            .map(|child| surface_command(child, "", &declared_commands))
+            .filter(|child| declared_arguments.contains_key(child.get_name()))
+            .map(|child| surface_command(child, "", &declared_arguments))
             .collect();
         let usage_kdl = usage::spec(command, &mount);
         let mount_line = usage::mount_line(&mount);
@@ -230,7 +234,7 @@ pub fn render<T: Serialize>(
 fn surface_command(
     command: &Command,
     parent: &str,
-    declared_commands: &BTreeSet<String>,
+    declared_arguments: &BTreeMap<String, BTreeSet<String>>,
 ) -> SurfaceCommand {
     let name = command.get_name().to_owned();
     let path = if parent.is_empty() {
@@ -251,25 +255,51 @@ fn surface_command(
             .get_about()
             .map(ToString::to_string)
             .unwrap_or_default(),
-        arguments: command.get_arguments().map(argument).collect(),
+        arguments: command
+            .get_arguments()
+            .filter(|argument| declared_argument(declared_arguments, &path, argument))
+            .map(argument)
+            .collect(),
         commands: command
             .get_subcommands()
-            .filter(|child| declared_commands.contains(&format!("{path} {}", child.get_name())))
-            .map(|child| surface_command(child, &path, declared_commands))
+            .filter(|child| {
+                declared_arguments.contains_key(&format!("{path} {}", child.get_name()))
+            })
+            .map(|child| surface_command(child, &path, declared_arguments))
             .collect(),
     }
 }
 
-fn collect_command_paths(command: &Command, parent: &str, paths: &mut BTreeSet<String>) {
+fn collect_declarations(
+    command: &Command,
+    path: &str,
+    declared_arguments: &mut BTreeMap<String, BTreeSet<String>>,
+) {
+    declared_arguments.insert(
+        path.to_owned(),
+        command
+            .get_arguments()
+            .map(|argument| argument.get_id().to_string())
+            .collect(),
+    );
     for child in command.get_subcommands() {
-        let path = if parent.is_empty() {
+        let child_path = if path.is_empty() {
             child.get_name().to_owned()
         } else {
-            format!("{parent} {}", child.get_name())
+            format!("{path} {}", child.get_name())
         };
-        paths.insert(path.clone());
-        collect_command_paths(child, &path, paths);
+        collect_declarations(child, &child_path, declared_arguments);
     }
+}
+
+fn declared_argument(
+    declared_arguments: &BTreeMap<String, BTreeSet<String>>,
+    path: &str,
+    argument: &Arg,
+) -> bool {
+    declared_arguments
+        .get(path)
+        .is_some_and(|arguments| arguments.contains(argument.get_id().as_str()))
 }
 
 fn argument(argument: &Arg) -> SurfaceArgument {
@@ -379,6 +409,13 @@ mod tests {
         assert_eq!(status.about, "Show current state");
         assert_eq!(status.arguments[0].long.as_deref(), Some("archived"));
         assert!(!status.arguments[0].takes_values);
+        assert_eq!(status.arguments.len(), 1);
+        assert!(
+            status
+                .arguments
+                .iter()
+                .all(|argument| !matches!(argument.id.as_str(), "help" | "version" | "profile"))
+        );
         let item = &surface.commands[1];
         assert_eq!(item.commands[0].path, "item add");
         assert_eq!(item.commands[0].arguments[0].index, Some(1));
@@ -388,6 +425,12 @@ mod tests {
                 .arguments
                 .iter()
                 .any(|arg| arg.long.as_deref() == Some("profile"))
+        );
+        assert!(
+            surface
+                .arguments
+                .iter()
+                .all(|argument| !matches!(argument.id.as_str(), "help" | "version"))
         );
         let noted = surface.note("skill", "Prefer the mounted task.");
         assert_eq!(noted.notes["skill"], "Prefer the mounted task.");
