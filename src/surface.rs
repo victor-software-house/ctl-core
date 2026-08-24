@@ -62,6 +62,8 @@ pub struct Surface {
     pub version: Option<String>,
     /// Arguments and flags declared directly on the root, in Clap order.
     pub arguments: Vec<SurfaceArgument>,
+    /// Ancestor global arguments, always empty for the root.
+    pub inherited_arguments: Vec<SurfaceArgument>,
     /// Root subcommands in Clap declaration order, including hidden commands.
     pub commands: Vec<SurfaceCommand>,
     /// Usage KDL for the mounted task name.
@@ -191,6 +193,7 @@ impl Surface {
             about,
             version,
             arguments,
+            inherited_arguments: Vec::new(),
             commands,
             usage_kdl,
             mount_line,
@@ -379,7 +382,7 @@ mod tests {
     use indoc::indoc;
     use serde::Serialize;
 
-    use super::{Surface, SurfaceScope, render};
+    use super::{Surface, SurfaceArgument, SurfaceScope, render};
 
     #[derive(Parser)]
     #[command(name = "toy", version = "1.2.3", about = "Control toys")]
@@ -424,6 +427,10 @@ mod tests {
         assert_eq!(surface.mount, "t");
         assert_eq!(surface.version.as_deref(), Some("1.2.3"));
         assert_eq!(surface.about, "Control toys");
+        assert_eq!(
+            surface.inherited_arguments.as_slice(),
+            &[] as &[SurfaceArgument]
+        );
         assert!(surface.usage_kdl.contains("status"));
         assert_eq!(
             surface.mount_line,
