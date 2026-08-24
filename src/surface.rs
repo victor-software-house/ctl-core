@@ -60,7 +60,7 @@ pub struct Surface {
     pub about: String,
     /// Root package version, when Clap declares one.
     pub version: Option<String>,
-    /// Root arguments and flags in Clap declaration order.
+    /// Arguments and flags declared directly on the root, in Clap order.
     pub arguments: Vec<SurfaceArgument>,
     /// Root subcommands in Clap declaration order, including hidden commands.
     pub commands: Vec<SurfaceCommand>,
@@ -87,7 +87,10 @@ pub struct SurfaceCommand {
     pub hidden: bool,
     /// Command description.
     pub about: String,
-    /// Command arguments and flags in Clap declaration order.
+    /// Arguments and flags declared directly on this command, in Clap order.
+    ///
+    /// Ancestor globals remain on their declaring command instead of being
+    /// duplicated into every descendant.
     pub arguments: Vec<SurfaceArgument>,
     /// Nested subcommands in Clap declaration order.
     pub commands: Vec<Self>,
