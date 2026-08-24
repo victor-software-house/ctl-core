@@ -20,6 +20,10 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_line`, and
   `App::usage_spec` enrichment, so consumers run `mise run q status` with no
   `--`. Forkctl completion remains a composable `App::before_parse` hook.
+- Clap-derived `Surface` (`surface` feature): binary and mounted names,
+  recursive commands, aliases, visibility, arguments, flags, Usage KDL,
+  optional audience notes, and shared MiniJinja fragments for skill versions,
+  mounted invocation, and command inventories.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
@@ -33,8 +37,9 @@ without silence.
 ## Cargo features
 
 Features are tree-shaking. `document` carries no terminal engine. `render` adds
-the private engine, `view` adds JSON, `help` adds Clap help, and `app` composes
-the lifecycle. Prefer explicit feature sets when a consumer needs less than the
+the private engine, `view` adds JSON, `help` adds Clap help, `app` composes
+the lifecycle, and `surface` adds Clap/Usage/Serde/MiniJinja operator-document
+extraction. Prefer explicit feature sets when a consumer needs less than the
 complete chassis.
 
 `features = ["usage"]` does not pull `help`. Do not add `help` only to make the
@@ -73,6 +78,15 @@ test.
 
 Doc comments carry the why, on the item. Inline `//` prose inside a function
 body is litter.
+
+## Operator documents
+
+Consumer skills and installed instructions are committed rendered artifacts.
+Their source templates import `ctl/version.md.jinja`,
+`ctl/invocation.md.jinja`, or `ctl/commands.md.jinja` and retain domain prose.
+Tests build `Surface` from the consumer's Clap type and byte-compare the render
+with the committed file. Do not restore token scans, copied command lists, or a
+second no-`--` rule.
 
 ## Consumers
 

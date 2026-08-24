@@ -48,6 +48,9 @@ pub mod render;
 pub mod run;
 #[cfg(feature = "render")]
 mod style;
+/// Shared Clap-derived operator surface and Jinja fragments.
+#[cfg(feature = "surface")]
+pub mod surface;
 /// Compact pretty tables for command output.
 #[cfg(feature = "render")]
 pub mod table;
@@ -77,6 +80,8 @@ pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 pub use render::{RenderOptions, Renderer};
 #[cfg(feature = "cli")]
 pub use run::main as run;
+#[cfg(feature = "surface")]
+pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, SurfaceScope};
 #[cfg(feature = "render")]
 pub use table::{grid, kv};
 #[cfg(feature = "usage")]

@@ -102,6 +102,30 @@ Document::new()
 
 It does not choose borders, spacing, ANSI styles, width, or streams.
 
+## Operator surface
+
+Clap is also the source for committed operator documents. `Surface` extracts
+binary and mounted names, package metadata, recursive commands, aliases,
+visibility, locally declared argument and flag metadata, and mounted Usage KDL.
+Ancestor globals stay normalized on their declaring command and appear
+separately as each descendant's `inherited_arguments`. Templates can render the
+effective flag set without losing declaration provenance. It records hidden
+commands for verification while the shared command-inventory fragment renders
+visible commands only. `Surface::note` carries optional skill- or
+instruction-specific prose when Clap's `about` addresses another audience.
+
+ctl-core ships three MiniJinja fragments:
+
+- `ctl/version.md.jinja` renders a skill frontmatter version line;
+- `ctl/invocation.md.jinja` renders mounted examples and the no-`--` rule;
+- `ctl/commands.md.jinja` renders the visible top-level command inventory.
+
+A consumer template imports those fragments and keeps its own domain prose.
+Tests render with the consumer's Clap type and byte-compare the result with the
+committed skill or installed instructions. Adding or renaming a Clap command
+therefore changes `Surface` and fails the committed-render test until the
+operator document moves with it. No token scan or copied command list remains.
+
 ## Migration order
 
 1. Publish the ctl-core presentation kernel.
@@ -111,8 +135,9 @@ It does not choose borders, spacing, ANSI styles, width, or streams.
    view, layout, and terminal dependencies.
 4. Migrate qctl handlers from direct printing to typed results, then add shared
    pretty, colorless, and JSON views.
-5. Extract the shared operator `Surface` from Clap and use it for skills,
-   instructions, Usage, and committed-render checks.
+5. Pin the released `surface` feature in each consumer, render its skill and
+   instructions from shared fragments plus domain prose, and delete copied verb
+   scans and invocation rules.
 
 Each consumer pins a released ctl-core version. No path dependencies connect
 repositories.
