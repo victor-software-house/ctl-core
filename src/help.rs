@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use clap::{Command, CommandFactory};
 
 use crate::color::ColorMode;
-use crate::document::{Document, Section, Table, Text};
+use crate::document::{Document, Role, Section, Table, Text};
 use crate::render::RenderOptions;
 
 const NARROW_HELP_WIDTH: u16 = 64;
@@ -101,7 +101,8 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
 pub fn document(mut command: Command) -> Document {
     command.build();
     let usage = command.render_usage().to_string();
-    let mut output = Document::new().heading(usage.trim().to_owned());
+    let mut output =
+        Document::new().paragraph(Text::new().span(Role::Heading, usage.trim().to_owned()));
     if let Some(about) = command.get_about() {
         output = output.paragraph(about.to_string());
     }
@@ -306,6 +307,24 @@ mod tests {
     fn colorless_help_has_no_ansi() {
         let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(!text.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn long_usage_wraps_to_the_render_width() {
+        let command = clap::Command::new("refresh")
+            .bin_name("forkctl patch refresh")
+            .arg(
+                clap::Arg::new("rewrite")
+                    .long("rewrite-below")
+                    .action(clap::ArgAction::SetTrue),
+            )
+            .arg(clap::Arg::new("name").value_name("NAME"));
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(40));
+        assert!(text.lines().all(|line| line.chars().count() <= 40));
+        assert_eq!(
+            text.lines().take(2).collect::<Vec<_>>(),
+            ["Usage: forkctl patch refresh [OPTIONS]", "[NAME]"]
+        );
     }
 
     #[test]

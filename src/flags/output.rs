@@ -9,6 +9,7 @@ use crate::format::OutputFormat;
 /// `-c/--color` matches forkctl. A consumer that already owns `-c`
 /// should flatten [`super::ColorLong`] plus [`FormatArgs`] instead.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+#[command(about = None, long_about = None)]
 pub struct OutputArgs {
     /// Output representation.
     #[arg(
@@ -55,6 +56,7 @@ impl OutputArgs {
 
 /// `-f/--format` and `-q/--quiet` without `-c`.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+#[command(about = None, long_about = None)]
 pub struct FormatArgs {
     /// Output representation.
     #[arg(
