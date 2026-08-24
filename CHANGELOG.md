@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.4.0
+
+- Allow `App` consumers to enrich mounted Usage documents without taking back stream or lifecycle ownership.
+
 ## ctl-core 0.3.0
 
 - Add semantic verbatim document blocks for preformatted Markdown and protocol text that must bypass terminal-width wrapping.
