@@ -115,7 +115,9 @@ where
         if let Some(task) = &self.mounted_as
             && let Some(spec_bin) = crate::usage::spec_bin(words.iter().skip(1), task)
         {
-            let spec = (self.render_usage)(C::command(), &spec_bin);
+            let mut command = C::command();
+            command.set_bin_name(&spec_bin);
+            let spec = (self.render_usage)(command, &spec_bin);
             return crate::view::write_stdout(spec.as_bytes(), ColorMode::Never)
                 .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS);
         }
@@ -299,15 +301,19 @@ mod tests {
         let callback_observed = Rc::clone(&observed);
         let code = App::<Cli>::new("toy")
             .mounted_as("q")
-            .usage_spec(move |_, bin| {
-                *callback_observed.borrow_mut() = Some(bin.to_owned());
+            .usage_spec(move |command, bin| {
+                *callback_observed.borrow_mut() =
+                    Some((bin.to_owned(), command.get_bin_name().map(str::to_owned)));
                 format!("custom {bin}\n")
             })
             .run_from(["toy", "--usage-spec=mounted"], |_| {
                 Ok(Status { pending: 0 })
             });
         assert_eq!(code, std::process::ExitCode::SUCCESS);
-        assert_eq!(observed.borrow().as_deref(), Some("mounted"));
+        assert_eq!(
+            observed.borrow().as_ref(),
+            Some(&("mounted".to_owned(), Some("mounted".to_owned())))
+        );
     }
 
     #[test]
