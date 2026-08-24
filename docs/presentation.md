@@ -31,7 +31,8 @@ ctl-core owns:
   unwrapped verbatim blocks that remove terminal controls, bidi controls, and
   Unicode line separators while preserving other Unicode formatting;
 - semantic roles and the one visual theme;
-- width detection, wrapping, table layout, ANSI policy, stdout, and stderr;
+- width detection, including wrapped Usage lines, table layout, ANSI policy,
+  stdout, and stderr;
 - JSON emission and generic error envelopes.
 
 A consumer owns:

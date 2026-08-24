@@ -57,7 +57,7 @@ feature graph. The GitHub README is not rustdoc.
    characters; then normalizes trailing newlines to the document.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
-   renderer as command output.
+   renderer as command output. Usage lines wrap without splitting tokens.
 
 See [`docs/presentation.md`](docs/presentation.md). `kv` / `grid`, the `go`
 wrapper, and string-render traits are migration surfaces, not the destination.

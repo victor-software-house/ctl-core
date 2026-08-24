@@ -4,10 +4,20 @@
 
 mod common;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use common::{Toy, ToyCmd, parse};
 use ctl_core::flags::{FormatArgs, switch};
 use ctl_core::prelude::*;
+
+#[test]
+fn output_args_do_not_replace_the_root_long_about() {
+    let command = Toy::command();
+    assert_eq!(
+        command.get_about().map(ToString::to_string).as_deref(),
+        Some("toy")
+    );
+    assert!(command.get_long_about().is_none());
+}
 
 #[test]
 fn status_subcommand() {
