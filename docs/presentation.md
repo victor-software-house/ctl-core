@@ -107,9 +107,10 @@ It does not choose borders, spacing, ANSI styles, width, or streams.
 Clap is also the source for committed operator documents. `Surface` extracts
 binary and mounted names, package metadata, recursive commands, aliases,
 visibility, locally declared argument and flag metadata, and mounted Usage KDL.
-Ancestor globals stay normalized on their declaring command rather than being
-duplicated onto every descendant. It records hidden commands for verification
-while the shared command-inventory fragment renders
+Ancestor globals stay normalized on their declaring command and appear
+separately as each descendant's `inherited_arguments`. Templates can render the
+effective flag set without losing declaration provenance. It records hidden
+commands for verification while the shared command-inventory fragment renders
 visible commands only. `Surface::note` carries optional skill- or
 instruction-specific prose when Clap's `about` addresses another audience.
 

@@ -92,6 +92,8 @@ pub struct SurfaceCommand {
     /// Ancestor globals remain on their declaring command instead of being
     /// duplicated into every descendant.
     pub arguments: Vec<SurfaceArgument>,
+    /// Ancestor global arguments this command also accepts, root-first.
+    pub inherited_arguments: Vec<SurfaceArgument>,
     /// Nested subcommands in Clap declaration order.
     pub commands: Vec<Self>,
 }
@@ -170,15 +172,16 @@ impl Surface {
             .map(ToString::to_string)
             .unwrap_or_default();
         let version = command.get_version().map(ToOwned::to_owned);
-        let arguments = command
-            .get_arguments()
-            .filter(|argument| declared_argument(&declared_arguments, "", argument))
-            .map(argument)
-            .collect();
+        let arguments = declared_arguments_for(&command, "", &declared_arguments);
+        let inherited_arguments = arguments
+            .iter()
+            .filter(|argument| argument.scope == SurfaceScope::Global)
+            .cloned()
+            .collect::<Vec<_>>();
         let commands = command
             .get_subcommands()
             .filter(|child| declared_arguments.contains_key(child.get_name()))
-            .map(|child| surface_command(child, "", &declared_arguments))
+            .map(|child| surface_command(child, "", &declared_arguments, &inherited_arguments))
             .collect();
         let usage_kdl = usage::spec(command, &mount);
         let mount_line = usage::mount_line(&mount);
@@ -238,6 +241,7 @@ fn surface_command(
     command: &Command,
     parent: &str,
     declared_arguments: &BTreeMap<String, BTreeSet<String>>,
+    inherited_arguments: &[SurfaceArgument],
 ) -> SurfaceCommand {
     let name = command.get_name().to_owned();
     let path = if parent.is_empty() {
@@ -245,6 +249,14 @@ fn surface_command(
     } else {
         format!("{parent} {name}")
     };
+    let arguments = declared_arguments_for(command, &path, declared_arguments);
+    let mut child_inherited_arguments = inherited_arguments.to_vec();
+    child_inherited_arguments.extend(
+        arguments
+            .iter()
+            .filter(|argument| argument.scope == SurfaceScope::Global)
+            .cloned(),
+    );
     SurfaceCommand {
         name,
         path: path.clone(),
@@ -258,19 +270,30 @@ fn surface_command(
             .get_about()
             .map(ToString::to_string)
             .unwrap_or_default(),
-        arguments: command
-            .get_arguments()
-            .filter(|argument| declared_argument(declared_arguments, &path, argument))
-            .map(argument)
-            .collect(),
+        arguments,
+        inherited_arguments: inherited_arguments.to_vec(),
         commands: command
             .get_subcommands()
             .filter(|child| {
                 declared_arguments.contains_key(&format!("{path} {}", child.get_name()))
             })
-            .map(|child| surface_command(child, &path, declared_arguments))
+            .map(|child| {
+                surface_command(child, &path, declared_arguments, &child_inherited_arguments)
+            })
             .collect(),
     }
+}
+
+fn declared_arguments_for(
+    command: &Command,
+    path: &str,
+    declared_arguments: &BTreeMap<String, BTreeSet<String>>,
+) -> Vec<SurfaceArgument> {
+    command
+        .get_arguments()
+        .filter(|argument| declared_argument(declared_arguments, path, argument))
+        .map(argument)
+        .collect()
 }
 
 fn collect_declarations(
@@ -356,7 +379,7 @@ mod tests {
     use indoc::indoc;
     use serde::Serialize;
 
-    use super::{Surface, render};
+    use super::{Surface, SurfaceScope, render};
 
     #[derive(Parser)]
     #[command(name = "toy", version = "1.2.3", about = "Control toys")]
@@ -413,6 +436,12 @@ mod tests {
         assert_eq!(status.arguments[0].long.as_deref(), Some("archived"));
         assert!(!status.arguments[0].takes_values);
         assert_eq!(status.arguments.len(), 1);
+        assert_eq!(status.inherited_arguments.len(), 1);
+        assert_eq!(
+            status.inherited_arguments[0].long.as_deref(),
+            Some("profile")
+        );
+        assert_eq!(status.inherited_arguments[0].scope, SurfaceScope::Global);
         assert!(
             status
                 .arguments
@@ -422,6 +451,11 @@ mod tests {
         let item = &surface.commands[1];
         assert_eq!(item.commands[0].path, "item add");
         assert_eq!(item.commands[0].arguments[0].index, Some(1));
+        assert_eq!(item.commands[0].inherited_arguments.len(), 1);
+        assert_eq!(
+            item.commands[0].inherited_arguments[0].long.as_deref(),
+            Some("profile")
+        );
         assert!(surface.commands[2].hidden);
         assert!(
             surface

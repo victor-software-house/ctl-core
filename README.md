@@ -86,8 +86,9 @@ Clap-derived operator model plus shared MiniJinja fragments.
 `Surface::new::<Cli>("q")` extracts the binary and mounted names, version,
 descriptions, visible and hidden command trees, aliases, locally declared
 arguments and flags, and mounted Usage KDL from Clap. Global flags stay on their
-declaring ancestor instead of repeating in every nested command.
-`Surface::note` adds audience-specific prose when
+declaring ancestor, while each nested command exposes them separately through
+`inherited_arguments`. Templates can render effective flags without mixing
+provenance into local declarations. `Surface::note` adds audience-specific prose when
 Clap's `about` belongs to a different reader. The `ctl/version.md.jinja`,
 `ctl/invocation.md.jinja`, and `ctl/commands.md.jinja` fragments render repeated
 operator text without copying command lists or mise's no-`--` rule.
