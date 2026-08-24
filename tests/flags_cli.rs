@@ -18,6 +18,8 @@ fn flatten_mixins_do_not_replace_the_root_long_about() {
     );
     assert!(command.get_long_about().is_none());
     assert!(SplitCmd::command().get_long_about().is_none());
+    assert!(FileSplit::command().get_about().is_none());
+    assert!(FileSplit::command().get_long_about().is_none());
 }
 
 #[test]

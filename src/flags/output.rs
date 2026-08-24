@@ -85,6 +85,7 @@ impl FormatArgs {
 /// `--format` and `-q`/`--quiet` without `-f`, for CLIs that already use
 /// `-f` for a domain flag such as `--file`.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+#[command(about = None, long_about = None)]
 pub struct FormatLong {
     /// Output representation.
     #[arg(
