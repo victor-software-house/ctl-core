@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.4.1
+
+- Wrap long help Usage lines within the detected width and prevent flattened output flags from replacing the root long description.
+
 ## ctl-core 0.4.0
 
 - Allow `App` consumers to enrich mounted Usage documents without taking back stream or lifecycle ownership.
