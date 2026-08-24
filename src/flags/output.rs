@@ -81,3 +81,30 @@ impl FormatArgs {
         crate::view::View::new(self.format, color).quiet(self.quiet)
     }
 }
+
+/// `--format` and `-q`/`--quiet` without `-f`, for CLIs that already use
+/// `-f` for a domain flag such as `--file`.
+#[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
+pub struct FormatLong {
+    /// Output representation.
+    #[arg(
+        long,
+        global = true,
+        value_enum,
+        default_value = "pretty",
+        help_heading = "Output"
+    )]
+    pub format: OutputFormat,
+    /// Suppress successful pretty output.
+    #[arg(short = 'q', long, global = true, help_heading = "Output")]
+    pub quiet: bool,
+}
+
+impl FormatLong {
+    /// Build a [`View`](crate::view::View) with an explicit color policy.
+    #[cfg(feature = "view")]
+    #[must_use]
+    pub fn view(&self, color: ColorMode) -> crate::view::View {
+        crate::view::View::new(self.format, color).quiet(self.quiet)
+    }
+}

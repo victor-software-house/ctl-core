@@ -7,7 +7,7 @@ mod warn;
 
 pub use color::ColorLong;
 pub use dry_run::DryRunArgs;
-pub use output::{FormatArgs, OutputArgs};
+pub use output::{FormatArgs, FormatLong, OutputArgs};
 pub use warn::{FlagWarning, WarningKind, chassis_warnings, emit_warnings, warn_opposites};
 
 use crate::color::ColorMode;

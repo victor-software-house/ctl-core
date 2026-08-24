@@ -26,7 +26,7 @@ ctl-core owns:
 
 - Usage mounts, optional consumer enrichment through `App::usage_spec`,
   pre-parse short-circuits, help, Clap parsing, exit codes, and stream selection;
-- `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
+- `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and
   unwrapped verbatim blocks that remove terminal controls, bidi controls, and
   Unicode line separators while preserving other Unicode formatting;
