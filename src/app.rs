@@ -5,6 +5,8 @@ use std::marker::PhantomData;
 use std::process::ExitCode;
 
 use anyhow::Result;
+#[cfg(feature = "usage")]
+use clap::Command;
 use clap::{CommandFactory, Parser};
 
 use crate::color::ColorMode;
@@ -13,6 +15,8 @@ use crate::view::{Present, View};
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
 type SelectView<C> = Box<dyn Fn(&C) -> View>;
+#[cfg(feature = "usage")]
+type RenderUsage = Box<dyn Fn(Command, &str) -> String>;
 
 /// One ctl process: short-circuits, help, parsing, execution, and presentation.
 pub struct App<C> {
@@ -21,6 +25,8 @@ pub struct App<C> {
     select_view: SelectView<C>,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
+    #[cfg(feature = "usage")]
+    render_usage: RenderUsage,
     marker: PhantomData<C>,
 }
 
@@ -34,6 +40,8 @@ impl<C> App<C> {
             select_view: Box::new(|_| View::new(OutputFormat::Pretty, ColorMode::Auto)),
             #[cfg(feature = "usage")]
             mounted_as: None,
+            #[cfg(feature = "usage")]
+            render_usage: Box::new(crate::usage::spec),
             marker: PhantomData,
         }
     }
@@ -60,6 +68,16 @@ impl<C> App<C> {
     #[must_use]
     pub fn mounted_as(mut self, task: impl Into<String>) -> Self {
         self.mounted_as = Some(task.into());
+        self
+    }
+
+    /// Customize the mounted Usage document while keeping App's short-circuit
+    /// and stream ownership. The callback receives the declared Clap graph and
+    /// the requested mounted binary name.
+    #[cfg(feature = "usage")]
+    #[must_use]
+    pub fn usage_spec(mut self, render: impl Fn(Command, &str) -> String + 'static) -> Self {
+        self.render_usage = Box::new(render);
         self
     }
 }
@@ -97,7 +115,9 @@ where
         if let Some(task) = &self.mounted_as
             && let Some(spec_bin) = crate::usage::spec_bin(words.iter().skip(1), task)
         {
-            let spec = crate::usage::spec(C::command(), &spec_bin);
+            let mut command = C::command();
+            command.set_bin_name(&spec_bin);
+            let spec = (self.render_usage)(command, &spec_bin);
             return crate::view::write_stdout(spec.as_bytes(), ColorMode::Never)
                 .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS);
         }
@@ -270,6 +290,30 @@ mod tests {
             })
             .run_from(["toy", "--complete"], |_| Ok(Status { pending: 0 }));
         assert_eq!(code, std::process::ExitCode::SUCCESS);
+    }
+
+    #[cfg(feature = "usage")]
+    #[test]
+    fn mounted_usage_accepts_a_custom_renderer() {
+        use std::cell::RefCell;
+
+        let observed = Rc::new(RefCell::new(None));
+        let callback_observed = Rc::clone(&observed);
+        let code = App::<Cli>::new("toy")
+            .mounted_as("q")
+            .usage_spec(move |command, bin| {
+                *callback_observed.borrow_mut() =
+                    Some((bin.to_owned(), command.get_bin_name().map(str::to_owned)));
+                format!("custom {bin}\n")
+            })
+            .run_from(["toy", "--usage-spec=mounted"], |_| {
+                Ok(Status { pending: 0 })
+            });
+        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(
+            observed.borrow().as_ref(),
+            Some(&("mounted".to_owned(), Some("mounted".to_owned())))
+        );
     }
 
     #[test]

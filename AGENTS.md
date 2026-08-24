@@ -17,9 +17,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Pretty / JSON / colorless `View` over one serializable domain model
 - The only terminal theme, width detection, wrapping, and table configuration
 - Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`
-- Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_line`, so
-  consumers run `mise run q status` with no `--`. Forkctl completion remains a
-  composable `App::before_parse` hook.
+- Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_line`, and
+  `App::usage_spec` enrichment, so consumers run `mise run q status` with no
+  `--`. Forkctl completion remains a composable `App::before_parse` hook.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.

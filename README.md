@@ -90,7 +90,8 @@ runtime lifecycle.
 - Human failures go to stderr. Quiet suppresses successful human output only.
 - Help comes from the Clap graph and uses the same document renderer.
 - `App` runs Usage, pre-parse hooks, help, Clap, execution, and
-  presentation in that order.
+  presentation in that order. `App::usage_spec` lets a consumer enrich the
+  mounted Usage document without taking back stream or short-circuit ownership.
 - `parser::apply_defaults` keeps `-h`/`--help` and `-V`/`--version` enabled.
 
 Boolean pairs that are domain-specific (`--pr` / `--no-pr`) remain in the
