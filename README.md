@@ -78,7 +78,23 @@ Enable `app` plus `usage` for that shape. A CLI that already owns `-f` composes
 `FormatLong` with `ColorLong`; one that owns `-c` composes `FormatArgs` with
 `ColorLong`. Features remain additive and explicit: `document` has no terminal
 engine, `render` adds terminal layout, `view` adds JSON emission, `help` adds
-Clap help, and `app` composes the runtime lifecycle.
+Clap help, `app` composes the runtime lifecycle, and `surface` adds the
+Clap-derived operator model plus shared MiniJinja fragments.
+
+## Operator surface
+
+`Surface::new::<Cli>("q")` extracts the binary and mounted names, version,
+descriptions, visible and hidden command trees, aliases, arguments, flags, and
+mounted Usage KDL from Clap. `Surface::note` adds audience-specific prose when
+Clap's `about` belongs to a different reader. The `ctl/version.md.jinja`,
+`ctl/invocation.md.jinja`, and `ctl/commands.md.jinja` fragments render repeated
+operator text without copying command lists or mise's no-`--` rule.
+
+Consumer-owned templates keep domain prose. Their tests render through
+`surface::render` and byte-compare the result with committed
+`skills/<tool>/SKILL.md` and `src/instructions.md`. Verctl can call
+`surface::add_fragments` on its existing MiniJinja environment so Version PRs
+render the same fragments.
 
 ## Contract
 

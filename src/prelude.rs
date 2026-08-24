@@ -37,6 +37,8 @@ pub use crate::parser::verify;
 pub use crate::render::{RenderOptions, Renderer};
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;
+#[cfg(feature = "surface")]
+pub use crate::surface::Surface;
 #[cfg(feature = "render")]
 pub use crate::table::{grid, kv};
 #[cfg(feature = "usage")]

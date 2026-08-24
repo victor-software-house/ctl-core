@@ -23,6 +23,7 @@ run = [
   "cargo check --no-default-features",
   "cargo check --no-default-features --features document",
   "cargo check --no-default-features --features render",
+  "cargo check --no-default-features --features surface",
   "cargo check --no-default-features --features usage",
   "cargo check --no-default-features --features json",
   "cargo check --no-default-features --features cli",
