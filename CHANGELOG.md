@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.5.0
+
+- Extract a serializable operator Surface from Clap and provide shared MiniJinja fragments for skill versions, mounted invocation, and visible command inventories.
+
 ## ctl-core 0.4.2
 
 - Add `FormatLong`, a reusable `--format` plus `-q`/`--quiet` mixin for CLIs that already own `-f`.
