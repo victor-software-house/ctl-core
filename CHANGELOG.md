@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.4.2
+
+- Add `FormatLong`, a reusable `--format` plus `-q`/`--quiet` mixin for CLIs that already own `-f`.
+
 ## ctl-core 0.4.1
 
 - Wrap long help Usage lines within the detected width and prevent flattened output flags from replacing the root long description.
