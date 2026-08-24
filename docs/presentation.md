@@ -24,8 +24,8 @@ Clap graph ──→ App ──→ domain handler ──→ Result model
 
 ctl-core owns:
 
-- Usage mounts, pre-parse short-circuits, help, Clap parsing, exit codes, and
-  stream selection;
+- Usage mounts, optional consumer enrichment through `App::usage_spec`,
+  pre-parse short-circuits, help, Clap parsing, exit codes, and stream selection;
 - `OutputArgs`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and
   unwrapped verbatim blocks that remove terminal controls, bidi controls, and
