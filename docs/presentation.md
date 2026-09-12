@@ -59,6 +59,20 @@ consumer render adapters.
 Do not implement Unicode width, ANSI stripping, table sizing, or terminal
 capability detection from scratch.
 
+## Automatic width policy
+
+An automatically detected TTY or `COLUMNS` width reserves one column before
+wrapping, stacking, help, fields, and table layout. This default protects nested
+shells whose outer frame consumes the reported rightmost column. The effective
+width never falls below 20.
+
+`CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
+full control through `RenderOptions`: `automatic_width_buffer(n)` overrides the
+environment, including zero to disable buffering, and
+`automatic_width_buffer_envs(&[...])` replaces the ordered environment names so
+a consumer can add aliases or pass an empty slice to disable lookup. An explicit
+`width(n)` is always exact and ignores the automatic buffer.
+
 ## Output law
 
 One serializable model feeds all modes:

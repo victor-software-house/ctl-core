@@ -48,6 +48,18 @@ prelude compile.
 Crate docs (`src/lib.rs` + `document_features`) are authoritative for the
 feature graph. The GitHub README is not rustdoc.
 
+## Library control
+
+ctl-core supplies sane defaults, never hidden policy. Every automatic behavior
+that can change rendered output has a public library override and an explicit
+disable path. Environment-backed defaults expose their canonical name and let a
+consumer replace the ordered name list with its own aliases or disable lookup.
+An explicit render width is exact and bypasses automatic-width buffering.
+
+The automatic terminal-width buffer defaults to one column and reads
+`CTL_CORE_COLUMN_BUFFER`. `RenderOptions::automatic_width_buffer(0)` disables
+it; `automatic_width_buffer_envs(&[])` disables environment lookup.
+
 ## View contract
 
 1. **Models first.** Each command returns a serializable result; the view does
