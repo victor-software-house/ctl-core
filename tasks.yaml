@@ -61,17 +61,6 @@ queue:
       JSON Schema generated from these same types, so keep the types
       derive-friendly.
 
-  - id: CTC-011
-    title: Reserve a safe terminal-width margin in nested shells
-    scope: ctl-core renderer
-    outcome: Automatically detected terminal widths reserve one column before wrapping and table layout, so nested terminal shells do not clip or break the right edge; explicit render widths remain exact.
-    blocked_by: []
-    acceptance:
-      - Automatic TTY and COLUMNS width detection returns max(width - 1, minimum width); explicit RenderOptions widths are unchanged.
-      - Pretty and colorless table tests prove the rendered right border and every line fit within the effective width at the nested-Herdr reproduction size.
-      - Wrapping, stacked-table thresholds, help, fields, and tables consume the same safe detected width rather than subtracting independently.
-      - The presentation documentation explains why only auto-detected widths reserve one column.
-
 horizon:
   - id: CTC-003
     title: Optional per-user daemon sharing one session and view
@@ -85,6 +74,16 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-011
+    title: Reserve a safe terminal-width margin in nested shells
+    scope: ctl-core renderer
+    outcome: Automatically detected terminal widths reserve one column before wrapping and table layout, so nested terminal shells do not clip or break the right edge; explicit render widths remain exact.
+    completed: 2026-09-12T18:01:15
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/39
+      - 'ctl-core 17dceb9: configurable automatic-width buffer, environment aliases, minimum, disable paths, and exact explicit widths; mise run verify and CI pass.'
+    disposition: completed
+
   - id: CTC-009
     title: Prove this repo's release lane by shipping one release through it
     scope: ctl-core
