@@ -225,9 +225,10 @@ impl Surface {
         missing
     }
 
-    /// Fail when a long option has no short, except names in `allow`.
+    /// Fail when a long option has no operator-visible short, except tokens in
+    /// `allow`.
     ///
-    /// A root allowance is the long name without dashes (`format`). A nested
+    /// A root allowance is the displayed long option (`--format`). A nested
     /// allowance includes its command path (`status --archived`). Chassis
     /// mixins that deliberately leave a letter for the consumer (`--format`
     /// for `-f`/`--file`, `--color` for `-c`) belong there.
@@ -261,7 +262,7 @@ impl Surface {
 
 fn scoped_long(path: &str, long: &str) -> String {
     if path.is_empty() {
-        long.to_owned()
+        format!("--{long}")
     } else {
         format!("{path} --{long}")
     }
@@ -275,7 +276,7 @@ fn collect_missing_shorts(
     for argument in arguments {
         if let Some(long) = &argument.long
             && argument.short.is_none()
-            && argument.short_aliases.is_empty()
+            && argument.visible_short_aliases.is_empty()
         {
             missing.push((path.to_owned(), long.clone()));
         }
@@ -669,21 +670,21 @@ mod tests {
     #[test]
     fn require_shorts_accepts_an_allow_list() {
         Surface::new::<ShortsCli>("t")
-            .require_shorts(["verbose", "status --archived", "internal --secret"])
+            .require_shorts(["--verbose", "status --archived", "internal --secret"])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 
     #[test]
     fn a_root_allowance_does_not_exempt_a_nested_flag() {
         let error = Surface::new::<ShortsCli>("t")
-            .require_shorts(["verbose", "archived", "internal --secret"])
+            .require_shorts(["--verbose", "--archived", "internal --secret"])
             .expect_err("archived needs its command path");
         assert_eq!(error, "long option has no short: status --archived");
     }
 
     #[derive(Parser)]
     struct ShortAliasCli {
-        #[arg(long, short_alias = 'x')]
+        #[arg(long, visible_short_alias = 'x')]
         expanded: bool,
     }
 
@@ -692,6 +693,20 @@ mod tests {
         Surface::new::<ShortAliasCli>("t")
             .require_shorts([])
             .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[derive(Parser)]
+    struct HiddenShortAliasCli {
+        #[arg(long, short_alias = 'x')]
+        expanded: bool,
+    }
+
+    #[test]
+    fn a_hidden_short_alias_is_not_an_operator_short() {
+        let error = Surface::new::<HiddenShortAliasCli>("t")
+            .require_shorts([])
+            .expect_err("the only short is hidden");
+        assert_eq!(error, "long option has no short: --expanded");
     }
 
     #[derive(Parser)]
@@ -716,7 +731,7 @@ mod tests {
         assert!(error.contains("--color"), "{error}");
         assert!(error.contains("--no-color"), "{error}");
         surface
-            .require_shorts(["format", "color", "no-color"])
+            .require_shorts(["--format", "--color", "--no-color"])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 
@@ -729,7 +744,7 @@ mod tests {
     #[test]
     fn output_args_only_exempt_no_color() {
         Surface::new::<DefaultOutput>("x")
-            .require_shorts(["no-color"])
+            .require_shorts(["--no-color"])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 }
