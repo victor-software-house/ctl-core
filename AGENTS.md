@@ -57,8 +57,11 @@ consumer replace the ordered name list with its own aliases or disable lookup.
 An explicit render width is exact and bypasses automatic-width buffering.
 
 The automatic terminal-width buffer defaults to one column and reads
-`CTL_CORE_COLUMN_BUFFER`. `RenderOptions::automatic_width_buffer(0)` disables
-it; `automatic_width_buffer_envs(&[])` disables environment lookup.
+`CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20. `RenderOptions`,
+`View`, and `App` expose the buffer, ordered environment names, and minimum.
+Buffer zero disables subtraction; an empty environment slice disables lookup.
+Explicit widths remain exact. Public option-aware help entry points keep direct
+help callers under the same policy.
 
 ## View contract
 

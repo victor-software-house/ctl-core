@@ -2,30 +2,28 @@
 
 use comfy_table::Table;
 
-pub(crate) const MIN_WIDTH: u16 = 20;
-
-/// Detected TTY width, or `COLUMNS` when at least 20, minus the configured
-/// buffer without ever dropping below the renderer minimum.
-pub(crate) fn terminal_width(buffer: u16) -> Option<u16> {
-    detected_width().map(|width| effective_width(width, buffer))
+/// Detected TTY width, or `COLUMNS` when it meets the configured minimum,
+/// minus the buffer without dropping below that minimum.
+pub(crate) fn terminal_width(buffer: u16, minimum: u16) -> Option<u16> {
+    detected_width(minimum).map(|width| effective_width(width, buffer, minimum))
 }
 
 pub(crate) fn column_buffer(names: &[&str]) -> Option<u16> {
     configured_buffer(names, |name| std::env::var(name).ok())
 }
 
-fn detected_width() -> Option<u16> {
+fn detected_width(minimum: u16) -> Option<u16> {
     Table::new().width().or_else(|| {
         std::env::var("COLUMNS")
             .ok()?
             .parse::<u16>()
             .ok()
-            .filter(|width| *width >= MIN_WIDTH)
+            .filter(|width| *width >= minimum)
     })
 }
 
-fn effective_width(width: u16, buffer: u16) -> u16 {
-    width.saturating_sub(buffer).max(MIN_WIDTH)
+fn effective_width(width: u16, buffer: u16, minimum: u16) -> u16 {
+    width.saturating_sub(buffer).max(minimum)
 }
 
 fn configured_buffer(names: &[&str], value: impl Fn(&str) -> Option<String>) -> Option<u16> {
@@ -41,10 +39,11 @@ mod tests {
 
     #[test]
     fn automatic_width_reserves_the_buffer_above_the_minimum() {
-        assert_eq!(effective_width(80, 1), 79);
-        assert_eq!(effective_width(80, 3), 77);
-        assert_eq!(effective_width(20, 3), 20);
-        assert_eq!(effective_width(80, 0), 80);
+        assert_eq!(effective_width(80, 1, 20), 79);
+        assert_eq!(effective_width(80, 3, 20), 77);
+        assert_eq!(effective_width(20, 3, 20), 20);
+        assert_eq!(effective_width(80, 0, 20), 80);
+        assert_eq!(effective_width(12, 3, 0), 9);
     }
 
     #[test]

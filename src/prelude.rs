@@ -35,8 +35,8 @@ pub use crate::model::{Envelope, ErrorBody, SCHEMA_VERSION};
 pub use crate::parser::verify;
 #[cfg(feature = "render")]
 pub use crate::render::{
-    DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS, RenderOptions,
-    Renderer,
+    DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions, Renderer,
 };
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;

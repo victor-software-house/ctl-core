@@ -78,8 +78,8 @@ pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "render")]
 pub use render::{
-    DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS, RenderOptions,
-    Renderer,
+    DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions, Renderer,
 };
 #[cfg(feature = "cli")]
 pub use run::main as run;

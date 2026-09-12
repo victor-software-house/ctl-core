@@ -23,6 +23,9 @@ pub struct App<C> {
     bin: String,
     before_parse: Vec<BeforeParse>,
     select_view: SelectView<C>,
+    automatic_width_buffer: Option<u16>,
+    automatic_width_buffer_envs: Option<&'static [&'static str]>,
+    minimum_automatic_width: Option<u16>,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -38,6 +41,9 @@ impl<C> App<C> {
             bin: bin.into(),
             before_parse: Vec::new(),
             select_view: Box::new(|_| View::new(OutputFormat::Pretty, ColorMode::Auto)),
+            automatic_width_buffer: None,
+            automatic_width_buffer_envs: None,
+            minimum_automatic_width: None,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -51,6 +57,42 @@ impl<C> App<C> {
     pub fn view(mut self, select: impl Fn(&C) -> View + 'static) -> Self {
         self.select_view = Box::new(select);
         self
+    }
+
+    /// Override the automatic-width buffer for help, errors, and command
+    /// output. Zero disables buffering; explicit view widths remain exact.
+    #[must_use]
+    pub fn automatic_width_buffer(mut self, columns: u16) -> Self {
+        self.automatic_width_buffer = Some(columns);
+        self
+    }
+
+    /// Replace the ordered environment names for every automatic-width render.
+    /// An empty slice disables environment lookup.
+    #[must_use]
+    pub fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.automatic_width_buffer_envs = Some(names);
+        self
+    }
+
+    /// Set the floor for automatically detected effective widths.
+    #[must_use]
+    pub fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.minimum_automatic_width = Some(columns);
+        self
+    }
+
+    fn configured_view(&self, mut view: View) -> View {
+        if let Some(buffer) = self.automatic_width_buffer {
+            view = view.automatic_width_buffer(buffer);
+        }
+        if let Some(names) = self.automatic_width_buffer_envs {
+            view = view.automatic_width_buffer_envs(names);
+        }
+        if let Some(minimum) = self.minimum_automatic_width {
+            view = view.minimum_automatic_width(minimum);
+        }
+        view
     }
 
     /// Add an ordered pre-parse short-circuit, such as dynamic completion.
@@ -128,12 +170,12 @@ where
             }
         }
 
-        let raw_view = raw_view::<C>(&raw);
+        let raw_view = self.configured_view(raw_view::<C>(&raw));
         if words.len() == 1 && crate::parser::requires_input::<C>() {
-            return crate::help::emit_bare::<C>(raw_view.color)
+            return crate::help::emit_bare_with_options::<C>(raw_view.render_options())
                 .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
         }
-        match crate::help::try_emit_from_with_color::<C>(&words, raw_view.color) {
+        match crate::help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
             Err(_) => return ExitCode::FAILURE,
@@ -151,7 +193,7 @@ where
             Ok(cli) => cli,
             Err(error) => return self.clap_error(&error, raw_view),
         };
-        let view = (self.select_view)(&cli);
+        let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
             Ok(value) => view.show(&value).unwrap_or(ExitCode::FAILURE),
             Err(error) => view
@@ -314,6 +356,21 @@ mod tests {
             observed.borrow().as_ref(),
             Some(&("mounted".to_owned(), Some("mounted".to_owned())))
         );
+    }
+
+    #[test]
+    fn app_width_policy_configures_every_view() {
+        let app = App::<Cli>::new("toy")
+            .automatic_width_buffer(0)
+            .automatic_width_buffer_envs(&["TOY_BUFFER", "LEGACY_BUFFER"])
+            .minimum_automatic_width(8);
+        let view = app.configured_view(View::new(OutputFormat::Pretty, ColorMode::Never));
+        assert_eq!(view.explicit_automatic_width_buffer(), Some(0));
+        assert_eq!(
+            view.automatic_width_buffer_env_names(),
+            ["TOY_BUFFER", "LEGACY_BUFFER"]
+        );
+        assert_eq!(view.automatic_width_minimum(), 8);
     }
 
     #[test]

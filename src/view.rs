@@ -10,7 +10,7 @@ use crate::color::ColorMode;
 use crate::document::{Document, Text};
 use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
-use crate::render::RenderOptions;
+use crate::render::{DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions};
 
 /// A serializable domain model with one semantic human presentation.
 pub trait Present: Serialize {
@@ -105,6 +105,9 @@ pub struct View {
     /// Suppress successful pretty output.
     pub quiet: bool,
     width: Option<u16>,
+    automatic_width_buffer: Option<u16>,
+    automatic_width_buffer_envs: &'static [&'static str],
+    minimum_automatic_width: u16,
 }
 
 impl View {
@@ -116,6 +119,9 @@ impl View {
             color,
             quiet: false,
             width: None,
+            automatic_width_buffer: None,
+            automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
+            minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
         }
     }
 
@@ -131,6 +137,59 @@ impl View {
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
         self
+    }
+
+    /// Override the buffer subtracted from automatically detected widths.
+    /// Zero disables buffering. Explicit [`Self::width`] remains exact.
+    #[must_use]
+    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
+        self.automatic_width_buffer = Some(columns);
+        self
+    }
+
+    /// Replace the ordered environment names used for the automatic buffer.
+    #[must_use]
+    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.automatic_width_buffer_envs = names;
+        self
+    }
+
+    /// Set the floor for automatically detected effective widths.
+    #[must_use]
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.minimum_automatic_width = columns;
+        self
+    }
+
+    /// Explicit automatic-width buffer, when set.
+    #[must_use]
+    pub const fn explicit_automatic_width_buffer(self) -> Option<u16> {
+        self.automatic_width_buffer
+    }
+
+    /// Ordered environment names used for the automatic-width buffer.
+    #[must_use]
+    pub const fn automatic_width_buffer_env_names(self) -> &'static [&'static str] {
+        self.automatic_width_buffer_envs
+    }
+
+    /// Floor applied only to automatically detected widths.
+    #[must_use]
+    pub const fn automatic_width_minimum(self) -> u16 {
+        self.minimum_automatic_width
+    }
+
+    pub(crate) fn render_options(self) -> RenderOptions {
+        let mut options = RenderOptions::new(self.color)
+            .automatic_width_buffer_envs(self.automatic_width_buffer_envs)
+            .minimum_automatic_width(self.minimum_automatic_width);
+        if let Some(width) = self.width {
+            options = options.width(width);
+        }
+        if let Some(buffer) = self.automatic_width_buffer {
+            options = options.automatic_width_buffer(buffer);
+        }
+        options
     }
 
     /// Render without writing. Tests and alternate transports use this path.
@@ -153,11 +212,7 @@ impl View {
                 exit_code,
             });
         }
-        let options = self.width.map_or_else(
-            || RenderOptions::new(self.color),
-            |width| RenderOptions::new(self.color).width(width),
-        );
-        let content = value.present().render(options);
+        let content = value.present().render(self.render_options());
         Ok(Captured {
             stream: match kind {
                 MessageKind::Success => Stream::Stdout,
@@ -185,13 +240,12 @@ impl View {
             emit_json(&Envelope::<()>::err(ErrorBody::new(bin, message)))?;
             return Ok(ExitCode::FAILURE);
         }
-        let options = self.width.map_or_else(
-            || RenderOptions::new(self.color),
-            |width| RenderOptions::new(self.color).width(width),
-        );
         let document =
             Document::new().paragraph(Text::new().error(bin).then(": ").then(message.to_owned()));
-        write_stderr(document.render(options).as_bytes(), self.color)?;
+        write_stderr(
+            document.render(self.render_options()).as_bytes(),
+            self.color,
+        )?;
         Ok(ExitCode::FAILURE)
     }
 }

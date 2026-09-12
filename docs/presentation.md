@@ -67,11 +67,13 @@ shells whose outer frame consumes the reported rightmost column. The effective
 width never falls below 20.
 
 `CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
-full control through `RenderOptions`: `automatic_width_buffer(n)` overrides the
-environment, including zero to disable buffering, and
-`automatic_width_buffer_envs(&[...])` replaces the ordered environment names so
-a consumer can add aliases or pass an empty slice to disable lookup. An explicit
-`width(n)` is always exact and ignores the automatic buffer.
+full control through `RenderOptions`, `View`, and `App`:
+`automatic_width_buffer(n)` overrides the environment, including zero to disable
+buffering; `automatic_width_buffer_envs(&[...])` replaces the ordered names so a
+consumer can add aliases or disable lookup with an empty slice; and
+`minimum_automatic_width(n)` replaces the default floor of 20. Option-aware help
+entry points accept the same `RenderOptions`. An explicit `width(n)` is always
+exact and ignores every automatic-width setting.
 
 ## Output law
 

@@ -18,6 +18,8 @@ pub const DEFAULT_COLUMN_BUFFER: u16 = 1;
 pub const DEFAULT_COLUMN_BUFFER_ENV: &str = "CTL_CORE_COLUMN_BUFFER";
 /// Default ordered environment lookup for the automatic-width buffer.
 pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
+/// Default floor for an automatically detected effective width.
+pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
 
 /// Deterministic document rendering options.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,6 +28,7 @@ pub struct RenderOptions {
     width: Option<u16>,
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
+    minimum_automatic_width: u16,
 }
 
 impl RenderOptions {
@@ -38,6 +41,7 @@ impl RenderOptions {
             width: None,
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
+            minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
         }
     }
 
@@ -64,6 +68,13 @@ impl RenderOptions {
         self
     }
 
+    /// Set the floor for automatically detected effective widths.
+    #[must_use]
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.minimum_automatic_width = columns;
+        self
+    }
+
     /// Color policy.
     #[must_use]
     pub const fn color(self) -> ColorMode {
@@ -86,6 +97,12 @@ impl RenderOptions {
     #[must_use]
     pub const fn automatic_width_buffer_env_names(self) -> &'static [&'static str] {
         self.automatic_width_buffer_envs
+    }
+
+    /// Floor applied only to automatically detected widths.
+    #[must_use]
+    pub const fn automatic_width_minimum(self) -> u16 {
+        self.minimum_automatic_width
     }
 
     fn resolved_automatic_width_buffer(self) -> u16 {
@@ -288,7 +305,10 @@ impl Renderer {
 
     fn width(self) -> Option<u16> {
         self.options.explicit_width().or_else(|| {
-            crate::layout::terminal_width(self.options.resolved_automatic_width_buffer())
+            crate::layout::terminal_width(
+                self.options.resolved_automatic_width_buffer(),
+                self.options.automatic_width_minimum(),
+            )
         })
     }
 
@@ -375,18 +395,20 @@ mod tests {
         let defaults = RenderOptions::new(ColorMode::Never);
         assert_eq!(defaults.explicit_automatic_width_buffer(), None);
         assert_eq!(
-            defaults.automatic_width_buffer_env_names(),
-            super::DEFAULT_COLUMN_BUFFER_ENVS
+            defaults.automatic_width_minimum(),
+            super::DEFAULT_MINIMUM_AUTOMATIC_WIDTH
         );
 
         let configured = defaults
             .automatic_width_buffer(0)
-            .automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"]);
+            .automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"])
+            .minimum_automatic_width(8);
         assert_eq!(configured.explicit_automatic_width_buffer(), Some(0));
         assert_eq!(
             configured.automatic_width_buffer_env_names(),
             ["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"]
         );
+        assert_eq!(configured.automatic_width_minimum(), 8);
     }
 
     #[test]
