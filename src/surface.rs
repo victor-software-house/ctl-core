@@ -227,9 +227,10 @@ impl Surface {
 
     /// Fail when a long option has no short, except names in `allow`.
     ///
-    /// `allow` is the Clap long name without dashes (`format`, `no-color`).
-    /// Chassis mixins that deliberately leave a letter for the consumer
-    /// (`--format` for `-f`/`--file`, `--color` for `-c`) belong there.
+    /// A root allowance is the long name without dashes (`format`). A nested
+    /// allowance includes its command path (`status --archived`). Chassis
+    /// mixins that deliberately leave a letter for the consumer (`--format`
+    /// for `-f`/`--file`, `--color` for `-c`) belong there.
     pub fn require_shorts<'a>(
         &self,
         allow: impl IntoIterator<Item = &'a str>,
@@ -238,7 +239,7 @@ impl Surface {
         let missing: Vec<(String, String)> = self
             .long_options_without_short()
             .into_iter()
-            .filter(|(_, long)| !allowed.contains(long.as_str()))
+            .filter(|(path, long)| !allowed.contains(scoped_long(path, long).as_str()))
             .collect();
         if missing.is_empty() {
             return Ok(());
@@ -258,6 +259,14 @@ impl Surface {
     }
 }
 
+fn scoped_long(path: &str, long: &str) -> String {
+    if path.is_empty() {
+        long.to_owned()
+    } else {
+        format!("{path} --{long}")
+    }
+}
+
 fn collect_missing_shorts(
     path: &str,
     arguments: &[SurfaceArgument],
@@ -266,6 +275,7 @@ fn collect_missing_shorts(
     for argument in arguments {
         if let Some(long) = &argument.long
             && argument.short.is_none()
+            && argument.short_aliases.is_empty()
         {
             missing.push((path.to_owned(), long.clone()));
         }
@@ -659,7 +669,28 @@ mod tests {
     #[test]
     fn require_shorts_accepts_an_allow_list() {
         Surface::new::<ShortsCli>("t")
-            .require_shorts(["verbose", "archived", "secret"])
+            .require_shorts(["verbose", "status --archived", "internal --secret"])
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[test]
+    fn a_root_allowance_does_not_exempt_a_nested_flag() {
+        let error = Surface::new::<ShortsCli>("t")
+            .require_shorts(["verbose", "archived", "internal --secret"])
+            .expect_err("archived needs its command path");
+        assert_eq!(error, "long option has no short: status --archived");
+    }
+
+    #[derive(Parser)]
+    struct ShortAliasCli {
+        #[arg(long, short_alias = 'x')]
+        expanded: bool,
+    }
+
+    #[test]
+    fn a_short_alias_satisfies_the_contract() {
+        Surface::new::<ShortAliasCli>("t")
+            .require_shorts([])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 
