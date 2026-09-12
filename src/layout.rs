@@ -18,12 +18,12 @@ fn detected_width(minimum: u16) -> Option<u16> {
             .ok()?
             .parse::<u16>()
             .ok()
-            .filter(|width| *width >= minimum)
+            .filter(|width| *width >= minimum.max(1))
     })
 }
 
 fn effective_width(width: u16, buffer: u16, minimum: u16) -> u16 {
-    width.saturating_sub(buffer).max(minimum)
+    width.saturating_sub(buffer).max(minimum.min(width)).max(1)
 }
 
 fn configured_buffer(names: &[&str], value: impl Fn(&str) -> Option<String>) -> Option<u16> {
@@ -42,8 +42,10 @@ mod tests {
         assert_eq!(effective_width(80, 1, 20), 79);
         assert_eq!(effective_width(80, 3, 20), 77);
         assert_eq!(effective_width(20, 3, 20), 20);
+        assert_eq!(effective_width(15, 1, 20), 15);
         assert_eq!(effective_width(80, 0, 20), 80);
         assert_eq!(effective_width(12, 3, 0), 9);
+        assert_eq!(effective_width(1, 1, 0), 1);
     }
 
     #[test]
