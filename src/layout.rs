@@ -5,20 +5,20 @@ use comfy_table::Table;
 /// Detected TTY width, or `COLUMNS` when it meets the configured minimum,
 /// minus the buffer without dropping below that minimum.
 pub(crate) fn terminal_width(buffer: u16, minimum: u16) -> Option<u16> {
-    detected_width(minimum).map(|width| effective_width(width, buffer, minimum))
+    detected_width().map(|width| effective_width(width, buffer, minimum))
 }
 
 pub(crate) fn column_buffer(names: &[&str]) -> Option<u16> {
     configured_buffer(names, |name| std::env::var(name).ok())
 }
 
-fn detected_width(minimum: u16) -> Option<u16> {
+fn detected_width() -> Option<u16> {
     Table::new().width().or_else(|| {
         std::env::var("COLUMNS")
             .ok()?
             .parse::<u16>()
             .ok()
-            .filter(|width| *width >= minimum.max(1))
+            .filter(|width| *width >= 1)
     })
 }
 
