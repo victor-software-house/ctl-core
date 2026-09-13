@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.5.2
+
+- Expose Surface metadata, serialization, and MiniJinja rendering through separate additive feature tiers while preserving the existing full compatibility aggregate.
+
 ## ctl-core 0.5.1
 
 - Consumers can require every long option to have an operator-visible short form, so a new long-only flag fails their surface test before release. An exact-token allow list preserves letters that shared format and color flags deliberately leave to each CLI.
