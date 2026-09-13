@@ -74,6 +74,16 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-012
+    title: Isolate Surface model dependencies
+    scope: ctl-core
+    outcome: Consumers can extract, validate, or serialize a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
+    completed: 2026-09-12T23:33:43
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/42
+      - 'ctl-core 8e58d61: surface-model excludes MiniJinja, surface-serde serializes without it, surface-templates adds it, and surface remains compatible; focused tier tests, cargo metadata/tree proofs, 119-test full verify, ledger check, and CI pass.'
+    disposition: completed
+
   - id: CTC-011
     title: Reserve a safe terminal-width margin in nested shells
     scope: ctl-core renderer

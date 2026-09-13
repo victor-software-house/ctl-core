@@ -125,6 +125,11 @@ It does not choose borders, spacing, ANSI styles, width, or streams.
 Clap is also the source for committed operator documents. `Surface` extracts
 binary and mounted names, package metadata, recursive commands, aliases,
 visibility, locally declared argument and flag metadata, and mounted Usage KDL.
+That metadata and its validation methods require only `surface-model`;
+`surface-serde` adds serialization without a template engine, and
+`surface-templates` adds MiniJinja. `surface-model` still inherits Serde from
+`usage-lib`, whose KDL model requires it; that is not ctl-core serialization.
+The existing `surface` feature remains the compatibility aggregate.
 Ancestor globals stay normalized on their declaring command and appear
 separately as each descendant's `inherited_arguments`. Templates can render the
 effective flag set without losing declaration provenance. It records hidden
