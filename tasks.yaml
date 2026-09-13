@@ -61,18 +61,6 @@ queue:
       JSON Schema generated from these same types, so keep the types
       derive-friendly.
 
-  - id: CTC-012
-    title: Isolate Surface model dependencies
-    scope: ctl-core
-    outcome: Consumers can extract and validate a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
-    blocked_by: []
-    acceptance:
-      - A fine-grained feature exposes Surface and require_shorts using only Clap and Usage dependencies.
-      - Template rendering has its own feature and source module, enabling Serde and MiniJinja only there.
-      - The existing surface feature remains an additive compatibility aggregate with unchanged public APIs.
-      - Feature checks and cargo trees prove the model-only build excludes MiniJinja, the direct Serde edge belongs only to templates, and the aggregate retains both.
-      - Docs, crate guidance, focused tests, full verification, and a patch Changeset state and prove the split.
-
 horizon:
   - id: CTC-003
     title: Optional per-user daemon sharing one session and view
@@ -86,6 +74,16 @@ horizon:
     notes: Same idea as QCTL-007. Keep one implementation, in this crate.
 
 archive:
+  - id: CTC-012
+    title: Isolate Surface model dependencies
+    scope: ctl-core
+    outcome: Consumers can extract and validate a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
+    completed: 2026-09-12T23:33:43
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/42
+      - 'ctl-core de69851: surface-model excludes MiniJinja, surface-templates adds direct Serde/MiniJinja edges, surface remains compatible; focused feature tests, cargo metadata/tree proofs, full verify, ledger check, and CI pass.'
+    disposition: completed
+
   - id: CTC-011
     title: Reserve a safe terminal-width margin in nested shells
     scope: ctl-core renderer
