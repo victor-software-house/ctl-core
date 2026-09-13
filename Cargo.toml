@@ -74,8 +74,14 @@ help = ["cli", "render", "dep:anstream"]
 ## Pretty / JSON / colorless emitters over serializable models.
 view = ["render", "json", "dep:anstream"]
 
-## Clap-derived operator surface and shared Jinja fragments for committed docs.
-surface = ["cli", "usage", "dep:minijinja", "dep:serde"]
+## Clap-derived operator metadata without serialization or a template engine.
+surface-model = ["cli", "usage"]
+
+## Serde and shared MiniJinja fragments for committed operator documents.
+surface-templates = ["surface-model", "dep:minijinja", "dep:serde"]
+
+## Compatibility aggregate for the complete operator-document surface.
+surface = ["surface-templates"]
 
 ## Mise Usage spec from clap (`--usage-spec`, served-task mount).
 usage = ["cli", "dep:usage-lib"]

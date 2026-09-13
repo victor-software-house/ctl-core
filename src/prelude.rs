@@ -40,7 +40,7 @@ pub use crate::render::{
 };
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;
-#[cfg(feature = "surface")]
+#[cfg(feature = "surface-model")]
 pub use crate::surface::Surface;
 #[cfg(feature = "render")]
 pub use crate::table::{grid, kv};

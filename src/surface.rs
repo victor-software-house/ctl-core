@@ -1,56 +1,25 @@
-//! Clap-derived operator metadata and shared MiniJinja fragments.
+//! Clap-derived operator metadata and validation.
 //!
 //! Clap remains the command grammar. [`Surface`] extracts the stable operator
-//! view used by committed skills and installed instructions, while the shared
-//! fragments own repeated invocation, version, and command-inventory prose.
+//! view used by committed skills, installed instructions, and contract tests.
+//! MiniJinja rendering is separately gated behind `surface-templates`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use clap::{Arg, Command};
-use minijinja::{Environment, Error, context};
-use serde::Serialize;
 
 use crate::usage;
 
-/// Shared fragment that renders a skill frontmatter version line.
-pub const VERSION_FRAGMENT: &str = r"{% macro version_line(version) -%}
-version: {{ version }}
-{%- endmacro %}";
+#[cfg(feature = "surface-templates")]
+mod templates;
+#[cfg(feature = "surface-templates")]
+pub use templates::{
+    COMMANDS_FRAGMENT, INVOCATION_FRAGMENT, VERSION_FRAGMENT, add_fragments, environment, render,
+};
 
-/// Shared fragment that renders mounted invocations and the no-`--` rule.
-pub const INVOCATION_FRAGMENT: &str = r"{% macro mounted_invocation(surface, examples) -%}
-## Invocation
-
-```sh
-{% for example in examples -%}
-mise run {{ surface.mount }} {{ example }}
-{% endfor -%}
-```
-
-Never `mise run {{ surface.mount }} --`. The `--` in `#USAGE mount` is mise's
-completion bootstrap.
-{%- endmacro %}";
-
-/// Shared fragment that renders the visible top-level Clap commands.
-pub const COMMANDS_FRAGMENT: &str = r#"{% macro command_inventory(surface) -%}
-## Commands
-
-| Command | Aliases | Purpose |
-|:--|:--|:--|
-{% for command in surface.commands if not command.hidden -%}
-| `{{ command.name }}` | {% if command.visible_aliases %}`{{ command.visible_aliases | join("`, `") }}`{% else %}—{% endif %} | {{ command.about | replace("|", "\\|") | replace("\n", " ") }} |
-{% endfor -%}
-{{- "" -}}
-{%- endmacro %}"#;
-
-const FRAGMENTS: [(&str, &str); 3] = [
-    ("ctl/version.md.jinja", VERSION_FRAGMENT),
-    ("ctl/invocation.md.jinja", INVOCATION_FRAGMENT),
-    ("ctl/commands.md.jinja", COMMANDS_FRAGMENT),
-];
-
-/// Serializable operator-facing projection of one Clap command graph.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+/// Operator-facing projection of one Clap command graph.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
 pub struct Surface {
     /// Executable name declared by the root Clap command.
     pub binary: String,
@@ -75,7 +44,8 @@ pub struct Surface {
 }
 
 /// One command in a [`Surface`].
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
 pub struct SurfaceCommand {
     /// Command name.
     pub name: String,
@@ -101,7 +71,8 @@ pub struct SurfaceCommand {
 }
 
 /// One positional argument or flag in a [`Surface`].
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
 pub struct SurfaceArgument {
     /// Clap argument identifier.
     pub id: String,
@@ -134,8 +105,9 @@ pub struct SurfaceArgument {
 }
 
 /// Whether Clap requires an argument.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-templates", serde(rename_all = "snake_case"))]
 pub enum SurfaceRequirement {
     /// The invocation can omit this argument.
     Optional,
@@ -144,8 +116,9 @@ pub enum SurfaceRequirement {
 }
 
 /// How far Clap propagates an argument.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-templates", serde(rename_all = "snake_case"))]
 pub enum SurfaceScope {
     /// The argument belongs only to its declaring command.
     Local,
@@ -290,37 +263,6 @@ fn collect_command_missing_shorts(command: &SurfaceCommand, missing: &mut Vec<(S
     }
 }
 
-/// Add ctl-core's shared operator fragments to an existing environment.
-pub fn add_fragments(environment: &mut Environment<'static>) -> Result<(), Error> {
-    for (name, source) in FRAGMENTS {
-        environment.add_template(name, source)?;
-    }
-    Ok(())
-}
-
-/// Create a strict `MiniJinja` environment containing the shared fragments.
-pub fn environment() -> Result<Environment<'static>, Error> {
-    let mut environment = Environment::new();
-    environment.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
-    environment.set_keep_trailing_newline(true);
-    add_fragments(&mut environment)?;
-    Ok(environment)
-}
-
-/// Render one operator template with a [`Surface`] and consumer-owned context.
-pub fn render<T: Serialize>(
-    name: &'static str,
-    source: &'static str,
-    surface: &Surface,
-    content: &T,
-) -> Result<String, Error> {
-    let mut environment = environment()?;
-    environment.add_template(name, source)?;
-    environment
-        .get_template(name)?
-        .render(context! { surface, content })
-}
-
 fn surface_command(
     command: &Command,
     parent: &str,
@@ -460,10 +402,14 @@ fn argument(argument: &Arg) -> SurfaceArgument {
 #[cfg(test)]
 mod tests {
     use clap::{ArgAction, Parser, Subcommand};
+    #[cfg(feature = "surface-templates")]
     use indoc::indoc;
+    #[cfg(feature = "surface-templates")]
     use serde::Serialize;
 
-    use super::{Surface, SurfaceArgument, SurfaceScope, render};
+    #[cfg(feature = "surface-templates")]
+    use super::render;
+    use super::{Surface, SurfaceArgument, SurfaceScope};
 
     #[derive(Parser)]
     #[command(name = "toy", version = "1.2.3", about = "Control toys")]
@@ -561,12 +507,14 @@ mod tests {
         assert_eq!(noted.notes["skill"], "Prefer the mounted task.");
     }
 
+    #[cfg(feature = "surface-templates")]
     #[derive(Serialize)]
     struct Content<'a> {
         version: &'a str,
         invocations: [&'a str; 2],
     }
 
+    #[cfg(feature = "surface-templates")]
     #[test]
     fn shared_fragments_render_committed_operator_blocks() {
         let surface = Surface::new::<Cli>("t");
