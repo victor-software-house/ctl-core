@@ -77,8 +77,11 @@ view = ["render", "json", "dep:anstream"]
 ## Clap-derived operator metadata without serialization or a template engine.
 surface-model = ["cli", "usage"]
 
-## Serde and shared MiniJinja fragments for committed operator documents.
-surface-templates = ["surface-model", "dep:minijinja", "dep:serde"]
+## Serializable Surface metadata without a template engine.
+surface-serde = ["surface-model", "dep:serde"]
+
+## Shared MiniJinja fragments for committed operator documents.
+surface-templates = ["surface-serde", "dep:minijinja"]
 
 ## Compatibility aggregate for the complete operator-document surface.
 surface = ["surface-templates"]

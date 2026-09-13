@@ -2,4 +2,4 @@
 ctl-core: patch
 ---
 
-Expose Surface metadata and validation through a dependency-light feature, while isolating Serde and MiniJinja template rendering behind an opt-in feature and preserving the existing aggregate.
+Expose Surface metadata, serialization, and MiniJinja rendering through separate additive feature tiers while preserving the existing full compatibility aggregate.

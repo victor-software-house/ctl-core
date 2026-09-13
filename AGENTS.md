@@ -22,8 +22,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   `--`. Forkctl completion remains a composable `App::before_parse` hook.
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names,
   recursive commands, aliases, visibility, arguments, flags, Usage KDL, and
-  optional audience notes. `surface-templates` adds Serde and shared MiniJinja
-  fragments; `surface` remains the compatibility aggregate enabling both.
+  optional audience notes. `surface-serde` adds serialization without a template
+  engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains
+  the compatibility aggregate enabling all three.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
@@ -39,11 +40,11 @@ without silence.
 Features are tree-shaking. `document` carries no terminal engine. `render` adds
 the private engine, `view` adds JSON, `help` adds Clap help, and `app` composes
 the lifecycle. `surface-model` adds only Clap/Usage operator metadata;
-`surface-templates` adds ctl-core's direct Serde/MiniJinja rendering edges;
-`surface` preserves the full legacy aggregate. `surface-model` still inherits
-Serde from `usage-lib`, whose KDL model requires it; that is not a template edge.
-Prefer the narrowest feature set a consumer needs. Never add a rendering
-dependency to an introspection-only feature.
+`surface-serde` adds ctl-core's direct Serde edge without a template engine;
+`surface-templates` adds MiniJinja; `surface` preserves the full legacy aggregate.
+`surface-model` still inherits Serde from `usage-lib`, whose KDL model requires
+it; that is not ctl-core serialization. Prefer the narrowest feature set a
+consumer needs. Never add serialization or rendering behavior to a lower tier.
 
 `features = ["usage"]` does not pull `help`. Do not add `help` only to make the
 prelude compile.

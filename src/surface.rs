@@ -19,7 +19,7 @@ pub use templates::{
 
 /// Operator-facing projection of one Clap command graph.
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 pub struct Surface {
     /// Executable name declared by the root Clap command.
     pub binary: String,
@@ -45,7 +45,7 @@ pub struct Surface {
 
 /// One command in a [`Surface`].
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 pub struct SurfaceCommand {
     /// Command name.
     pub name: String,
@@ -72,7 +72,7 @@ pub struct SurfaceCommand {
 
 /// One positional argument or flag in a [`Surface`].
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 pub struct SurfaceArgument {
     /// Clap argument identifier.
     pub id: String,
@@ -106,8 +106,8 @@ pub struct SurfaceArgument {
 
 /// Whether Clap requires an argument.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
-#[cfg_attr(feature = "surface-templates", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]
 pub enum SurfaceRequirement {
     /// The invocation can omit this argument.
     Optional,
@@ -117,8 +117,8 @@ pub enum SurfaceRequirement {
 
 /// How far Clap propagates an argument.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "surface-templates", derive(serde::Serialize))]
-#[cfg_attr(feature = "surface-templates", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]
 pub enum SurfaceScope {
     /// The argument belongs only to its declaring command.
     Local,
@@ -694,5 +694,12 @@ mod tests {
         Surface::new::<DefaultOutput>("x")
             .require_shorts(["--no-color"])
             .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[cfg(feature = "surface-serde")]
+    #[test]
+    fn surface_serde_does_not_require_templates() {
+        fn assert_serializable<T: serde::Serialize>() {}
+        assert_serializable::<Surface>();
     }
 }
