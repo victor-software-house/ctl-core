@@ -207,6 +207,87 @@ impl Surface {
         self.notes.insert(name.into(), value.into());
         self
     }
+
+    /// Long flags that have no short, as `(command path, long name)`.
+    ///
+    /// The root path is empty. Inherited globals are not repeated on children.
+    /// Hidden flags are included so a long-only option cannot hide from the
+    /// check. [`FormatLong`](crate::flags::FormatLong) and
+    /// [`ColorLong`](crate::flags::ColorLong) leave `--format` / `--color`
+    /// without shorts on purpose; pass those names to [`Self::require_shorts`].
+    #[must_use]
+    pub fn long_options_without_short(&self) -> Vec<(String, String)> {
+        let mut missing = Vec::new();
+        collect_missing_shorts("", &self.arguments, &mut missing);
+        for command in &self.commands {
+            collect_command_missing_shorts(command, &mut missing);
+        }
+        missing
+    }
+
+    /// Fail when a long option has no operator-visible short, except tokens in
+    /// `allow`.
+    ///
+    /// A root allowance is the displayed long option (`--format`). A nested
+    /// allowance includes its command path (`status --archived`). Chassis
+    /// mixins that deliberately leave a letter for the consumer (`--format`
+    /// for `-f`/`--file`, `--color` for `-c`) belong there.
+    pub fn require_shorts<'a>(
+        &self,
+        allow: impl IntoIterator<Item = &'a str>,
+    ) -> Result<(), String> {
+        let allowed: BTreeSet<&str> = allow.into_iter().collect();
+        let missing: Vec<(String, String)> = self
+            .long_options_without_short()
+            .into_iter()
+            .filter(|(path, long)| !allowed.contains(scoped_long(path, long).as_str()))
+            .collect();
+        if missing.is_empty() {
+            return Ok(());
+        }
+        let listing = missing
+            .iter()
+            .map(|(path, long)| {
+                if path.is_empty() {
+                    format!("--{long}")
+                } else {
+                    format!("{path} --{long}")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        Err(format!("long option has no short: {listing}"))
+    }
+}
+
+fn scoped_long(path: &str, long: &str) -> String {
+    if path.is_empty() {
+        format!("--{long}")
+    } else {
+        format!("{path} --{long}")
+    }
+}
+
+fn collect_missing_shorts(
+    path: &str,
+    arguments: &[SurfaceArgument],
+    missing: &mut Vec<(String, String)>,
+) {
+    for argument in arguments {
+        if let Some(long) = &argument.long
+            && argument.short.is_none()
+            && argument.visible_short_aliases.is_empty()
+        {
+            missing.push((path.to_owned(), long.clone()));
+        }
+    }
+}
+
+fn collect_command_missing_shorts(command: &SurfaceCommand, missing: &mut Vec<(String, String)>) {
+    collect_missing_shorts(&command.path, &command.arguments, missing);
+    for child in &command.commands {
+        collect_command_missing_shorts(child, missing);
+    }
 }
 
 /// Add ctl-core's shared operator fragments to an existing environment.
@@ -535,5 +616,135 @@ mod tests {
         "};
         assert_eq!(rendered, expected);
         assert!(!rendered.contains("internal"));
+    }
+
+    #[test]
+    fn long_only_status_flag_fails_require_shorts() {
+        let error = Surface::new::<Cli>("t")
+            .require_shorts([])
+            .expect_err("archived is long-only");
+        assert!(error.contains("--archived"), "{error}");
+    }
+
+    #[derive(Parser)]
+    struct ShortsCli {
+        #[arg(long, global = true)]
+        verbose: bool,
+        #[command(subcommand)]
+        command: ShortsCommand,
+    }
+
+    #[derive(Subcommand)]
+    enum ShortsCommand {
+        Status {
+            #[arg(long)]
+            archived: bool,
+        },
+        #[command(hide = true)]
+        Internal {
+            #[arg(long)]
+            secret: bool,
+        },
+    }
+
+    #[test]
+    fn reports_hidden_flags_and_inherited_globals_once() {
+        let surface = Surface::new::<ShortsCli>("t");
+        assert_eq!(
+            surface.long_options_without_short(),
+            [
+                (String::new(), "verbose".to_owned()),
+                ("status".to_owned(), "archived".to_owned()),
+                ("internal".to_owned(), "secret".to_owned()),
+            ]
+        );
+        let error = surface
+            .require_shorts([])
+            .expect_err("three flags are long-only");
+        assert_eq!(
+            error,
+            "long option has no short: --verbose, status --archived, internal --secret"
+        );
+    }
+
+    #[test]
+    fn require_shorts_accepts_an_allow_list() {
+        Surface::new::<ShortsCli>("t")
+            .require_shorts(["--verbose", "status --archived", "internal --secret"])
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[test]
+    fn a_root_allowance_does_not_exempt_a_nested_flag() {
+        let error = Surface::new::<ShortsCli>("t")
+            .require_shorts(["--verbose", "--archived", "internal --secret"])
+            .expect_err("archived needs its command path");
+        assert_eq!(error, "long option has no short: status --archived");
+    }
+
+    #[derive(Parser)]
+    struct ShortAliasCli {
+        #[arg(long, visible_short_alias = 'x')]
+        expanded: bool,
+    }
+
+    #[test]
+    fn a_short_alias_satisfies_the_contract() {
+        Surface::new::<ShortAliasCli>("t")
+            .require_shorts([])
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[derive(Parser)]
+    struct HiddenShortAliasCli {
+        #[arg(long, short_alias = 'x')]
+        expanded: bool,
+    }
+
+    #[test]
+    fn a_hidden_short_alias_is_not_an_operator_short() {
+        let error = Surface::new::<HiddenShortAliasCli>("t")
+            .require_shorts([])
+            .expect_err("the only short is hidden");
+        assert_eq!(error, "long option has no short: --expanded");
+    }
+
+    #[derive(Parser)]
+    struct OwnedFile {
+        #[command(flatten)]
+        format: crate::flags::FormatLong,
+        #[command(flatten)]
+        color: crate::flags::ColorLong,
+        #[arg(short = 'f', long)]
+        file: Option<String>,
+        #[arg(short = 'c', long)]
+        config: Option<String>,
+    }
+
+    #[test]
+    fn format_long_and_color_long_are_the_allow_list() {
+        let surface = Surface::new::<OwnedFile>("x");
+        let error = surface
+            .require_shorts([])
+            .expect_err("format/color/no-color are long-only");
+        assert!(error.contains("--format"), "{error}");
+        assert!(error.contains("--color"), "{error}");
+        assert!(error.contains("--no-color"), "{error}");
+        surface
+            .require_shorts(["--format", "--color", "--no-color"])
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[derive(Parser)]
+    struct DefaultOutput {
+        #[command(flatten)]
+        output: crate::flags::OutputArgs,
+    }
+
+    #[test]
+    fn output_args_only_exempt_no_color() {
+        Surface::new::<DefaultOutput>("x")
+            .require_shorts(["--no-color"])
+            .unwrap_or_else(|error| panic!("{error}"));
     }
 }

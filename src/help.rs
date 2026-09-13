@@ -13,12 +13,16 @@ const NARROW_HELP_WIDTH: u16 = 64;
 /// Styled `-h` / `--help`. Returns `true` when help ran.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     let raw = std::env::args_os().collect::<Vec<_>>();
-    let args = raw
-        .iter()
+    let color = crate::parser::parsed_output::<C>(&raw).color;
+    try_emit_with_options::<C>(RenderOptions::new(color))
+}
+
+/// Styled help with rendering options supplied by the library owner.
+pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<bool> {
+    let args = std::env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
-    let color = crate::parser::parsed_output::<C>(&raw).color;
-    try_emit_from_with_color::<C>(&args, color)
+    try_emit_from_with_options::<C>(&args, options)
 }
 
 /// Same as [`try_emit`] with explicit argv.
@@ -28,13 +32,13 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
         .map(std::ffi::OsString::from)
         .collect::<Vec<_>>();
     let color = crate::parser::parsed_output::<C>(&raw).color;
-    try_emit_from_with_color::<C>(args, color)
+    try_emit_from_with_options::<C>(args, RenderOptions::new(color))
 }
 
-/// Explicit-argv help with a policy already recovered by Clap.
-pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
+/// Explicit-argv help with rendering options supplied by the owning library.
+pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
-    color: ColorMode,
+    options: RenderOptions,
 ) -> io::Result<bool> {
     let raw = args
         .iter()
@@ -44,8 +48,8 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
         return Ok(false);
     }
     let command = help_command::<C>(args);
-    let output = document(command).render(RenderOptions::new(color));
-    let mut stream = anstream::AutoStream::new(io::stdout().lock(), color.choice());
+    let output = document(command).render(options);
+    let mut stream = anstream::AutoStream::new(io::stdout().lock(), options.color().choice());
     stream.write_all(output.as_bytes())?;
     stream.flush()?;
     Ok(true)
@@ -53,8 +57,13 @@ pub(crate) fn try_emit_from_with_color<C: CommandFactory>(
 
 /// Render root help to stderr for a bare invocation that requires input.
 pub(crate) fn emit_bare<C: CommandFactory>(color: ColorMode) -> io::Result<()> {
-    let output = document(C::command()).render(RenderOptions::new(color));
-    let mut stream = anstream::AutoStream::new(io::stderr().lock(), color.choice());
+    emit_bare_with_options::<C>(RenderOptions::new(color))
+}
+
+/// Render root help to stderr with rendering options supplied by the owner.
+pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
+    let output = document(C::command()).render(options);
+    let mut stream = anstream::AutoStream::new(io::stderr().lock(), options.color().choice());
     stream.write_all(output.as_bytes())?;
     stream.flush()
 }

@@ -77,7 +77,10 @@ pub use format::OutputFormat;
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "render")]
-pub use render::{RenderOptions, Renderer};
+pub use render::{
+    DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions, Renderer,
+};
 #[cfg(feature = "cli")]
 pub use run::main as run;
 #[cfg(feature = "surface")]

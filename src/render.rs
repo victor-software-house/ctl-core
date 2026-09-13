@@ -12,24 +12,66 @@ use crate::color::ColorMode;
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
 use crate::style::{ERROR, HEADING, MUTED, OPTION, SUCCESS, VALUE, WARNING, styled};
 
+/// Default columns reserved from an automatically detected terminal width.
+pub const DEFAULT_COLUMN_BUFFER: u16 = 1;
+/// Default environment variable for overriding the automatic-width buffer.
+pub const DEFAULT_COLUMN_BUFFER_ENV: &str = "CTL_CORE_COLUMN_BUFFER";
+/// Default ordered environment lookup for the automatic-width buffer.
+pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
+/// Default floor for an automatically detected effective width.
+pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
+
 /// Deterministic document rendering options.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
     color: ColorMode,
     width: Option<u16>,
+    automatic_width_buffer: Option<u16>,
+    automatic_width_buffer_envs: &'static [&'static str],
+    minimum_automatic_width: u16,
 }
 
 impl RenderOptions {
-    /// Build options with automatic terminal width.
+    /// Build options with automatic terminal width, a one-column buffer, and
+    /// [`DEFAULT_COLUMN_BUFFER_ENV`] as the operator override.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
-        Self { color, width: None }
+        Self {
+            color,
+            width: None,
+            automatic_width_buffer: None,
+            automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
+            minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
+        }
     }
 
     /// Force an explicit width. Tests and redirected renderers should use this.
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
+        self
+    }
+
+    /// Override the automatic-width buffer. Zero explicitly disables it.
+    /// Explicit [`Self::width`] remains exact regardless of this value.
+    #[must_use]
+    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
+        self.automatic_width_buffer = Some(columns);
+        self
+    }
+
+    /// Replace the ordered environment names used to configure the buffer.
+    /// Pass aliases in precedence order or an empty slice to disable lookup.
+    #[must_use]
+    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.automatic_width_buffer_envs = names;
+        self
+    }
+
+    /// Set the floor for automatically detected effective widths.
+    #[must_use]
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.minimum_automatic_width = columns;
         self
     }
 
@@ -43,6 +85,30 @@ impl RenderOptions {
     #[must_use]
     pub const fn explicit_width(self) -> Option<u16> {
         self.width
+    }
+
+    /// Explicit automatic-width buffer, when the library owner set one.
+    #[must_use]
+    pub const fn explicit_automatic_width_buffer(self) -> Option<u16> {
+        self.automatic_width_buffer
+    }
+
+    /// Ordered environment names used for the automatic-width buffer.
+    #[must_use]
+    pub const fn automatic_width_buffer_env_names(self) -> &'static [&'static str] {
+        self.automatic_width_buffer_envs
+    }
+
+    /// Floor applied only to automatically detected widths.
+    #[must_use]
+    pub const fn automatic_width_minimum(self) -> u16 {
+        self.minimum_automatic_width
+    }
+
+    fn resolved_automatic_width_buffer(self) -> u16 {
+        self.automatic_width_buffer
+            .or_else(|| crate::layout::column_buffer(self.automatic_width_buffer_envs))
+            .unwrap_or(DEFAULT_COLUMN_BUFFER)
     }
 }
 
@@ -238,9 +304,12 @@ impl Renderer {
     }
 
     fn width(self) -> Option<u16> {
-        self.options
-            .explicit_width()
-            .or_else(crate::layout::terminal_width)
+        self.options.explicit_width().or_else(|| {
+            crate::layout::terminal_width(
+                self.options.resolved_automatic_width_buffer(),
+                self.options.automatic_width_minimum(),
+            )
+        })
     }
 
     fn text(self, text: &Text) -> String {
@@ -320,6 +389,39 @@ mod tests {
     use super::RenderOptions;
     use crate::color::ColorMode;
     use crate::document::{Document, Fields, Notice, NoticeLevel, Table, Text};
+
+    #[test]
+    fn automatic_width_policy_is_explicit_and_overridable() {
+        let defaults = RenderOptions::new(ColorMode::Never);
+        assert_eq!(defaults.explicit_automatic_width_buffer(), None);
+        assert_eq!(
+            defaults.automatic_width_minimum(),
+            super::DEFAULT_MINIMUM_AUTOMATIC_WIDTH
+        );
+
+        let configured = defaults
+            .automatic_width_buffer(0)
+            .automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"])
+            .minimum_automatic_width(8);
+        assert_eq!(configured.explicit_automatic_width_buffer(), Some(0));
+        assert_eq!(
+            configured.automatic_width_buffer_env_names(),
+            ["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"]
+        );
+        assert_eq!(configured.automatic_width_minimum(), 8);
+    }
+
+    #[test]
+    fn explicit_width_ignores_the_automatic_buffer() {
+        let document = Document::new().paragraph("one two three four five six");
+        let exact = document.render(RenderOptions::new(ColorMode::Never).width(16));
+        let buffered = document.render(
+            RenderOptions::new(ColorMode::Never)
+                .width(16)
+                .automatic_width_buffer(8),
+        );
+        assert_eq!(buffered, exact);
+    }
 
     #[test]
     fn colorless_document_is_deterministic() {
