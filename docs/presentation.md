@@ -63,15 +63,17 @@ capability detection from scratch.
 
 An automatically detected TTY or `COLUMNS` width reserves one column before
 wrapping, stacking, help, fields, and table layout. This default protects nested
-shells whose outer frame consumes the reported rightmost column. The effective
-width never falls below 20.
+shells whose outer frame consumes the reported rightmost column. The configured
+floor is 20 when the detected width permits it. A narrower terminal caps that
+floor, so ctl-core never claims columns the terminal does not have.
 
 `CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
 full control through `RenderOptions`, `View`, and `App`:
 `automatic_width_buffer(n)` overrides the environment, including zero to disable
 buffering; `automatic_width_buffer_envs(&[...])` replaces the ordered names so a
 consumer can add aliases or disable lookup with an empty slice; and
-`minimum_automatic_width(n)` replaces the default floor of 20. Option-aware help
+`minimum_automatic_width(n)` replaces the default preferred floor of 20, still
+capped by the detected terminal width. Option-aware help
 entry points accept the same `RenderOptions`. An explicit `width(n)` is always
 exact and ignores every automatic-width setting.
 

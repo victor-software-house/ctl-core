@@ -2,8 +2,9 @@
 
 use comfy_table::Table;
 
-/// Detected TTY width, or `COLUMNS` when it meets the configured minimum,
-/// minus the buffer without dropping below that minimum.
+/// Detected TTY width, or any nonzero `COLUMNS`, minus the buffer without
+/// dropping below the configured minimum unless the terminal itself is
+/// narrower.
 pub(crate) fn terminal_width(buffer: u16, minimum: u16) -> Option<u16> {
     detected_width().map(|width| effective_width(width, buffer, minimum))
 }
