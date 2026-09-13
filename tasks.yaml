@@ -64,13 +64,13 @@ queue:
   - id: CTC-012
     title: Isolate Surface model dependencies
     scope: ctl-core
-    outcome: Consumers can extract and validate a Clap Surface without Serde or MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
+    outcome: Consumers can extract and validate a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
     blocked_by: []
     acceptance:
       - A fine-grained feature exposes Surface and require_shorts using only Clap and Usage dependencies.
       - Template rendering has its own feature and source module, enabling Serde and MiniJinja only there.
       - The existing surface feature remains an additive compatibility aggregate with unchanged public APIs.
-      - Feature checks and cargo trees prove the model-only build excludes Serde and MiniJinja and the aggregate retains them.
+      - Feature checks and cargo trees prove the model-only build excludes MiniJinja, the direct Serde edge belongs only to templates, and the aggregate retains both.
       - Docs, crate guidance, focused tests, full verification, and a patch Changeset state and prove the split.
 
 horizon:

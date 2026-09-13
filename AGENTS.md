@@ -20,10 +20,10 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_line`, and
   `App::usage_spec` enrichment, so consumers run `mise run q status` with no
   `--`. Forkctl completion remains a composable `App::before_parse` hook.
-- Clap-derived `Surface` (`surface` feature): binary and mounted names,
-  recursive commands, aliases, visibility, arguments, flags, Usage KDL,
-  optional audience notes, and shared MiniJinja fragments for skill versions,
-  mounted invocation, and command inventories.
+- Clap-derived `Surface` (`surface-model` feature): binary and mounted names,
+  recursive commands, aliases, visibility, arguments, flags, Usage KDL, and
+  optional audience notes. `surface-templates` adds Serde and shared MiniJinja
+  fragments; `surface` remains the compatibility aggregate enabling both.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
@@ -37,10 +37,13 @@ without silence.
 ## Cargo features
 
 Features are tree-shaking. `document` carries no terminal engine. `render` adds
-the private engine, `view` adds JSON, `help` adds Clap help, `app` composes
-the lifecycle, and `surface` adds Clap/Usage/Serde/MiniJinja operator-document
-extraction. Prefer explicit feature sets when a consumer needs less than the
-complete chassis.
+the private engine, `view` adds JSON, `help` adds Clap help, and `app` composes
+the lifecycle. `surface-model` adds only Clap/Usage operator metadata;
+`surface-templates` adds ctl-core's direct Serde/MiniJinja rendering edges;
+`surface` preserves the full legacy aggregate. `surface-model` still inherits
+Serde from `usage-lib`, whose KDL model requires it; that is not a template edge.
+Prefer the narrowest feature set a consumer needs. Never add a rendering
+dependency to an introspection-only feature.
 
 `features = ["usage"]` does not pull `help`. Do not add `help` only to make the
 prelude compile.
