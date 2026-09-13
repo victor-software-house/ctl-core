@@ -77,11 +77,11 @@ archive:
   - id: CTC-012
     title: Isolate Surface model dependencies
     scope: ctl-core
-    outcome: Consumers can extract and validate a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
+    outcome: Consumers can extract, validate, or serialize a Clap Surface without MiniJinja, while the existing surface feature remains a compatible aggregate for template rendering.
     completed: 2026-09-12T23:33:43
     evidence:
       - https://github.com/victor-software-house/ctl-core/pull/42
-      - 'ctl-core de69851: surface-model excludes MiniJinja, surface-templates adds direct Serde/MiniJinja edges, surface remains compatible; focused feature tests, cargo metadata/tree proofs, full verify, ledger check, and CI pass.'
+      - 'ctl-core 8e58d61: surface-model excludes MiniJinja, surface-serde serializes without it, surface-templates adds it, and surface remains compatible; focused tier tests, cargo metadata/tree proofs, 119-test full verify, ledger check, and CI pass.'
     disposition: completed
 
   - id: CTC-011
