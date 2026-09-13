@@ -1,4 +1,4 @@
-//! MiniJinja rendering for committed operator documents.
+//! `MiniJinja` rendering for committed operator documents.
 
 use minijinja::{Environment, Error, context};
 use serde::Serialize;
@@ -11,7 +11,7 @@ version: {{ version }}
 {%- endmacro %}";
 
 /// Shared fragment that renders mounted invocations and the no-`--` rule.
-pub const INVOCATION_FRAGMENT: &str = r#"{% macro mounted_invocation(surface, examples) -%}
+pub const INVOCATION_FRAGMENT: &str = r"{% macro mounted_invocation(surface, examples) -%}
 ## Invocation
 
 ```sh
@@ -22,7 +22,7 @@ mise run {{ surface.mount }} {{ example }}
 
 Never `mise run {{ surface.mount }} --`. The `--` in `#USAGE mount` is mise's
 completion bootstrap.
-{%- endmacro %}"#;
+{%- endmacro %}";
 
 /// Shared fragment that renders the visible top-level Clap commands.
 pub const COMMANDS_FRAGMENT: &str = r#"{% macro command_inventory(surface) -%}
