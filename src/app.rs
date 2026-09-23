@@ -11,12 +11,17 @@ use clap::{CommandFactory, Parser};
 
 use crate::color::ColorMode;
 use crate::format::OutputFormat;
-use crate::view::{Present, View};
+use crate::render::RenderOptions;
+use crate::view::{JsonLayout, Present, View};
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
 type SelectView<C> = Box<dyn Fn(&C) -> View>;
 #[cfg(feature = "usage")]
 type RenderUsage = Box<dyn Fn(Command, &str) -> String>;
+
+/// A fallback width the owner chose, including `None` to disable it.
+#[derive(Clone, Copy)]
+struct Fallback(Option<u16>);
 
 /// One ctl process: short-circuits, help, parsing, execution, and presentation.
 pub struct App<C> {
@@ -26,6 +31,9 @@ pub struct App<C> {
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: Option<&'static [&'static str]>,
     minimum_automatic_width: Option<u16>,
+    fallback_width: Option<Fallback>,
+    styles: Option<RenderOptions>,
+    json_layout: Option<JsonLayout>,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -44,6 +52,9 @@ impl<C> App<C> {
             automatic_width_buffer: None,
             automatic_width_buffer_envs: None,
             minimum_automatic_width: None,
+            fallback_width: None,
+            styles: None,
+            json_layout: None,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -82,6 +93,28 @@ impl<C> App<C> {
         self
     }
 
+    /// Lay out to `width` when no width is detected; `None` disables it.
+    #[must_use]
+    pub fn fallback_width(mut self, width: Option<u16>) -> Self {
+        self.fallback_width = Some(Fallback(width));
+        self
+    }
+
+    /// Take record style, list style, and row separation from `styles` for
+    /// help, errors, and command output.
+    #[must_use]
+    pub fn styles(mut self, styles: RenderOptions) -> Self {
+        self.styles = Some(styles);
+        self
+    }
+
+    /// Lay out JSON output as `layout`.
+    #[must_use]
+    pub fn json_layout(mut self, layout: JsonLayout) -> Self {
+        self.json_layout = Some(layout);
+        self
+    }
+
     fn configured_view(&self, mut view: View) -> View {
         if let Some(buffer) = self.automatic_width_buffer {
             view = view.automatic_width_buffer(buffer);
@@ -91,6 +124,15 @@ impl<C> App<C> {
         }
         if let Some(minimum) = self.minimum_automatic_width {
             view = view.minimum_automatic_width(minimum);
+        }
+        if let Some(Fallback(width)) = self.fallback_width {
+            view = view.fallback_width(width);
+        }
+        if let Some(styles) = self.styles {
+            view = view.styles(styles);
+        }
+        if let Some(layout) = self.json_layout {
+            view = view.json_layout(layout);
         }
         view
     }
@@ -242,7 +284,8 @@ mod tests {
 
     use super::{App, is_clap_display, raw_view};
     use crate::document::{Document, Fields};
-    use crate::view::{Present, View};
+    use crate::render::{RecordStyle, RenderOptions};
+    use crate::view::{JsonLayout, Present, View};
     use crate::{ColorMode, OutputArgs, OutputFormat};
 
     #[derive(Parser)]
@@ -371,6 +414,24 @@ mod tests {
             ["TOY_BUFFER", "LEGACY_BUFFER"]
         );
         assert_eq!(view.automatic_width_minimum(), 8);
+    }
+
+    #[test]
+    fn app_styles_and_fallback_reach_every_view() {
+        let app = App::<Cli>::new("toy")
+            .fallback_width(None)
+            .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed))
+            .json_layout(JsonLayout::Compact);
+        let options = app
+            .configured_view(View::new(OutputFormat::Pretty, ColorMode::Never))
+            .render_options();
+        assert_eq!(options.fallback(), None);
+        assert_eq!(options.record(), RecordStyle::Boxed);
+        let json = app
+            .configured_view(View::new(OutputFormat::Json, ColorMode::Never))
+            .capture(&Status { pending: 1 })
+            .unwrap();
+        assert_eq!(json.text(), "{\"pending\":1}\n");
     }
 
     #[test]

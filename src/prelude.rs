@@ -36,8 +36,8 @@ pub use crate::parser::verify;
 #[cfg(feature = "render")]
 pub use crate::render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
-    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions, Renderer,
-    RowSeparation,
+    DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions,
+    Renderer, RowSeparation,
 };
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;

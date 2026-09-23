@@ -15,13 +15,15 @@ use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Sectio
 use crate::style::{ERROR, HEADING, ID, MUTED, OPTION, SUCCESS, VALUE, WARNING, styled};
 
 /// Default columns reserved from an automatically detected terminal width.
-pub const DEFAULT_COLUMN_BUFFER: u16 = 1;
+pub const DEFAULT_COLUMN_BUFFER: u16 = 2;
 /// Default environment variable for overriding the automatic-width buffer.
 pub const DEFAULT_COLUMN_BUFFER_ENV: &str = "CTL_CORE_COLUMN_BUFFER";
 /// Default ordered environment lookup for the automatic-width buffer.
 pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 /// Default floor for an automatically detected effective width.
 pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
+/// Width used when neither the terminal nor `COLUMNS` gives one.
+pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
 
 /// A light horizontal rule that runs through column gaps.
 const RULE: LineStyle = LineStyle::none().fill('─').junction('─');
@@ -30,9 +32,9 @@ const RULE: LineStyle = LineStyle::none().fill('─').junction('─');
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum RecordStyle {
     /// A full box around every key and value.
-    #[default]
     Boxed,
     /// No frame. Keys are right-aligned in one column.
+    #[default]
     KeysRight,
     /// No frame. Keys are left-aligned in one column.
     KeysLeft,
@@ -70,14 +72,17 @@ pub struct RenderOptions {
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
+    fallback_width: Option<u16>,
     record_style: RecordStyle,
     list_style: ListStyle,
     row_separation: RowSeparation,
 }
 
 impl RenderOptions {
-    /// Build options with automatic terminal width, a one-column buffer, and
-    /// [`DEFAULT_COLUMN_BUFFER_ENV`] as the operator override.
+    /// Build options with automatic terminal width, a
+    /// [`DEFAULT_COLUMN_BUFFER`]-column buffer, [`DEFAULT_COLUMN_BUFFER_ENV`]
+    /// as the operator override, and [`DEFAULT_FALLBACK_WIDTH`] when no
+    /// width is detected.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
         Self {
@@ -86,7 +91,8 @@ impl RenderOptions {
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
-            record_style: RecordStyle::Boxed,
+            fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
+            record_style: RecordStyle::KeysRight,
             list_style: ListStyle::Grid,
             row_separation: RowSeparation::None,
         }
@@ -159,6 +165,22 @@ impl RenderOptions {
     pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
         self.minimum_automatic_width = columns;
         self
+    }
+
+    /// Lay out to `width` when neither the terminal nor `COLUMNS` gives one.
+    /// `None` renders tables at their natural width instead. This does not
+    /// touch [`Self::minimum_automatic_width`], which applies only to a
+    /// detected width.
+    #[must_use]
+    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
+        self.fallback_width = width;
+        self
+    }
+
+    /// Width used when none is detected, if any.
+    #[must_use]
+    pub const fn fallback(self) -> Option<u16> {
+        self.fallback_width
     }
 
     /// Color policy.
@@ -435,6 +457,7 @@ impl Renderer {
                 self.options.resolved_automatic_width_buffer(),
                 self.options.automatic_width_minimum(),
             )
+            .or(self.options.fallback())
         })
     }
 
@@ -570,9 +593,7 @@ mod tests {
         let expected = indoc! {"
             status
 
-            ┌─────────┬───┐
-            │ pending ┆ 2 │
-            └─────────┴───┘
+            pending  2
 
             warning · one stale row
         "};
@@ -676,11 +697,14 @@ mod tests {
     }
 
     #[test]
-    fn default_style_is_unchanged() {
+    fn defaults_are_the_operator_picks() {
         let options = RenderOptions::new(ColorMode::Never);
-        assert_eq!(options.record(), RecordStyle::Boxed);
+        assert_eq!(options.record(), RecordStyle::KeysRight);
         assert_eq!(options.list(), ListStyle::Grid);
         assert_eq!(options.separation(), RowSeparation::None);
+        assert_eq!(options.fallback(), Some(80));
+        assert_eq!(options.fallback_width(None).fallback(), None);
+        assert_eq!(super::DEFAULT_COLUMN_BUFFER, 2);
     }
 
     #[test]

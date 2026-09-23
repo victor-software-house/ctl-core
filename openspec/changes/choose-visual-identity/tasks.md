@@ -7,7 +7,8 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 - [x] 1.1 Add the record style, list style, and row separation to `RenderOptions`, and those plus the JSON layout to `View`; proof: unit tests per option
 - [x] 1.2 Keep today's look as the default until section 3; proof: existing snapshots unchanged
 - [x] 1.3 No Comfy Table type crosses the public surface; proof: `tests/architecture.rs` passes
-- [ ] 1.4 Reach the options from `App`, and give each an environment override; proof: tests per override. Done with section 3, once the defaults are known
+- [x] 1.4 Reach the options from `App`; proof: `app_styles_and_fallback_reach_every_view`
+- [ ] 1.5 Give each style option an environment override; proof: tests per override
 
 ## 2. Gallery
 
@@ -18,10 +19,10 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 ## 3. Defaults
 
 - [x] 3.0 Add the identifier role and preview it in the gallery; proof: `ids_are_bold_without_a_colour` passes
-- [ ] 3.1 Set the picked defaults; proof: updated snapshots show the new look
-- [ ] 3.2 Raise `DEFAULT_COLUMN_BUFFER` to 2; proof: at `COLUMNS=119` no line exceeds 117
-- [ ] 3.3 Add `RenderOptions::fallback_width` with its override and `None` disable path, leaving `minimum_automatic_width` unchanged; proof: piped `qctl show` fixture stays within 80 columns
-- [ ] 3.4 Update `docs/presentation.md` and the automatic-width paragraph in `AGENTS.md` (buffer default 2, fallback width), and add a changeset; proof: `mise run verify` passes
+- [x] 3.1 Set the picked defaults; proof: updated snapshots show the new look
+- [x] 3.2 Raise `DEFAULT_COLUMN_BUFFER` to 2; proof: `automatic_width_reserves_the_buffer_above_the_minimum` lays `COLUMNS=119` out at 117
+- [x] 3.3 Add `RenderOptions::fallback_width` with its override and `None` disable path, leaving `minimum_automatic_width` unchanged; proof: `defaults_are_the_operator_picks` and `app_styles_and_fallback_reach_every_view`. The piped `qctl show` fixture that stays within 80 columns is proven with 4.1
+- [x] 3.4 Update `docs/presentation.md` and the automatic-width paragraph in `AGENTS.md` (buffer default 2, fallback width), and add a changeset; proof: `mise run verify` passes
 
 ## 4. Consumers
 
