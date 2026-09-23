@@ -53,7 +53,19 @@ unconditionally with `Compact` as the override. Agent and CI captures are
 piped, so a `Pretty` gated on a terminal would never fire where it is needed.
 The operator decides.
 
-### 4. Width
+### 4. Identifiers have their own role
+
+`Role::Id`, `Text::id`, and `Table::id_column` mark row, patch, and package
+identifiers. They render bold in the terminal's foreground colour, so an id
+stands out without matching headings or the green of flags and commands.
+`Role` becomes `#[non_exhaustive]` in the same release, so the next role is
+not a breaking change.
+
+Alternative: restyle `Token`. It lost because `Token` also marks help flags
+and commands, which would lose their colour, and because an id is domain data
+while a token is operator input.
+
+### 5. Width
 
 1. `DEFAULT_COLUMN_BUFFER` becomes 2. Operator decision, 2026-09-17.
 2. When no width is detected, ctl-core renders at a fallback width of 80
@@ -72,12 +84,13 @@ Record each pick here with the date, after the gallery review.
 
 | # | Axis | Pick | Date |
 |--:|:--|:--|:--|
-| 1 | Record | pending | |
-| 2 | List | pending | |
-| 3 | Row separation | pending | |
-| 4 | JSON | pending | |
+| 1 | Record | `KeysRight`: borderless, keys right-aligned (R2) | 2026-09-23 |
+| 2 | List | `Grid` (L1) | 2026-09-23 |
+| 3 | Row separation | `None` (L1) | 2026-09-23 |
+| 4 | JSON | `Pretty`, always (J2) | 2026-09-23 |
 | 5 | Buffer default | 2 | 2026-09-17 |
 | 6 | Fallback width | pending | |
+| 7 | Identifier style | bold, terminal foreground (I1) | 2026-09-23 |
 
 ## Risks
 

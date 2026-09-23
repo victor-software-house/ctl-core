@@ -178,6 +178,12 @@ impl Text {
         self.span(Role::Token, value)
     }
 
+    /// Append an identifier such as a row, patch, or package id.
+    #[must_use]
+    pub fn id(self, value: impl Into<String>) -> Self {
+        self.span(Role::Id, value)
+    }
+
     /// Append a value or metavar.
     #[must_use]
     pub fn value(self, value: impl Into<String>) -> Self {
@@ -256,6 +262,7 @@ impl Span {
 
 /// Meaning carried by a text span. A renderer chooses the visual style.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Role {
     /// Unstyled content.
     #[default]
@@ -274,6 +281,8 @@ pub enum Role {
     Muted,
     /// Flag, command, field name, or other operator token.
     Token,
+    /// Identifier of a row, patch, package, or other domain record.
+    Id,
 }
 
 /// Key/value rows.
@@ -322,6 +331,7 @@ pub struct Table {
     headers: Vec<Text>,
     rows: Vec<Vec<Text>>,
     token_column: Option<usize>,
+    id_column: Option<usize>,
     stacked_below: Option<Stacked>,
 }
 
@@ -345,6 +355,13 @@ impl Table {
     #[must_use]
     pub const fn token_column(mut self, index: usize) -> Self {
         self.token_column = Some(index);
+        self
+    }
+
+    /// Style one column as identifiers.
+    #[must_use]
+    pub const fn id_column(mut self, index: usize) -> Self {
+        self.id_column = Some(index);
         self
     }
 
@@ -384,6 +401,12 @@ impl Table {
     #[must_use]
     pub const fn token_column_index(&self) -> Option<usize> {
         self.token_column
+    }
+
+    /// Column that carries identifier semantics.
+    #[must_use]
+    pub const fn id_column_index(&self) -> Option<usize> {
+        self.id_column
     }
 
     /// Narrow-layout policy.
