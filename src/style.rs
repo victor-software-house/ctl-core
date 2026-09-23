@@ -24,6 +24,9 @@ pub const VALUE: Style = Style::new()
     .fg_color(Some(anstyle::Color::Ansi(AnsiColor::Yellow)));
 /// Secondary text (bright black).
 pub const MUTED: Style = Style::new().fg_color(Some(anstyle::Color::Ansi(AnsiColor::BrightBlack)));
+/// Identifier text (bold, terminal foreground). Distinct from headings and
+/// flags without adding a hue that a theme could clash with.
+pub const ID: Style = Style::new().bold();
 /// Flag text (green bold).
 pub const OPTION: Style = Style::new()
     .bold()

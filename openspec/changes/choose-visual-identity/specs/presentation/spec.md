@@ -59,6 +59,17 @@ never write an escape sequence into JSON output.
 - **WHEN** a consumer prints JSON with `--color always` and `CLICOLOR_FORCE=1`
 - **THEN** the output contains no `ESC` byte
 
+### Requirement: Identifiers have their own role
+
+ctl-core SHALL render text marked as an identifier bold in the terminal's
+foreground colour, and SHALL keep the token style for flags and commands.
+
+#### Scenario: Id column
+
+- **WHEN** a consumer renders a list whose id column is set, with colour on
+- **THEN** each id is wrapped in the bold escape and no colour escape
+- **AND** a token in the same document keeps its token colour
+
 ### Requirement: Automatic width keeps a two-column buffer
 
 ctl-core SHALL subtract 2 columns from an automatically detected width by

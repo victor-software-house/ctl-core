@@ -105,7 +105,7 @@ fn state(value: &str) -> Text {
 
 fn queue_table() -> Table {
     ROWS.iter().fold(
-        Table::new(["", "id", "title", "state"]).token_column(1),
+        Table::new(["", "id", "title", "state"]).id_column(1),
         |table, row| {
             table.row([
                 Text::plain(row.priority.to_string()),
@@ -119,7 +119,7 @@ fn queue_table() -> Table {
 
 fn record(row: &Row) -> Document {
     Document::new()
-        .paragraph(Text::new().token(row.id).then("  ").then(row.title))
+        .paragraph(Text::new().id(row.id).then("  ").then(row.title))
         .fields(
             Fields::new()
                 .row("state", state(row.state))

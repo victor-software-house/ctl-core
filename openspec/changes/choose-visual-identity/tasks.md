@@ -12,11 +12,12 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 ## 2. Gallery
 
 - [x] 2.1 Add `examples/gallery.rs` rendering the fixed dataset under every candidate at any list of widths, coloured or colourless, including two consecutive records; proof: `cargo run --example gallery` on the build host
-- [ ] 2.2 Show the gallery in a real terminal at several widths; proof: the operator reads every candidate with its code
-- [ ] 2.3 Operator reviews the page and picks each axis; proof: the decisions table in `design.md` has no `pending` row
+- [x] 2.2 Show the gallery in a real terminal at several widths; proof: the operator reads every candidate with its code
+- [x] 2.3 Operator reviews the page and picks each axis; proof: the decisions table in `design.md` records each axis
 
 ## 3. Defaults
 
+- [x] 3.0 Add the identifier role and preview it in the gallery; proof: `ids_are_bold_without_a_colour` passes
 - [ ] 3.1 Set the picked defaults; proof: updated snapshots show the new look
 - [ ] 3.2 Raise `DEFAULT_COLUMN_BUFFER` to 2; proof: at `COLUMNS=119` no line exceeds 117
 - [ ] 3.3 Add `RenderOptions::fallback_width` with its override and `None` disable path, leaving `minimum_automatic_width` unchanged; proof: piped `qctl show` fixture stays within 80 columns

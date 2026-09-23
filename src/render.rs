@@ -12,7 +12,7 @@ use unicode_width::UnicodeWidthStr;
 
 use crate::color::ColorMode;
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
-use crate::style::{ERROR, HEADING, MUTED, OPTION, SUCCESS, VALUE, WARNING, styled};
+use crate::style::{ERROR, HEADING, ID, MUTED, OPTION, SUCCESS, VALUE, WARNING, styled};
 
 /// Default columns reserved from an automatically detected terminal width.
 pub const DEFAULT_COLUMN_BUFFER: u16 = 1;
@@ -314,6 +314,8 @@ impl Renderer {
             engine.add_row(row.iter().enumerate().map(|(index, cell)| {
                 let value = if table.token_column_index() == Some(index) {
                     self.text_with_default(cell, Role::Token)
+                } else if table.id_column_index() == Some(index) {
+                    self.text_with_default(cell, Role::Id)
                 } else {
                     self.text(cell)
                 };
@@ -470,6 +472,7 @@ impl Renderer {
             Role::Value => VALUE,
             Role::Muted => MUTED,
             Role::Token => OPTION,
+            Role::Id => ID,
         };
         styled(style, value)
     }
@@ -685,6 +688,25 @@ mod tests {
         let document = Document::new().heading("status");
         let rendered = document.render(RenderOptions::new(ColorMode::Always).width(60));
         assert!(rendered.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn ids_are_bold_without_a_colour() {
+        let table = Table::new(["id", "title"])
+            .id_column(0)
+            .row(["QCTL-014", "Title"]);
+        let rendered = Document::new()
+            .table(table)
+            .paragraph(Text::new().id("QCTL-015"))
+            .render(RenderOptions::new(ColorMode::Always).width(60));
+        assert!(
+            rendered.contains("\u{1b}[1mQCTL-014\u{1b}[0m"),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains("\u{1b}[1mQCTL-015\u{1b}[0m"),
+            "{rendered}"
+        );
     }
 
     #[test]
