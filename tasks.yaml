@@ -85,7 +85,7 @@ archive:
     completed: 2026-09-12T18:01:15
     evidence:
       - https://github.com/victor-software-house/ctl-core/pull/39
-      - 'ctl-core 7fba205 on combined head 33a2e66: configurable width buffer and full-control overrides coexist with the short-option surface guard; range-diff is exact and mise run verify passed on macbook-portable.'
+      - 'ctl-core 7fba205 on combined head 33a2e66: configurable width buffer and full-control overrides coexist with the short-option surface guard; range-diff is exact and mise run verify passed on the build host.'
     disposition: completed
 
   - id: CTC-009
