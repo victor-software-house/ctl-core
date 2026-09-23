@@ -253,7 +253,7 @@ impl Renderer {
 
     fn render_block(self, block: &Block) -> String {
         match block {
-            Block::Heading(text) => self.text_with_default(text, Role::Heading),
+            Block::Heading(text) => self.wrap(&self.text_with_default(text, Role::Heading), 0),
             Block::Paragraph(text) => self.wrap(&self.text(text), 0),
             Block::Verbatim(value) => sanitize_verbatim(value),
             Block::Fields(fields) => self.fields(fields),
@@ -282,7 +282,7 @@ impl Renderer {
     }
 
     fn section(self, section: &Section) -> String {
-        let heading = self.text_with_default(section.title(), Role::Heading);
+        let heading = self.wrap(&self.text_with_default(section.title(), Role::Heading), 0);
         let body = self.render(section.body());
         if body.is_empty() {
             heading
@@ -548,7 +548,7 @@ mod tests {
 
     use super::{ListStyle, RecordStyle, RenderOptions, RowSeparation};
     use crate::color::ColorMode;
-    use crate::document::{Document, Fields, Notice, NoticeLevel, Table, Text};
+    use crate::document::{Document, Fields, Notice, NoticeLevel, Section, Table, Text};
 
     #[test]
     fn automatic_width_policy_is_explicit_and_overridable() {
@@ -729,6 +729,22 @@ mod tests {
         );
         assert!(
             rendered.contains("\u{1b}[1mQCTL-015\u{1b}[0m"),
+            "{rendered}"
+        );
+    }
+
+    #[test]
+    fn headings_wrap_to_the_width() {
+        let rendered = Document::new()
+            .heading("QCTL-001  a title that runs past the line")
+            .section(Section::new(
+                "a section title that also runs long",
+                Document::new(),
+            ))
+            .render(RenderOptions::new(ColorMode::Never).width(20));
+        assert!(rendered.lines().count() > 2, "{rendered}");
+        assert!(
+            rendered.lines().all(|line| line.chars().count() <= 20),
             "{rendered}"
         );
     }
