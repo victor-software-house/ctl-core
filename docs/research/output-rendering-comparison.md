@@ -16,8 +16,8 @@ involved, which is the condition every agent capture and CI log runs under.
    `JSON` renderer is a *display widget*: it wraps at console width, so a
    coloured payload captured from it is no longer valid JSON. lipgloss has no
    JSON support, so that tint had to be hand-written.
-2. **Width is honoured.** With `COLUMNS=104` the ctl tables land at 104 and
-   wrap their own cells. lipgloss ignored `COLUMNS` entirely and rendered a
+2. **Width is honoured.** With `COLUMNS=104` and buffer 2 the ctl tables land
+   at 102 and wrap their own cells. lipgloss ignored `COLUMNS` entirely and rendered a
    panel 136 columns wide; width awareness is the caller's problem there.
 3. **Colour policy is explicit and total.** `--color auto|always|never` plus
    `--no-color`, one flag, documented, and `--no-color` wins. fang offers no

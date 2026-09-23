@@ -49,7 +49,9 @@ another renderer's look, which is the thing being replaced.
 
 The recommendation from the comparison is: `Borderless` right-aligned, then
 `HeaderRule`, then `None` for separation with `Rule` opt-in, then `Pretty`
-when stdout is a terminal. The operator decides.
+unconditionally with `Compact` as the override. Agent and CI captures are
+piped, so a `Pretty` gated on a terminal would never fire where it is needed.
+The operator decides.
 
 ### 4. Width
 

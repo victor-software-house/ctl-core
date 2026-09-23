@@ -21,7 +21,7 @@ Width has two defects as well:
 
 1. The automatic buffer defaults to 1 column. In a host that indents tool
    output, `COLUMNS=119` with buffer 1 renders 118 columns and clips; buffer 2
-   renders 111 and is clean. The operator confirmed 2 from a rendered demo.
+   renders 117 and is clean. The operator confirmed 2 from a rendered demo.
 2. When stdout is not a terminal and `COLUMNS` is unset, `detected_width()`
    returns `None` and nothing caps the table. A schema-4 `qctl show` then
    renders 137 columns. The buffer cannot help, because it is subtracted only
