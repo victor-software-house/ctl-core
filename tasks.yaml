@@ -54,20 +54,20 @@ queue:
       - >-
         2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly.
 
-horizon:
+horizon: []
+
+archive:
   - id: CTC-003
     title: Optional per-user daemon sharing one session and view
     scope: ctl-core
-    kind: evaluation
-    outcome: >-
-      Multiple *ctl clients attach to one local session (skill-cli shape).
-    open: >-
-      Pretty/JSON views must be adopted by qctl and forkctl first (QCTL-008).
-      Do not pull tokio into default features.
+    outcome: Multiple ctl clients could attach to one local per-user session and share one view.
     notes:
-      - Same idea as QCTL-007. Keep one implementation, in this crate.
+      - Same idea as QCTL-007. The one implementation now lives in the unixd repository.
+    completed: 2026-09-23T16:06:51
+    evidence:
+      - 'Moved out of ctl-core: the daemon and cache now live in their own public repository, github.com/victor-software-house/unixd, as the unixd and unixd-cache crates. No ctl CLI needs them.'
+    disposition: dropped
 
-archive:
   - id: CTC-012
     title: Isolate Surface model dependencies
     scope: ctl-core
