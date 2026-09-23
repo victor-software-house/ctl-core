@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.2
+
+- Wrap headings and section titles to the render width, so a long title stays inside the fallback width in piped output.
+
 ## ctl-core 0.6.1
 
 - Make the operator's picks the defaults: borderless records with right-aligned keys, two-space JSON, a two-column automatic-width buffer, and an 80-column fallback width when none is detected (`fallback_width(None)` disables it). `App` now reaches the style options, JSON layout, and fallback width.
