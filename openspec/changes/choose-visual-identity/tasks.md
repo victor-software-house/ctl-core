@@ -4,14 +4,15 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 
 ## 1. Style options
 
-- [ ] 1.1 Add the record style, list style, row separation, and JSON layout enums to `RenderOptions`, `View`, and `App`, each with an environment override; proof: unit tests per option
-- [ ] 1.2 Keep today's look as the default until section 3; proof: existing snapshots unchanged
-- [ ] 1.3 No Comfy Table type crosses the public surface; proof: `tests/architecture.rs` passes
+- [x] 1.1 Add the record style, list style, and row separation to `RenderOptions`, and those plus the JSON layout to `View`; proof: unit tests per option
+- [x] 1.2 Keep today's look as the default until section 3; proof: existing snapshots unchanged
+- [x] 1.3 No Comfy Table type crosses the public surface; proof: `tests/architecture.rs` passes
+- [ ] 1.4 Reach the options from `App`, and give each an environment override; proof: tests per override. Done with section 3, once the defaults are known
 
 ## 2. Gallery
 
-- [ ] 2.1 Add `examples/gallery.rs` rendering the fixed dataset under every candidate at widths 80 and 120, coloured and colourless, including two consecutive records; proof: `cargo run --example gallery` on the build host
-- [ ] 2.2 Convert the ANSI output to one HTML page for review; proof: the page shows every candidate with its label
+- [x] 2.1 Add `examples/gallery.rs` rendering the fixed dataset under every candidate at any list of widths, coloured or colourless, including two consecutive records; proof: `cargo run --example gallery` on the build host
+- [ ] 2.2 Show the gallery in a real terminal at several widths; proof: the operator reads every candidate with its code
 - [ ] 2.3 Operator reviews the page and picks each axis; proof: the decisions table in `design.md` has no `pending` row
 
 ## 3. Defaults

@@ -3,8 +3,8 @@
 #![cfg(feature = "view")]
 
 use ctl_core::{
-    ColorMode, Document, Envelope, ErrorBody, Fields, MessageKind, OutputFormat, Present, Stream,
-    View,
+    ColorMode, Document, Envelope, ErrorBody, Fields, JsonLayout, MessageKind, OutputFormat,
+    Present, Stream, View,
 };
 use serde::Serialize;
 
@@ -113,4 +113,21 @@ fn envelope_err_tag() {
     let json = serde_json::to_value(Envelope::<()>::err(ErrorBody::new("toy", "nope"))).unwrap();
     assert_eq!(json["status"], "err");
     assert_eq!(json["error"]["bin"], "toy");
+}
+
+#[test]
+fn pretty_json_is_indented_and_never_colored() {
+    let status = Status {
+        pending: 2,
+        failed: false,
+    };
+    let json = View::new(OutputFormat::Json, ColorMode::Always)
+        .json_layout(JsonLayout::Pretty)
+        .capture(&status)
+        .unwrap();
+    assert_eq!(
+        json.text(),
+        "{\n  \"pending\": 2,\n  \"failed\": false\n}\n"
+    );
+    assert!(!json.text().contains('\u{1b}'));
 }

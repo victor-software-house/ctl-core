@@ -109,6 +109,10 @@ unicode-width = { version = "0.2.2", optional = true }
 [dev-dependencies]
 indoc = "2.0.7"
 
+[[example]]
+name = "gallery"
+required-features = ["view"]
+
 [profile.release]
 codegen-units = 1
 lto = "thin"
