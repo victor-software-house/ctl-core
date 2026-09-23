@@ -74,17 +74,18 @@ default, and SHALL keep an explicit width exact.
 - **WHEN** a consumer sets an explicit width of 100
 - **THEN** the renderer lays out to 100 columns with no buffer
 
-### Requirement: Undetected width falls back to a floor
+### Requirement: Undetected width uses a fallback width
 
-ctl-core SHALL lay out to the width floor when neither stdout nor `COLUMNS`
-gives a width, and SHALL let a consumer change or disable the floor.
+ctl-core SHALL lay out to the fallback width when neither stdout nor
+`COLUMNS` gives a width, and SHALL let a consumer change or disable it. The
+fallback SHALL NOT change the minimum applied to a detected width.
 
 #### Scenario: Everything piped
 
 - **WHEN** stdout is a pipe and `COLUMNS` is unset
 - **THEN** no rendered line of a schema-4 `qctl show` is wider than 80 columns
 
-#### Scenario: Floor disabled
+#### Scenario: Fallback disabled
 
-- **WHEN** a consumer disables the floor and no width is detected
+- **WHEN** a consumer sets the fallback width to `None` and no width is detected
 - **THEN** the table renders at its natural width

@@ -41,7 +41,7 @@ Queue row: CTC-010, "Own the unified ctl presentation kernel".
    style, at two widths, coloured and colourless. The operator picks from it.
 3. Record the picks in `design.md`, then make them the defaults.
 4. Raise the automatic buffer default from 1 to 2.
-5. Add a width floor for the case where no width is detected.
+5. Add a fallback width for the case where no width is detected.
 6. Bring the consumer pins forward in verctl, qctl, and forkctl.
 
 ## Capabilities

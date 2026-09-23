@@ -18,8 +18,8 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 
 - [ ] 3.1 Set the picked defaults; proof: updated snapshots show the new look
 - [ ] 3.2 Raise `DEFAULT_COLUMN_BUFFER` to 2; proof: at `COLUMNS=119` no line exceeds 117
-- [ ] 3.3 Add the width floor with its override and disable path; proof: piped `qctl show` fixture stays within 80 columns
-- [ ] 3.4 Update `docs/presentation.md` and add a changeset; proof: `mise run verify` passes
+- [ ] 3.3 Add `RenderOptions::fallback_width` with its override and `None` disable path, leaving `minimum_automatic_width` unchanged; proof: piped `qctl show` fixture stays within 80 columns
+- [ ] 3.4 Update `docs/presentation.md` and the automatic-width paragraph in `AGENTS.md` (buffer default 2, fallback width), and add a changeset; proof: `mise run verify` passes
 
 ## 4. Consumers
 

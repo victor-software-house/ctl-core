@@ -56,13 +56,14 @@ The operator decides.
 ### 4. Width
 
 1. `DEFAULT_COLUMN_BUFFER` becomes 2. Operator decision, 2026-09-17.
-2. When no width is detected, ctl-core renders at a floor of 80 columns.
-   The detection order stays stdout, then `COLUMNS`. A consumer can change the
-   floor or disable it through `RenderOptions`.
+2. When no width is detected, ctl-core renders at a fallback width of 80
+   columns, set by `RenderOptions::fallback_width` and disabled with `None`.
+   The detection order stays stdout, then `COLUMNS`. `minimum_automatic_width`
+   keeps its meaning: a floor of 20 that applies only to a detected width.
 
-Alternative for 2: probe stderr, stdin, and `/dev/tty` before the floor. It
+Alternative for 2: probe stderr, stdin, and `/dev/tty` before the fallback. It
 lost because agent and CI captures run with every descriptor piped and no
-controlling terminal, so the floor is the rung that fires in practice. Walking
+controlling terminal, so the fallback is the rung that fires in practice. Walking
 the process tree to find a terminal is out of bounds for a library.
 
 ## Operator decisions
@@ -76,7 +77,7 @@ Record each pick here with the date, after the gallery review.
 | 3 | Row separation | pending | |
 | 4 | JSON | pending | |
 | 5 | Buffer default | 2 | 2026-09-17 |
-| 6 | Width floor | pending | |
+| 6 | Fallback width | pending | |
 
 ## Risks
 
