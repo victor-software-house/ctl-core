@@ -129,6 +129,7 @@ where
     C: Parser + CommandFactory,
 {
     /// Run against process argv.
+    #[must_use = "return it from main, or the command exits 0"]
     pub fn run<T>(self, execute: impl FnOnce(C) -> Result<T>) -> ExitCode
     where
         T: Present,
@@ -137,6 +138,7 @@ where
     }
 
     /// Run against explicit argv. The first item is the binary name.
+    #[must_use = "return it from main, or the command exits 0"]
     pub fn run_from<T>(
         self,
         args: impl IntoIterator<Item = impl Into<OsString>>,
