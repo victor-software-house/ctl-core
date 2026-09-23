@@ -11,7 +11,6 @@ use crate::format::OutputFormat;
 
 /// Parse `C`, emit styled help if asked, then run `body`.
 #[cfg(feature = "help")]
-#[must_use]
 pub fn go<C: clap::Parser + CommandFactory>(
     bin: &str,
     body: impl FnOnce(C) -> Result<()>,
@@ -37,13 +36,11 @@ fn legacy_command<C: CommandFactory>() -> clap::Command {
 }
 
 /// Parse-free entry: print `{bin}: {error:#}` and return 1.
-#[must_use]
 pub fn main(bin: &str, body: impl FnOnce() -> Result<()>) -> ExitCode {
     main_with(bin, OutputFormat::Pretty, ColorMode::Auto, body)
 }
 
 /// Same as [`main`] with an explicit format and color for the error path.
-#[must_use]
 pub fn main_with(
     bin: &str,
     format: OutputFormat,
@@ -69,7 +66,6 @@ pub fn main_with(
 
 /// Emit styled help when `-h`/`--help` is present, then run `body`.
 #[cfg(feature = "help")]
-#[must_use]
 pub fn main_with_help<C: CommandFactory>(bin: &str, body: impl FnOnce() -> Result<()>) -> ExitCode {
     let raw = std::env::args_os().collect::<Vec<_>>();
     if raw.len() == 1 && crate::parser::requires_input::<C>() {

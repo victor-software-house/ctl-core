@@ -89,7 +89,7 @@ impl Captured {
     }
 
     /// Process exit code.
-    #[must_use]
+    #[must_use = "return it from main, or the command exits 0"]
     pub fn exit_code(&self) -> ExitCode {
         ExitCode::from(self.exit_code)
     }
