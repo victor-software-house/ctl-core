@@ -26,5 +26,5 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 
 ## 4. Consumers
 
-- [ ] 4.1 Bump the ctl-core pin in qctl, verctl, and forkctl, one pull request each; proof: each repo's `mise run verify` passes and its snapshots are reviewed
-- [ ] 4.2 Close CTC-010's presentation acceptance items that this change proves; proof: `qctl check` passes on this repository
+- [x] 4.1 Bump the ctl-core pin in qctl, verctl, and forkctl, one pull request each; proof: each repo's `mise run verify` passes and its snapshots are reviewed
+- [x] 4.2 Close CTC-010's presentation acceptance items that this change proves; proof: `qctl check` passes on this repository. CTC-010 stays open: its last acceptance item removes the `go` entry point, which still ships
