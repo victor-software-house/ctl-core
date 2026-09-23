@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.6.0
+
+- Add an identifier role (`Role::Id`, `Text::id`, `Table::id_column`) that renders bold in the terminal foreground colour, and mark `Role` as non-exhaustive.
+- Add record style, list style, row separation, and JSON layout options to RenderOptions and View, with today's look as the default, and a gallery example that renders every candidate.
+
 ## ctl-core 0.5.2
 
 - Expose Surface metadata, serialization, and MiniJinja rendering through separate additive feature tiers while preserving the existing full compatibility aggregate.
