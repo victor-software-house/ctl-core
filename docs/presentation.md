@@ -73,6 +73,11 @@ captures where every stream is piped, ctl-core lays out to a fallback width of
 tables at their natural width. The fallback is separate from the minimum,
 which applies only to a detected width.
 
+Wrapping breaks at whitespace. A word wider than its column, such as a URL or
+a path, runs past the width in records, paragraphs, and headings rather than
+being split, so it can still be copied whole. Grid tables still split it, to
+keep their borders intact.
+
 `CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
 full control through `RenderOptions`, `View`, and `App`:
 `automatic_width_buffer(n)` overrides the environment, including zero to disable

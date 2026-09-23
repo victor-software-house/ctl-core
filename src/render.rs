@@ -4,7 +4,8 @@ use std::fmt::Write as _;
 
 use comfy_table::presets::{NOTHING, UTF8_FULL, UTF8_FULL_CONDENSED};
 use comfy_table::{
-    Cell, CellAlignment, ContentArrangement, LineStyle, Table as EngineTable, TableStyle,
+    Cell, CellAlignment, Column, ColumnConstraint, ContentArrangement, LineStyle,
+    Table as EngineTable, TableStyle, Width,
 };
 use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 use unicode_general_category::{GeneralCategory, get_general_category};
@@ -312,6 +313,15 @@ impl Renderer {
                 values.set_padding((1, 0));
             }
         }
+        for (index, column) in [0, 1].into_iter().zip(table.column_iter_mut()) {
+            let longest = fields
+                .rows()
+                .iter()
+                .map(|row| longest_word(&self.text(if index == 0 { &row.0 } else { &row.1 })))
+                .max()
+                .unwrap_or(0);
+            keep_words_whole(column, longest);
+        }
         trim_line_ends(&table.to_string())
     }
 
@@ -442,6 +452,7 @@ impl Renderer {
             .add_row([value]);
         if let Some(column) = table.column_mut(0) {
             column.set_padding((0, 0));
+            keep_words_whole(column, longest_word(value));
         }
         table
             .to_string()
@@ -540,6 +551,36 @@ fn is_unsafe_verbatim(character: char) -> bool {
             get_general_category(character),
             GeneralCategory::LineSeparator | GeneralCategory::ParagraphSeparator
         )
+}
+
+/// Width of the widest whitespace-separated word, ignoring the SGR escapes
+/// this renderer paints with.
+fn longest_word(value: &str) -> u16 {
+    let mut plain = String::with_capacity(value.len());
+    let mut escape = false;
+    for character in value.chars() {
+        match (escape, character) {
+            (false, '\u{1b}') => escape = true,
+            (false, _) => plain.push(character),
+            (true, 'm') => escape = false,
+            (true, _) => {}
+        }
+    }
+    let widest = plain
+        .split_whitespace()
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
+    u16::try_from(widest).unwrap_or(u16::MAX)
+}
+
+/// A URL or path split across lines cannot be copied back out, so a word
+/// wider than the column runs past the width instead of being broken.
+fn keep_words_whole(column: &mut Column, longest: u16) {
+    if longest > 0 {
+        let bound = longest.saturating_add(column.padding_width());
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(bound)));
+    }
 }
 
 #[cfg(test)]
@@ -750,6 +791,16 @@ mod tests {
     }
 
     #[test]
+    fn long_words_run_past_the_width_instead_of_splitting() {
+        let url = "https://example.test/releases/tag/pkg@1.2.3";
+        let rendered = Document::new()
+            .fields(Fields::new().row("release", Text::plain(url)))
+            .paragraph(Text::plain(format!("see {url}")))
+            .render(RenderOptions::new(ColorMode::Always).width(30));
+        assert_eq!(rendered.matches(url).count(), 2, "{rendered}");
+    }
+
+    #[test]
     fn narrow_table_stacks() {
         let table =
             Table::plain()
@@ -803,8 +854,7 @@ mod tests {
             {label}one two
             {label}three four
             {label}five
-            {description}descriptio
-            {description}n
+            {description}description
             ",
             label = "  ",
             description = "    ",
