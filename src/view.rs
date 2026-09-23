@@ -249,20 +249,26 @@ impl View {
         options
     }
 
+    /// One JSON document in this view's layout, newline-terminated. Successes
+    /// and error envelopes share it, so both follow the same layout.
+    fn json(self, value: &impl Serialize) -> io::Result<String> {
+        let mut content = if self.json_layout.pretty() {
+            serde_json::to_string_pretty(value)?
+        } else {
+            serde_json::to_string(value)?
+        };
+        content.push('\n');
+        Ok(content)
+    }
+
     /// Render without writing. Tests and alternate transports use this path.
     pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
         let kind = value.message_kind();
         let exit_code = value.exit_code();
         if self.format.is_json() {
-            let mut content = if self.json_layout.pretty() {
-                serde_json::to_string_pretty(value)?
-            } else {
-                serde_json::to_string(value)?
-            };
-            content.push('\n');
             return Ok(Captured {
                 stream: Stream::Stdout,
-                content,
+                content: self.json(value)?,
                 exit_code,
             });
         }
@@ -298,7 +304,8 @@ impl View {
     /// Emit `{bin}: {message}` or a JSON error envelope.
     pub fn emit_err(self, bin: &str, message: &str) -> io::Result<ExitCode> {
         if self.format.is_json() {
-            emit_json(&Envelope::<()>::err(ErrorBody::new(bin, message)))?;
+            let envelope = Envelope::<()>::err(ErrorBody::new(bin, message));
+            write_stdout(self.json(&envelope)?.as_bytes(), ColorMode::Never)?;
             return Ok(ExitCode::FAILURE);
         }
         let document =
@@ -309,15 +316,6 @@ impl View {
         )?;
         Ok(ExitCode::FAILURE)
     }
-}
-
-/// Write `value` as one JSON line to stdout. No ANSI.
-pub(crate) fn emit_json<T: Serialize>(value: &T) -> io::Result<()> {
-    let stdout = io::stdout();
-    let mut lock = stdout.lock();
-    serde_json::to_writer(&mut lock, value)?;
-    lock.write_all(b"\n")?;
-    lock.flush()
 }
 
 /// Write raw bytes to stdout with `color`.
@@ -332,4 +330,25 @@ pub(crate) fn write_stderr(bytes: &[u8], color: ColorMode) -> io::Result<()> {
     let mut stream = AutoStream::new(io::stderr().lock(), color.choice());
     stream.write_all(bytes)?;
     stream.flush()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::View;
+    use crate::color::ColorMode;
+    use crate::format::OutputFormat;
+    use crate::model::{Envelope, ErrorBody};
+    use crate::view::JsonLayout;
+
+    #[test]
+    fn error_envelopes_follow_the_json_layout() {
+        let envelope = Envelope::<()>::err(ErrorBody::new("toy", "failed"));
+        let view = View::new(OutputFormat::Json, ColorMode::Never);
+        assert!(view.json(&envelope).unwrap().contains("\n  "));
+        let compact = view
+            .json_layout(JsonLayout::Compact)
+            .json(&envelope)
+            .unwrap();
+        assert_eq!(compact.lines().count(), 1, "{compact}");
+    }
 }
