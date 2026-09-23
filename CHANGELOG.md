@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.6.3
+
+- JSON error envelopes follow the view JSON layout, so errors are indented like successes by default and compact when a consumer sets JsonLayout::Compact.
+- Keep a word wider than its column, such as a URL or path, whole in records, paragraphs, and headings; the line runs past the width instead of splitting the word.
+
 ## ctl-core 0.6.2
 
 - Wrap headings and section titles to the render width, so a long title stays inside the fallback width in piped output.

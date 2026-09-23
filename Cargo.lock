@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "ctl-core"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "anstream",
  "anstyle",
