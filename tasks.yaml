@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.1.2/tasks.schema.json
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.4.2/tasks.schema.json
 schema_version: 4
 prefix: CTC
 
