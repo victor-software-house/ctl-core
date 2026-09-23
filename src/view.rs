@@ -10,7 +10,10 @@ use crate::color::ColorMode;
 use crate::document::{Document, Text};
 use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
-use crate::render::{DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions};
+use crate::render::{
+    DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
+    RenderOptions,
+};
 
 /// A serializable domain model with one semantic human presentation.
 pub trait Present: Serialize {
@@ -99,9 +102,9 @@ impl Captured {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum JsonLayout {
     /// One line per document.
-    #[default]
     Compact,
     /// Two-space indentation.
+    #[default]
     Pretty,
     /// Two-space indentation when stdout is a terminal, one line otherwise.
     PrettyOnTerminal,
@@ -130,6 +133,7 @@ pub struct View {
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
+    fallback_width: Option<u16>,
     json_layout: JsonLayout,
     styles: RenderOptions,
 }
@@ -146,7 +150,8 @@ impl View {
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
-            json_layout: JsonLayout::Compact,
+            fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
+            json_layout: JsonLayout::Pretty,
             styles: RenderOptions::new(color),
         }
     }
@@ -202,6 +207,13 @@ impl View {
         self
     }
 
+    /// Lay out to `width` when no width is detected; `None` disables it.
+    #[must_use]
+    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
+        self.fallback_width = width;
+        self
+    }
+
     /// Explicit automatic-width buffer, when set.
     #[must_use]
     pub const fn explicit_automatic_width_buffer(self) -> Option<u16> {
@@ -224,6 +236,7 @@ impl View {
         let mut options = RenderOptions::new(self.color)
             .automatic_width_buffer_envs(self.automatic_width_buffer_envs)
             .minimum_automatic_width(self.minimum_automatic_width)
+            .fallback_width(self.fallback_width)
             .record_style(self.styles.record())
             .list_style(self.styles.list())
             .row_separation(self.styles.separation());

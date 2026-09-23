@@ -60,9 +60,11 @@ disable path. Environment-backed defaults expose their canonical name and let a
 consumer replace the ordered name list with its own aliases or disable lookup.
 An explicit render width is exact and bypasses automatic-width buffering.
 
-The automatic terminal-width buffer defaults to one column and reads
-`CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20. `RenderOptions`,
-`View`, and `App` expose the buffer, ordered environment names, and minimum.
+The automatic terminal-width buffer defaults to two columns and reads
+`CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20. When no width is
+detected, output lays out to a fallback width of 80, and `fallback_width(None)`
+disables it. `RenderOptions`, `View`, and `App` expose the buffer, ordered
+environment names, minimum, and fallback.
 Buffer zero disables subtraction; an empty environment slice disables lookup.
 Explicit widths remain exact. Public option-aware help entry points keep direct
 help callers under the same policy.

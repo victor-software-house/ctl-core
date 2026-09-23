@@ -79,8 +79,8 @@ pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "render")]
 pub use render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
-    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions, Renderer,
-    RowSeparation,
+    DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions,
+    Renderer, RowSeparation,
 };
 #[cfg(feature = "cli")]
 pub use run::main as run;

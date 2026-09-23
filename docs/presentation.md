@@ -61,11 +61,17 @@ capability detection from scratch.
 
 ## Automatic width policy
 
-An automatically detected TTY or `COLUMNS` width reserves one column before
-wrapping, stacking, help, fields, and table layout. This default protects nested
-shells whose outer frame consumes the reported rightmost column. The configured
+An automatically detected TTY or `COLUMNS` width reserves two columns before
+wrapping, stacking, help, fields, and table layout. This default protects hosts
+that indent tool output or whose frame consumes the rightmost column. The configured
 floor is 20 when the detected width permits it. A narrower terminal caps that
 floor, so ctl-core never claims columns the terminal does not have.
+
+When neither a terminal nor `COLUMNS` gives a width, as in agent and CI
+captures where every stream is piped, ctl-core lays out to a fallback width of
+80. `fallback_width(Some(n))` changes it and `fallback_width(None)` renders
+tables at their natural width. The fallback is separate from the minimum,
+which applies only to a detected width.
 
 `CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
 full control through `RenderOptions`, `View`, and `App`:
@@ -73,9 +79,19 @@ full control through `RenderOptions`, `View`, and `App`:
 buffering; `automatic_width_buffer_envs(&[...])` replaces the ordered names so a
 consumer can add aliases or disable lookup with an empty slice; and
 `minimum_automatic_width(n)` replaces the default preferred floor of 20, still
-capped by the detected terminal width. Option-aware help
+capped by the detected terminal width; and `fallback_width(..)` sets or disables
+the undetected-width fallback. Option-aware help
 entry points accept the same `RenderOptions`. An explicit `width(n)` is always
 exact and ignores every automatic-width setting.
+
+## Default look
+
+Records render borderless with keys right-aligned (`RecordStyle::KeysRight`).
+Lists keep the full grid (`ListStyle::Grid`) with rows together
+(`RowSeparation::None`). JSON is indented by two spaces (`JsonLayout::Pretty`).
+Identifiers render bold in the terminal foreground (`Role::Id`). Each is an
+option on `RenderOptions`, `View`, and `App` (`styles`, `json_layout`), so a
+consumer that needs the box or compact JSON sets it.
 
 ## Output law
 

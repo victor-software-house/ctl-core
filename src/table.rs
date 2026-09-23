@@ -49,7 +49,7 @@ mod tests {
     use crate::color::ColorMode;
 
     #[test]
-    fn kv_is_a_table_not_spaces() {
+    fn kv_aligns_values_in_one_column() {
         let out = kv(
             ColorMode::Never,
             [("crate", "demo@0.0.1"), ("package", "@org/pkg@0.0.1")],
@@ -57,7 +57,11 @@ mod tests {
         assert!(out.contains("crate"), "{out}");
         assert!(out.contains("demo@0.0.1"), "{out}");
         assert!(out.contains("package"), "{out}");
-        assert!(out.contains('│') || out.contains('|'), "{out}");
+        let starts: Vec<_> = out
+            .lines()
+            .map(|line| line.find("demo").or_else(|| line.find("@org")))
+            .collect();
+        assert_eq!(starts, [Some(9), Some(9)], "{out}");
         assert!(!out.contains('\u{1b}'), "{out:?}");
     }
 

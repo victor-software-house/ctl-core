@@ -51,7 +51,10 @@ fn same_model_feeds_pretty_and_json() {
     assert!(pretty.text().contains('2'));
     assert!(!pretty.text().contains('\u{1b}'));
     assert_eq!(json.stream(), Stream::Stdout);
-    assert_eq!(json.text(), "{\"pending\":2,\"failed\":false}\n");
+    assert_eq!(
+        json.text(),
+        "{\n  \"pending\": 2,\n  \"failed\": false\n}\n"
+    );
     assert!(!json.text().contains('\u{1b}'));
 }
 

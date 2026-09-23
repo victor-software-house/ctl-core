@@ -89,7 +89,7 @@ Record each pick here with the date, after the gallery review.
 | 3 | Row separation | `None` (L1) | 2026-09-23 |
 | 4 | JSON | `Pretty`, always (J2) | 2026-09-23 |
 | 5 | Buffer default | 2 | 2026-09-17 |
-| 6 | Fallback width | pending | |
+| 6 | Fallback width | 80 | 2026-09-23 |
 | 7 | Identifier style | bold, terminal foreground (I1) | 2026-09-23 |
 
 ## Risks

@@ -47,6 +47,8 @@ mod tests {
         assert_eq!(effective_width(80, 0, 20), 80);
         assert_eq!(effective_width(12, 3, 0), 9);
         assert_eq!(effective_width(1, 1, 0), 1);
+        let default = crate::render::DEFAULT_COLUMN_BUFFER;
+        assert_eq!(effective_width(119, default, 20), 117);
     }
 
     #[test]
