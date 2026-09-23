@@ -13,4 +13,4 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 ## 2. Documents
 
 - [x] 2.1 Name each variable in `docs/presentation.md` and `AGENTS.md`, check off task 1.5 of `choose-visual-identity`, and add a patch changeset; proof: `mise run verify` passes
-- [ ] 2.2 Close CTC-013 when the pull request merges; proof: `mise run q check` passes
+- [x] 2.2 Close CTC-013 when the pull request merges; proof: `mise run q check` passes
