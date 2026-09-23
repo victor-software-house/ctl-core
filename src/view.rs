@@ -1,6 +1,6 @@
 //! Pretty, colorless, and JSON emission from one typed model.
 
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
 
 use anstream::AutoStream;
@@ -89,9 +89,31 @@ impl Captured {
     }
 
     /// Process exit code.
-    #[must_use]
+    #[must_use = "return it from main, or the command exits 0"]
     pub fn exit_code(&self) -> ExitCode {
         ExitCode::from(self.exit_code)
+    }
+}
+
+/// Line layout of JSON output. No layout adds ANSI.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum JsonLayout {
+    /// One line per document.
+    #[default]
+    Compact,
+    /// Two-space indentation.
+    Pretty,
+    /// Two-space indentation when stdout is a terminal, one line otherwise.
+    PrettyOnTerminal,
+}
+
+impl JsonLayout {
+    fn pretty(self) -> bool {
+        match self {
+            Self::Compact => false,
+            Self::Pretty => true,
+            Self::PrettyOnTerminal => io::stdout().is_terminal(),
+        }
     }
 }
 
@@ -108,6 +130,8 @@ pub struct View {
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
+    json_layout: JsonLayout,
+    styles: RenderOptions,
 }
 
 impl View {
@@ -122,7 +146,24 @@ impl View {
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
+            json_layout: JsonLayout::Compact,
+            styles: RenderOptions::new(color),
         }
+    }
+
+    /// Lay out JSON output as `layout`.
+    #[must_use]
+    pub const fn json_layout(mut self, layout: JsonLayout) -> Self {
+        self.json_layout = layout;
+        self
+    }
+
+    /// Take record style, list style, and row separation from `styles`.
+    /// Its color and width settings are ignored; the view owns those.
+    #[must_use]
+    pub const fn styles(mut self, styles: RenderOptions) -> Self {
+        self.styles = styles;
+        self
     }
 
     /// Suppress successful pretty output when `quiet` is set.
@@ -182,7 +223,10 @@ impl View {
     pub(crate) fn render_options(self) -> RenderOptions {
         let mut options = RenderOptions::new(self.color)
             .automatic_width_buffer_envs(self.automatic_width_buffer_envs)
-            .minimum_automatic_width(self.minimum_automatic_width);
+            .minimum_automatic_width(self.minimum_automatic_width)
+            .record_style(self.styles.record())
+            .list_style(self.styles.list())
+            .row_separation(self.styles.separation());
         if let Some(width) = self.width {
             options = options.width(width);
         }
@@ -197,7 +241,11 @@ impl View {
         let kind = value.message_kind();
         let exit_code = value.exit_code();
         if self.format.is_json() {
-            let mut content = serde_json::to_string(value)?;
+            let mut content = if self.json_layout.pretty() {
+                serde_json::to_string_pretty(value)?
+            } else {
+                serde_json::to_string(value)?
+            };
             content.push('\n');
             return Ok(Captured {
                 stream: Stream::Stdout,

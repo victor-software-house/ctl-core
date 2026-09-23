@@ -36,7 +36,8 @@ pub use crate::parser::verify;
 #[cfg(feature = "render")]
 pub use crate::render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
-    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, RenderOptions, Renderer,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions, Renderer,
+    RowSeparation,
 };
 #[cfg(feature = "help")]
 pub use crate::run::main_with_help;
@@ -47,4 +48,4 @@ pub use crate::table::{grid, kv};
 #[cfg(feature = "usage")]
 pub use crate::usage::{mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
-pub use crate::view::{Captured, MessageKind, Present, Stream, View};
+pub use crate::view::{Captured, JsonLayout, MessageKind, Present, Stream, View};

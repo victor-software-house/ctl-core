@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  ctl-core is the shared Rust chassis and presentation kernel for the ctl CLIs
+  (verctl, qctl, forkctl). It is a library, not a command. It owns help, shared
+  flags, the semantic Document, the pretty, colorless, and JSON views, the
+  terminal theme, width detection, wrapping, and table configuration.
+  Consumers return serializable models and never choose borders, ANSI, width,
+  or streams. Comfy Table, Anstyle, and Anstream stay private.
+  Contracts: AGENTS.md, docs/presentation.md, docs/brand.md.
+  Work queue: tasks.yaml (CTC-###). One openspec change maps to one queue row.
+  Writing style: plain English, short sentences, numbered lists, no em-dashes,
+  no emojis. This repository is public: no local paths, machine names, or
+  private repository names in any artifact.
+
+rules:
+  proposal:
+    - State the measured problem, with numbers where they exist.
+    - Name the CTC row the change belongs to.
+  specs:
+    - Every requirement uses SHALL and has at least one WHEN/THEN scenario.
+    - Scenarios use concrete widths, flags, and environment values.
+  design:
+    - Each decision names the alternative considered and why it lost.
+    - Every automatic behaviour names its public override and its disable path.
+  tasks:
+    - Each task names the command or observation that proves it is done.
+    - Compile, format, lint, and test tasks run on the build host, not the authoring workstation.
+
+operations:
+  archive:
+    guidance:
+      - Update docs/presentation.md and docs/brand.md where the change made them true or false.

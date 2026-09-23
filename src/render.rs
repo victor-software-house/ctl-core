@@ -2,8 +2,10 @@
 
 use std::fmt::Write as _;
 
-use comfy_table::presets::{NOTHING, UTF8_FULL_CONDENSED};
-use comfy_table::{Cell, ContentArrangement, Table as EngineTable};
+use comfy_table::presets::{NOTHING, UTF8_FULL, UTF8_FULL_CONDENSED};
+use comfy_table::{
+    Cell, CellAlignment, ContentArrangement, LineStyle, Table as EngineTable, TableStyle,
+};
 use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
@@ -21,6 +23,45 @@ pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 /// Default floor for an automatically detected effective width.
 pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
 
+/// A light horizontal rule that runs through column gaps.
+const RULE: LineStyle = LineStyle::none().fill('─').junction('─');
+
+/// How a [`Fields`] record is framed.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum RecordStyle {
+    /// A full box around every key and value.
+    #[default]
+    Boxed,
+    /// No frame. Keys are right-aligned in one column.
+    KeysRight,
+    /// No frame. Keys are left-aligned in one column.
+    KeysLeft,
+}
+
+/// How a [`Table`] of rows is framed.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ListStyle {
+    /// Outer frame, column rules, and a header rule.
+    #[default]
+    Grid,
+    /// One rule under the header and nothing else.
+    HeaderRule,
+    /// No rules at all.
+    Plain,
+}
+
+/// What separates consecutive rows of a [`Table`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum RowSeparation {
+    /// Rows print on consecutive lines.
+    #[default]
+    None,
+    /// A horizontal rule between each pair of rows.
+    Rule,
+    /// A blank line between each pair of rows.
+    Blank,
+}
+
 /// Deterministic document rendering options.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
@@ -29,6 +70,9 @@ pub struct RenderOptions {
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
+    record_style: RecordStyle,
+    list_style: ListStyle,
+    row_separation: RowSeparation,
 }
 
 impl RenderOptions {
@@ -42,7 +86,49 @@ impl RenderOptions {
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
+            record_style: RecordStyle::Boxed,
+            list_style: ListStyle::Grid,
+            row_separation: RowSeparation::None,
         }
+    }
+
+    /// Frame [`Fields`] records in `style`.
+    #[must_use]
+    pub const fn record_style(mut self, style: RecordStyle) -> Self {
+        self.record_style = style;
+        self
+    }
+
+    /// Frame [`Table`] lists in `style`.
+    #[must_use]
+    pub const fn list_style(mut self, style: ListStyle) -> Self {
+        self.list_style = style;
+        self
+    }
+
+    /// Separate [`Table`] rows with `separation`.
+    #[must_use]
+    pub const fn row_separation(mut self, separation: RowSeparation) -> Self {
+        self.row_separation = separation;
+        self
+    }
+
+    /// Record framing.
+    #[must_use]
+    pub const fn record(self) -> RecordStyle {
+        self.record_style
+    }
+
+    /// List framing.
+    #[must_use]
+    pub const fn list(self) -> ListStyle {
+        self.list_style
+    }
+
+    /// Row separation.
+    #[must_use]
+    pub const fn separation(self) -> RowSeparation {
+        self.row_separation
     }
 
     /// Force an explicit width. Tests and redirected renderers should use this.
@@ -184,18 +270,34 @@ impl Renderer {
     }
 
     fn fields(self, fields: &Fields) -> String {
-        let mut table = self.engine_table();
+        let style = self.options.record();
+        let mut table = self.engine_table(if style == RecordStyle::Boxed {
+            UTF8_FULL_CONDENSED
+        } else {
+            NOTHING
+        });
         for (label, value) in fields.rows() {
             table.add_row([self.text(label), self.text(value)]);
         }
-        format!("{table}")
+        if style != RecordStyle::Boxed {
+            if let Some(keys) = table.column_mut(0) {
+                keys.set_padding((0, 1));
+                if style == RecordStyle::KeysRight {
+                    keys.set_cell_alignment(CellAlignment::Right);
+                }
+            }
+            if let Some(values) = table.column_mut(1) {
+                values.set_padding((1, 0));
+            }
+        }
+        trim_line_ends(&table.to_string())
     }
 
     fn table(self, table: &Table) -> String {
         if self.should_stack(table) {
             return self.stacked(table);
         }
-        let mut engine = self.engine_table();
+        let mut engine = self.list_table();
         if !table.headers().is_empty() {
             engine.set_header(
                 table
@@ -204,7 +306,11 @@ impl Renderer {
                     .map(|header| Cell::new(self.text_with_default(header, Role::Heading))),
             );
         }
-        for row in table.rows() {
+        let blank = self.options.separation() == RowSeparation::Blank;
+        for (position, row) in table.rows().iter().enumerate() {
+            if blank && position > 0 {
+                engine.add_row(row.iter().map(|_| Cell::new("")));
+            }
             engine.add_row(row.iter().enumerate().map(|(index, cell)| {
                 let value = if table.token_column_index() == Some(index) {
                     self.text_with_default(cell, Role::Token)
@@ -214,7 +320,25 @@ impl Renderer {
                 Cell::new(value)
             }));
         }
-        format!("{engine}")
+        if self.options.list() != ListStyle::Grid
+            && let Some(first) = engine.column_mut(0)
+        {
+            first.set_padding((0, 1));
+        }
+        trim_line_ends(&engine.to_string())
+    }
+
+    fn list_table(self) -> EngineTable {
+        let rule = self.options.separation() == RowSeparation::Rule;
+        let style = match (self.options.list(), rule) {
+            (ListStyle::Grid, false) => UTF8_FULL_CONDENSED,
+            (ListStyle::Grid, true) => UTF8_FULL,
+            (ListStyle::HeaderRule, false) => NOTHING.header_separator(RULE),
+            (ListStyle::HeaderRule, true) => NOTHING.header_separator(RULE).row_separator(RULE),
+            (ListStyle::Plain, false) => NOTHING,
+            (ListStyle::Plain, true) => NOTHING.row_separator(RULE),
+        };
+        self.engine_table(style)
     }
 
     fn should_stack(self, table: &Table) -> bool {
@@ -271,10 +395,10 @@ impl Renderer {
         self.wrap(&line, 0)
     }
 
-    fn engine_table(self) -> EngineTable {
+    fn engine_table(self, preset: TableStyle) -> EngineTable {
         let mut table = EngineTable::new();
         table
-            .load_style(UTF8_FULL_CONDENSED)
+            .load_style(preset)
             .set_content_arrangement(ContentArrangement::Dynamic);
         if let Some(width) = self.width() {
             table.set_width(width);
@@ -359,6 +483,16 @@ impl Document {
     }
 }
 
+/// Borderless styles leave cell padding at the line end; drop it so captured
+/// output has no trailing spaces.
+fn trim_line_ends(value: &str) -> String {
+    value
+        .lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn sanitize_verbatim(value: &str) -> String {
     value
         .chars()
@@ -386,7 +520,7 @@ fn is_unsafe_verbatim(character: char) -> bool {
 mod tests {
     use indoc::{formatdoc, indoc};
 
-    use super::RenderOptions;
+    use super::{ListStyle, RecordStyle, RenderOptions, RowSeparation};
     use crate::color::ColorMode;
     use crate::document::{Document, Fields, Notice, NoticeLevel, Table, Text};
 
@@ -441,6 +575,109 @@ mod tests {
         "};
         assert_eq!(rendered, expected);
         assert!(!rendered.contains('\u{1b}'));
+    }
+
+    fn queue() -> Table {
+        Table::new(["id", "title"])
+            .row(["QCTL-014", "Let a ledger declare row separation"])
+            .row(["QCTL-015", "Write a ledger atomically"])
+            .row(["QCTL-016", "Name the next startable row"])
+    }
+
+    #[test]
+    fn borderless_record_right_aligns_keys() {
+        let rendered = Document::new()
+            .fields(
+                Fields::new()
+                    .row("ledger", Text::plain("tasks.yaml"))
+                    .row("active", Text::plain("QCTL-014")),
+            )
+            .render(
+                RenderOptions::new(ColorMode::Never)
+                    .width(80)
+                    .record_style(RecordStyle::KeysRight),
+            );
+        let expected = indoc! {"
+            ledger  tasks.yaml
+            active  QCTL-014
+        "};
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn left_aligned_record_pads_short_keys_on_the_right() {
+        let rendered = Document::new()
+            .fields(
+                Fields::new()
+                    .row("id", Text::plain("QCTL-014"))
+                    .row("outcome", Text::plain("done")),
+            )
+            .render(
+                RenderOptions::new(ColorMode::Never)
+                    .width(80)
+                    .record_style(RecordStyle::KeysLeft),
+            );
+        let expected = indoc! {"
+            id       QCTL-014
+            outcome  done
+        "};
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn header_rule_draws_one_rule_and_no_verticals() {
+        let rendered = Document::new().table(queue()).render(
+            RenderOptions::new(ColorMode::Never)
+                .width(80)
+                .list_style(ListStyle::HeaderRule),
+        );
+        let rules = rendered
+            .lines()
+            .filter(|line| line.starts_with('─'))
+            .count();
+        assert_eq!(rules, 1, "{rendered}");
+        assert_eq!(
+            rendered.lines().nth(1).map(|line| line.starts_with('─')),
+            Some(true)
+        );
+        assert!(!rendered.contains(['│', '┆', '┌', '└']), "{rendered}");
+    }
+
+    #[test]
+    fn rule_separation_draws_a_rule_between_rows() {
+        let rendered = Document::new().table(queue()).render(
+            RenderOptions::new(ColorMode::Never)
+                .width(80)
+                .list_style(ListStyle::Plain)
+                .row_separation(RowSeparation::Rule),
+        );
+        let lines = rendered.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 6, "{rendered}");
+        assert!(
+            lines[2].starts_with('─') && lines[4].starts_with('─'),
+            "{rendered}"
+        );
+    }
+
+    #[test]
+    fn blank_separation_leaves_one_empty_line_between_rows() {
+        let rendered = Document::new().table(queue()).render(
+            RenderOptions::new(ColorMode::Never)
+                .width(80)
+                .list_style(ListStyle::Plain)
+                .row_separation(RowSeparation::Blank),
+        );
+        let lines = rendered.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 6, "{rendered}");
+        assert!(lines[2].is_empty() && lines[4].is_empty(), "{rendered}");
+    }
+
+    #[test]
+    fn default_style_is_unchanged() {
+        let options = RenderOptions::new(ColorMode::Never);
+        assert_eq!(options.record(), RecordStyle::Boxed);
+        assert_eq!(options.list(), ListStyle::Grid);
+        assert_eq!(options.separation(), RowSeparation::None);
     }
 
     #[test]

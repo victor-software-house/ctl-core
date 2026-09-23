@@ -134,6 +134,9 @@ mise run verify
 ```
 
 `verify` is format, clippy, nextest, doc-tests, cargo-deny licenses/bans/sources, and cargo-machete.
+Locally, `.miserc.toml` adds the `mbx` env (`mise.mbx.toml`), which routes
+Cargo through mr-boxington so worktrees share one build store. CI does not
+load it.
 Do not `&&` those in a new task; `depends` is the mise form. Those cargo
 invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked

@@ -1,5 +1,5 @@
-# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.1.2/tasks.schema.json
-schema_version: 3
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.4.2/tasks.schema.json
+schema_version: 4
 prefix: CTC
 
 style:
@@ -33,9 +33,8 @@ queue:
       - "root.file(path, body) (or equivalent) is the write path. Nested paths create parents."
       - "Suite::new(name) / suite.scenario(name) each own a TempDir that drops at the end of the test."
       - "verctl (then qctl/forkctl) can drop the copy-pasted fs::write fixtures after pinning that ctl-core version."
-    notes: >-
-      Triggered by verctl tests (prepare_stage, changelog, publish).
-      Do not invent a second tempfile wrapper in each *ctl.
+    notes:
+      - Triggered by verctl tests (prepare_stage, changelog, publish). Do not invent a second tempfile wrapper in each *ctl.
 
   - id: CTC-008
     title: Own the declared-input layer every ctl CLI parses config with
@@ -51,29 +50,24 @@ queue:
       - "One entry point loads a file: read, serde for shape, garde once at the boundary, nothing downstream re-checking."
       - "verctl drops its own src/schema.rs after pinning that ctl-core version, and no copy is left behind."
       - "The declare-your-own-target template renderer is available to any ctl CLI, not only verctl."
-    notes: >-
-      2026-08-18: verctl built this while shipping served files (VER-018,
-      and VER-022 is the matching row there). It is already shared between
-      two unrelated schemas in that repo — a TOML config file and a Jinja
-      template's own exports — which is the evidence it is not
-      verctl-shaped. Do this row before VER-022 so that one is a move
-      rather than a fork. Related: qctl's schemars work and VER-021 want
-      JSON Schema generated from these same types, so keep the types
-      derive-friendly.
+    notes:
+      - >-
+        2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly.
 
-horizon:
+horizon: []
+
+archive:
   - id: CTC-003
     title: Optional per-user daemon sharing one session and view
     scope: ctl-core
-    kind: evaluation
-    outcome: >-
-      Multiple *ctl clients attach to one local session (skill-cli shape).
-    open: >-
-      Pretty/JSON views must be adopted by qctl and forkctl first (QCTL-008).
-      Do not pull tokio into default features.
-    notes: Same idea as QCTL-007. Keep one implementation, in this crate.
+    outcome: Multiple ctl clients could attach to one local per-user session and share one view.
+    notes:
+      - Same idea as QCTL-007. The one implementation now lives in the unixd repository.
+    completed: 2026-09-23T16:06:51
+    evidence:
+      - 'Moved out of ctl-core: the daemon and cache now live in their own public repository, github.com/victor-software-house/unixd, as the unixd and unixd-cache crates. No ctl CLI needs them.'
+    disposition: dropped
 
-archive:
   - id: CTC-012
     title: Isolate Surface model dependencies
     scope: ctl-core
@@ -91,7 +85,7 @@ archive:
     completed: 2026-09-12T18:01:15
     evidence:
       - https://github.com/victor-software-house/ctl-core/pull/39
-      - 'ctl-core 7fba205 on combined head 33a2e66: configurable width buffer and full-control overrides coexist with the short-option surface guard; range-diff is exact and mise run verify passed on macbook-portable.'
+      - 'ctl-core 7fba205 on combined head 33a2e66: configurable width buffer and full-control overrides coexist with the short-option surface guard; range-diff is exact and mise run verify passed on the build host.'
     disposition: completed
 
   - id: CTC-009
@@ -100,19 +94,9 @@ archive:
     outcome: >-
       The next ctl-core version comes out of a Version PR, so the lane is
       known to work here rather than assumed to because it works elsewhere.
-    notes: >-
-      2026-08-18, checked rather than assumed. The lane is wired and green —
-      Version PR ran twice on main today — but it has never carried a
-      release: there is no changeset, so every run no-ops. v0.0.1 through
-      v0.0.3 were cut by hand, which the history shows plainly, because
-      CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no
-      "version packages" commit exists at all. `[prepare]` arrived after that
-      in cf11ac2 (#6) and has therefore never run. This matters because
-      ctl-core is about to become the home of the declared-input layer
-      (CTC-008), and verctl will pin it — a release path nobody has walked is
-      a bad thing to discover while migrating two other repos onto it.
-      The pin here is still verctl 0.0.3, so this repo has neither served
-      files nor pins-on-the-Version-PR yet.
+    notes:
+      - >-
+        2026-08-18, checked rather than assumed. The lane is wired and green — Version PR ran twice on main today — but it has never carried a release: there is no changeset, so every run no-ops. v0.0.1 through v0.0.3 were cut by hand, which the history shows plainly, because CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no "version packages" commit exists at all. `[prepare]` arrived after that in cf11ac2 (#6) and has therefore never run. This matters because ctl-core is about to become the home of the declared-input layer (CTC-008), and verctl will pin it — a release path nobody has walked is a bad thing to discover while migrating two other repos onto it. The pin here is still verctl 0.0.3, so this repo has neither served files nor pins-on-the-Version-PR yet.
     completed: 2026-08-22T15:18:10
     evidence:
       - 'ctl-core#12 carried the changeset. #13 was the Version PR: 0.0.3 to 0.0.4, CHANGELOG written, Cargo.lock staged by cargo update --workspace.'
@@ -170,9 +154,8 @@ archive:
       - "tests/{color_argv,format_tokens,flags_cli,flag_warnings,help_render,view,parse}"
       - "peek --color --no-color; first-party concat! still fails clippy"
       - "chassis last-wins + {bin}: warning: on clashes"
-    notes: >-
-      Do not pad empty tests to out-count forkctl+qctl+verctl. Named
-      public-path coverage is the bar.
+    notes:
+      - Do not pad empty tests to out-count forkctl+qctl+verctl. Named public-path coverage is the bar.
 
   - id: CTC-001
     title: Shared clap chassis, views, and formatdoc

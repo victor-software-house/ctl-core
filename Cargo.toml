@@ -6,8 +6,6 @@ rust-version = "1.97.1"
 description = "Shared clap chassis for the *ctl CLIs"
 license = "MIT"
 repository = "https://github.com/victor-software-house/ctl-core"
-homepage = "https://github.com/victor-software-house/ctl-core"
-readme = "README.md"
 keywords = ["clap", "cli", "help", "color"]
 categories = ["command-line-interface", "development-tools"]
 
@@ -108,6 +106,10 @@ unicode-width = { version = "0.2.2", optional = true }
 
 [dev-dependencies]
 indoc = "2.0.7"
+
+[[example]]
+name = "gallery"
+required-features = ["view"]
 
 [profile.release]
 codegen-units = 1
