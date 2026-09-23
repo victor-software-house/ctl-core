@@ -4,10 +4,7 @@
 //! use ctl_core::prelude::*;
 //!
 //! fn main() -> ExitCode {
-//!     go::<Cli, _>("toy", |cli| {
-//!         let view = cli.format.view(cli.color.color());
-//!         view.show(&report)
-//!     })
+//!     App::<Cli>::new("toy").run(execute)
 //! }
 //! ```
 
@@ -39,8 +36,6 @@ pub use crate::render::{
     DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions,
     Renderer, RowSeparation,
 };
-#[cfg(feature = "help")]
-pub use crate::run::main_with_help;
 #[cfg(feature = "surface-model")]
 pub use crate::surface::Surface;
 #[cfg(feature = "render")]

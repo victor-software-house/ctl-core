@@ -85,8 +85,8 @@ help callers under the same policy.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output. Usage lines wrap without splitting tokens.
 
-See [`docs/presentation.md`](docs/presentation.md). `kv` / `grid`, the `go`
-wrapper, and string-render traits are migration surfaces, not the destination.
+See [`docs/presentation.md`](docs/presentation.md). `kv` / `grid` and the
+string-render traits are migration surfaces, not the destination.
 
 ## Strings
 
