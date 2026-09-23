@@ -20,6 +20,19 @@ queue:
       - Verctl, forkctl, and qctl can migrate without importing Comfy Table, Anstyle, Anstream, or terminal-width helpers.
       - The old go entry point is removed after every owned consumer migrates; no compatibility alias remains.
 
+  - id: CTC-013
+    title: Let the environment override each style option
+    scope: presentation
+    outcome: An operator picks the record style, list style, row separation, and JSON layout per shell without a rebuild; the library defaults and overrides stay as they are.
+    blocked_by: []
+    acceptance:
+      - Each style option reads its own environment variable, and an unknown value is refused with the accepted values named.
+      - RenderOptions, View, and App can replace or disable each variable name, as they do for CTL_CORE_COLUMN_BUFFER.
+      - A test per option proves the override and the disable path.
+      - docs/presentation.md names each variable, and task 1.5 of choose-visual-identity is checked off.
+    links:
+      - https://github.com/victor-software-house/ctl-core/tree/main/openspec/changes/choose-visual-identity
+
   - id: CTC-006
     title: Test fixture tree and per-suite temp dirs
     scope: ctl-core
