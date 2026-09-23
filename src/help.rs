@@ -4,7 +4,6 @@ use std::io::{self, Write};
 
 use clap::{Command, CommandFactory};
 
-use crate::color::ColorMode;
 use crate::document::{Document, Role, Section, Table, Text};
 use crate::render::RenderOptions;
 
@@ -53,11 +52,6 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     stream.write_all(output.as_bytes())?;
     stream.flush()?;
     Ok(true)
-}
-
-/// Render root help to stderr for a bare invocation that requires input.
-pub(crate) fn emit_bare<C: CommandFactory>(color: ColorMode) -> io::Result<()> {
-    emit_bare_with_options::<C>(RenderOptions::new(color))
 }
 
 /// Render root help to stderr with rendering options supplied by the owner.

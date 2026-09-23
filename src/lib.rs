@@ -43,9 +43,6 @@ pub mod prelude;
 /// Semantic document renderer.
 #[cfg(feature = "render")]
 pub mod render;
-/// Process `ExitCode` wrapper.
-#[cfg(feature = "cli")]
-pub mod run;
 #[cfg(feature = "render")]
 mod style;
 /// Shared Clap-derived operator metadata and optional Jinja fragments.
@@ -82,8 +79,6 @@ pub use render::{
     DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions,
     Renderer, RowSeparation,
 };
-#[cfg(feature = "cli")]
-pub use run::main as run;
 #[cfg(feature = "surface-model")]
 pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, SurfaceScope};
 #[cfg(feature = "render")]
