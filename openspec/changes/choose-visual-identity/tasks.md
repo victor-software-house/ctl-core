@@ -8,7 +8,7 @@ Compile, format, lint, and test tasks run on the build host with `mise run verif
 - [x] 1.2 Keep today's look as the default until section 3; proof: existing snapshots unchanged
 - [x] 1.3 No Comfy Table type crosses the public surface; proof: `layout` and `style` stay private modules, and no public signature names an engine type
 - [x] 1.4 Reach the options from `App`; proof: `app_styles_and_fallback_reach_every_view`
-- [ ] 1.5 Give each style option an environment override; proof: tests per override
+- [x] 1.5 Give each style option an environment override; proof: tests per override
 
 ## 2. Gallery
 

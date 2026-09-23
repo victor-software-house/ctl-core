@@ -76,7 +76,9 @@ pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "render")]
 pub use render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
-    DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, ListStyle, RecordStyle, RenderOptions,
+    DEFAULT_FALLBACK_WIDTH, DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, DEFAULT_RECORD_STYLE_ENV, DEFAULT_RECORD_STYLE_ENVS,
+    DEFAULT_ROW_SEPARATION_ENV, DEFAULT_ROW_SEPARATION_ENVS, ListStyle, RecordStyle, RenderOptions,
     Renderer, RowSeparation,
 };
 #[cfg(feature = "surface-model")]
@@ -86,4 +88,7 @@ pub use table::{grid, kv};
 #[cfg(feature = "usage")]
 pub use usage::{mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
-pub use view::{Captured, JsonLayout, MessageKind, Present, Stream, View};
+pub use view::{
+    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Present,
+    Stream, View,
+};

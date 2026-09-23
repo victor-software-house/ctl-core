@@ -69,6 +69,11 @@ Buffer zero disables subtraction; an empty environment slice disables lookup.
 Explicit widths remain exact. Public option-aware help entry points keep direct
 help callers under the same policy.
 
+The record style, list style, row separation, and JSON layout read
+`CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and
+`CTL_CORE_JSON_LAYOUT` when the consumer has not set them. Each name list is
+replaceable, and an empty slice disables lookup.
+
 ## View contract
 
 1. **Models first.** Each command returns a serializable result; the view does

@@ -25,6 +25,18 @@ pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
 /// Width used when neither the terminal nor `COLUMNS` gives one.
 pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
+/// Default environment variable for the operator's record style.
+pub const DEFAULT_RECORD_STYLE_ENV: &str = "CTL_CORE_RECORD_STYLE";
+/// Default ordered environment lookup for the record style.
+pub const DEFAULT_RECORD_STYLE_ENVS: &[&str] = &[DEFAULT_RECORD_STYLE_ENV];
+/// Default environment variable for the operator's list style.
+pub const DEFAULT_LIST_STYLE_ENV: &str = "CTL_CORE_LIST_STYLE";
+/// Default ordered environment lookup for the list style.
+pub const DEFAULT_LIST_STYLE_ENVS: &[&str] = &[DEFAULT_LIST_STYLE_ENV];
+/// Default environment variable for the operator's row separation.
+pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
+/// Default ordered environment lookup for the row separation.
+pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
 /// A light horizontal rule that runs through column gaps.
 const RULE: LineStyle = LineStyle::none().fill('─').junction('─');
@@ -65,6 +77,81 @@ pub enum RowSeparation {
     Blank,
 }
 
+/// A style an operator can name in an environment variable.
+pub(crate) trait EnvChoice: Copy + 'static {
+    /// Accepted values, in the order a warning lists them.
+    const VALUES: &'static [(&'static str, Self)];
+}
+
+impl EnvChoice for RecordStyle {
+    const VALUES: &'static [(&'static str, Self)] = &[
+        ("keys-right", Self::KeysRight),
+        ("keys-left", Self::KeysLeft),
+        ("boxed", Self::Boxed),
+    ];
+}
+
+impl EnvChoice for ListStyle {
+    const VALUES: &'static [(&'static str, Self)] = &[
+        ("grid", Self::Grid),
+        ("header-rule", Self::HeaderRule),
+        ("plain", Self::Plain),
+    ];
+}
+
+impl EnvChoice for RowSeparation {
+    const VALUES: &'static [(&'static str, Self)] = &[
+        ("none", Self::None),
+        ("rule", Self::Rule),
+        ("blank", Self::Blank),
+    ];
+}
+
+/// The first variable in `names` that holds an accepted value.
+pub(crate) fn env_choice<T: EnvChoice>(
+    names: &[&str],
+    value: impl Fn(&str) -> Option<String>,
+) -> Option<T> {
+    names
+        .iter()
+        .filter_map(|name| value(name))
+        .find_map(|raw| parse_choice(&raw))
+}
+
+/// One line per variable in `names` whose value is not accepted.
+#[cfg(feature = "app")]
+pub(crate) fn env_choice_warnings<T: EnvChoice>(
+    names: &[&str],
+    value: impl Fn(&str) -> Option<String>,
+) -> Vec<String> {
+    names
+        .iter()
+        .filter_map(|name| {
+            let raw = value(name)?;
+            parse_choice::<T>(&raw).is_none().then(|| {
+                let accepted = T::VALUES
+                    .iter()
+                    .map(|(value, _)| *value)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{name}={raw} is ignored; use one of {accepted}")
+            })
+        })
+        .collect()
+}
+
+/// A set, non-empty environment variable.
+pub(crate) fn process_env(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|value| !value.is_empty())
+}
+
+fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
+    T::VALUES
+        .iter()
+        .find(|(value, _)| *value == raw.trim())
+        .map(|(_, choice)| *choice)
+}
+
 /// Deterministic document rendering options.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
@@ -74,16 +161,21 @@ pub struct RenderOptions {
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
     fallback_width: Option<u16>,
-    record_style: RecordStyle,
-    list_style: ListStyle,
-    row_separation: RowSeparation,
+    record_style: Option<RecordStyle>,
+    record_style_envs: &'static [&'static str],
+    list_style: Option<ListStyle>,
+    list_style_envs: &'static [&'static str],
+    row_separation: Option<RowSeparation>,
+    row_separation_envs: &'static [&'static str],
 }
 
 impl RenderOptions {
     /// Build options with automatic terminal width, a
     /// [`DEFAULT_COLUMN_BUFFER`]-column buffer, [`DEFAULT_COLUMN_BUFFER_ENV`]
     /// as the operator override, and [`DEFAULT_FALLBACK_WIDTH`] when no
-    /// width is detected.
+    /// width is detected. Record style, list style, and row separation read
+    /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
+    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the owner sets them.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
         Self {
@@ -93,49 +185,123 @@ impl RenderOptions {
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
             fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
-            record_style: RecordStyle::KeysRight,
-            list_style: ListStyle::Grid,
-            row_separation: RowSeparation::None,
+            record_style: None,
+            record_style_envs: DEFAULT_RECORD_STYLE_ENVS,
+            list_style: None,
+            list_style_envs: DEFAULT_LIST_STYLE_ENVS,
+            row_separation: None,
+            row_separation_envs: DEFAULT_ROW_SEPARATION_ENVS,
         }
     }
 
-    /// Frame [`Fields`] records in `style`.
+    /// Frame [`Fields`] records in `style`. This beats the environment.
     #[must_use]
     pub const fn record_style(mut self, style: RecordStyle) -> Self {
-        self.record_style = style;
+        self.record_style = Some(style);
         self
     }
 
-    /// Frame [`Table`] lists in `style`.
+    /// Frame [`Table`] lists in `style`. This beats the environment.
     #[must_use]
     pub const fn list_style(mut self, style: ListStyle) -> Self {
-        self.list_style = style;
+        self.list_style = Some(style);
         self
     }
 
-    /// Separate [`Table`] rows with `separation`.
+    /// Separate [`Table`] rows with `separation`. This beats the environment.
     #[must_use]
     pub const fn row_separation(mut self, separation: RowSeparation) -> Self {
-        self.row_separation = separation;
+        self.row_separation = Some(separation);
         self
     }
 
-    /// Record framing.
+    /// Replace the ordered environment names read for the record style.
+    /// An empty slice disables lookup.
     #[must_use]
-    pub const fn record(self) -> RecordStyle {
+    pub const fn record_style_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.record_style_envs = names;
+        self
+    }
+
+    /// Replace the ordered environment names read for the list style.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub const fn list_style_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.list_style_envs = names;
+        self
+    }
+
+    /// Replace the ordered environment names read for the row separation.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub const fn row_separation_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.row_separation_envs = names;
+        self
+    }
+
+    /// Record framing: the owner's choice, then the environment, then the
+    /// default.
+    #[must_use]
+    pub fn record(self) -> RecordStyle {
+        self.record_with(process_env)
+    }
+
+    /// List framing: the owner's choice, then the environment, then the
+    /// default.
+    #[must_use]
+    pub fn list(self) -> ListStyle {
+        self.list_with(process_env)
+    }
+
+    /// Row separation: the owner's choice, then the environment, then the
+    /// default.
+    #[must_use]
+    pub fn separation(self) -> RowSeparation {
+        self.separation_with(process_env)
+    }
+
+    fn record_with(self, value: impl Fn(&str) -> Option<String>) -> RecordStyle {
         self.record_style
+            .or_else(|| env_choice(self.record_style_envs, value))
+            .unwrap_or_default()
     }
 
-    /// List framing.
-    #[must_use]
-    pub const fn list(self) -> ListStyle {
+    fn list_with(self, value: impl Fn(&str) -> Option<String>) -> ListStyle {
         self.list_style
+            .or_else(|| env_choice(self.list_style_envs, value))
+            .unwrap_or_default()
     }
 
-    /// Row separation.
-    #[must_use]
-    pub const fn separation(self) -> RowSeparation {
+    fn separation_with(self, value: impl Fn(&str) -> Option<String>) -> RowSeparation {
         self.row_separation
+            .or_else(|| env_choice(self.row_separation_envs, value))
+            .unwrap_or_default()
+    }
+
+    /// One line per style variable whose value is not accepted. A style the
+    /// owner set never reads its variables, so it never warns.
+    #[cfg(feature = "app")]
+    pub(crate) fn style_env_warnings(self, value: impl Fn(&str) -> Option<String>) -> Vec<String> {
+        let mut warnings = Vec::new();
+        if self.record_style.is_none() {
+            warnings.extend(env_choice_warnings::<RecordStyle>(
+                self.record_style_envs,
+                &value,
+            ));
+        }
+        if self.list_style.is_none() {
+            warnings.extend(env_choice_warnings::<ListStyle>(
+                self.list_style_envs,
+                &value,
+            ));
+        }
+        if self.row_separation.is_none() {
+            warnings.extend(env_choice_warnings::<RowSeparation>(
+                self.row_separation_envs,
+                &value,
+            ));
+        }
+        warnings
     }
 
     /// Force an explicit width. Tests and redirected renderers should use this.
@@ -746,6 +912,66 @@ mod tests {
         assert_eq!(options.fallback(), Some(80));
         assert_eq!(options.fallback_width(None).fallback(), None);
         assert_eq!(super::DEFAULT_COLUMN_BUFFER, 2);
+    }
+
+    fn operator_env(name: &str) -> Option<String> {
+        match name {
+            "CTL_CORE_RECORD_STYLE" => Some("boxed"),
+            "CTL_CORE_LIST_STYLE" => Some("header-rule"),
+            "CTL_CORE_ROW_SEPARATION" => Some("blank"),
+            _ => None,
+        }
+        .map(str::to_owned)
+    }
+
+    #[test]
+    fn the_environment_picks_each_style_the_owner_left_open() {
+        let open = RenderOptions::new(ColorMode::Never);
+        assert_eq!(open.record_with(operator_env), RecordStyle::Boxed);
+        assert_eq!(open.list_with(operator_env), ListStyle::HeaderRule);
+        assert_eq!(open.separation_with(operator_env), RowSeparation::Blank);
+
+        let owned = open
+            .record_style(RecordStyle::KeysLeft)
+            .list_style(ListStyle::Plain)
+            .row_separation(RowSeparation::Rule);
+        assert_eq!(owned.record_with(operator_env), RecordStyle::KeysLeft);
+        assert_eq!(owned.list_with(operator_env), ListStyle::Plain);
+        assert_eq!(owned.separation_with(operator_env), RowSeparation::Rule);
+    }
+
+    #[test]
+    fn style_env_names_can_be_replaced_or_disabled() {
+        let aliased = |name: &str| (name == "TOY_RECORD").then(|| "keys-left".to_owned());
+        let replaced = RenderOptions::new(ColorMode::Never)
+            .record_style_envs(&["TOY_RECORD", "CTL_CORE_RECORD_STYLE"]);
+        assert_eq!(replaced.record_with(aliased), RecordStyle::KeysLeft);
+
+        let disabled = RenderOptions::new(ColorMode::Never)
+            .record_style_envs(&[])
+            .list_style_envs(&[])
+            .row_separation_envs(&[]);
+        assert_eq!(disabled.record_with(operator_env), RecordStyle::KeysRight);
+        assert_eq!(disabled.list_with(operator_env), ListStyle::Grid);
+        assert_eq!(disabled.separation_with(operator_env), RowSeparation::None);
+    }
+
+    #[cfg(feature = "app")]
+    #[test]
+    fn an_unknown_style_value_is_ignored_and_the_warning_names_the_choices() {
+        let typo = |name: &str| (name == "CTL_CORE_RECORD_STYLE").then(|| "boxy".to_owned());
+        let options = RenderOptions::new(ColorMode::Never);
+        assert_eq!(options.record_with(typo), RecordStyle::KeysRight);
+        assert_eq!(
+            options.style_env_warnings(typo),
+            ["CTL_CORE_RECORD_STYLE=boxy is ignored; use one of keys-right, keys-left, boxed"]
+        );
+        assert_eq!(
+            options
+                .record_style(RecordStyle::Boxed)
+                .style_env_warnings(typo),
+            Vec::<String>::new()
+        );
     }
 
     #[test]

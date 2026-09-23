@@ -98,6 +98,17 @@ Identifiers render bold in the terminal foreground (`Role::Id`). Each is an
 option on `RenderOptions`, `View`, and `App` (`styles`, `json_layout`), so a
 consumer that needs the box or compact JSON sets it.
 
+An operator picks any option the consumer left open through
+`CTL_CORE_RECORD_STYLE` (`keys-right`, `keys-left`, `boxed`),
+`CTL_CORE_LIST_STYLE` (`grid`, `header-rule`, `plain`),
+`CTL_CORE_ROW_SEPARATION` (`none`, `rule`, `blank`), and
+`CTL_CORE_JSON_LAYOUT` (`pretty`, `compact`, `pretty-on-terminal`). The
+consumer's setter wins over the variable. `record_style_envs`,
+`list_style_envs`, `row_separation_envs`, and `json_layout_envs` replace each
+ordered name list, and an empty slice disables lookup. A value outside the
+list is ignored, and `App` prints one warning line that names the accepted
+values.
+
 ## Output law
 
 One serializable model feeds all modes:
