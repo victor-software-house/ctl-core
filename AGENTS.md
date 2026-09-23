@@ -149,3 +149,10 @@ or `unmaintained`.
 
 Conventional commits. lefthook. No `--no-verify`. Branch `type/number-desc`.
 Always open a PR — never push to `main`.
+
+## Changes
+
+Plan a behaviour or contract change as an OpenSpec change in
+`openspec/changes/<name>/` before writing code. `openspec/config.yaml` holds
+this repository's context and rules, and `openspec validate <name>` checks the
+change. One change maps to one `tasks.yaml` row.
