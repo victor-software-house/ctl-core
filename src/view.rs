@@ -11,9 +11,14 @@ use crate::document::{Document, Text};
 use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
 use crate::render::{
-    DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
-    RenderOptions,
+    DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, EnvChoice,
+    RenderOptions, env_choice, process_env,
 };
+
+/// Default environment variable for the operator's JSON layout.
+pub const DEFAULT_JSON_LAYOUT_ENV: &str = "CTL_CORE_JSON_LAYOUT";
+/// Default ordered environment lookup for the JSON layout.
+pub const DEFAULT_JSON_LAYOUT_ENVS: &[&str] = &[DEFAULT_JSON_LAYOUT_ENV];
 
 /// A serializable domain model with one semantic human presentation.
 pub trait Present: Serialize {
@@ -110,6 +115,14 @@ pub enum JsonLayout {
     PrettyOnTerminal,
 }
 
+impl EnvChoice for JsonLayout {
+    const VALUES: &'static [(&'static str, Self)] = &[
+        ("pretty", Self::Pretty),
+        ("compact", Self::Compact),
+        ("pretty-on-terminal", Self::PrettyOnTerminal),
+    ];
+}
+
 impl JsonLayout {
     fn pretty(self) -> bool {
         match self {
@@ -134,7 +147,8 @@ pub struct View {
     automatic_width_buffer_envs: &'static [&'static str],
     minimum_automatic_width: u16,
     fallback_width: Option<u16>,
-    json_layout: JsonLayout,
+    json_layout: Option<JsonLayout>,
+    json_layout_envs: &'static [&'static str],
     styles: RenderOptions,
 }
 
@@ -151,16 +165,52 @@ impl View {
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
             fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
-            json_layout: JsonLayout::Pretty,
+            json_layout: None,
+            json_layout_envs: DEFAULT_JSON_LAYOUT_ENVS,
             styles: RenderOptions::new(color),
         }
     }
 
-    /// Lay out JSON output as `layout`.
+    /// Lay out JSON output as `layout`. This beats the environment.
     #[must_use]
     pub const fn json_layout(mut self, layout: JsonLayout) -> Self {
-        self.json_layout = layout;
+        self.json_layout = Some(layout);
         self
+    }
+
+    /// Replace the ordered environment names read for the JSON layout.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub const fn json_layout_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.json_layout_envs = names;
+        self
+    }
+
+    /// JSON layout: the owner's choice, then the environment, then the
+    /// default.
+    #[must_use]
+    pub fn layout(self) -> JsonLayout {
+        self.layout_with(process_env)
+    }
+
+    pub(crate) fn layout_with(self, value: impl Fn(&str) -> Option<String>) -> JsonLayout {
+        self.json_layout
+            .or_else(|| env_choice(self.json_layout_envs, value))
+            .unwrap_or_default()
+    }
+
+    /// One line per style or JSON layout variable whose value is not
+    /// accepted. `App` prints them before it runs.
+    #[cfg(feature = "app")]
+    pub(crate) fn env_warnings(self, value: impl Fn(&str) -> Option<String>) -> Vec<String> {
+        let mut warnings = self.styles.style_env_warnings(&value);
+        if self.json_layout.is_none() {
+            warnings.extend(crate::render::env_choice_warnings::<JsonLayout>(
+                self.json_layout_envs,
+                &value,
+            ));
+        }
+        warnings
     }
 
     /// Take record style, list style, and row separation from `styles`.
@@ -252,7 +302,7 @@ impl View {
     /// One JSON document in this view's layout, newline-terminated. Successes
     /// and error envelopes share it, so both follow the same layout.
     fn json(self, value: &impl Serialize) -> io::Result<String> {
-        let mut content = if self.json_layout.pretty() {
+        let mut content = if self.layout().pretty() {
             serde_json::to_string_pretty(value)?
         } else {
             serde_json::to_string(value)?
@@ -350,5 +400,38 @@ mod tests {
             .json(&envelope)
             .unwrap();
         assert_eq!(compact.lines().count(), 1, "{compact}");
+    }
+
+    #[test]
+    fn the_environment_picks_the_json_layout_the_owner_left_open() {
+        let compact = |name: &str| (name == "CTL_CORE_JSON_LAYOUT").then(|| "compact".to_owned());
+        let view = View::new(OutputFormat::Json, ColorMode::Never);
+        assert_eq!(view.layout_with(compact), JsonLayout::Compact);
+        assert_eq!(
+            view.json_layout(JsonLayout::Pretty).layout_with(compact),
+            JsonLayout::Pretty
+        );
+        assert_eq!(
+            view.json_layout_envs(&[]).layout_with(compact),
+            JsonLayout::Pretty
+        );
+    }
+
+    #[cfg(feature = "app")]
+    #[test]
+    fn view_warnings_cover_styles_and_the_json_layout() {
+        let typos = |name: &str| match name {
+            "CTL_CORE_LIST_STYLE" => Some("boxes".to_owned()),
+            "CTL_CORE_JSON_LAYOUT" => Some("tight".to_owned()),
+            _ => None,
+        };
+        let view = View::new(OutputFormat::Pretty, ColorMode::Never);
+        assert_eq!(
+            view.env_warnings(typos),
+            [
+                "CTL_CORE_LIST_STYLE=boxes is ignored; use one of grid, header-rule, plain",
+                "CTL_CORE_JSON_LAYOUT=tight is ignored; use one of pretty, compact, pretty-on-terminal",
+            ]
+        );
     }
 }

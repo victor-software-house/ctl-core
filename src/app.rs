@@ -34,6 +34,7 @@ pub struct App<C> {
     fallback_width: Option<Fallback>,
     styles: Option<RenderOptions>,
     json_layout: Option<JsonLayout>,
+    json_layout_envs: Option<&'static [&'static str]>,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -55,6 +56,7 @@ impl<C> App<C> {
             fallback_width: None,
             styles: None,
             json_layout: None,
+            json_layout_envs: None,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -115,6 +117,14 @@ impl<C> App<C> {
         self
     }
 
+    /// Replace the ordered environment names read for the JSON layout.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub fn json_layout_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.json_layout_envs = Some(names);
+        self
+    }
+
     fn configured_view(&self, mut view: View) -> View {
         if let Some(buffer) = self.automatic_width_buffer {
             view = view.automatic_width_buffer(buffer);
@@ -133,6 +143,9 @@ impl<C> App<C> {
         }
         if let Some(layout) = self.json_layout {
             view = view.json_layout(layout);
+        }
+        if let Some(names) = self.json_layout_envs {
+            view = view.json_layout_envs(names);
         }
         view
     }
@@ -213,6 +226,9 @@ where
         }
 
         let raw_view = self.configured_view(raw_view::<C>(&raw));
+        for warning in raw_view.env_warnings(crate::render::process_env) {
+            eprintln!("{}: warning: {warning}", self.bin);
+        }
         if words.len() == 1 && crate::parser::requires_input::<C>() {
             return crate::help::emit_bare_with_options::<C>(raw_view.render_options())
                 .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
@@ -414,6 +430,19 @@ mod tests {
             ["TOY_BUFFER", "LEGACY_BUFFER"]
         );
         assert_eq!(view.automatic_width_minimum(), 8);
+    }
+
+    #[test]
+    fn app_json_layout_envs_reach_every_view() {
+        let compact = |name: &str| (name == "TOY_JSON").then(|| "compact".to_owned());
+        let view = App::<Cli>::new("toy")
+            .json_layout_envs(&["TOY_JSON"])
+            .configured_view(View::new(OutputFormat::Json, ColorMode::Never));
+        assert_eq!(view.layout_with(compact), JsonLayout::Compact);
+        let disabled = App::<Cli>::new("toy")
+            .json_layout_envs(&[])
+            .configured_view(View::new(OutputFormat::Json, ColorMode::Never));
+        assert_eq!(disabled.layout_with(compact), JsonLayout::Pretty);
     }
 
     #[test]
