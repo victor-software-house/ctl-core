@@ -8,23 +8,23 @@ How ctl-core lays out records, lists, JSON, and width, and which of those an own
 ### Requirement: Record style is a public option
 
 ctl-core SHALL render a `Fields` record in the record style set on
-`RenderOptions`, and SHALL use the default recorded in the design when none is
-set.
+`RenderOptions`, and SHALL use `KeysRight` when none is set.
 
 #### Scenario: Borderless record
 
-- **WHEN** a consumer renders a two-field record with the `Borderless` record style at width 80
+- **WHEN** a consumer renders a two-field record with the `KeysRight` record style at width 80
 - **THEN** the output contains no box-drawing characters
 - **AND** each key is right-aligned in one column
 
 #### Scenario: Consumer keeps the box
 
 - **WHEN** a consumer sets the `Boxed` record style
-- **THEN** the record renders inside a full frame, as before this change
+- **THEN** the record renders inside a full frame
 
 ### Requirement: List style is a public option
 
-ctl-core SHALL render a `Table` list in the list style set on `RenderOptions`.
+ctl-core SHALL render a `Table` list in the list style set on `RenderOptions`,
+and SHALL use `Grid` when none is set.
 
 #### Scenario: Header rule
 
@@ -49,8 +49,8 @@ default to no separation.
 
 ### Requirement: JSON layout is a public option and never carries ANSI
 
-ctl-core SHALL print JSON in the layout set on `RenderOptions`, and SHALL
-never write an escape sequence into JSON output.
+ctl-core SHALL print JSON in the layout set on `View`, SHALL use `Pretty` when
+none is set, and SHALL never write an escape sequence into JSON output.
 
 #### Scenario: Pretty JSON
 
