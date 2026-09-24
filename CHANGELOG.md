@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.6.4
+
+- Remove the `go`, `run`, `main`, `main_with`, and `main_with_help` wrappers. `App` is the only entry point. The `cli` feature no longer pulls in `anyhow`; `app` does.
+- Let the environment pick each style an owner left open: `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and `CTL_CORE_JSON_LAYOUT`. An unaccepted value is ignored, and `App` names the accepted values on stderr.
+
 ## ctl-core 0.6.3
 
 - JSON error envelopes follow the view JSON layout, so errors are indented like successes by default and compact when a consumer sets JsonLayout::Compact.
