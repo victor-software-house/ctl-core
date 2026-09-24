@@ -38,13 +38,15 @@ queue:
       - 'One entry point loads a file: read, serde for shape, garde once at the boundary, nothing downstream re-checking.'
       - verctl drops its own src/schema.rs after pinning that ctl-core version, and no copy is left behind.
       - The declare-your-own-target template renderer is available to any ctl CLI, not only verctl.
-      - The loader parses YAML with one crate, and verctl and qctl both load their config through it.
       - qctl drops its own YAML parsing for config after pinning that ctl-core version.
+      - The loader parses YAML with one crate, and every YAML input verctl and qctl read goes through it, including verctl's .ctl/ver.yaml and qctl's config.
     notes:
       - >2-
         2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly.
       - >2-
         2026-09-24: verctl parses YAML with yaml_serde 0.10.7 and qctl with serde_yml 0.0.12, so two ctl CLIs already disagree on the parser. Pick one crate here, by our own evaluation, and move both.
+      - >2-
+        2026-09-24: verctl's config is YAML (.ctl/ver.yaml) since verctl 0.1.0. The TOML file in the 2026-08-18 note is gone.
 
 horizon: []
 
