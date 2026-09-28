@@ -39,7 +39,9 @@ queue:
       - verctl drops its own src/schema.rs after pinning that ctl-core version, and no copy is left behind.
       - The declare-your-own-target template renderer is available to any ctl CLI, not only verctl.
       - qctl drops its own YAML parsing for config after pinning that ctl-core version.
-      - The loader parses YAML with one crate, and every YAML input verctl and qctl read goes through it, including verctl's .ctl/ver.yaml and qctl's config.
+      - The loader parses YAML with serde-saphyr, with strict booleans, and duplicate keys and merge keys refused; qctl, verctl, and forkctl read every YAML input through it.
+      - A schema error names its file and line, placed through the yamled location index, and every error in a file is reported, not only the first.
+      - The loader splits Markdown frontmatter, so verctl reads changeset fragments through it and drops gray_matter.
     notes:
       - >2-
         2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly.
@@ -47,6 +49,8 @@ queue:
         2026-09-24: verctl parses YAML with yaml_serde 0.10.7 and qctl with serde_yml 0.0.12, so two ctl CLIs already disagree on the parser. Pick one crate here, by our own evaluation, and move both.
       - >2-
         2026-09-24: verctl's config is YAML (.ctl/ver.yaml) since verctl 0.1.0. The TOML file in the 2026-08-18 note is gone.
+      - >2-
+        2026-09-28: YAML stack decided by evaluation on the build host. serde-saphyr 1.3.0 against yaml_serde 0.10.7: both keep dates as strings and reject 2026-02-31 through a JSON Schema date format; yaml_serde silently keeps the last duplicate key when read into serde_json::Value, turns .inf into null, and gives no line for a missing field; serde-saphyr reports a line for every error and rejects both once strict_booleans, merge_keys: Error, and with_snippet: false are set. Edits move to yamled (github.com/victor-software-house/yamled), a pure-Rust format-preserving editor on granit-parser spans, because yamlpatch requires yaml_serde. That drops yaml_serde, yamlpath, yamlpatch, tree-sitter, serde_yml, gray_matter, and yaml-rust2 from the family.
 
 horizon: []
 
