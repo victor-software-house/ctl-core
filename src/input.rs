@@ -11,7 +11,7 @@ use std::path::Path;
 use garde::Validate;
 use serde::de::DeserializeOwned;
 use serde_saphyr::{
-    DefaultMessageFormatter, DuplicateKeyPolicy, Localizer, Location, MergeKeyPolicy,
+    DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
 };
 
 /// A named YAML text, ready to parse and validate.
@@ -130,12 +130,26 @@ impl Input {
                         .map(|line| line + self.lines_before),
                     column: location.and_then(|at| usize::try_from(at.column()).ok()),
                     field: String::new(),
-                    message: error
-                        .without_snippet()
-                        .render_with_formatter(&DefaultMessageFormatter.with_localizer(&Unplaced)),
+                    message: self.message(error.without_snippet()),
                 }],
             }
         })
+    }
+
+    /// serde-saphyr's wording for `error`. An alias error also names where its
+    /// value is defined, counted from the file like [`Problem::line`].
+    fn message(&self, error: &Error) -> String {
+        let Error::AliasError { msg, locations } = error else {
+            return error.render_with_formatter(&DefaultMessageFormatter.with_localizer(&Unplaced));
+        };
+        let defined = locations.defined_location;
+        let (text, innermost) = baked_positions(msg);
+        let (line, column) = innermost.unwrap_or((
+            usize::try_from(defined.line()).unwrap_or_default(),
+            usize::try_from(defined.column()).unwrap_or_default(),
+        ));
+        let line = line + self.lines_before;
+        format!("{text} (defined at line {line}, column {column})")
     }
 
     /// Validate a parsed value against `context`, and place each of garde's
@@ -202,6 +216,40 @@ impl Localizer for Unplaced {
     }
 }
 
+/// The text of an [`Error::AliasError`] without the positions serde-saphyr
+/// 1.3.0 wrote into it, and the innermost ` at line` one: where the failing
+/// value is.
+/// That text is rendered in English before any localizer runs, and an alias
+/// reached through another alias nests one rendered error inside the next, so
+/// each layer ends in ` (defined at line N, column M)`, ` at line N, column M`,
+/// or both. Remove this once serde-saphyr keeps the inner error structured.
+fn baked_positions(msg: &str) -> (&str, Option<(usize, usize)>) {
+    let mut text = msg;
+    let mut innermost = None;
+    loop {
+        if let Some((rest, _)) = trailing_position(text, " (defined at line ", ")") {
+            text = rest;
+        } else if let Some((rest, at)) = trailing_position(text, " at line ", "") {
+            text = rest;
+            innermost = Some(at);
+        } else {
+            break;
+        }
+    }
+    (text, innermost)
+}
+
+/// `text` without a last `{lead}N, column M{close}`, with `N` and `M`.
+fn trailing_position<'a>(
+    text: &'a str,
+    lead: &str,
+    close: &str,
+) -> Option<(&'a str, (usize, usize))> {
+    let (rest, position) = text.strip_suffix(close)?.rsplit_once(lead)?;
+    let (line, column) = position.split_once(", column ")?;
+    Some((rest, (line.parse().ok()?, column.parse().ok()?)))
+}
+
 /// A garde field path (`packages[1].name`) as a yamled path. A key holding
 /// `.` or `[` cannot be told apart from nesting, so such a problem lands on
 /// the nearest ancestor that resolves.
@@ -263,3 +311,22 @@ impl fmt::Display for InputError {
 }
 
 impl std::error::Error for InputError {}
+
+#[cfg(test)]
+mod tests {
+    use super::baked_positions;
+
+    #[test]
+    fn every_written_position_is_taken_off_the_text() {
+        assert_eq!(
+            baked_positions("invalid u16 (defined at line 2, column 3)"),
+            ("invalid u16", None)
+        );
+        assert_eq!(
+            baked_positions(
+                "invalid u16 at line 2, column 9 (defined at line 2, column 9) at line 3, column 7"
+            ),
+            ("invalid u16", Some((2, 9)))
+        );
+    }
+}
