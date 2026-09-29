@@ -33,6 +33,9 @@ pub mod flags;
 /// Styled `-h` / `--help` renderer.
 #[cfg(feature = "help")]
 pub mod help;
+/// Declared input: read, parse, validate once, and place every problem.
+#[cfg(feature = "input")]
+pub mod input;
 #[cfg(feature = "render")]
 mod layout;
 /// Parser defaults (`-h` / `-V` stay on).
@@ -54,6 +57,9 @@ pub mod table;
 /// Mise Usage spec from a clap command.
 #[cfg(feature = "usage")]
 pub mod usage;
+/// Garde rules every declared schema shares.
+#[cfg(feature = "validate")]
+pub mod validate;
 /// Pretty / JSON / colorless emitters.
 #[cfg(feature = "view")]
 pub mod view;

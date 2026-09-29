@@ -25,6 +25,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   optional audience notes. `surface-serde` adds serialization without a template
   engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains
   the compatibility aggregate enabling all three.
+- Declared input (`validate`, `input` features): shared garde rules, and one
+  loader that parses YAML, validates once, and places every problem on its
+  file and line.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
@@ -121,11 +124,15 @@ path dependency. Verctl goes first, then forkctl retains its protocol while
 deleting its local view/help/layout, then qctl turns direct printing into typed
 results. The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 
-## Declared input (queued)
+## Declared input
 
-`CTC-008` moves the shared "read, parse shape, validate once, complain in the
-repo's own words" layer here so each CLI stops owning a drifting copy. Do that
-row before any CLI-side "move my schema.rs" follow-up.
+`validate` holds the garde rules every schema shares; `input` reads a file,
+parses it with serde-saphyr (strict booleans, duplicate and merge keys
+refused), validates it once with garde, and reports every problem with its
+file and line through yamled's location index. `Input::frontmatter` splits
+YAML frontmatter from a Markdown body. A CLI parses config only through
+`input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
+the consumer moves and the template renderer.
 
 ## Release
 
