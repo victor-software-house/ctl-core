@@ -143,8 +143,8 @@ impl Input {
             return error.render_with_formatter(&DefaultMessageFormatter.with_localizer(&Unplaced));
         };
         let defined = locations.defined_location;
-        let (text, line, column) = baked_position(msg).unwrap_or((
-            msg.as_str(),
+        let (text, innermost) = baked_positions(msg);
+        let (line, column) = innermost.unwrap_or((
             usize::try_from(defined.line()).unwrap_or_default(),
             usize::try_from(defined.column()).unwrap_or_default(),
         ));
@@ -217,12 +217,13 @@ impl Localizer for Unplaced {
 }
 
 /// The text of an [`Error::AliasError`] without the positions serde-saphyr
-/// 1.3.0 wrote into it, and the innermost of them: where the failing value is.
+/// 1.3.0 wrote into it, and the innermost ` at line` one: where the failing
+/// value is.
 /// That text is rendered in English before any localizer runs, and an alias
 /// reached through another alias nests one rendered error inside the next, so
 /// each layer ends in ` (defined at line N, column M)`, ` at line N, column M`,
 /// or both. Remove this once serde-saphyr keeps the inner error structured.
-fn baked_position(msg: &str) -> Option<(&str, usize, usize)> {
+fn baked_positions(msg: &str) -> (&str, Option<(usize, usize)>) {
     let mut text = msg;
     let mut innermost = None;
     loop {
@@ -235,7 +236,7 @@ fn baked_position(msg: &str) -> Option<(&str, usize, usize)> {
             break;
         }
     }
-    innermost.map(|(line, column)| (text, line, column))
+    (text, innermost)
 }
 
 /// `text` without a last `{lead}N, column M{close}`, with `N` and `M`.
@@ -310,3 +311,22 @@ impl fmt::Display for InputError {
 }
 
 impl std::error::Error for InputError {}
+
+#[cfg(test)]
+mod tests {
+    use super::baked_positions;
+
+    #[test]
+    fn every_written_position_is_taken_off_the_text() {
+        assert_eq!(
+            baked_positions("invalid u16 (defined at line 2, column 3)"),
+            ("invalid u16", None)
+        );
+        assert_eq!(
+            baked_positions(
+                "invalid u16 at line 2, column 9 (defined at line 2, column 9) at line 3, column 7"
+            ),
+            ("invalid u16", Some((2, 9)))
+        );
+    }
+}
