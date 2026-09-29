@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.8
+
+- Move the `input` feature to yamled 0.0.4, so a CLI that edits through yamled 0.0.4 resolves one yamled.
+
 ## ctl-core 0.6.7
 
 - Move the `input` feature to yamled 0.0.3, so a CLI that edits through yamled 0.0.3 resolves one yamled.
