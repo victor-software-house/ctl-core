@@ -6,4 +6,4 @@
 [tools]
 # Repeats the dev entry: an env overlay replaces the whole tool entry.
 rust = { version = "nightly", components = "rustfmt,clippy", mr_boxington = true }
-mr-boxington = "1.15.0"
+mr-boxington = "1.20.0"
