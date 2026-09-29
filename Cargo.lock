@@ -1017,9 +1017,9 @@ dependencies = [
 
 [[package]]
 name = "yamled"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45060de1ea1cff57ce588de9ccaea80e5bbb70aba1da6c7f4d8ad16021561fb2"
+checksum = "afd2caea4b10913f80c782f7c75691273a08a011346c0db58b8fc4ead8b44310"
 dependencies = [
  "granit-parser",
 ]
