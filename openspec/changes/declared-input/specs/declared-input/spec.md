@@ -46,3 +46,17 @@ frontmatter SHALL carry the line number it has in the whole file.
 
 - **WHEN** a fragment's second line is `package: ''`
 - **THEN** the problem is reported on line 2
+
+### Requirement: An alias error names where its value is defined
+
+When a value reached through an alias fails to parse, the problem SHALL sit
+on the alias, and its message SHALL name where the failing value is defined,
+counted from the file, with no other position in the text.
+
+#### Scenario: A value copied by an alias in frontmatter
+
+- **WHEN** a Markdown file's frontmatter defines `base: &b` on line 2 with
+  `port: eighty` on line 3, and line 4 is `copy: *b`, read into a type where
+  `copy.port` is a `u16`
+- **THEN** the problem is on line 4, column 7, and reads
+  `invalid u16 (defined at line 3, column 9)`

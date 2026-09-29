@@ -158,6 +158,39 @@ fn frontmatter_problems_keep_the_files_line_numbers() {
 }
 
 #[test]
+fn an_alias_error_names_where_its_value_is_defined_in_the_file() {
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Copied {
+        base: BTreeMap<String, String>,
+        copy: Port,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Port {
+        port: u16,
+    }
+    let file = Input::new(
+        "a.md",
+        indoc! {"
+        ---
+        base: &b
+          port: eighty
+        copy: *b
+        ---
+    "},
+    );
+    let (matter, _) = file.frontmatter().unwrap();
+    let error = matter.parse::<Copied>().unwrap_err();
+    assert_eq!(error.problems[0].line, Some(4), "{error}");
+    assert_eq!(error.problems[0].column, Some(7), "{error}");
+    assert_eq!(
+        error.problems[0].message,
+        "invalid u16 (defined at line 3, column 9)"
+    );
+}
+
+#[test]
 fn a_path_that_leaves_the_repository_is_refused() {
     for outside in ["/etc/passwd", "../up", "docs/../../up"] {
         assert!(
