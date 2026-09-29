@@ -51,6 +51,8 @@ queue:
         2026-09-24: verctl's config is YAML (.ctl/ver.yaml) since verctl 0.1.0. The TOML file in the 2026-08-18 note is gone.
       - >2-
         2026-09-28: YAML stack decided by evaluation on the build host. serde-saphyr 1.3.0 against yaml_serde 0.10.7: both keep dates as strings and reject 2026-02-31 through a JSON Schema date format; yaml_serde silently keeps the last duplicate key when read into serde_json::Value, turns .inf into null, and gives no line for a missing field; serde-saphyr reports a line for every error and rejects both once strict_booleans, merge_keys: Error, and with_snippet: false are set. Edits move to yamled (github.com/victor-software-house/yamled), a pure-Rust format-preserving editor on granit-parser spans, because yamlpatch requires yaml_serde. That drops yaml_serde, yamlpath, yamlpatch, tree-sitter, serde_yml, gray_matter, and yaml-rust2 from the family.
+      - >-
+        2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
 
 horizon: []
 
