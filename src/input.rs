@@ -4,12 +4,15 @@
 //! This is the one boundary where a CLI's config enters. Downstream code keeps
 //! the validated type and never checks it again.
 
+use std::borrow::Cow;
 use std::fmt;
 use std::path::Path;
 
 use garde::Validate;
 use serde::de::DeserializeOwned;
-use serde_saphyr::{DuplicateKeyPolicy, MergeKeyPolicy};
+use serde_saphyr::{
+    DefaultMessageFormatter, DuplicateKeyPolicy, Localizer, Location, MergeKeyPolicy,
+};
 
 /// A named YAML text, ready to parse and validate.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -127,7 +130,9 @@ impl Input {
                         .map(|line| line + self.lines_before),
                     column: location.and_then(|at| usize::try_from(at.column()).ok()),
                     field: String::new(),
-                    message: error.without_snippet().to_string(),
+                    message: error
+                        .without_snippet()
+                        .render_with_formatter(&DefaultMessageFormatter.with_localizer(&Unplaced)),
                 }],
             }
         })
@@ -183,6 +188,17 @@ impl Input {
         let value = self.parse::<T>()?;
         self.check(&value, &T::Context::default())?;
         Ok(value)
+    }
+}
+
+/// serde-saphyr's wording without the position it appends. That position
+/// counts from the parsed text, which for frontmatter is not the file, and
+/// [`Problem`] already carries the file's line and column.
+struct Unplaced;
+
+impl Localizer for Unplaced {
+    fn attach_location<'a>(&self, base: Cow<'a, str>, _: Location) -> Cow<'a, str> {
+        base
     }
 }
 

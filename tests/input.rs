@@ -136,6 +136,18 @@ fn frontmatter_problems_keep_the_files_line_numbers() {
     assert_eq!(body.trim(), "A summary.");
     let error = matter.load::<Fragment>().unwrap_err();
     assert_eq!(error.problems[0].line, Some(2), "{error}");
+    let list = Input::new(
+        ".changeset/b.md",
+        indoc! {"
+        ---
+        - package
+        ---
+    "},
+    );
+    let (matter, _) = list.frontmatter().unwrap();
+    let error = matter.parse::<Fragment>().unwrap_err();
+    assert_eq!(error.problems[0].line, Some(2), "{error}");
+    assert!(!error.problems[0].message.contains("line"), "{error}");
     let plain = Input::new(
         "b.md",
         indoc! {"

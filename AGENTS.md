@@ -129,7 +129,8 @@ results. The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 `validate` holds the garde rules every schema shares; `input` reads a file,
 parses it with serde-saphyr (strict booleans, duplicate and merge keys
 refused), validates it once with garde, and reports every problem with its
-file and line through yamled's location index. `Input::frontmatter` splits
+file and line through yamled's location index; a message never repeats a
+position of its own. `Input::frontmatter` splits
 YAML frontmatter from a Markdown body. A CLI parses config only through
 `input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
 the consumer moves and the template renderer.
