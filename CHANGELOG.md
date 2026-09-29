@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.6.9
+
+- An alias error from `Input::parse` names where its value is defined, counted from the file, instead of repeating two positions counted from the frontmatter.
+- Move the `input` feature to yamled 0.0.5, so a CLI that edits through yamled 0.0.5 resolves one yamled.
+
 ## ctl-core 0.6.8
 
 - Move the `input` feature to yamled 0.0.4, so a CLI that edits through yamled 0.0.4 resolves one yamled.
