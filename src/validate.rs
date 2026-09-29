@@ -10,16 +10,22 @@
 use std::path::{Component, Path};
 
 /// Somewhere a repository may write: relative, and never upward out of the
-/// tree.
+/// tree. A rooted path without a drive (`\x` on Windows) or a drive-relative
+/// one (`C:x`) is not absolute, yet joining it replaces the repository root,
+/// so any root or prefix component is refused too.
 ///
 /// # Errors
 ///
-/// "must stay inside the repository" for an absolute path or one with `..`.
+/// "must stay inside the repository" for an absolute or rooted path, one
+/// with a drive prefix, or one with `..`.
 pub fn inside_the_repo<C>(path: &Path, _: &C) -> garde::Result {
     if path.is_absolute()
-        || path
-            .components()
-            .any(|part| matches!(part, Component::ParentDir))
+        || path.components().any(|part| {
+            matches!(
+                part,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
     {
         return Err(garde::Error::new("must stay inside the repository"));
     }

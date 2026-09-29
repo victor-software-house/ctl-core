@@ -144,3 +144,19 @@ fn frontmatter_problems_keep_the_files_line_numbers() {
     );
     assert!(plain.frontmatter().is_none());
 }
+
+#[test]
+fn a_path_that_leaves_the_repository_is_refused() {
+    for outside in ["/etc/passwd", "../up", "docs/../../up"] {
+        assert!(
+            inside_the_repo(std::path::Path::new(outside), &()).is_err(),
+            "{outside}"
+        );
+    }
+    for inside in ["docs", "docs/a.md", "./docs"] {
+        assert!(
+            inside_the_repo(std::path::Path::new(inside), &()).is_ok(),
+            "{inside}"
+        );
+    }
+}
