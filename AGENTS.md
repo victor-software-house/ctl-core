@@ -149,7 +149,11 @@ packages with `--locked`. Prove the lane by shipping through it (`CTC-009`).
 mise run verify
 ```
 
-`verify` is format, clippy, nextest, doc-tests, cargo-deny licenses/bans/sources, and cargo-machete.
+`verify` is format, clippy, `cargo test` (unit, integration, and doc-tests), cargo-deny licenses/bans/sources, and cargo-machete.
+Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
+included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
+test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
+runs. Do not reintroduce them without new measurements.
 Locally, `.miserc.toml` adds the `mbx` env (`mise.mbx.toml`), which routes
 Cargo through mr-boxington so worktrees share one build store. CI does not
 load it.
