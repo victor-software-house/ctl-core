@@ -1,5 +1,8 @@
 //! Help extraction through the public semantic document.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "help")]
 
 mod common;

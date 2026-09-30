@@ -1,5 +1,8 @@
 //! Declared input: parse, validate once, and place every problem.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "input")]
 
 use std::collections::BTreeMap;

@@ -1,4 +1,8 @@
-#![allow(dead_code, missing_docs)]
+#![allow(
+    dead_code,
+    missing_docs,
+    reason = "each test crate that includes this fixture uses a different part of it"
+)]
 
 use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs};
@@ -7,7 +11,7 @@ use ctl_core::prelude::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "toy", arg_required_else_help = true)]
-pub struct Toy {
+pub(crate) struct Toy {
     #[command(flatten)]
     pub output: OutputArgs,
     #[command(flatten)]
@@ -17,12 +21,11 @@ pub struct Toy {
 }
 
 #[derive(Subcommand, Debug)]
-pub enum ToyCmd {
+pub(crate) enum ToyCmd {
     Status,
 }
 
-#[allow(clippy::expect_used)]
-pub fn parse(args: &[&str]) -> Toy {
+pub(crate) fn parse(args: &[&str]) -> Toy {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);
     let matches = apply_defaults(Toy::command())

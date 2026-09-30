@@ -1,5 +1,8 @@
 //! Duplicate / contradictory chassis flags warn; last value still wins.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "cli")]
 
 use ctl_core::{WarningKind, chassis_warnings, warn_opposites};

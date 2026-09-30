@@ -1,5 +1,8 @@
 //! schemars output for the public enums / envelope.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "schema")]
 
 use ctl_core::{ColorMode, Envelope, OutputFormat};

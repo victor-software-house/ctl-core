@@ -3,7 +3,10 @@ use std::str::FromStr;
 
 /// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
 mod data {
-    #![allow(clippy::disallowed_macros)]
+    #![expect(
+        clippy::disallowed_macros,
+        reason = "schemars' JsonSchema derive expands concat!"
+    )]
 
     /// Output representation. Models serialize first; views pick one of these.
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

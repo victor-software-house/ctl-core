@@ -5,7 +5,10 @@ pub const SCHEMA_VERSION: u32 = 1;
 
 /// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
 mod data {
-    #![allow(clippy::disallowed_macros)]
+    #![expect(
+        clippy::disallowed_macros,
+        reason = "schemars' JsonSchema derive expands concat!"
+    )]
 
     /// Machine envelope. Pretty views ignore this and render `data` / `error`.
     #[derive(Clone, Debug, Eq, PartialEq)]
