@@ -19,6 +19,7 @@ ignored = ["usage-lib"]
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"
+unreachable_pub = "deny"
 rust_2018_idioms = { level = "deny", priority = -1 }
 
 [lints.rustdoc]
@@ -37,6 +38,13 @@ unimplemented = "deny"
 unwrap_used = "deny"
 expect_used = "deny"
 disallowed_macros = "deny"
+wildcard_enum_match_arm = "deny"
+match_wildcard_for_single_variants = "deny"
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+# Duplicate versions come from transitive dependencies the crate does not
+# control; cargo-deny reports them (`bans.multiple-versions`).
+multiple_crate_versions = "allow"
 
 [features]
 default = ["app"]
@@ -121,6 +129,10 @@ indoc = "2.0.7"
 [[example]]
 name = "gallery"
 required-features = ["view"]
+
+# Line tables keep backtraces readable at a fraction of full debug info.
+[profile.dev]
+debug = "line-tables-only"
 
 [profile.release]
 codegen-units = 1

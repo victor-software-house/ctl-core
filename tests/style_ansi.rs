@@ -1,5 +1,8 @@
 //! Public semantic color contract.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "render")]
 
 use ctl_core::{ColorMode, Document, RenderOptions, Text};

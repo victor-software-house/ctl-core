@@ -12,7 +12,10 @@
 //! Crate docs live here. The GitHub README is not rustdoc.
 
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
-#![allow(clippy::missing_errors_doc)]
+#![expect(
+    clippy::missing_errors_doc,
+    reason = "each fallible function returns one typed error whose variants carry the docs"
+)]
 
 /// Fluent typed CLI lifecycle.
 #[cfg(feature = "app")]

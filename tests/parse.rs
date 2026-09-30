@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "cli")]
 
 use clap::{CommandFactory, FromArgMatches, Parser};
@@ -30,7 +33,6 @@ struct PrepareArgs {
     no_pr: bool,
 }
 
-#[allow(clippy::expect_used)]
 fn parse(args: &[&str]) -> Cli {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);

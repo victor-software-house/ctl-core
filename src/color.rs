@@ -3,7 +3,10 @@ use std::str::FromStr;
 
 /// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
 mod data {
-    #![allow(clippy::disallowed_macros)]
+    #![expect(
+        clippy::disallowed_macros,
+        reason = "schemars' JsonSchema derive expands concat!"
+    )]
 
     /// Pretty-output color policy. JSON never contains ANSI.
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

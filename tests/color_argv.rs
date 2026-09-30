@@ -1,5 +1,8 @@
 //! Clap owns global output flag placement, attached values, and domain values.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 #![cfg(feature = "cli")]
 
 use clap::{CommandFactory, FromArgMatches, Parser};
@@ -25,7 +28,6 @@ struct StatusArgs {
     message: Option<String>,
 }
 
-#[allow(clippy::expect_used)]
 fn parse(args: &[&str]) -> Cli {
     let matches = ctl_core::parser::apply_defaults(Cli::command())
         .try_get_matches_from(args)

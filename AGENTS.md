@@ -154,9 +154,9 @@ Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
 runs. Do not reintroduce them without new measurements.
-Locally, `.miserc.toml` adds the `mbx` env (`mise.mbx.toml`), which routes
-Cargo through mr-boxington so worktrees share one build store. CI does not
-load it.
+The `dev` env pins the Rust toolchain with `mr_boxington = true`, which routes
+Cargo through mr-boxington so worktrees share one build store. CI loads the
+same env and caches through `jdx/mr-boxington-action`.
 Do not `&&` those in a new task; `depends` is the mise form. Those cargo
 invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked

@@ -1,5 +1,8 @@
 //! `pretty` / `json` token parse.
-#![allow(missing_docs)]
+#![allow(
+    missing_docs,
+    reason = "an integration test crate has no public API to document"
+)]
 
 use ctl_core::format::ParseFormatError;
 use ctl_core::prelude::*;
