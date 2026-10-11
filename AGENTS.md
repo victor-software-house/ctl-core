@@ -28,6 +28,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Declared input (`validate`, `input` features): shared garde rules, and one
   loader that parses YAML, validates once, and places every problem on its
   file and line.
+- Served files (`served` feature): render a template that declares its own
+  target through `{%- set -%}` exports, check the declarations once, and write
+  the file with its mode.
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
   per scenario, and one call per fixture file, for consumers' integration
   tests.
@@ -138,6 +141,14 @@ defined, counted from the file. `Input::frontmatter` splits
 YAML frontmatter from a Markdown body. A CLI parses config only through
 `input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
 the consumer moves and the template renderer.
+
+## Served files
+
+`served::render(template, source, suffix, context)` renders one template through
+`surface::environment()` and reads `path`, `name`, and `executable` from its
+top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
+and refuses a symlinked target. Which templates a repository serves and what
+context they see stay with the CLI. verctl moves onto it inside its redesign.
 
 ## Fixtures
 

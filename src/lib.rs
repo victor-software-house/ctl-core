@@ -52,6 +52,10 @@ pub mod prelude;
 /// Semantic document renderer.
 #[cfg(feature = "render")]
 pub mod render;
+/// Files a repository serves, rendered from templates that declare where
+/// they go.
+#[cfg(feature = "served")]
+pub mod served;
 #[cfg(feature = "render")]
 mod style;
 /// Shared Clap-derived operator metadata and optional Jinja fragments.
