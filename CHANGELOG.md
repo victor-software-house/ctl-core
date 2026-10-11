@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.6.10
+
+- New `fixture` feature for integration tests: `Suite::new(name)` and `suite.scenario(name)` each own a temporary directory that is removed when it drops, and `root.file(path, body)` writes a fixture with its parent directories in one call. A path outside the root panics instead of writing.
+- New `served` feature: `served::render(template, source, suffix, context)` renders a template that declares its own target through top-level `{%- set path / name / executable -%}` exports, checks those declarations once, and returns a `Served` file; `Served::write(root)` writes it with its directories and the 0755 or 0644 mode, refusing a symlinked target. Which templates a repository has and what context they see stay with the CLI.
+
 ## ctl-core 0.6.9
 
 - An alias error from `Input::parse` names where its value is defined, counted from the file, instead of repeating two positions counted from the frontmatter.
