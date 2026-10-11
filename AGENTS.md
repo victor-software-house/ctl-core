@@ -28,6 +28,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Declared input (`validate`, `input` features): shared garde rules, and one
   loader that parses YAML, validates once, and places every problem on its
   file and line.
+- Fixture trees (`fixture` feature): a temporary directory per test suite and
+  per scenario, and one call per fixture file, for consumers' integration
+  tests.
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
@@ -135,6 +138,14 @@ defined, counted from the file. `Input::frontmatter` splits
 YAML frontmatter from a Markdown body. A CLI parses config only through
 `input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
 the consumer moves and the template renderer.
+
+## Fixtures
+
+Enable `fixture` on the ctl-core dev-dependency. `Suite::new(name)` owns a
+temporary directory for a test file, and `suite.scenario(name)` owns one inside
+it; both are removed on drop. `root.file(path, body)` writes a fixture and its
+parent directories and returns the path; a path outside the root panics. A CLI
+keeps no fixture wrapper of its own. `CTC-006` tracks the consumer moves.
 
 ## Release
 
