@@ -196,6 +196,7 @@ fn a_repository_file_is_held_to_known_fields(suite: &Suite) {
               max_depth: 128
               max_nodes: 10
               max_reader_input_bytes: 536870912
+              alias_anchor_ratio_multiplier: 1000
         "},
     );
     let loosened = use_repo_limits(loose.path()).unwrap();
@@ -211,6 +212,11 @@ fn a_repository_file_is_held_to_known_fields(suite: &Suite) {
                 field: "max_depth",
                 value: "128".to_owned(),
                 default: "64".to_owned(),
+            },
+            Loosened {
+                field: "alias_anchor_ratio_multiplier",
+                value: "1000".to_owned(),
+                default: "10".to_owned(),
             },
         ],
         "each field above the default is reported, a tighter one is not"

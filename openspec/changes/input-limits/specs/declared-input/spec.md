@@ -46,10 +46,11 @@ default, for the CLI to print as a warning.
 
 #### Scenario: A repository loosens a limit
 
-- **WHEN** `.ctl/input.yaml` sets `max_depth: 128`, `max_nodes: 10`, and
-  `max_reader_input_bytes: 536870912`
-- **THEN** `use_repo_limits` returns `max_reader_input_bytes` and `max_depth`
-  with their values and defaults, not `max_nodes`, and the `max_depth` one
+- **WHEN** `.ctl/input.yaml` sets `max_depth: 128`, `max_nodes: 10`,
+  `max_reader_input_bytes: 536870912`, and `alias_anchor_ratio_multiplier: 1000`
+- **THEN** `use_repo_limits` returns `max_reader_input_bytes`, `max_depth`, and
+  `alias_anchor_ratio_multiplier` with their values and defaults, not
+  `max_nodes`, and the `max_depth` one
   reads `.ctl/input.yaml raises max_depth to 128, above the default 64`
 
 ### Requirement: A limit error says how to raise the limit

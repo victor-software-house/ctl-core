@@ -139,7 +139,9 @@ pub fn set_default_limits(limits: Limits) {
 /// repository was installed before.
 ///
 /// Returns each limit the repository raises above serde-saphyr's default.
-/// Print each as `{bin}: warning: {loosened}`.
+/// Print each as `{bin}: warning: {loosened}`. The baseline is serde-saphyr's
+/// default, not the process tier: the warning marks leaving the library's own
+/// envelope, whatever the tool chose.
 ///
 /// # Errors
 ///
