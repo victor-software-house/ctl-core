@@ -161,20 +161,35 @@ impl Served {
     ///
     /// # Errors
     ///
-    /// When the target is a symlink, which could point outside the
-    /// repository, or the file or its directories cannot be written.
+    /// When the target or any directory above it is a symlink, which could
+    /// point outside the repository, when the created directory does not
+    /// resolve inside `root`, or when the file or its directories cannot be
+    /// written.
     pub fn write(&self, root: &Path) -> Result<PathBuf, ServeError> {
         let failed = |message: String| ServeError {
             template: self.target.display().to_string(),
             message,
         };
-        let path = root.join(&self.target);
-        if fs::symlink_metadata(&path).is_ok_and(|meta| meta.file_type().is_symlink()) {
-            return Err(failed("target must not be a symlink".to_owned()));
+        let mut walked = root.to_path_buf();
+        for part in self.target.components() {
+            walked.push(part);
+            if fs::symlink_metadata(&walked).is_ok_and(|meta| meta.file_type().is_symlink()) {
+                return Err(failed(format!(
+                    "{} must not be a symlink",
+                    walked.strip_prefix(root).unwrap_or(&walked).display()
+                )));
+            }
         }
+        let path = root.join(&self.target);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
                 .map_err(|error| failed(format!("create {}: {error}", parent.display())))?;
+            let inside = fs::canonicalize(root)
+                .and_then(|real_root| Ok(fs::canonicalize(parent)?.starts_with(real_root)))
+                .map_err(|error| failed(format!("resolve {}: {error}", parent.display())))?;
+            if !inside {
+                return Err(failed("target must stay inside the repository".to_owned()));
+            }
         }
         fs::write(&path, &self.body).map_err(|error| failed(format!("write: {error}")))?;
         #[cfg(unix)]

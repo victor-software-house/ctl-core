@@ -39,7 +39,9 @@ undefined name.
 
 `Served::write(root)` SHALL create the target's directories, write the body,
 and on Unix set mode 0755 when `executable` is true and 0644 otherwise,
-correcting a stale mode. It SHALL refuse a target that is a symlink.
+correcting a stale mode. It SHALL refuse a target, or any directory above it
+under `root`, that is a symlink, and a created directory that does not
+resolve inside `root`.
 
 #### Scenario: An executable task and a stale README
 
@@ -52,3 +54,10 @@ correcting a stale mode. It SHALL refuse a target that is a symlink.
 - **WHEN** the target path is a symlink to a file outside the root
 - **THEN** `write` fails with `must not be a symlink` and the outside file is
   unchanged
+
+#### Scenario: A symlinked directory above the target
+
+- **WHEN** `tasks` under the root is a symlink to a directory outside it, and
+  a template declares `path = "tasks/q"`
+- **THEN** `write` fails with `tasks must not be a symlink` and nothing is
+  written outside the root

@@ -11,12 +11,12 @@
 
 ## Evidence
 
-2026-10-11 UTC. `mise run verify` passes on a build runner: 158 tests,
-including the nine in `tests/served.rs`, ported from verctl's renderer cases
+2026-10-11 UTC. `mise run verify` passes on a build runner: 159 tests,
+including the ten in `tests/served.rs`, ported from verctl's renderer cases
 (targets from declarations, refused declarations naming the template and the
 field, an unknown export, the shebang and trailing newline, an undefined name,
 a missing suffix, ctl-core fragments, the 0755 and 0644 modes with a stale
-mode corrected, and a symlinked target). `check:features` compiles `served`
-alone. `Cargo.lock` gains no crate.
+mode corrected, a symlinked target, and a symlinked directory above it).
+`check:features` compiles `served` alone. `Cargo.lock` gains no crate.
 
 Not done here: verctl moving onto `served`, which happens inside its redesign.

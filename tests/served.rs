@@ -188,3 +188,20 @@ fn a_symlinked_target_is_refused() {
     );
     assert_eq!(fs::read_to_string(&outside).unwrap(), "keep");
 }
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_directory_above_the_target_is_refused() {
+    let suite = Suite::new("served");
+    let root = suite.scenario("parent");
+    let outside = suite.scenario("outside");
+    std::os::unix::fs::symlink(outside.path(), root.path().join("tasks")).unwrap();
+
+    let task = served(r#"{%- set path = "tasks/q" -%}x"#).unwrap();
+    let report = task.write(root.path()).unwrap_err();
+    assert!(
+        report.to_string().contains("tasks must not be a symlink"),
+        "{report}"
+    );
+    assert!(!outside.path().join("q").exists());
+}
