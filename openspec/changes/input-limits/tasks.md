@@ -8,6 +8,9 @@
   `mise run verify` on the build host.
 - [x] 3. AGENTS.md states the tiers. Proof: the Declared input section.
 - [x] 4. A patch changeset. Proof: `.changeset/input-limits.md`.
+- [ ] 5. Drop `enforce_alias_anchor_ratio`, and return each limit a
+  repository loosens. Proof: the ratio and loosened steps in
+  `tests/input_limits.rs` under `mise run verify` on the build host.
 
 ## Evidence
 

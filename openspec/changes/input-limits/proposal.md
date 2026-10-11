@@ -13,8 +13,9 @@ limit error also does not say how to raise the limit.
 
 ## What Changes
 
-1. `input::Limits` has one optional override for each of the 21 fields of
-   serde-saphyr's `Budget`. `None` leaves the field to the next tier.
+1. `input::Limits` has one optional override for each field of
+   serde-saphyr's `Budget` except `enforce_alias_anchor_ratio`, which stays
+   on. `None` leaves the field to the next tier.
 2. Overrides come from four tiers, decided field by field, highest first: the
    call (`Input::limits`), the repository (`limits:` in `.ctl/input.yaml`,
    installed by `input::use_repo_limits(root)`), the process
@@ -26,6 +27,9 @@ limit error also does not say how to raise the limit.
    to raise it: `exceeds max_depth (64); raise limits.max_depth in
    .ctl/input.yaml`.
 5. The defaults stay serde-saphyr's. Nothing is tightened.
+6. `use_repo_limits` returns each limit the repository raises above
+   serde-saphyr's default, naming the field, its value, and the default, for
+   the CLI to print as a warning.
 
 ## Capabilities
 

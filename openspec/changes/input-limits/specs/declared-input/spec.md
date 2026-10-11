@@ -6,8 +6,11 @@
 the highest tier that sets it: the call's `Input::limits`, then the
 repository's `limits:` in `.ctl/input.yaml` installed by `use_repo_limits`,
 then the process default from `set_default_limits`, then serde-saphyr's
-default. `Limits` SHALL expose every `Budget` field. `max_reader_input_bytes`
-SHALL also cap text already in memory.
+default. `Limits` SHALL expose every `Budget` field except
+`enforce_alias_anchor_ratio`, which stays on. `max_reader_input_bytes` SHALL
+also cap text already in memory. `use_repo_limits` SHALL return each field the
+repository sets looser than serde-saphyr's default, with its value and the
+default, for the CLI to print as a warning.
 
 #### Scenario: The process default applies
 
@@ -35,6 +38,19 @@ SHALL also cap text already in memory.
 
 - **WHEN** `.ctl/input.yaml` sets `limits: {max_dept: 8}`
 - **THEN** `use_repo_limits` fails naming the file and `max_dept`
+
+#### Scenario: The alias ratio cannot be turned off
+
+- **WHEN** `.ctl/input.yaml` sets `limits: {enforce_alias_anchor_ratio: false}`
+- **THEN** `use_repo_limits` fails naming `enforce_alias_anchor_ratio`
+
+#### Scenario: A repository loosens a limit
+
+- **WHEN** `.ctl/input.yaml` sets `max_depth: 128`, `max_nodes: 10`, and
+  `max_reader_input_bytes: 536870912`
+- **THEN** `use_repo_limits` returns `max_reader_input_bytes` and `max_depth`
+  with their values and defaults, not `max_nodes`, and the `max_depth` one
+  reads `.ctl/input.yaml raises max_depth to 128, above the default 64`
 
 ### Requirement: A limit error says how to raise the limit
 

@@ -142,7 +142,9 @@ from a Markdown body. Limits are serde-saphyr's `Budget`, overridable field by
 field: the call (`Input::limits`), then the repository (`limits:` in
 `.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup), then the
 process (`set_default_limits` or `App::input_limits`), then serde-saphyr's
-default. A CLI parses config only through `input`; it keeps no `schema.rs` and
+default. `enforce_alias_anchor_ratio` is not overridable and stays on.
+`use_repo_limits` returns each limit the repository raises above the default;
+the CLI prints each as a warning. A CLI parses config only through `input`; it keeps no `schema.rs` and
 no YAML crate of its own. `CTC-008` tracks the consumer moves and the template
 renderer.
 

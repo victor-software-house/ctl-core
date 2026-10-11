@@ -17,7 +17,7 @@ use serde_saphyr::{
 mod limits;
 
 use limits::{Exceeded, Raise};
-pub use limits::{Limits, REPO_FILE, set_default_limits, use_repo_limits};
+pub use limits::{Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits};
 
 /// A named YAML text, ready to parse and validate.
 #[derive(Clone, Debug, PartialEq, Eq)]

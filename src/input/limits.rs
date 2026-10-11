@@ -29,6 +29,10 @@ macro_rules! limits {
         ///
         /// A repository beats a tool's default because the operator owns
         /// it, as an operator's environment beats a tool's built-in width.
+        ///
+        /// `enforce_alias_anchor_ratio` is not here: the ratio check is one
+        /// comparison after scanning, so turning it off saves nothing. It
+        /// stays on; its multiplier and minimum alias count are overridable.
         #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
         #[serde(deny_unknown_fields, default)]
         pub struct Limits {
@@ -54,6 +58,24 @@ macro_rules! limits {
                     budget.$field = value;
                 } )*
                 budget
+            }
+
+            /// Each set field that is looser than serde-saphyr's default.
+            fn loosened(&self) -> Vec<Loosened> {
+                let default = Budget::default();
+                let mut loosened = Vec::new();
+                $( if let Some(value) = self.$field {
+                    let wrapped = value;
+                    $( let wrapped = $wrap(wrapped); )?
+                    if wrapped.looser_than(&default.$field) {
+                        loosened.push(Loosened {
+                            field: stringify!($field),
+                            value: value.to_string(),
+                            default: default.$field.shown(),
+                        });
+                    }
+                } )*
+                loosened
             }
         }
     };
@@ -96,9 +118,7 @@ limits! {
     max_total_comment_bytes: usize,
     /// Merge keys (`<<`). ctl-core refuses merge keys whatever this says.
     max_merge_keys: usize,
-    /// Whether aliases may outnumber anchors only by the ratio below.
-    enforce_alias_anchor_ratio: bool,
-    /// Aliases allowed before the ratio applies.
+    /// Aliases allowed before the alias-to-anchor ratio applies.
     alias_anchor_min_aliases: usize,
     /// How many aliases each anchor may have once the ratio applies.
     alias_anchor_ratio_multiplier: usize,
@@ -118,11 +138,14 @@ pub fn set_default_limits(limits: Limits) {
 /// The file itself is read under the process default, not under whatever
 /// repository was installed before.
 ///
+/// Returns each limit the repository raises above serde-saphyr's default.
+/// Print each as `{bin}: warning: {loosened}`.
+///
 /// # Errors
 ///
 /// An [`InputError`] when the file cannot be read, is not YAML, or names a
 /// field [`Limits`] does not have.
-pub fn use_repo_limits(root: &Path) -> Result<(), InputError> {
+pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
     let path = root.join(REPO_FILE);
     let limits = match std::fs::read_to_string(&path) {
         Ok(text) => {
@@ -142,8 +165,71 @@ pub fn use_repo_limits(root: &Path) -> Result<(), InputError> {
             ));
         }
     };
+    let loosened = limits.loosened();
     *REPOSITORY.write().unwrap_or_else(PoisonError::into_inner) = limits;
-    Ok(())
+    Ok(loosened)
+}
+
+/// A limit a repository's [`REPO_FILE`] raises above serde-saphyr's default.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Loosened {
+    /// The [`Limits`] field.
+    pub field: &'static str,
+    /// The repository's value.
+    pub value: String,
+    /// serde-saphyr's default.
+    pub default: String,
+}
+
+impl fmt::Display for Loosened {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{REPO_FILE} raises {} to {}, above the default {}",
+            self.field, self.value, self.default
+        )
+    }
+}
+
+/// How a [`Budget`] field compares with serde-saphyr's default.
+trait Bound {
+    fn looser_than(&self, default: &Self) -> bool;
+    fn shown(&self) -> String;
+}
+
+impl Bound for usize {
+    fn looser_than(&self, default: &Self) -> bool {
+        self > default
+    }
+
+    fn shown(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Bound for u32 {
+    fn looser_than(&self, default: &Self) -> bool {
+        self > default
+    }
+
+    fn shown(&self) -> String {
+        self.to_string()
+    }
+}
+
+/// `None` is no cap at all, the loosest bound.
+impl Bound for Option<usize> {
+    fn looser_than(&self, default: &Self) -> bool {
+        match (self, default) {
+            (None, Some(_)) => true,
+            (Some(value), Some(default)) => value > default,
+            (_, None) => false,
+        }
+    }
+
+    fn shown(&self) -> String {
+        self.map_or_else(|| "none".to_owned(), |value| value.to_string())
+    }
 }
 
 /// The shape of [`REPO_FILE`].
@@ -161,7 +247,6 @@ pub(super) fn effective(call: &Limits) -> Limits {
     call.clone().or(&repository).or(&process)
 }
 
-/// A limit a text went past: the field and the value in force.
 /// Where an operator raises a limit a text went past.
 #[derive(Clone, Copy)]
 pub(super) enum Raise {
@@ -172,6 +257,7 @@ pub(super) enum Raise {
     InProcess,
 }
 
+/// A limit a text went past: the field and the value in force.
 pub(super) struct Exceeded {
     field: &'static str,
     limit: String,

@@ -12,7 +12,7 @@
 
 use ctl_core::fixture::Suite;
 use ctl_core::indoc;
-use ctl_core::input::{Input, Limits, REPO_FILE, set_default_limits, use_repo_limits};
+use ctl_core::input::{Input, Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits};
 use serde::de::IgnoredAny;
 
 /// Mappings nested `depth` deep, one key per level.
@@ -89,7 +89,11 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
               max_depth: 8
         "},
     );
-    use_repo_limits(repo.path()).unwrap();
+    assert_eq!(
+        use_repo_limits(repo.path()).unwrap(),
+        [],
+        "a limit at or below the default is not loosened"
+    );
     assert_eq!(refusal(&six), None, "the repository beats the process");
 
     let five = Input::new("six.yaml", nested(6)).limits(depth(5));
@@ -121,17 +125,7 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
         "a repository without the file overrides nothing"
     );
 
-    let wrong = suite.scenario("unknown");
-    wrong.file(
-        REPO_FILE,
-        indoc! {"
-            limits:
-              max_dept: 8
-        "},
-    );
-    let error = use_repo_limits(wrong.path()).unwrap_err().to_string();
-    assert!(error.contains("input.yaml"), "{error}");
-    assert!(error.contains("max_dept"), "{error}");
+    a_repository_file_is_held_to_known_fields(&suite);
 
     set_default_limits(Limits::NONE);
     let tight = suite.scenario("tight");
@@ -162,4 +156,67 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
         "a limit hit reading the repository file points at the process default: {error}"
     );
     set_default_limits(Limits::NONE);
+}
+
+/// `.ctl/input.yaml` refuses an unknown field, including the alias ratio
+/// switch, and reports each limit it raises above serde-saphyr's default.
+/// Called from the sequence test, because it installs the repository tier.
+fn a_repository_file_is_held_to_known_fields(suite: &Suite) {
+    let wrong = suite.scenario("unknown");
+    wrong.file(
+        REPO_FILE,
+        indoc! {"
+            limits:
+              max_dept: 8
+        "},
+    );
+    let error = use_repo_limits(wrong.path()).unwrap_err().to_string();
+    assert!(error.contains("input.yaml"), "{error}");
+    assert!(error.contains("max_dept"), "{error}");
+
+    let ratio = suite.scenario("ratio-off");
+    ratio.file(
+        REPO_FILE,
+        indoc! {"
+            limits:
+              enforce_alias_anchor_ratio: false
+        "},
+    );
+    let error = use_repo_limits(ratio.path()).unwrap_err().to_string();
+    assert!(
+        error.contains("enforce_alias_anchor_ratio"),
+        "the alias ratio cannot be turned off: {error}"
+    );
+
+    let loose = suite.scenario("loose");
+    loose.file(
+        REPO_FILE,
+        indoc! {"
+            limits:
+              max_depth: 128
+              max_nodes: 10
+              max_reader_input_bytes: 536870912
+        "},
+    );
+    let loosened = use_repo_limits(loose.path()).unwrap();
+    assert_eq!(
+        loosened,
+        [
+            Loosened {
+                field: "max_reader_input_bytes",
+                value: "536870912".to_owned(),
+                default: "268435456".to_owned(),
+            },
+            Loosened {
+                field: "max_depth",
+                value: "128".to_owned(),
+                default: "64".to_owned(),
+            },
+        ],
+        "each field above the default is reported, a tighter one is not"
+    );
+    assert_eq!(
+        loosened[1].to_string(),
+        ".ctl/input.yaml raises max_depth to 128, above the default 64"
+    );
 }
