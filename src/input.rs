@@ -133,7 +133,11 @@ impl Input {
     /// An [`InputError`] with the parser's problem and its line. A limit
     /// problem names the limit, its value, and where to raise it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
-        let budget = limits::effective(&self.limits).budget();
+        self.parse_within(&limits::effective(&self.limits).budget())
+    }
+
+    /// [`Self::parse`] under exactly `budget`, whatever the tiers say.
+    fn parse_within<T: DeserializeOwned>(&self, budget: &Budget) -> Result<T, InputError> {
         if let Some(limit) = budget.max_reader_input_bytes
             && self.text.len() > limit
         {
@@ -163,7 +167,7 @@ impl Input {
                         .map(|line| line + self.lines_before),
                     column: location.and_then(|at| usize::try_from(at.column()).ok()),
                     field: String::new(),
-                    message: self.message(error.without_snippet(), &budget),
+                    message: self.message(error.without_snippet(), budget),
                 }],
             }
         })

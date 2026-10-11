@@ -115,6 +115,8 @@ pub fn set_default_limits(limits: Limits) {
 
 /// Read `limits:` from `root`'s [`REPO_FILE`] and install it for every later
 /// parse in this process. A repository without the file overrides nothing.
+/// The file itself is read under the process default, not under whatever
+/// repository was installed before.
 ///
 /// # Errors
 ///
@@ -124,8 +126,12 @@ pub fn use_repo_limits(root: &Path) -> Result<(), InputError> {
     let path = root.join(REPO_FILE);
     let limits = match std::fs::read_to_string(&path) {
         Ok(text) => {
+            let process = PROCESS
+                .read()
+                .unwrap_or_else(PoisonError::into_inner)
+                .budget();
             Input::new(path.display().to_string(), text)
-                .parse::<RepoFile>()?
+                .parse_within::<RepoFile>(&process)?
                 .limits
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Limits::NONE,

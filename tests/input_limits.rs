@@ -134,4 +134,21 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
     assert!(error.contains("max_dept"), "{error}");
 
     set_default_limits(Limits::NONE);
+    let tight = suite.scenario("tight");
+    tight.file(
+        REPO_FILE,
+        indoc! {"
+            limits:
+              max_depth: 1
+        "},
+    );
+    use_repo_limits(tight.path()).unwrap();
+    use_repo_limits(repo.path())
+        .expect("a repository file is read under the process default, not the last repository");
+    assert_eq!(
+        refusal(&six),
+        None,
+        "the second repository replaced the first"
+    );
+    use_repo_limits(empty.path()).unwrap();
 }
