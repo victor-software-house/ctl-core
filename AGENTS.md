@@ -135,9 +135,11 @@ refused), validates it once with garde, and reports every problem with its
 file and line through yamled's location index. A message carries no
 position of its own, except that an alias error names where its value is
 defined, counted from the file. `Input::frontmatter` splits
-YAML frontmatter from a Markdown body. A CLI parses config only through
-`input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
-the consumer moves and the template renderer.
+YAML frontmatter from a Markdown body. Every parse, for every tool, refuses a
+text over 2 MiB, a second document, nesting past 32, and more than 100,000
+nodes (`input::MAX_BYTES`, `MAX_DEPTH`, `MAX_NODES`). A CLI parses config only
+through `input`; it keeps no `schema.rs` and no YAML crate of its own.
+`CTC-008` tracks the consumer moves and the template renderer.
 
 ## Fixtures
 

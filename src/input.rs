@@ -14,6 +14,17 @@ use serde_saphyr::{
     DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
 };
 
+/// The longest text [`Input::parse`] reads, in bytes: 2 MiB. It also caps the
+/// scalar text one document may hold.
+pub const MAX_BYTES: usize = 2 * 1024 * 1024;
+
+/// How deeply sequences and mappings may nest.
+pub const MAX_DEPTH: usize = 32;
+
+/// How many nodes, sequences, mappings, and scalars together, one document
+/// may hold.
+pub const MAX_NODES: usize = 100_000;
+
 /// A named YAML text, ready to parse and validate.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Input {
@@ -108,13 +119,28 @@ impl Input {
     }
 
     /// Parse the text's shape. Only `true` and `false` are booleans, and a
-    /// duplicate key or a merge key (`<<`) is refused.
+    /// duplicate key or a merge key (`<<`) is refused. The text must hold one
+    /// document, at most [`MAX_BYTES`] long, nested at most [`MAX_DEPTH`]
+    /// deep, with at most [`MAX_NODES`] nodes.
     ///
     /// # Errors
     ///
-    /// An [`InputError`] with the parser's problem and its line.
+    /// An [`InputError`] with the parser's problem and its line, or a problem
+    /// with no line for a text over [`MAX_BYTES`].
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
+        if self.text.len() > MAX_BYTES {
+            return Err(InputError::whole(
+                self.name.clone(),
+                format!("is {} bytes; the limit is {MAX_BYTES}", self.text.len()),
+            ));
+        }
         let options = serde_saphyr::options! {
+            budget: serde_saphyr::budget! {
+                max_documents: 1,
+                max_depth: MAX_DEPTH,
+                max_nodes: MAX_NODES,
+                max_total_scalar_bytes: MAX_BYTES,
+            },
             strict_booleans: true,
             duplicate_keys: DuplicateKeyPolicy::Error,
             merge_keys: MergeKeyPolicy::Error,
