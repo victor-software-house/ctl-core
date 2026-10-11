@@ -8,6 +8,7 @@
 //! test, and the message says which file.
 
 use std::fs;
+use std::marker::PhantomData;
 use std::path::{Component, Path, PathBuf};
 
 use tempfile::{Builder, TempDir};
@@ -15,7 +16,7 @@ use tempfile::{Builder, TempDir};
 /// A temporary directory for one test file.
 pub struct Suite {
     name: String,
-    root: Root,
+    root: Root<'static>,
 }
 
 impl Suite {
@@ -33,39 +34,55 @@ impl Suite {
             .unwrap_or_else(|error| panic!("create a temporary directory for {name}: {error}"));
         Self {
             name: name.to_owned(),
-            root: Root { dir },
+            root: Root {
+                dir,
+                suite: PhantomData,
+            },
         }
     }
 
     /// A fresh directory for one scenario, inside this suite's, removed when
-    /// the returned [`Root`] drops.
+    /// the returned [`Root`] drops. The scenario borrows the suite, because
+    /// dropping the suite first would delete a directory still in use:
+    ///
+    /// ```compile_fail,E0505
+    /// let suite = ctl_core::fixture::Suite::new("early");
+    /// let root = suite.scenario("orphan");
+    /// drop(suite);
+    /// root.file("a.md", "a");
+    /// ```
     ///
     /// # Panics
     ///
     /// When the suite's directory cannot hold a new directory.
     #[must_use]
     #[track_caller]
-    pub fn scenario(&self, name: &str) -> Root {
+    pub fn scenario(&self, name: &str) -> Root<'_> {
         let dir = Builder::new()
             .prefix(&format!("{name}-"))
             .tempdir_in(self.root.path())
             .unwrap_or_else(|error| panic!("create {} scenario {name}: {error}", self.name));
-        Root { dir }
+        Root {
+            dir,
+            suite: PhantomData,
+        }
     }
 
     /// The suite's own directory.
     #[must_use]
-    pub fn root(&self) -> &Root {
+    pub fn root(&self) -> &Root<'static> {
         &self.root
     }
 }
 
-/// A temporary directory a test writes files into.
-pub struct Root {
+/// A temporary directory a test writes files into, alive no longer than the
+/// suite it sits in.
+pub struct Root<'suite> {
     dir: TempDir,
+    suite: PhantomData<&'suite ()>,
 }
 
-impl Root {
+impl Root<'_> {
     /// Where the directory is.
     #[must_use]
     pub fn path(&self) -> &Path {

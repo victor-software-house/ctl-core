@@ -29,6 +29,12 @@ suite's. Each directory SHALL be removed when its owner drops.
 - **WHEN** a scenario holding `a.md` drops
 - **THEN** `a.md` no longer exists and the suite's directory still does
 
+#### Scenario: A scenario cannot outlive its suite
+
+- **WHEN** a test drops a `Suite` and then writes through one of its scenarios
+- **THEN** the test does not compile (E0505), because the scenario borrows
+  the suite
+
 ### Requirement: A fixture never writes outside its root
 
 `Root::file` and `Root::read` SHALL panic, writing nothing, when the path is

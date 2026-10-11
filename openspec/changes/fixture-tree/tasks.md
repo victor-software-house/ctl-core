@@ -14,7 +14,8 @@
 2026-10-11 UTC. `mise run verify` passes on a build runner: 148 tests,
 including the five in `tests/fixture.rs` (a nested file and its parents, two
 scenarios that share nothing, a dropped scenario and a dropped suite removed,
-and `..` or an absolute path refused without writing). `check:features`
+and `..` or an absolute path refused without writing). A `compile_fail,E0505`
+doctest on `Suite::scenario` shows a scenario cannot outlive its suite. `check:features`
 compiles `fixture` alone. Its one warning, an unused `serde_json` under
 `--features json`, predates this change.
 
