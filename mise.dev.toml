@@ -37,6 +37,7 @@ run = [
   "cargo check --no-default-features --features surface",
   "cargo check --no-default-features --features validate",
   "cargo check --no-default-features --features input",
+  "cargo check --no-default-features --features fixture",
   "cargo check --no-default-features --features usage",
   "cargo check --no-default-features --features json",
   "cargo check --no-default-features --features cli",

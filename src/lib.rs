@@ -30,6 +30,9 @@ pub mod format;
 /// Schema-first wire types.
 pub mod model;
 
+/// Temporary file trees for integration tests.
+#[cfg(feature = "fixture")]
+pub mod fixture;
 /// Clap flatten structs for shared flags.
 #[cfg(feature = "cli")]
 pub mod flags;
