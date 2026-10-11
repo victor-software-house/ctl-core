@@ -151,4 +151,15 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
         "the second repository replaced the first"
     );
     use_repo_limits(empty.path()).unwrap();
+
+    set_default_limits(depth(1));
+    let error = use_repo_limits(tight.path()).unwrap_err().to_string();
+    assert!(
+        error.ends_with(
+            "exceeds max_depth (1); raise max_depth in the tool's process default, \
+             which reads .ctl/input.yaml"
+        ),
+        "a limit hit reading the repository file points at the process default: {error}"
+    );
+    set_default_limits(Limits::NONE);
 }

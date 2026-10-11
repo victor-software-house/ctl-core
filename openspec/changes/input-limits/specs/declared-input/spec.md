@@ -39,7 +39,9 @@ SHALL also cap text already in memory.
 ### Requirement: A limit error says how to raise the limit
 
 A refusal caused by a limit SHALL name the file, the line when known, the
-limit's field and value, and `raise limits.<field> in .ctl/input.yaml`.
+limit's field and value, and `raise limits.<field> in .ctl/input.yaml`. A limit
+hit while reading `.ctl/input.yaml` itself SHALL point at the tool's process
+default instead.
 
 #### Scenario: Depth
 
@@ -53,3 +55,10 @@ limit's field and value, and `raise limits.<field> in .ctl/input.yaml`.
 - **THEN** the one problem has no line and reads `is 18 bytes, which exceeds
   max_reader_input_bytes (10); raise limits.max_reader_input_bytes in
   .ctl/input.yaml`
+
+#### Scenario: A limit hit while reading the repository file
+
+- **WHEN** the process sets `max_depth: 1` and `.ctl/input.yaml` nests two
+  deep
+- **THEN** `use_repo_limits` fails with `raise max_depth in the tool's process
+  default, which reads .ctl/input.yaml`

@@ -131,7 +131,7 @@ pub fn use_repo_limits(root: &Path) -> Result<(), InputError> {
                 .unwrap_or_else(PoisonError::into_inner)
                 .budget();
             Input::new(path.display().to_string(), text)
-                .parse_within::<RepoFile>(&process)?
+                .parse_within::<RepoFile>(&process, Raise::InProcess)?
                 .limits
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Limits::NONE,
@@ -162,16 +162,28 @@ pub(super) fn effective(call: &Limits) -> Limits {
 }
 
 /// A limit a text went past: the field and the value in force.
+/// Where an operator raises a limit a text went past.
+#[derive(Clone, Copy)]
+pub(super) enum Raise {
+    /// In the repository's [`REPO_FILE`].
+    InRepository,
+    /// In the tool's process default, for [`REPO_FILE`] itself, which is
+    /// read before any repository override applies.
+    InProcess,
+}
+
 pub(super) struct Exceeded {
     field: &'static str,
     limit: String,
+    raise: Raise,
 }
 
 impl Exceeded {
-    pub(super) fn input_bytes(limit: usize) -> Self {
+    pub(super) fn input_bytes(limit: usize, raise: Raise) -> Self {
         Self {
             field: "max_reader_input_bytes",
             limit: limit.to_string(),
+            raise,
         }
     }
 
@@ -182,7 +194,7 @@ impl Exceeded {
         clippy::wildcard_enum_match_arm,
         reason = "BudgetBreach is non_exhaustive: a variant added later keeps serde-saphyr's wording"
     )]
-    pub(super) fn breach(breach: &BudgetBreach, budget: &Budget) -> Option<Self> {
+    pub(super) fn breach(breach: &BudgetBreach, budget: &Budget, raise: Raise) -> Option<Self> {
         let (field, limit) = match breach {
             BudgetBreach::Events { .. } => ("max_events", budget.max_events.to_string()),
             BudgetBreach::Aliases { .. } => ("max_aliases", budget.max_aliases.to_string()),
@@ -231,16 +243,26 @@ impl Exceeded {
             ),
             _ => return None,
         };
-        Some(Self { field, limit })
+        Some(Self {
+            field,
+            limit,
+            raise,
+        })
     }
 }
 
 impl fmt::Display for Exceeded {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "exceeds {} ({}); raise limits.{} in {REPO_FILE}",
-            self.field, self.limit, self.field
-        )
+        write!(formatter, "exceeds {} ({}); ", self.field, self.limit)?;
+        match self.raise {
+            Raise::InRepository => {
+                write!(formatter, "raise limits.{} in {REPO_FILE}", self.field)
+            }
+            Raise::InProcess => write!(
+                formatter,
+                "raise {} in the tool's process default, which reads {REPO_FILE}",
+                self.field
+            ),
+        }
     }
 }

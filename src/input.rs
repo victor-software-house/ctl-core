@@ -16,7 +16,7 @@ use serde_saphyr::{
 
 mod limits;
 
-use limits::Exceeded;
+use limits::{Exceeded, Raise};
 pub use limits::{Limits, REPO_FILE, set_default_limits, use_repo_limits};
 
 /// A named YAML text, ready to parse and validate.
@@ -133,11 +133,18 @@ impl Input {
     /// An [`InputError`] with the parser's problem and its line. A limit
     /// problem names the limit, its value, and where to raise it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
-        self.parse_within(&limits::effective(&self.limits).budget())
+        self.parse_within(
+            &limits::effective(&self.limits).budget(),
+            Raise::InRepository,
+        )
     }
 
     /// [`Self::parse`] under exactly `budget`, whatever the tiers say.
-    fn parse_within<T: DeserializeOwned>(&self, budget: &Budget) -> Result<T, InputError> {
+    fn parse_within<T: DeserializeOwned>(
+        &self,
+        budget: &Budget,
+        raise: Raise,
+    ) -> Result<T, InputError> {
         if let Some(limit) = budget.max_reader_input_bytes
             && self.text.len() > limit
         {
@@ -146,7 +153,7 @@ impl Input {
                 format!(
                     "is {} bytes, which {}",
                     self.text.len(),
-                    Exceeded::input_bytes(limit)
+                    Exceeded::input_bytes(limit, raise)
                 ),
             ));
         }
@@ -167,7 +174,7 @@ impl Input {
                         .map(|line| line + self.lines_before),
                     column: location.and_then(|at| usize::try_from(at.column()).ok()),
                     field: String::new(),
-                    message: self.message(error.without_snippet(), budget),
+                    message: self.message(error.without_snippet(), budget, raise),
                 }],
             }
         })
@@ -176,9 +183,9 @@ impl Input {
     /// serde-saphyr's wording for `error`. An alias error also names where its
     /// value is defined, counted from the file like [`Problem::line`], and a
     /// limit error names the limit in `budget` and where to raise it.
-    fn message(&self, error: &Error, budget: &Budget) -> String {
+    fn message(&self, error: &Error, budget: &Budget, raise: Raise) -> String {
         if let Error::Budget { breach, .. } = error
-            && let Some(exceeded) = Exceeded::breach(breach, budget)
+            && let Some(exceeded) = Exceeded::breach(breach, budget, raise)
         {
             return exceeded.to_string();
         }
