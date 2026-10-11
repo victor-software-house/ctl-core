@@ -1,6 +1,6 @@
 [package]
 name = "ctl-core"
-version = "0.6.9"
+version = "0.6.10"
 edition = "2024"
 rust-version = "1.97.1"
 description = "Shared clap chassis for the *ctl CLIs"
@@ -91,6 +91,10 @@ surface-templates = ["surface-serde", "dep:minijinja"]
 
 ## Compatibility aggregate for the complete operator-document surface.
 surface = ["surface-templates"]
+
+## Files a repository serves, rendered from templates that declare their own
+## target (`served::render`, `Served::write`).
+served = ["surface-templates", "validate", "garde/derive", "minijinja/deserialization"]
 
 ## Garde rules every declared schema shares (`validate`).
 validate = ["dep:garde"]

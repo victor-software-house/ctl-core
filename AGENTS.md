@@ -154,6 +154,14 @@ top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
 and refuses a symlinked target. Which templates a repository serves and what
 context they see stay with the CLI. verctl moves onto it inside its redesign.
 
+## Served files
+
+`served::render(template, source, suffix, context)` renders one template through
+`surface::environment()` and reads `path`, `name`, and `executable` from its
+top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
+and refuses a symlinked target. Which templates a repository serves and what
+context they see stay with the CLI. verctl moves onto it inside its redesign.
+
 ## Fixtures
 
 Enable `fixture` on the ctl-core dev-dependency. `Suite::new(name)` owns a
