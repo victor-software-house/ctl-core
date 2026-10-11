@@ -2,31 +2,40 @@
 
 ## Decisions
 
-### 1. Fixed limits, not per-tool options
+### 1. Every Budget field, generated from one list
 
-The operator decided the limits apply to every tool. An options type on
-`Input` was considered. It lost because no current tool needs a different
-value, and a knob would let one tool drift from the others.
+`Limits` mirrors all 21 fields of serde-saphyr 1.3.0's `Budget`, and one
+`macro_rules!` list generates the struct, the field-by-field merge, and the
+mapping onto `Budget`, so the three cannot drift. A chosen subset was
+considered. It lost because the operator asked for every field, and a subset
+leaves the next field someone needs unreachable.
 
-### 2. forkctl's values
+### 2. Own type, not a re-export of `Budget`
 
-2 MiB, depth 32, and 100,000 nodes are forkctl's current limits, chosen for
-a hand-written manifest. qctl, verctl, and ctl-core read files of the same
-kind, far under each limit.
+`Budget` has no `Option` per field, so it cannot say "leave this to the next
+tier". A re-export would also tie ctl-core's public API to serde-saphyr's.
 
-### 3. The size check runs before parsing
+### 3. Precedence mirrors table width
 
-serde-saphyr's `max_reader_input_bytes` covers reader input only, and `Input`
-parses text already in memory, so `parse` checks the length itself.
-`max_total_scalar_bytes` still caps scalar text inside the budget.
+Width takes an explicit option first, then the operator's environment, then
+the built-in. Limits take the call first, then the repository the operator
+owns, then the tool's process default, then serde-saphyr's. A tool default
+above the repository was considered. It lost because a tool would then
+silently override the operator's own config.
 
-### 4. Anchors and aliases stay
+### 4. Repository and process tiers are process-wide
 
-forkctl refused them because it rewrote the whole file. Edits now go through
-yamled, which keeps the file as written, so the ban protected nothing.
-serde-saphyr's default alias-to-anchor ratio guard stays on against expansion
-bombs.
+`Input` does not know the repository root, so a CLI installs the repository
+tier once at startup with `use_repo_limits(root)`. Threading limits through
+every call was considered. It lost because every reader, including
+frontmatter, would need the root.
+
+### 5. In-memory text gets the byte cap
+
+serde-saphyr applies `max_reader_input_bytes` only to readers. `Input` holds
+text already read, so `parse` checks its length against the same field.
 
 ## Override and disable
 
-None. A tool that needs a larger file raises the limit here, for every tool.
+A repository raises any limit in `.ctl/input.yaml`. A tool sets its default
+with `set_default_limits`. Every field defaults to serde-saphyr's own value.

@@ -28,6 +28,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Declared input (`validate`, `input` features): shared garde rules, and one
   loader that parses YAML, validates once, and places every problem on its
   file and line.
+- Served files (`served` feature): render a template that declares its own
+  target through `{%- set -%}` exports, check the declarations once, and write
+  the file with its mode.
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
   per scenario, and one call per fixture file, for consumers' integration
   tests.
@@ -134,12 +137,22 @@ parses it with serde-saphyr (strict booleans, duplicate and merge keys
 refused), validates it once with garde, and reports every problem with its
 file and line through yamled's location index. A message carries no
 position of its own, except that an alias error names where its value is
-defined, counted from the file. `Input::frontmatter` splits
-YAML frontmatter from a Markdown body. Every parse, for every tool, refuses a
-text over 2 MiB, a second document, nesting past 32, and more than 100,000
-nodes (`input::MAX_BYTES`, `MAX_DEPTH`, `MAX_NODES`). A CLI parses config only
-through `input`; it keeps no `schema.rs` and no YAML crate of its own.
-`CTC-008` tracks the consumer moves and the template renderer.
+defined, counted from the file. `Input::frontmatter` splits YAML frontmatter
+from a Markdown body. Limits are serde-saphyr's `Budget`, overridable field by
+field: the call (`Input::limits`), then the repository (`limits:` in
+`.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup), then the
+process (`set_default_limits` or `App::input_limits`), then serde-saphyr's
+default. A CLI parses config only through `input`; it keeps no `schema.rs` and
+no YAML crate of its own. `CTC-008` tracks the consumer moves and the template
+renderer.
+
+## Served files
+
+`served::render(template, source, suffix, context)` renders one template through
+`surface::environment()` and reads `path`, `name`, and `executable` from its
+top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
+and refuses a symlinked target. Which templates a repository serves and what
+context they see stay with the CLI. verctl moves onto it inside its redesign.
 
 ## Fixtures
 

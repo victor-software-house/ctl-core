@@ -2,4 +2,4 @@
 ctl-core: patch
 ---
 
-`Input::parse` now enforces safety limits for every tool: a text over 2 MiB is refused before parsing, and a document must be the only one, nested at most 32 deep, with at most 100,000 nodes and 2 MiB of scalar text. The limits are public as `input::MAX_BYTES`, `MAX_DEPTH`, and `MAX_NODES`. Anchors and aliases stay readable; duplicate keys, merge keys, and loose booleans stay refused.
+`input::Limits` overrides any of serde-saphyr's `Budget` fields, decided field by field: the call (`Input::limits`), then the repository (`limits:` in `.ctl/input.yaml`, installed by `input::use_repo_limits`), then the process (`input::set_default_limits` or `App::input_limits`), then serde-saphyr's default. `max_reader_input_bytes` now also caps text already in memory, and a limit error names the limit, its value, and where to raise it.

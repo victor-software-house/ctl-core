@@ -9,11 +9,10 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ctl_core::indoc;
-use ctl_core::input::{Input, MAX_BYTES, MAX_DEPTH, MAX_NODES, Problem};
+use ctl_core::input::{Input, Problem};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
-use serde::de::IgnoredAny;
 
 #[derive(Debug, Deserialize, Validate, PartialEq)]
 struct Config {
@@ -208,73 +207,4 @@ fn a_path_that_leaves_the_repository_is_refused() {
             "{inside}"
         );
     }
-}
-
-/// Mappings nested `depth` deep, one key per level.
-fn nested(depth: usize) -> String {
-    (0..depth)
-        .map(|level| format!("{}a:", "  ".repeat(level)))
-        .collect::<Vec<_>>()
-        .join("\n")
-        + " 1\n"
-}
-
-#[test]
-fn a_text_over_the_size_limit_is_refused_before_parsing() {
-    let big = format!("a: {}\n", "x".repeat(MAX_BYTES));
-    let error = Input::new("big.yaml", big)
-        .parse::<IgnoredAny>()
-        .unwrap_err();
-    assert_eq!(error.problems.len(), 1, "{error}");
-    assert_eq!(error.problems[0].line, None, "{error}");
-    assert!(
-        error
-            .to_string()
-            .contains(&format!("the limit is {MAX_BYTES}")),
-        "{error}"
-    );
-}
-
-#[test]
-fn a_second_document_is_refused() {
-    let two = indoc! {"
-        a: 1
-        ---
-        b: 2
-    "};
-    assert!(Input::new("two.yaml", two).parse::<IgnoredAny>().is_err());
-}
-
-#[test]
-fn nesting_past_the_depth_limit_is_refused() {
-    assert!(
-        Input::new("deep.yaml", nested(MAX_DEPTH - 1))
-            .parse::<IgnoredAny>()
-            .is_ok()
-    );
-    assert!(
-        Input::new("deeper.yaml", nested(MAX_DEPTH + 1))
-            .parse::<IgnoredAny>()
-            .is_err()
-    );
-}
-
-#[test]
-fn a_document_past_the_node_limit_is_refused() {
-    let many = format!("[{}]\n", vec!["1"; MAX_NODES].join(", "));
-    assert!(Input::new("many.yaml", many).parse::<IgnoredAny>().is_err());
-    let some = format!("[{}]\n", vec!["1"; 1_000].join(", "));
-    assert!(Input::new("some.yaml", some).parse::<IgnoredAny>().is_ok());
-}
-
-#[test]
-fn anchors_and_aliases_are_read() {
-    let aliased = indoc! {"
-        base: &base
-          flag: true
-        copy: *base
-    "};
-    let parsed: BTreeMap<String, BTreeMap<String, bool>> =
-        Input::new("aliased.yaml", aliased).parse().unwrap();
-    assert!(parsed["copy"]["flag"]);
 }

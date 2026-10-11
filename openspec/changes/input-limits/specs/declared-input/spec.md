@@ -1,34 +1,55 @@
 ## ADDED Requirements
 
-### Requirement: The reader enforces safety limits for every tool
+### Requirement: Input limits are overridable field by field in tiers
 
-`Input::parse` SHALL refuse a text longer than `MAX_BYTES` (2 MiB) before
-parsing, with a problem that has no line. It SHALL refuse a text with more than
-one document, sequences and mappings nested deeper than `MAX_DEPTH` (32), more
-than `MAX_NODES` (100,000) nodes, or more than 2 MiB of scalar text. Anchors and
-aliases SHALL stay readable.
+`Input::parse` SHALL use serde-saphyr's `Budget` with each field taken from
+the highest tier that sets it: the call's `Input::limits`, then the
+repository's `limits:` in `.ctl/input.yaml` installed by `use_repo_limits`,
+then the process default from `set_default_limits`, then serde-saphyr's
+default. `Limits` SHALL expose every `Budget` field. `max_reader_input_bytes`
+SHALL also cap text already in memory.
 
-#### Scenario: A text over the size limit
+#### Scenario: The process default applies
 
-- **WHEN** a tool parses `big.yaml` holding `a: ` followed by 2 MiB of `x`
-- **THEN** the error has one problem with no line, naming the 2 MiB limit
+- **WHEN** `set_default_limits` sets `max_depth: 4` and a text nests six deep
+- **THEN** the parse fails naming `max_depth (4)`
 
-#### Scenario: Two documents
+#### Scenario: The repository beats the process
 
-- **WHEN** a tool parses a text with `a: 1`, `---`, and `b: 2`
-- **THEN** the parse fails
+- **WHEN** `.ctl/input.yaml` sets `limits: {max_depth: 8}` and
+  `use_repo_limits(root)` ran
+- **THEN** the six-deep text parses
 
-#### Scenario: Nesting past the limit
+#### Scenario: The call beats the repository
 
-- **WHEN** a tool parses 33 nested mappings
-- **THEN** the parse fails, and 31 nested mappings parse
+- **WHEN** the input also carries `limits(Limits { max_depth: Some(5), .. })`
+- **THEN** the parse fails naming `max_depth (5)`
 
-#### Scenario: Too many nodes
+#### Scenario: An unset field falls through
 
-- **WHEN** a tool parses a flow sequence of 100,000 scalars
-- **THEN** the parse fails, and a sequence of 1,000 scalars parses
+- **WHEN** the process sets `max_nodes: 20` and the repository sets only
+  `max_depth`
+- **THEN** a 30-item sequence fails naming `max_nodes (20)`
 
-#### Scenario: An alias
+#### Scenario: A repository file with an unknown field
 
-- **WHEN** a tool parses `base: &base {flag: true}` and `copy: *base`
-- **THEN** `copy.flag` reads as true
+- **WHEN** `.ctl/input.yaml` sets `limits: {max_dept: 8}`
+- **THEN** `use_repo_limits` fails naming the file and `max_dept`
+
+### Requirement: A limit error says how to raise the limit
+
+A refusal caused by a limit SHALL name the file, the line when known, the
+limit's field and value, and `raise limits.<field> in .ctl/input.yaml`.
+
+#### Scenario: Depth
+
+- **WHEN** `deep.yaml` nests six deep under `max_depth: 4`
+- **THEN** the error reads `deep.yaml:<line>:<column>: exceeds max_depth (4);
+  raise limits.max_depth in .ctl/input.yaml`
+
+#### Scenario: Text already in memory
+
+- **WHEN** an 18-byte text is parsed under `max_reader_input_bytes: 10`
+- **THEN** the one problem has no line and reads `is 18 bytes, which exceeds
+  max_reader_input_bytes (10); raise limits.max_reader_input_bytes in
+  .ctl/input.yaml`

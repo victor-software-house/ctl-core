@@ -11,19 +11,13 @@ use std::path::Path;
 use garde::Validate;
 use serde::de::DeserializeOwned;
 use serde_saphyr::{
-    DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
+    Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
 };
 
-/// The longest text [`Input::parse`] reads, in bytes: 2 MiB. It also caps the
-/// scalar text one document may hold.
-pub const MAX_BYTES: usize = 2 * 1024 * 1024;
+mod limits;
 
-/// How deeply sequences and mappings may nest.
-pub const MAX_DEPTH: usize = 32;
-
-/// How many nodes, sequences, mappings, and scalars together, one document
-/// may hold.
-pub const MAX_NODES: usize = 100_000;
+use limits::Exceeded;
+pub use limits::{Limits, REPO_FILE, set_default_limits, use_repo_limits};
 
 /// A named YAML text, ready to parse and validate.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,6 +25,7 @@ pub struct Input {
     name: String,
     text: String,
     lines_before: usize,
+    limits: Limits,
 }
 
 /// Why an input was refused: every problem found, each placed on a line when
@@ -65,6 +60,7 @@ impl Input {
             name: name.into(),
             text: text.into(),
             lines_before: 0,
+            limits: Limits::NONE,
         }
     }
 
@@ -110,6 +106,7 @@ impl Input {
                     name: self.name.clone(),
                     text: rest[..offset].to_owned(),
                     lines_before: self.lines_before + 1,
+                    limits: self.limits.clone(),
                 };
                 return Some((matter, &rest[offset + line.len()..]));
             }
@@ -118,29 +115,39 @@ impl Input {
         None
     }
 
+    /// Override limits for this input alone, above every other tier: see
+    /// [`Limits`] for the order.
+    #[must_use]
+    pub fn limits(mut self, limits: Limits) -> Self {
+        self.limits = limits;
+        self
+    }
+
     /// Parse the text's shape. Only `true` and `false` are booleans, and a
-    /// duplicate key or a merge key (`<<`) is refused. The text must hold one
-    /// document, at most [`MAX_BYTES`] long, nested at most [`MAX_DEPTH`]
-    /// deep, with at most [`MAX_NODES`] nodes.
+    /// duplicate key or a merge key (`<<`) is refused. The text must fit the
+    /// limits in force, field by field from this input, the repository's
+    /// [`REPO_FILE`], the process default, and serde-saphyr's own defaults.
     ///
     /// # Errors
     ///
-    /// An [`InputError`] with the parser's problem and its line, or a problem
-    /// with no line for a text over [`MAX_BYTES`].
+    /// An [`InputError`] with the parser's problem and its line. A limit
+    /// problem names the limit, its value, and where to raise it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
-        if self.text.len() > MAX_BYTES {
+        let budget = limits::effective(&self.limits).budget();
+        if let Some(limit) = budget.max_reader_input_bytes
+            && self.text.len() > limit
+        {
             return Err(InputError::whole(
                 self.name.clone(),
-                format!("is {} bytes; the limit is {MAX_BYTES}", self.text.len()),
+                format!(
+                    "is {} bytes, which {}",
+                    self.text.len(),
+                    Exceeded::input_bytes(limit)
+                ),
             ));
         }
         let options = serde_saphyr::options! {
-            budget: serde_saphyr::budget! {
-                max_documents: 1,
-                max_depth: MAX_DEPTH,
-                max_nodes: MAX_NODES,
-                max_total_scalar_bytes: MAX_BYTES,
-            },
+            budget: Some(budget.clone()),
             strict_booleans: true,
             duplicate_keys: DuplicateKeyPolicy::Error,
             merge_keys: MergeKeyPolicy::Error,
@@ -156,15 +163,21 @@ impl Input {
                         .map(|line| line + self.lines_before),
                     column: location.and_then(|at| usize::try_from(at.column()).ok()),
                     field: String::new(),
-                    message: self.message(error.without_snippet()),
+                    message: self.message(error.without_snippet(), &budget),
                 }],
             }
         })
     }
 
     /// serde-saphyr's wording for `error`. An alias error also names where its
-    /// value is defined, counted from the file like [`Problem::line`].
-    fn message(&self, error: &Error) -> String {
+    /// value is defined, counted from the file like [`Problem::line`], and a
+    /// limit error names the limit in `budget` and where to raise it.
+    fn message(&self, error: &Error, budget: &Budget) -> String {
+        if let Error::Budget { breach, .. } = error
+            && let Some(exceeded) = Exceeded::breach(breach, budget)
+        {
+            return exceeded.to_string();
+        }
         let Error::AliasError { msg, locations } = error else {
             return error.render_with_formatter(&DefaultMessageFormatter.with_localizer(&Unplaced));
         };
