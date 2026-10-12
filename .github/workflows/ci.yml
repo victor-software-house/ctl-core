@@ -12,12 +12,7 @@ env:
   GIT_CONFIG_COUNT: "1"
   GIT_CONFIG_KEY_0: init.defaultBranch
   GIT_CONFIG_VALUE_0: main
-  CARGO_TERM_COLOR: always
-  MISE_ENV: dev,ci
-  # On ext4 mbx restores cache hits as read-only hard links to its store.
-  # cargo package's verify build then fails to rewrite ctl-core's rmeta with
-  # "output file ... is not writeable", so restored outputs get their own copy.
-  MBX_RESTORE_HARDLINK: "0"
+  MISE_ENV: ci
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-${{ github.event.pull_request.base.sha || github.sha }}
@@ -50,6 +45,25 @@ jobs:
       - name: Advisories
         run: mise run deny:advisories
       - name: Semver
-        run: mise run semver
+        # mise-tasks/semver/ci allows the 0.6.15 baseline removal only while
+        # 0.6.14 is the newest release.
+        run: mise run semver:ci
       - name: Package
         run: mise x -- cargo package --locked --all-features
+
+  template:
+    name: Template
+    # A pull request from a fork gets no secrets and cannot read the private
+    # template, so the check is skipped there instead of failing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the template version
+        uses: ./.github/actions/copier-check
+        with:
+          client-id: ${{ secrets.TEMPLATES_APP_CLIENT_ID }}
+          private-key: ${{ secrets.TEMPLATES_APP_PRIVATE_KEY }}
