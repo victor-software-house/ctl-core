@@ -156,13 +156,19 @@ top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
 and refuses a symlinked target. Which templates a repository serves and what
 context they see stay with the CLI. verctl moves onto it inside its redesign.
 
-## Served files
+## Served baseline
 
-`served::render(template, source, suffix, context)` renders one template through
-`surface::environment()` and reads `path`, `name`, and `executable` from its
-top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
-and refuses a symlinked target. Which templates a repository serves and what
-context they see stay with the CLI. verctl moves onto it inside its redesign.
+`baseline::render(root, &config)` returns the Rust configuration every ctl
+repository shares, as `Served` values: `rust-toolchain.toml`, `rustfmt.toml`,
+`clippy.toml`, `deny.toml`, and `lefthook.yml` whole, and `Cargo.toml` and
+`mise.dev.toml` whole with only their marked block replaced
+(`# ctl-core baseline: begin lints` / `end lints`, `begin tools` / `end tools`).
+A repository declares `layout`, `published`, `tokio`, append-only entries
+with reasons, and owned files in `.ctl/rust.yaml` (`baseline::load`). The
+templates live in `templates/baseline/`, and this repository renders from
+them too: `tests/baseline.rs` fails when one of its files differs from the
+render, so a template and its file change in one commit. verctl writes and
+checks the files for other repositories through its served-file block.
 
 ## Fixtures
 

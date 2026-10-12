@@ -1,0 +1,27 @@
+# CI already runs `mise run verify`. Do not arm hooks on runners.
+pre-commit:
+  skip:
+    - run: test -n "$CI"
+  commands:
+    format:
+      # *.rs matches every depth; **/*.rs misses files at the root.
+      glob: "*.rs"
+      run: mise run format
+
+commit-msg:
+  skip:
+    - run: test -n "$CI"
+  commands:
+    committed:
+      run: mise run commit-msg {1}
+
+pre-push:
+  skip:
+    - run: test -n "$CI"
+  commands:
+    lockfile:
+      run: mise install --locked
+    committed:
+      run: mise run commits
+    verify:
+      run: mise run verify
