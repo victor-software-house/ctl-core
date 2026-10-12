@@ -235,8 +235,9 @@ Do not `&&` those in a new task; `depends` is the mise form. Those cargo
 invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked
 crates) are `mise run deny:advisories` on CI only, so a pre-push `verify`
-does not need the network. CI also runs `mise run semver`
-(cargo-semver-checks against the last release) before packaging. An unfixable RUSTSEC or yank is listed in
+does not need the network. CI also runs `mise run semver:ci`
+(cargo-semver-checks against the last release) before packaging; until 0.6.15
+is published it allows that release's removal of the `baseline` module. An unfixable RUSTSEC or yank is listed in
 `deny.toml` `[advisories].ignore` with a reason, not by weakening `yanked`
 or `unmaintained`.
 
