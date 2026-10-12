@@ -25,41 +25,15 @@ mr-boxington = "1.20.0"
 "github:obi1kenobi/cargo-semver-checks" = "0.51.0"
 jq = "1.8.2"
 
+# mise-tasks/ holds this repository's task fragments and file tasks. An
+# includes list replaces the default task dirs, so mise-tasks comes first; add
+# pinned git:: catalogs after it.
 [task_config]
 includes = [
+  "mise-tasks",
   "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.4.2",
   # The standard Rust tasks (check:toolchain, format, lint, test, test:doc,
   # deny, deny:advisories, deps, semver, verify). Other repositories include
   # this file by git:: URL at a release tag; this repository reads its own copy.
   "tasks/rust.toml",
 ]
-
-[tasks."check:features"]
-description = "Compile each advertised feature set without extra features"
-run = [
-  "cargo check --no-default-features",
-  "cargo check --no-default-features --features document",
-  "cargo check --no-default-features --features render",
-  "cargo check --no-default-features --features surface-model",
-  "cargo check --no-default-features --features surface-serde",
-  "cargo check --no-default-features --features surface-templates",
-  "cargo check --no-default-features --features surface",
-  "cargo check --no-default-features --features validate",
-  "cargo check --no-default-features --features input",
-  "cargo check --no-default-features --features fixture",
-  "cargo check --no-default-features --features served",
-  "cargo check --no-default-features --features usage",
-  "cargo check --no-default-features --features json",
-  "cargo check --no-default-features --features cli",
-  "cargo check --no-default-features --features view",
-  "cargo check --no-default-features --features help",
-  "cargo check --no-default-features --features app",
-  "cargo check --no-default-features --features app,usage",
-  "cargo check --no-default-features --features schema",
-]
-
-# The shared verify depends on check:repo for a repository's own checks.
-# ctl-core has none beyond the shared tasks.
-[tasks."check:repo"]
-description = "This repository's own checks: none beyond the shared tasks"
-run = "true"

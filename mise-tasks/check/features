@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Compile each advertised feature set without extra features"
+set -euo pipefail
+cargo check --no-default-features
+for features in document render surface-model surface-serde surface-templates surface validate input fixture served usage json cli view help app app,usage schema; do
+  cargo check --no-default-features --features "${features}"
+done

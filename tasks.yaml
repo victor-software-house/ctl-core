@@ -54,6 +54,19 @@ queue:
       - >2-
         2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
 
+  - id: CTC-019
+    title: Take template v0.0.4 and its task layout
+    scope: '.copier-answers.yml at templates v0.0.4, mise.toml [task_config], mise-tasks/, lefthook.yml, and the AGENTS.md template and checks sections'
+    outcome: ctl-core runs the template's v0.0.4 hooks and keeps its own tasks in mise-tasks/, listed first in [task_config].includes
+    blocked_by: []
+    acceptance:
+      - .copier-answers.yml records v0.0.4 and git diff --check is clean.
+      - check:features is the file task mise-tasks/check/features and check:repo is in mise-tasks/check.toml; mise.toml defines no task.
+      - mise tasks validate passes, and verify still depends on check:features and check:repo.
+      - On a fresh clone, mise install arms the hooks, a commit passes pre-commit and commit-msg, and pre-push passes.
+    notes:
+      - The warm-up TODO in lefthook.yml now points at the Copier template's own removal row.
+
 horizon: []
 
 archive:

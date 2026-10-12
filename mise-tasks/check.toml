@@ -1,0 +1,2 @@
+# The shared verify depends on check:repo for a repository's own checks.
+"check:repo" = { description = "This repository's own checks: none beyond the shared tasks", run = "true" }
