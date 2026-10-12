@@ -8,4 +8,7 @@ locked = true
 [task_config]
 includes = [
   "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.4.2",
+  # The standard Rust tasks. Other repositories include this file by git::
+  # URL at a release tag; this repository reads its own copy.
+  "tasks/rust.toml",
 ]
