@@ -29,7 +29,9 @@ runs:
       env:
         MISE_ENV: template
       with:
-        version: 2026.10.3
+        # Must reach every calling repository's min_version: mise refuses to
+        # load a mise.toml whose floor is newer than itself.
+        version: 2026.10.8
         cache: true
         # check:template needs only uv and python, not the toolchain.
         install_args: uv python
