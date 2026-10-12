@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.14
+
+- The shared `verify` in `tasks/rust.toml` now also depends on `check:repo`, which each including repository defines for its own checks, in place of overriding `verify`. A repository that moves its include to this release must define `check:repo` (a task that runs `true` when it has no checks of its own), or `verify` fails with `task not found: check:repo`.
+
 ## ctl-core 0.6.13
 
 - ctl-core now ships the standard Rust mise tasks (`check:toolchain`, `format`, `lint`, `test`, `test:doc`, `deny`, `deny:advisories`, `deps`, `semver`, `verify`) in `tasks/rust.toml`. Another repository includes it with `git::https://github.com/victor-software-house/ctl-core.git//tasks/rust.toml?ref=<tag>` in `task_config.includes`, and defines its own `check:features`.
