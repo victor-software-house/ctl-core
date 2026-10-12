@@ -179,7 +179,8 @@ The CI job `Template` runs the composite action
 skipped for pull requests from forks. Other repositories use the same action
 from this public repository, pinned by commit, with the App's client ID and
 private key as inputs; each defines its own `template` mise env and
-`check:template` task.
+`check:template` task. A repository that renders the template below its
+root passes that directory as `working-directory`.
 
 Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
 and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
