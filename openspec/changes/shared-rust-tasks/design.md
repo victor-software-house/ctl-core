@@ -52,7 +52,14 @@ pins in one commit.
 2. Disable all: remove the include.
 3. mise loads `git::` includes only with `experimental = true`. Without it,
    mise warns that it skipped the include, and `mise run verify` fails with
-   a missing task instead of passing.
+   `no task verify found` instead of passing.
+
+## Pinning
+
+`ref` takes a tag, a branch, or a full commit SHA. A short SHA fails: mise
+reports that the remote has no matching ref. A failing include stops every
+mise task command in the repository, `mise tasks ls` included, so a typo in
+the ref is loud. Consumers pin a release tag.
 
 ## Known issue
 
