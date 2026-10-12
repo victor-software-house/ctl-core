@@ -12,6 +12,12 @@ inputs:
   private-key:
     description: Private key of the vsh-templates-reader GitHub App
     required: true
+  working-directory:
+    description: >-
+      Directory that holds the rendered template and its mise config, relative
+      to the repository root, for a repository that renders it below the root
+    required: false
+    default: .
 
 runs:
   using: composite
@@ -33,10 +39,12 @@ runs:
         # load a mise.toml whose floor is newer than itself.
         version: 2026.10.8
         cache: true
+        working_directory: ${{ inputs.working-directory }}
         # check:template needs only uv and python, not the toolchain.
         install_args: uv python
     - name: Template version
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         MISE_ENV: template
         # Without this, mise run installs every missing tool in the
