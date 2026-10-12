@@ -45,7 +45,7 @@ jobs:
       - name: Advisories
         run: mise run deny:advisories
       - name: Semver
-        # semver:ci in mise.toml allows the 0.6.15 baseline removal only while
+        # mise-tasks/semver/ci allows the 0.6.15 baseline removal only while
         # 0.6.14 is the newest release.
         run: mise run semver:ci
       - name: Package

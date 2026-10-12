@@ -27,6 +27,8 @@ jq = "1.8.2"
 
 [task_config]
 includes = [
+  # File tasks; listed because an includes list replaces the default task dirs.
+  "mise-tasks",
   "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.4.2",
   # The standard Rust tasks (check:toolchain, format, lint, test, test:doc,
   # deny, deny:advisories, deps, semver, verify). Other repositories include
@@ -63,20 +65,3 @@ run = [
 [tasks."check:repo"]
 description = "This repository's own checks: none beyond the shared tasks"
 run = "true"
-
-# CI's Semver step. 0.6.15 removes the public `baseline` module and feature,
-# which no consumer enables, and the operator ruled a patch release. While the
-# newest ctl-core on crates.io is 0.6.14, semver-checks compares against it as
-# a major release, so that removal passes on this PR, the Version PR, and main.
-# Once 0.6.15 is published the condition is false and the full check runs
-# again; delete this task and call `semver` from CI then.
-[tasks."semver:ci"]
-description = "semver, allowing the 0.6.15 baseline removal while 0.6.14 is the newest release"
-shell = "bash -o pipefail -c"
-run = '''
-newest=$(curl -fsS -A ctl-core-ci https://crates.io/api/v1/crates/ctl-core | jq -r .crate.max_stable_version)
-if [ "$newest" = "0.6.14" ]; then
-  exec cargo semver-checks --baseline-version 0.6.14 --release-type major
-fi
-exec cargo semver-checks
-'''
