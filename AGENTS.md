@@ -174,13 +174,15 @@ committing.
 
 The CI job `Template` runs the composite action
 `.github/actions/copier-check`, which mints a token from the
-`vsh-templates-reader` GitHub App and runs `mise run check:template`
-(`copier check-update`). It fails when a newer tag exists, and the job is
-skipped for pull requests from forks. Other repositories use the same action
-from this public repository, pinned by commit, with the App's client ID and
-private key as inputs; each defines its own `template` mise env and
-`check:template` task. A repository that renders the template below its
-root passes that directory as `working-directory`.
+`vsh-templates-reader` GitHub App and runs its `check.sh`. The script runs
+`copier update` and fails when the newest tag changes any file besides
+`.copier-answers.yml`. A newer tag that renders the same files passes with a
+notice, and the repository takes the new tag with its next real template
+change. The job is skipped for pull requests from forks. Other repositories
+use the same action from this public repository, pinned by commit, with the
+App's client ID and private key as inputs; each defines its own `template`
+mise env with uv and python. A repository that renders the template below
+its root passes that directory as `working-directory`.
 
 Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
 and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
