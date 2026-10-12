@@ -178,12 +178,16 @@ The same five files also come from the shared Copier template, the private
 edit it by hand. Take a new tag with
 `MISE_ENV=template mise x -- uvx copier@9.18.2 update --defaults`, review
 the diff, and fix any conflict markers (`git diff --check`) before
-committing. The CI job `Template` runs `mise run check:template` (`copier check-update`), which
-fails when a newer tag exists; it reads the private repository with a token
-from the `vsh-templates-reader` GitHub App and is skipped for pull requests
-from forks. Until one of the two is retired, a rule changes in the template
-and in `templates/baseline/` together, because `tests/baseline.rs` compares
-this repository's files with the ctl-core render.
+committing.
+
+The CI job `Template` runs `mise run check:template` (`copier
+check-update`), which fails when a newer tag exists. It reads the private
+repository with a token from the `vsh-templates-reader` GitHub App, and it is
+skipped for pull requests from forks.
+
+Until one of the two is retired, a rule changes in the template and in
+`templates/baseline/` together, because `tests/baseline.rs` compares this
+repository's files with the ctl-core render.
 
 ## Fixtures
 
