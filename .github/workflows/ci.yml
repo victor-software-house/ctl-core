@@ -33,8 +33,15 @@ jobs:
         with:
           version: 2026.10.3
           cache: true
+      # The objects payload carries mbx's compiled actions, whatever Cargo's
+      # target layout. A restored target tree still recompiled most of the
+      # clippy, doc-test, and cargo-semver-checks work.
       - name: Cache builds with mbx
-        uses: jdx/mr-boxington-action@9df1d4b18b2147788a7ee7a2c7b84ecf62fd89d3 # v1.5.0
+        uses: jdx/mr-boxington-action@47ce49b32025d93a7a2f4570815afaa2b7092240 # v1.7.2
+        with:
+          github-cache-mode: objects
+          isolate-objects-cache: true
+          save-on-pull-request: true
       - name: Verify
         run: mise run verify
       - name: Advisories
