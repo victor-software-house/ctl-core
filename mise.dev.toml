@@ -25,8 +25,7 @@ jq = "1.8.2"
 # Every package's rust-version must equal the pinned stable.
 [tasks."check:toolchain"]
 description = "mise.dev.toml, rust-toolchain.toml, and rust-version pin the same stable"
-# pipefail fails the task when cargo metadata or jq fails, instead of passing
-# on empty output.
+# pipefail: a failing cargo metadata or jq must fail the task, not pass it.
 shell = "bash -o pipefail -c"
 run = [
   '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.dev.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
