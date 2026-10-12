@@ -28,6 +28,10 @@ struct StatusArgs {
     message: Option<String>,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a failure here is the calling test failing"
+)]
 fn parse(args: &[&str]) -> Cli {
     let matches = ctl_core::parser::apply_defaults(Cli::command())
         .try_get_matches_from(args)

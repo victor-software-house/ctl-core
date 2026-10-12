@@ -185,19 +185,26 @@ packages with `--locked`. Prove the lane by shipping through it (`CTC-009`).
 mise run verify
 ```
 
-`verify` is format, clippy, `cargo test` (unit, integration, and doc-tests), cargo-deny licenses/bans/sources, and cargo-machete.
+`verify` is the toolchain pins, format, clippy, the feature sets, `test` (unit
+and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
+and cargo-machete.
 Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
 runs. Do not reintroduce them without new measurements.
-The `dev` env pins the Rust toolchain with `mr_boxington = true`, which routes
-Cargo through mr-boxington so worktrees share one build store. CI loads the
+The `dev` env pins stable 1.99.0 for build, lint, and test, with
+`mr_boxington = true`, which routes Cargo through mr-boxington so worktrees
+share one build store. A dated nightly carries only rustfmt, for
+`rustfmt.toml`'s unstable options, and the `format` task alone uses it. The
+mise pin, `rust-toolchain.toml`, and `rust-version` move together in one
+commit; `check:toolchain` fails when they differ. CI loads the
 same env and caches through `jdx/mr-boxington-action`.
 Do not `&&` those in a new task; `depends` is the mise form. Those cargo
 invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked
 crates) are `mise run deny:advisories` on CI only, so a pre-push `verify`
-does not need the network. An unfixable RUSTSEC or yank is listed in
+does not need the network. CI also runs `mise run semver`
+(cargo-semver-checks against the last release) before packaging. An unfixable RUSTSEC or yank is listed in
 `deny.toml` `[advisories].ignore` with a reason, not by weakening `yanked`
 or `unmaintained`.
 

@@ -161,6 +161,10 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
 /// `.ctl/input.yaml` refuses an unknown field, including the alias ratio
 /// switch, and reports each limit it raises above serde-saphyr's default.
 /// Called from the sequence test, because it installs the repository tier.
+#[expect(
+    clippy::unwrap_used,
+    reason = "a test helper: a failure here is the calling test failing"
+)]
 fn a_repository_file_is_held_to_known_fields(suite: &Suite) {
     let wrong = suite.scenario("unknown");
     wrong.file(
