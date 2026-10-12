@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.13
+
+- ctl-core now ships the standard Rust mise tasks (`check:toolchain`, `format`, `lint`, `test`, `test:doc`, `deny`, `deny:advisories`, `deps`, `semver`, `verify`) in `tasks/rust.toml`. Another repository includes it with `git::https://github.com/victor-software-house/ctl-core.git//tasks/rust.toml?ref=<tag>` in `task_config.includes`, and defines its own `check:features`.
+
 ## ctl-core 0.6.12
 
 - `rust-version` is now 1.99.0: ctl-core builds, lints, and tests on that pinned stable and formats on a dated nightly only. `App`, `fixture::Suite`, and `fixture::Root` implement `Debug`.
