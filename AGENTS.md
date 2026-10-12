@@ -161,10 +161,11 @@ context they see stay with the CLI. verctl moves onto it inside its redesign.
 The repository setup comes from the shared Copier template, the private
 `victor-software-house/templates` repository (kind `rust-crate`): the whole
 files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
-`lefthook.yml`, `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml`, and
-`deny.toml`, plus the settings and toolchain block at the top of `mise.toml`
-and the `[lints]` tables of `Cargo.toml`. Change a shared rule in the
-template, then take its new tag here.
+`lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, `rustfmt.toml`,
+`clippy.toml`, `deny.toml`, `mise-tasks/hooks.toml`, `mise-tasks/commit-msg`,
+and `mise-tasks/commits`, plus the settings, toolchain, and `[task_config]`
+blocks of `mise.toml` and the `[lints]` tables of `Cargo.toml`. Change a
+shared rule in the template, then take its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
 `MISE_ENV=template mise x -- uvx copier@9.18.2 update --defaults`, review
@@ -181,12 +182,12 @@ private key as inputs; each defines its own `template` mise env and
 `check:template` task.
 
 Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
-gitleaks, and the hook tasks. Its `postinstall` hook runs `lefthook install`
-after every `mise install`, so a fresh clone gets its git hooks from
-`mise install`. CI sets `MISE_ENV=ci` (`ci,release` for release jobs) and never
-loads `dev`, so no runner installs hooks. The Version PR job installs only
-rust, mr-boxington, and verctl, because `prepare` runs
-`cargo update --workspace`.
+and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
+`postinstall` hook runs `lefthook install` after every `mise install`, so a
+fresh clone gets its git hooks from `mise install`. CI sets `MISE_ENV=ci`
+(`ci,release` for release jobs) and never loads `dev`, so no runner installs
+hooks. The Version PR job installs only rust, mr-boxington, and verctl,
+because `prepare` runs `cargo update --workspace`.
 
 ## Fixtures
 
@@ -213,12 +214,15 @@ mise run verify
 and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
 and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
 includes; other ctl repositories include the same file by `git::` URL at a
-ctl-core release tag. `mise.toml` adds this repository's own tasks,
-`check:features` and `check:repo`; `commit-msg`, `commits`, and the secrets
-scans come from the template's `mise.dev.toml`. The
-shared `verify` depends on `check:features` and `check:repo` by name, so
-every including repository defines both; `check:repo` holds its own checks,
-and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
+ctl-core release tag. This repository's own tasks live in `mise-tasks/`:
+`check:features` is the file task `mise-tasks/check/features`, and
+`check:repo` is in `mise-tasks/check.toml`. `commit-msg`, `commits`, and the
+secrets scans are the template's files in `mise-tasks/`. `[task_config]`
+lists `mise-tasks` first, because an includes list replaces the default task
+dirs. Fragment names are not namespaced by file, so each name carries its
+prefix. The shared `verify` depends on `check:features` and `check:repo` by
+name, so every including repository defines both; `check:repo` holds its own
+checks, and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
 never in a consumer.
 Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
