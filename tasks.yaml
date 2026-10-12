@@ -74,7 +74,7 @@ queue:
     blocked_by: []
     acceptance:
       - copier copy at v0.0.1 leaves every rendered file unchanged and adds .copier-answers.yml
-      - The CI job Template mints a GitHub App token for the private template and runs copier check-update, and is skipped for pull requests from forks
+      - The composite action .github/actions/copier-check mints a GitHub App token for the private template and runs copier check-update; the CI job Template uses it and is skipped for pull requests from forks
       - mise run verify still passes
 
 horizon: []

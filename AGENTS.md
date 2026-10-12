@@ -180,10 +180,14 @@ edit it by hand. Take a new tag with
 the diff, and fix any conflict markers (`git diff --check`) before
 committing.
 
-The CI job `Template` runs `mise run check:template` (`copier
-check-update`), which fails when a newer tag exists. It reads the private
-repository with a token from the `vsh-templates-reader` GitHub App, and it is
-skipped for pull requests from forks.
+The CI job `Template` runs the composite action
+`.github/actions/copier-check`, which mints a token from the
+`vsh-templates-reader` GitHub App and runs `mise run check:template`
+(`copier check-update`). It fails when a newer tag exists, and the job is
+skipped for pull requests from forks. Other repositories use the same action
+from this public repository, pinned by commit, with the App's client ID and
+private key as inputs; each defines its own `template` mise env and
+`check:template` task.
 
 Until one of the two is retired, a rule changes in the template and in
 `templates/baseline/` together, because `tests/baseline.rs` compares this
