@@ -152,6 +152,14 @@ fn an_appended_entry_reaches_its_file_with_its_reason() {
 }
 
 #[test]
+fn an_unknown_field_is_refused_by_name() {
+    let error = Input::new("rust.yaml", "layot: crate\n")
+        .load::<Config>()
+        .unwrap_err();
+    assert!(error.problems[0].message.contains("layot"), "{error}");
+}
+
+#[test]
 fn an_entry_without_a_reason_is_refused_on_its_line() {
     let text = indoc! {"
         deny:
