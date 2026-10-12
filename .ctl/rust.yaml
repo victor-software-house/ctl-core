@@ -1,0 +1,7 @@
+# The shared Rust baseline this repository renders from ctl-core.
+layout: crate
+published: true
+deny:
+  licenses:
+    - license: BSD-3-Clause
+      reason: encoding_rs, which serde-saphyr's deserialize feature pulls in for the input feature

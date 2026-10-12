@@ -66,6 +66,19 @@ queue:
       - verify depends on check:toolchain, format, lint, check:features, test, test:doc, deny, and deps; CI runs semver before packaging
       - mise run verify passes on a build runner on the pushed commit
 
+  - id: CTC-015
+    title: Serve the Rust baseline from ctl-core
+    scope: Embedded templates for the shared Rust config files and blocks, the .ctl/rust.yaml schema, render, and the self-check
+    outcome: Each ctl repository renders its Rust configuration from the ctl-core release it links, and a drifted copy fails verify through the runner
+    blocked_by: []
+    acceptance:
+      - baseline::render returns rust-toolchain.toml, rustfmt.toml, clippy.toml, deny.toml, lefthook.yml, and the Cargo.toml lints and mise.dev.toml tools blocks for a .ctl/rust.yaml
+      - ctl-core's own files equal their render, checked by a test in verify
+      - openspec change served-baseline tasks are done with evidence
+    notes:
+      - >2-
+        Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
+
 horizon: []
 
 archive:

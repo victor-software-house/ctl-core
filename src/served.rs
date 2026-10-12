@@ -156,6 +156,13 @@ impl Served {
         self.executable
     }
 
+    /// The same target with `body` in place of the rendered text, for a file
+    /// whose template renders only one block of it.
+    #[cfg(feature = "baseline")]
+    pub(crate) fn with_body(self, body: String) -> Self {
+        Self { body, ..self }
+    }
+
     /// Write the file under `root`, creating its directories, and set its mode
     /// on Unix. Returns the full path.
     ///
