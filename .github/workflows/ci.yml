@@ -41,7 +41,6 @@ jobs:
         with:
           github-cache-mode: objects
           isolate-objects-cache: true
-          save-on-pull-request: true
       - name: Verify
         run: mise run verify
       - name: Advisories
