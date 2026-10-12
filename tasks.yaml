@@ -67,19 +67,30 @@ queue:
       - >2-
         Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
 
-  - id: CTC-016
-    title: Serve the standard Rust tasks as a mise remote task include
-    scope: 'tasks/rust.toml with check:toolchain, format, lint, test, test:doc, deny, deny:advisories, deps, semver, and verify; ctl-core reads it locally, other repositories by git:: include at a release tag'
-    outcome: Every ctl repository runs the same Rust tasks from one file at a pinned ctl-core release, so a task fix reaches them by bumping the ref
+  - id: CTC-017
+    title: Repository checks in the shared verify
+    scope: 'tasks/rust.toml verify depends on a repository-defined check:repo; ctl-core defines its own; yamled replaces its verify override'
+    outcome: A repository adds its own checks to verify through check:repo, without copying the shared dependency list
     blocked_by: []
     acceptance:
-      - tasks/rust.toml holds the ten standard tasks and ctl-core's mise.toml includes it; mise.dev.toml keeps only check:features, commit-msg, and commits
-      - 'A consumer repository includes it by git:: URL at a release tag, removes its own copies, and mise run verify passes there with its own check:features'
-      - openspec change shared-rust-tasks tasks are done with evidence
+      - verify depends on check:repo, and ctl-core's mise.dev.toml defines it
+      - A repository that includes the file without check:repo fails verify with a missing task
+      - yamled includes v0.6.14 and its check:repo runs its own checks; mise run verify passes there
+      - openspec change repo-checks tasks are done with evidence
 
 horizon: []
 
 archive:
+  - id: CTC-016
+    title: Serve the standard Rust tasks as a mise remote task include
+    scope: 'tasks/rust.toml with check:toolchain, format, lint, test, test:doc, deny, deny:advisories, deps, semver, and verify; ctl-core reads it locally, other repositories by git:: include at a release tag'
+    outcome: Every ctl repository runs the same Rust tasks from one file at a pinned ctl-core release, so a task fix reaches them by bumping the ref
+    completed: 2026-10-11T22:50:00
+    evidence:
+      - 'Merged in ctl-core #95 (1f87bdb) and released in 0.6.13 (tag v0.6.13)'
+      - 'yamled #19 (e9653ea) includes tasks/rust.toml at v0.6.13; mise run verify passed on a fresh build runner, in its pre-push hook, and in CI'
+    disposition: completed
+
   - id: CTC-014
     title: Bring ctl-core to the pinned-stable Rust baseline
     scope: Toolchain pins, lints, cargo-deny policy, semver check, and verify tasks of the rust-projects baseline

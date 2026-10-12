@@ -50,6 +50,12 @@ run = [
   "cargo check --no-default-features --features schema",
 ]
 
+# The shared verify depends on check:repo for a repository's own checks.
+# ctl-core has none beyond the shared tasks.
+[tasks."check:repo"]
+description = "This repository's own checks: none beyond the shared tasks"
+run = "true"
+
 [tasks.commit-msg]
 description = "Lint the git commit-msg file with committed"
 usage = 'arg "<file>" help="Path to the commit message file"'
