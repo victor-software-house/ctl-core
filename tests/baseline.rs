@@ -89,7 +89,8 @@ fn a_published_crate_gets_every_file_and_the_semver_tool() {
     );
 
     let unpublished = repo(&suite, "unpublished", "published: false\n");
-    let rendered = baseline::render(unpublished.path(), &Config::default()).unwrap();
+    let config = baseline::load(unpublished.path()).unwrap();
+    let rendered = baseline::render(unpublished.path(), &config).unwrap();
     assert!(
         !body(&rendered, "mise.dev.toml")
             .unwrap()
@@ -245,6 +246,36 @@ fn a_file_without_its_markers_names_the_file_and_the_marker() {
     assert_eq!(error.file, "mise.dev.toml");
     assert!(
         error.message.contains("# ctl-core baseline: begin tools"),
+        "{error}"
+    );
+}
+
+#[test]
+fn a_marker_is_a_whole_line_and_may_end_in_crlf() {
+    let suite = Suite::new("baseline-marker-lines");
+    let root = repo(&suite, "lines", "{}\n");
+    root.file(
+        "Cargo.toml",
+        "[package]\r\n# ctl-core baseline: begin lints\r\nstale = 1\r\n# ctl-core baseline: end lints\r\n",
+    );
+    let cargo = body(
+        &baseline::render(root.path(), &Config::default()).unwrap(),
+        "Cargo.toml",
+    )
+    .unwrap();
+    assert!(cargo.contains("[lints.rust]\n"), "{cargo}");
+    assert!(!cargo.contains("stale"), "{cargo}");
+
+    root.file(
+        "mise.dev.toml",
+        "# ctl-core baseline: begin tools\n# ctl-core baseline: end toolsX\n",
+    );
+    let error = baseline::render(root.path(), &Config::default()).unwrap_err();
+    assert_eq!(error.file, "mise.dev.toml");
+    assert!(
+        error
+            .message
+            .contains("has no `# ctl-core baseline: end tools` line"),
         "{error}"
     );
 }

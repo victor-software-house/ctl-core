@@ -313,19 +313,29 @@ pub fn render(root: &Path, config: &Config) -> Result<Rendered, BaselineError> {
 }
 
 /// `current` with the text between `block`'s marker lines replaced by
-/// `body`.
+/// `body`. A marker is a whole line, compared without trailing whitespace,
+/// so a CRLF checkout still matches and `end lintsX` does not.
 fn splice(current: &str, block: &str, body: &str) -> Result<String, String> {
-    let begin = format!("{MARKER} begin {block}\n");
+    let begin = format!("{MARKER} begin {block}");
     let end = format!("{MARKER} end {block}");
-    let start = current
-        .find(&begin)
-        .ok_or_else(|| format!("has no `{}` line", begin.trim_end()))?
-        + begin.len();
-    let stop = current[start..]
-        .find(&end)
-        .ok_or_else(|| format!("has no `{end}` line after `{}`", begin.trim_end()))?
-        + start;
-    Ok(format!("{}{body}{}", &current[..start], &current[stop..]))
+    let mut start = None;
+    let mut offset = 0;
+    for line in current.split_inclusive('\n') {
+        let text = line.trim_end();
+        if let Some(from) = start {
+            if text == end {
+                return Ok(format!("{}{body}{}", &current[..from], &current[offset..]));
+            }
+        } else if text == begin {
+            start = Some(offset + line.len());
+        }
+        offset += line.len();
+    }
+    Err(if start.is_some() {
+        format!("has no `{end}` line after `{begin}`")
+    } else {
+        format!("has no `{begin}` line")
+    })
 }
 
 /// A value that sits inside a TOML string or comment on one line.
