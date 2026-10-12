@@ -4,7 +4,8 @@ pre-commit:
     - run: test -n "$CI"
   commands:
     format:
-      glob: "**/*.rs"
+      # *.rs matches every depth; **/*.rs misses files at the root.
+      glob: "*.rs"
       run: mise run format
 
 commit-msg:

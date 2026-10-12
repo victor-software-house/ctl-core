@@ -25,6 +25,10 @@ pub(crate) enum ToyCmd {
     Status,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a failure here is the calling test failing"
+)]
 pub(crate) fn parse(args: &[&str]) -> Toy {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);

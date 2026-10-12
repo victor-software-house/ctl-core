@@ -1,6 +1,7 @@
 //! Fluent typed CLI lifecycle.
 
 use std::ffi::OsString;
+use std::fmt;
 use std::marker::PhantomData;
 use std::process::ExitCode;
 
@@ -40,6 +41,16 @@ pub struct App<C> {
     #[cfg(feature = "usage")]
     render_usage: RenderUsage,
     marker: PhantomData<C>,
+}
+
+/// Names the binary only: the hooks are closures, which have no `Debug`.
+impl<C> fmt::Debug for App<C> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("App")
+            .field("bin", &self.bin)
+            .finish_non_exhaustive()
+    }
 }
 
 impl<C> App<C> {

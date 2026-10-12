@@ -22,11 +22,18 @@ confidence-threshold = 0.93
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Path dependencies carry no version; wildcards stay denied for the rest.
+allow-wildcard-paths = true
 highlight = "all"
 deny = [
     { crate = "openssl", reason = "TLS is rustls" },
     { crate = "native-tls", reason = "TLS is rustls" },
 ]
+
+# Declarations repeated outside [workspace.dependencies], and unused entries.
+[bans.workspace-dependencies]
+duplicates = "deny"
+unused = "deny"
 
 [sources]
 unknown-registry = "deny"

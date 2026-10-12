@@ -2,7 +2,7 @@
 name = "ctl-core"
 version = "0.6.11"
 edition = "2024"
-rust-version = "1.97.1"
+rust-version = "1.99.0"
 description = "Shared clap chassis for the *ctl CLIs"
 license = "MIT"
 repository = "https://github.com/victor-software-house/ctl-core"
@@ -19,6 +19,7 @@ ignored = ["usage-lib"]
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"
+missing_debug_implementations = "deny"
 unreachable_pub = "deny"
 rust_2018_idioms = { level = "deny", priority = -1 }
 

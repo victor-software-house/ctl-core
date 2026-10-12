@@ -117,6 +117,20 @@ checksum = "sha256:af4f5a65320471751ed1dfbb5502f15f4857cea797b077c6049acb2b995d2
 url = "https://github.com/crate-ci/committed/releases/download/v1.1.11/committed-v1.1.11-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/crate-ci/committed/releases/assets/361545840"
 
+[[tools."github:obi1kenobi/cargo-semver-checks"]]
+version = "0.51.0"
+backend = "github:obi1kenobi/cargo-semver-checks"
+
+[tools."github:obi1kenobi/cargo-semver-checks"."platforms.linux-x64"]
+checksum = "sha256:cacadafaa5cd27ae6d05a74a103266917ebab4c5e43c898360e177d4fbf06a65"
+url = "https://github.com/obi1kenobi/cargo-semver-checks/releases/download/v0.51.0/cargo-semver-checks-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/obi1kenobi/cargo-semver-checks/releases/assets/608677290"
+
+[tools."github:obi1kenobi/cargo-semver-checks"."platforms.macos-arm64"]
+checksum = "sha256:3cec5da41eee9a3336d75ad43d1f30a5c9680818f4ba209024786f452cabab5b"
+url = "https://github.com/obi1kenobi/cargo-semver-checks/releases/download/v0.51.0/cargo-semver-checks-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/obi1kenobi/cargo-semver-checks/releases/assets/608677274"
+
 [[tools."github:victor-software-house/qctl"]]
 version = "0.4.2"
 backend = "github:victor-software-house/qctl"
@@ -135,6 +149,22 @@ url_api = "https://api.github.com/repos/victor-software-house/qctl/releases/asse
 checksum = "sha256:bb09cb3944c7edce30d51200f9b3faca6477abde29bca259f098446a1a4432f2"
 url = "https://github.com/victor-software-house/qctl/releases/download/v0.4.2/qctl_0.4.2_macos_arm64.tar.gz"
 url_api = "https://api.github.com/repos/victor-software-house/qctl/releases/assets/560432318"
+
+[[tools.jq]]
+version = "1.8.2"
+backend = "aqua:jqlang/jq"
+
+[tools.jq."platforms.linux-x64"]
+checksum = "sha256:b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux-amd64"
+url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/453012752"
+provenance = "github-attestations"
+
+[tools.jq."platforms.macos-arm64"]
+checksum = "sha256:2d75340ba57a4b4b4c8708a21c2dc8e958a48aaa8bba13b27f77f6e4c0eca07e"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-macos-arm64"
+url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/453012783"
+provenance = "github-attestations"
 
 [[tools.lefthook]]
 version = "2.1.10"
@@ -217,8 +247,16 @@ url = "https://github.com/jdx/mr-boxington/releases/download/v1.20.0/mbx-x86_64-
 signer = "sigstore-oidc:https://github.com/jdx/mr-boxington/.github/workflows/release.yml"
 
 [[tools.rust]]
+version = "1.99.0"
+backend = "core:rust"
+
+[tools.rust.options]
+components = "clippy"
+
+[[tools.rust]]
 version = "nightly-2026-09-29"
 backend = "core:rust"
 
 [tools.rust.options]
-components = "clippy,rustfmt"
+components = "rustfmt"
+profile = "minimal"

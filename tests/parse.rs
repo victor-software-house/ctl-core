@@ -33,6 +33,10 @@ struct PrepareArgs {
     no_pr: bool,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a failure here is the calling test failing"
+)]
 fn parse(args: &[&str]) -> Cli {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);

@@ -14,6 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use tempfile::{Builder, TempDir};
 
 /// A temporary directory for one test file.
+#[derive(Debug)]
 pub struct Suite {
     name: String,
     root: Root<'static>,
@@ -77,6 +78,7 @@ impl Suite {
 
 /// A temporary directory a test writes files into, alive no longer than the
 /// suite it sits in.
+#[derive(Debug)]
 pub struct Root<'suite> {
     dir: TempDir,
     suite: PhantomData<&'suite ()>,

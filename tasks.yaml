@@ -54,6 +54,18 @@ queue:
       - >2-
         2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
 
+  - id: CTC-014
+    title: Bring ctl-core to the pinned-stable Rust baseline
+    scope: Toolchain pins, lints, cargo-deny policy, semver check, and verify tasks of the rust-projects baseline
+    outcome: ctl-core builds, lints, and tests on pinned stable 1.99.0, formats on a dated nightly only, and its verify and CI match the shared baseline that later repos will render from ctl-core
+    blocked_by: []
+    acceptance:
+      - mise.dev.toml and rust-toolchain.toml pin stable 1.99.0; rustfmt alone runs on nightly-2026-09-29; rust-version is 1.99.0 and check:toolchain fails when any differs
+      - missing_debug_implementations is denied and the crate passes it
+      - deny.toml sets allow-wildcard-paths and bans.workspace-dependencies
+      - verify depends on check:toolchain, format, lint, check:features, test, test:doc, deny, and deps; CI runs semver before packaging
+      - mise run verify passes on a build runner on the pushed commit
+
 horizon: []
 
 archive:
