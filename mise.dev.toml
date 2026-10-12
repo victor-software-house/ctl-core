@@ -25,9 +25,11 @@ jq = "1.8.2"
 # Every package's rust-version must equal the pinned stable.
 [tasks."check:toolchain"]
 description = "mise.dev.toml, rust-toolchain.toml, and rust-version pin the same stable"
+# pipefail: a failing cargo metadata or jq must fail the task, not pass it.
+shell = "bash -o pipefail -c"
 run = [
   '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.dev.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
-  '''[ -z "$(cargo metadata --no-deps --format-version 1 | jq -r --arg v "$(rustc -V | cut -d' ' -f2)" '.packages[] | select(.rust_version != $v) | .name')" ] || { echo "✘ a rust-version differs from the pinned stable"; exit 1; }''',
+  '''cargo metadata --no-deps --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
 ]
 
 [tasks.format]
