@@ -314,20 +314,28 @@ pub fn render(root: &Path, config: &Config) -> Result<Rendered, BaselineError> {
 
 /// `current` with the text between `block`'s marker lines replaced by
 /// `body`. A marker is a whole line, compared without trailing whitespace,
-/// so a CRLF checkout still matches and `end lintsX` does not.
+/// so a CRLF checkout still matches and `end lintsX` does not. The body
+/// takes the begin marker's line ending, so the file keeps one style.
 fn splice(current: &str, block: &str, body: &str) -> Result<String, String> {
     let begin = format!("{MARKER} begin {block}");
     let end = format!("{MARKER} end {block}");
     let mut start = None;
+    let mut crlf = false;
     let mut offset = 0;
     for line in current.split_inclusive('\n') {
         let text = line.trim_end();
         if let Some(from) = start {
             if text == end {
+                let body = if crlf {
+                    body.replace('\n', "\r\n")
+                } else {
+                    body.to_owned()
+                };
                 return Ok(format!("{}{body}{}", &current[..from], &current[offset..]));
             }
         } else if text == begin {
             start = Some(offset + line.len());
+            crlf = line.ends_with("\r\n");
         }
         offset += line.len();
     }

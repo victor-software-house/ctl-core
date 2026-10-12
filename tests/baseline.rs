@@ -263,7 +263,8 @@ fn a_marker_is_a_whole_line_and_may_end_in_crlf() {
         "Cargo.toml",
     )
     .unwrap();
-    assert!(cargo.contains("[lints.rust]\n"), "{cargo}");
+    assert!(cargo.contains("[lints.rust]\r\n"), "{cargo}");
+    assert!(!cargo.replace("\r\n", "").contains('\n'), "{cargo:?}");
     assert!(!cargo.contains("stale"), "{cargo}");
 
     root.file(
