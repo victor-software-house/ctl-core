@@ -137,10 +137,24 @@ parses it with serde-saphyr (strict booleans, duplicate and merge keys
 refused), validates it once with garde, and reports every problem with its
 file and line through yamled's location index. A message carries no
 position of its own, except that an alias error names where its value is
-defined, counted from the file. `Input::frontmatter` splits
-YAML frontmatter from a Markdown body. A CLI parses config only through
-`input`; it keeps no `schema.rs` and no YAML crate of its own. `CTC-008` tracks
-the consumer moves and the template renderer.
+defined, counted from the file. `Input::frontmatter` splits YAML frontmatter
+from a Markdown body. Limits are serde-saphyr's `Budget`, overridable field by
+field: the call (`Input::limits`), then the repository (`limits:` in
+`.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup), then the
+process (`set_default_limits` or `App::input_limits`), then serde-saphyr's
+default. `enforce_alias_anchor_ratio` is not overridable and stays on.
+`use_repo_limits` returns each limit the repository raises above the default;
+the CLI prints each as a warning. A CLI parses config only through `input`; it keeps no `schema.rs` and
+no YAML crate of its own. `CTC-008` tracks the consumer moves and the template
+renderer.
+
+## Served files
+
+`served::render(template, source, suffix, context)` renders one template through
+`surface::environment()` and reads `path`, `name`, and `executable` from its
+top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
+and refuses a symlinked target. Which templates a repository serves and what
+context they see stay with the CLI. verctl moves onto it inside its redesign.
 
 ## Served files
 

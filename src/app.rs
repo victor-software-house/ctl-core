@@ -102,6 +102,15 @@ impl<C> App<C> {
         self
     }
 
+    /// Set the process-wide input limits when called. A repository's
+    /// `.ctl/input.yaml` and a single call's limits both beat them.
+    #[cfg(feature = "input")]
+    #[must_use]
+    pub fn input_limits(self, limits: crate::input::Limits) -> Self {
+        crate::input::set_default_limits(limits);
+        self
+    }
+
     /// Take record style, list style, and row separation from `styles` for
     /// help, errors, and command output.
     #[must_use]
