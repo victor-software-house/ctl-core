@@ -12,12 +12,7 @@ env:
   GIT_CONFIG_COUNT: "1"
   GIT_CONFIG_KEY_0: init.defaultBranch
   GIT_CONFIG_VALUE_0: main
-  CARGO_TERM_COLOR: always
-  MISE_ENV: dev,ci
-  # On ext4 mbx restores cache hits as read-only hard links to its store.
-  # cargo package's verify build then fails to rewrite ctl-core's rmeta with
-  # "output file ... is not writeable", so restored outputs get their own copy.
-  MBX_RESTORE_HARDLINK: "0"
+  MISE_ENV: ci
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-${{ github.event.pull_request.base.sha || github.sha }}

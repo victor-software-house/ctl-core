@@ -16,7 +16,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 [package.metadata.cargo-machete]
 ignored = ["usage-lib"]
 
-# ctl-core baseline: begin lints
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"
@@ -47,7 +46,6 @@ allow_attributes_without_reason = "deny"
 # Duplicate versions come from transitive dependencies the crate does not
 # control; cargo-deny reports them (`bans.multiple-versions`).
 multiple_crate_versions = "allow"
-# ctl-core baseline: end lints
 
 [features]
 default = ["app"]
@@ -98,10 +96,6 @@ surface = ["surface-templates"]
 ## Files a repository serves, rendered from templates that declare their own
 ## target (`served::render`, `Served::write`).
 served = ["surface-templates", "validate", "garde/derive", "minijinja/deserialization"]
-
-## The shared Rust configuration, rendered for a repository from its
-## `.ctl/rust.yaml` (`baseline::render`).
-baseline = ["served", "input"]
 
 ## Garde rules every declared schema shares (`validate`).
 validate = ["dep:garde"]

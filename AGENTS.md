@@ -156,24 +156,15 @@ top-level exports; `Served::write(root)` writes it, sets 0755 or 0644 on Unix,
 and refuses a symlinked target. Which templates a repository serves and what
 context they see stay with the CLI. verctl moves onto it inside its redesign.
 
-## Served baseline
-
-`baseline::render(root, &config)` returns the Rust configuration every ctl
-repository shares, as `Served` values: `rust-toolchain.toml`, `rustfmt.toml`,
-`clippy.toml`, `deny.toml`, and `lefthook.yml` whole, and `Cargo.toml` and
-`mise.dev.toml` whole with only their marked block replaced
-(`# ctl-core baseline: begin lints` / `end lints`, `begin tools` / `end tools`).
-A repository declares `layout`, `published`, `tokio`, append-only entries
-with reasons, and owned files in `.ctl/rust.yaml` (`baseline::load`). The
-templates live in `templates/baseline/`, and this repository renders from
-them too: `tests/baseline.rs` fails when one of its files differs from the
-render, so a template and its file change in one commit. verctl writes and
-checks the files for other repositories through its served-file block.
-
 ## Copier template
 
-The same five files also come from the shared Copier template, the private
-`victor-software-house/templates` repository (kind `rust-crate`).
+The repository setup comes from the shared Copier template, the private
+`victor-software-house/templates` repository (kind `rust-crate`): the whole
+files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
+`lefthook.yml`, `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml`, and
+`deny.toml`, plus the settings and toolchain block at the top of `mise.toml`
+and the `[lints]` tables of `Cargo.toml`. Change a shared rule in the
+template, then take its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
 `MISE_ENV=template mise x -- uvx copier@9.18.2 update --defaults`, review
@@ -189,9 +180,13 @@ from this public repository, pinned by commit, with the App's client ID and
 private key as inputs; each defines its own `template` mise env and
 `check:template` task.
 
-Until one of the two is retired, a rule changes in the template and in
-`templates/baseline/` together, because `tests/baseline.rs` compares this
-repository's files with the ctl-core render.
+Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
+gitleaks, and the hook tasks. Its `postinstall` hook runs `lefthook install`
+after every `mise install`, so a fresh clone gets its git hooks from
+`mise install`. CI sets `MISE_ENV=ci` (`ci,release` for release jobs) and never
+loads `dev`, so no runner installs hooks. The Version PR job installs only
+rust, mr-boxington, and verctl, because `prepare` runs
+`cargo update --workspace`.
 
 ## Fixtures
 
@@ -218,8 +213,9 @@ mise run verify
 and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
 and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
 includes; other ctl repositories include the same file by `git::` URL at a
-ctl-core release tag. `mise.dev.toml` keeps only this repository's own
-tasks: `check:features`, `check:repo`, `commit-msg`, and `commits`. The
+ctl-core release tag. `mise.toml` adds this repository's own tasks,
+`check:features` and `check:repo`; `commit-msg`, `commits`, and the secrets
+scans come from the template's `mise.dev.toml`. The
 shared `verify` depends on `check:features` and `check:repo` by name, so
 every including repository defines both; `check:repo` holds its own checks,
 and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
@@ -228,13 +224,13 @@ Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
 runs. Do not reintroduce them without new measurements.
-The `dev` env pins stable 1.99.0 for build, lint, and test, with
+`mise.toml` pins stable 1.99.0 for build, lint, and test, with
 `mr_boxington = true`, which routes Cargo through mr-boxington so worktrees
 share one build store. A dated nightly carries only rustfmt, for
 `rustfmt.toml`'s unstable options, and the `format` task alone uses it. The
 mise pin, `rust-toolchain.toml`, and `rust-version` move together in one
-commit; `check:toolchain` fails when they differ. CI loads the
-same env and caches through `jdx/mr-boxington-action`.
+commit; `check:toolchain` fails when they differ. CI uses the
+same pins and caches through `jdx/mr-boxington-action`.
 Do not `&&` those in a new task; `depends` is the mise form. Those cargo
 invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked

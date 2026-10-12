@@ -12,16 +12,16 @@
 # The repository defines `check:features` and `check:repo` itself; `verify`
 # depends on both. `check:repo` holds the repository's own checks, and does
 # nothing in a repository that has none.
-# Its mise.dev.toml pins the tools these tasks call, including the stable
+# Its mise.toml pins the tools these tasks call, including the stable
 # compiler and the formatting nightly named in `format`. Bump the ref and
 # those pins together.
 
 ["check:toolchain"]
-description = "mise.dev.toml, rust-toolchain.toml, and rust-version pin the same stable"
+description = "mise.toml, rust-toolchain.toml, and rust-version pin the same stable"
 # pipefail: a failing cargo metadata or jq must fail the task, not pass it.
 shell = "bash -o pipefail -c"
 run = [
-  '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.dev.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
+  '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
   '''cargo metadata --no-deps --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
 ]
 

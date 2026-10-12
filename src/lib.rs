@@ -30,10 +30,6 @@ pub mod format;
 /// Schema-first wire types.
 pub mod model;
 
-/// The Rust configuration every ctl repository shares, served from this
-/// release.
-#[cfg(feature = "baseline")]
-pub mod baseline;
 /// Temporary file trees for integration tests.
 #[cfg(feature = "fixture")]
 pub mod fixture;

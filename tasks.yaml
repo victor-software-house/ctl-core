@@ -54,32 +54,33 @@ queue:
       - >2-
         2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
 
-  - id: CTC-015
-    title: Serve the Rust baseline from ctl-core
-    scope: Embedded templates for the shared Rust config files and blocks, the .ctl/rust.yaml schema, render, and the self-check
-    outcome: Each ctl repository renders its Rust configuration from the ctl-core release it links, and a drifted copy fails verify through the runner
-    blocked_by: []
-    acceptance:
-      - baseline::render returns rust-toolchain.toml, rustfmt.toml, clippy.toml, deny.toml, lefthook.yml, and the Cargo.toml lints and mise.dev.toml tools blocks for a .ctl/rust.yaml
-      - ctl-core's own files equal their render, checked by a test in verify
-      - openspec change served-baseline tasks are done with evidence
-    notes:
-      - >2-
-        Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
-
   - id: CTC-018
     title: Take the shared Rust configuration from the Copier template
-    scope: '.copier-answers.yml at templates v0.0.1, the template mise env, and the CI job that checks for a newer tag'
-    outcome: ctl-core records the Copier template version it renders, and CI fails when the template has a newer tag
+    scope: '.copier-answers.yml at templates v0.0.3, the repository setup the template renders, the template mise env, the CI job that checks for a newer tag, and the retirement of the baseline generator'
+    outcome: ctl-core renders its repository setup and Rust configuration from the Copier template at a recorded tag, CI fails when the template has a newer tag, and the baseline generator is gone
     blocked_by: []
     acceptance:
-      - copier copy at v0.0.1 leaves every rendered file unchanged and adds .copier-answers.yml
+      - copier at v0.0.3 renders the mise profiles, lefthook.yml, and the Rust configuration files, and leaves Cargo.toml and the rest of mise.toml to ctl-core
+      - The baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec are gone, and check:features no longer lists baseline
+      - A fresh clone gets its git hooks from mise install; CI sets MISE_ENV=ci and installs no hooks
       - The composite action .github/actions/copier-check mints a GitHub App token for the private template and runs copier check-update; the CI job Template uses it and is skipped for pull requests from forks
       - mise run verify still passes
 
 horizon: []
 
 archive:
+  - id: CTC-015
+    title: Serve the Rust baseline from ctl-core
+    scope: Embedded templates for the shared Rust config files and blocks, the .ctl/rust.yaml schema, render, and the self-check
+    outcome: Each ctl repository renders its Rust configuration from the ctl-core release it links, and a drifted copy fails verify through the runner
+    notes:
+      - >2-
+        Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
+    completed: 2026-10-12T01:00:00
+    evidence:
+      - 'Retired by operator decision: the shared Copier template (kind rust-crate) renders the same files, so ctl-core keeps one generator. CTC-018 removes the baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec.'
+    disposition: dropped
+
   - id: CTC-017
     title: Repository checks in the shared verify
     scope: 'tasks/rust.toml verify depends on a repository-defined check:repo; ctl-core defines its own; yamled replaces its verify override'
