@@ -27,8 +27,6 @@ jq = "1.8.2"
 
 [task_config]
 includes = [
-  # File tasks; listed because an includes list replaces the default task dirs.
-  "mise-tasks",
   "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.4.2",
   # The standard Rust tasks (check:toolchain, format, lint, test, test:doc,
   # deny, deny:advisories, deps, semver, verify). Other repositories include

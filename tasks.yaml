@@ -54,21 +54,19 @@ queue:
       - >2-
         2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
 
+horizon: []
+
+archive:
   - id: CTC-018
     title: Take the shared Rust configuration from the Copier template
     scope: '.copier-answers.yml at templates v0.0.3, the repository setup the template renders, the template mise env, the CI job that checks for a newer tag, and the retirement of the baseline generator'
     outcome: ctl-core renders its repository setup and Rust configuration from the Copier template at a recorded tag, CI fails when the template has a newer tag, and the baseline generator is gone
-    blocked_by: []
-    acceptance:
-      - copier at v0.0.3 renders the mise profiles, lefthook.yml, and the Rust configuration files, and leaves Cargo.toml and the rest of mise.toml to ctl-core
-      - The baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec are gone, and check:features no longer lists baseline
-      - A fresh clone gets its git hooks from mise install; CI sets MISE_ENV=ci and installs no hooks
-      - The composite action .github/actions/copier-check mints a GitHub App token for the private template and runs copier check-update; the CI job Template uses it and is skipped for pull requests from forks
-      - mise run verify still passes
+    completed: 2026-10-12T01:30:00
+    evidence:
+      - 'Merged in ctl-core #101 (91a70d4) and released in 0.6.15 (tag v0.6.15) as a patch by operator decision; CI semver allowed only the baseline removal against 0.6.14, then the window was deleted'
+      - 'On a fresh build runner: mise install armed the commit-msg, pre-commit, and pre-push hooks; MISE_ENV=ci installed none; mise run verify passed; the Template job passed through the composite action with the vsh-templates-reader App, and yamled #22 (a10bae3) uses the action at 91a70d4'
+    disposition: completed
 
-horizon: []
-
-archive:
   - id: CTC-015
     title: Serve the Rust baseline from ctl-core
     scope: Embedded templates for the shared Rust config files and blocks, the .ctl/rust.yaml schema, render, and the self-check
