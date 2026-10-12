@@ -196,8 +196,11 @@ and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
 and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
 includes; other ctl repositories include the same file by `git::` URL at a
 ctl-core release tag. `mise.dev.toml` keeps only this repository's own
-tasks: `check:features`, `commit-msg`, and `commits`. Change a shared task
-in `tasks/rust.toml`, never in a consumer.
+tasks: `check:features`, `check:repo`, `commit-msg`, and `commits`. The
+shared `verify` depends on `check:features` and `check:repo` by name, so
+every including repository defines both; `check:repo` holds its own checks,
+and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
+never in a consumer.
 Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent

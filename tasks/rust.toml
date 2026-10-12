@@ -6,10 +6,12 @@
 #
 #   [task_config]
 #   includes = [
-#     "git::https://github.com/victor-software-house/ctl-core.git//tasks/rust.toml?ref=v0.6.13",
+#     "git::https://github.com/victor-software-house/ctl-core.git//tasks/rust.toml?ref=v0.6.14",
 #   ]
 #
-# The repository defines `check:features` itself, which `verify` depends on.
+# The repository defines `check:features` and `check:repo` itself; `verify`
+# depends on both. `check:repo` holds the repository's own checks, and does
+# nothing in a repository that has none.
 # Its mise.dev.toml pins the tools these tasks call, including the stable
 # compiler and the formatting nightly named in `format`. Bump the ref and
 # those pins together.
@@ -62,8 +64,8 @@ description = "Public API changes against the last release (network)"
 run = "cargo semver-checks"
 
 [verify]
-description = "Toolchain pins, format, lint, feature sets, tests, doc-tests, deny, unused crates"
+description = "Toolchain pins, format, lint, feature sets, tests, doc-tests, deny, unused crates, repository checks"
 depends = [
   "check:toolchain", "format", "lint", "check:features",
-  "test", "test:doc", "deny", "deps",
+  "test", "test:doc", "deny", "deps", "check:repo",
 ]
