@@ -67,6 +67,16 @@ queue:
       - >2-
         Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
 
+  - id: CTC-018
+    title: Take the shared Rust configuration from the Copier template
+    scope: '.copier-answers.yml at templates v0.0.1, the template mise env, and the CI job that checks for a newer tag'
+    outcome: ctl-core records the Copier template version it renders, and CI fails when the template has a newer tag
+    blocked_by: []
+    acceptance:
+      - copier copy at v0.0.1 leaves every rendered file unchanged and adds .copier-answers.yml
+      - The CI job Template mints a GitHub App token for the private template and runs copier check-update, and is skipped for pull requests from forks
+      - mise run verify still passes
+
 horizon: []
 
 archive:
