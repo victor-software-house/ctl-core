@@ -193,7 +193,11 @@ mise run verify
 
 `verify` is the toolchain pins, format, clippy, the feature sets, `test` (unit
 and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
-and cargo-machete.
+and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
+includes; other ctl repositories include the same file by `git::` URL at a
+ctl-core release tag. `mise.dev.toml` keeps only this repository's own
+tasks: `check:features`, `commit-msg`, and `commits`. Change a shared task
+in `tasks/rust.toml`, never in a consumer.
 Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
