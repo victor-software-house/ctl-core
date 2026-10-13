@@ -26,7 +26,7 @@ description = "mise.toml, rust-toolchain.toml, and rust-version pin the same sta
 shell = "bash -o pipefail -c"
 run = [
   '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
-  '''cargo metadata --no-deps --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
+  '''cargo metadata --no-deps --locked --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
 ]
 
 [format]
@@ -59,7 +59,13 @@ run = "cargo deny --locked check advisories"
 
 [deps]
 description = "Unused crate analysis"
-run = "cargo-machete --with-metadata"
+# cargo-machete calls cargo metadata without --locked, which would rewrite a
+# stale Cargo.lock while sibling tasks run. The locked metadata call fails
+# first, so no task in verify ever writes the lock.
+run = [
+  "cargo metadata --locked --format-version 1 > /dev/null",
+  "cargo-machete --with-metadata",
+]
 
 # Published crates only. CI runs it before packaging; it compares against the
 # release on crates.io.
