@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.18
+
+- The shared Rust tasks pass `--locked` to clippy, both test tasks, cargo-deny, and the toolchain check's `cargo metadata`, so `verify` fails when `Cargo.lock` no longer matches `Cargo.toml`. Before, a stale lock passed `verify` and failed only a release build that passes `--locked`. `deps` runs a locked `cargo metadata` before cargo-machete, whose own unlocked metadata call rewrote a stale lock while sibling tasks ran. A repository passes `--locked` in its own `check:features` too ([#117](https://github.com/victor-software-house/ctl-core/pull/117)).
+
 ## ctl-core 0.6.17
 
 - New `mount_directives(task)`: the `#MISE raw=true`, `#MISE raw_args=true`, and `#USAGE mount` block a served CLI-proxy task carries. Without `raw`, mise relays the task's output and appends an SGR reset to every line whenever its own colour is on, as under `CLICOLOR_FORCE=1`, so `--format json` piped to `jq` carried an ESC byte the CLI never wrote ([#114](https://github.com/victor-software-house/ctl-core/pull/114)).
