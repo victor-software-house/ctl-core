@@ -12,6 +12,10 @@
 # The repository defines `check:features` and `check:repo` itself; `verify`
 # depends on both. `check:repo` holds the repository's own checks, and does
 # nothing in a repository that has none.
+# Every task that resolves dependencies passes --locked, so a Cargo.lock that
+# no longer matches Cargo.toml fails verify here, as it fails a release build
+# that passes --locked. A repository's own cargo commands, such as those in
+# check:features, pass it too.
 # Its mise.toml pins the tools these tasks call, including the stable
 # compiler and the formatting nightly named in `format`. Bump the ref and
 # those pins together.
@@ -22,7 +26,7 @@ description = "mise.toml, rust-toolchain.toml, and rust-version pin the same sta
 shell = "bash -o pipefail -c"
 run = [
   '[ "$(rustc -V)" = "$(env -u RUSTUP_TOOLCHAIN RUSTUP_AUTO_INSTALL=0 rustc -V)" ] || { echo "✘ mise.toml and rust-toolchain.toml pin different toolchains"; exit 1; }',
-  '''cargo metadata --no-deps --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
+  '''cargo metadata --no-deps --locked --format-version 1 | jq --arg v "$(rustc -V | cut -d' ' -f2)" '[.packages[] | select(.rust_version != $v) | .name] | if length > 0 then error("✘ rust-version differs from the pinned stable in: \(join(", "))") else empty end' ''',
 ]
 
 [format]
@@ -31,31 +35,37 @@ run = "cargo +nightly-2026-09-29 fmt --all -- --check"
 
 [lint]
 description = "clippy -D warnings"
-run = "cargo clippy --all-targets --all-features -- -D warnings"
+run = "cargo clippy --locked --all-targets --all-features -- -D warnings"
 
 [test]
 description = "Unit and integration tests"
-run = "cargo test --all-features --lib --bins --tests"
+run = "cargo test --locked --all-features --lib --bins --tests"
 # Stops a hung test run instead of holding the gate. The limit also counts
 # compile time and waits on the target/ lock, so it sits far above a cold build.
 timeout = "30m"
 
 ["test:doc"]
 description = "Doc-tests"
-run = "cargo test --doc --all-features"
+run = "cargo test --locked --doc --all-features"
 timeout = "30m"
 
 [deny]
 description = "License, ban, and source policy (offline)"
-run = "cargo deny check licenses bans sources"
+run = "cargo deny --locked check licenses bans sources"
 
 ["deny:advisories"]
 description = "RustSec advisories and yanked crates (network)"
-run = "cargo deny check advisories"
+run = "cargo deny --locked check advisories"
 
 [deps]
 description = "Unused crate analysis"
-run = "cargo-machete --with-metadata"
+# cargo-machete calls cargo metadata without --locked, which would rewrite a
+# stale Cargo.lock while sibling tasks run. The locked metadata call fails
+# first, so no task in verify ever writes the lock.
+run = [
+  "cargo metadata --locked --format-version 1 > /dev/null",
+  "cargo-machete --with-metadata",
+]
 
 # Published crates only. CI runs it before packaging; it compares against the
 # release on crates.io.

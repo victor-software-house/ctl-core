@@ -238,6 +238,11 @@ prefix. The shared `verify` depends on `check:features` and `check:repo` by
 name, so every including repository defines both; `check:repo` holds its own
 checks, and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
 never in a consumer.
+Every cargo command that resolves dependencies passes `--locked`, in the
+shared tasks and in each repository's `check:features`, so a stale `Cargo.lock`
+fails `verify` the way it fails a release build. cargo-machete has no
+`--locked`, so `deps` runs a locked `cargo metadata` first: no task in the
+parallel `verify` ever rewrites the lock before a sibling reads it.
 Tests run under plain `cargo test`. Measured on Linux and macOS with doc-tests
 included, cargo-nextest was 1.05 to 14 times slower (it starts one process per
 test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
