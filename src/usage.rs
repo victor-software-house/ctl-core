@@ -2,7 +2,8 @@
 //!
 //! One hidden flag, one mount line, one operator form. A consumer writes
 //! `--usage-spec[=BIN]` (hidden, `require_equals`). The served mise task
-//! carries [`mount_line`]. Operators then run `mise run q status` — no `--`.
+//! carries [`mount_directives`], which ends with [`mount_line`]. Operators then
+//! run `mise run q status` — no `--`.
 //! The `--` in the mount is only the completion bootstrap, as mise documents.
 //!
 //! Lefthook calls the same task: `mise run q close-from-git`.
@@ -28,6 +29,23 @@ pub fn spec(mut command: Command, bin: &str) -> String {
 #[must_use]
 pub fn mount_line(task: &str) -> String {
     formatdoc! {r#"#USAGE mount "mise run --quiet {task} -- --usage-spec={task}""#}
+}
+
+/// The mise directives a served CLI-proxy task carries, ending with
+/// [`mount_line`]. `raw_args` passes argv through untouched. `raw` connects
+/// the CLI to the caller's stdin and stdout: without it mise relays each
+/// output line itself and, whenever its own colour is on (as under
+/// `CLICOLOR_FORCE=1`, even into a pipe), appends an SGR reset to every line,
+/// so `--format json` piped to `jq` carries an ESC byte the CLI never wrote.
+/// A raw task also gets no line prefix, and mise runs raw tasks one at a time.
+#[must_use]
+pub fn mount_directives(task: &str) -> String {
+    formatdoc! {"
+        #MISE raw=true
+        #MISE raw_args=true
+        {mount}",
+        mount = mount_line(task),
+    }
 }
 
 /// If argv contains `--usage-spec[=BIN]`, print the spec for `C` and return
@@ -69,7 +87,7 @@ pub fn spec_bin(
 mod tests {
     use clap::{CommandFactory, Parser};
 
-    use super::{mount_line, spec, spec_bin};
+    use super::{mount_directives, mount_line, spec, spec_bin};
 
     #[derive(Parser)]
     #[command(name = "toy")]
@@ -107,6 +125,19 @@ mod tests {
         assert_eq!(
             mount_line("q"),
             r#"#USAGE mount "mise run --quiet q -- --usage-spec=q""#
+        );
+    }
+
+    #[test]
+    fn mount_directives_end_with_the_mount_line() {
+        let directives = mount_directives("q");
+        assert_eq!(
+            directives.lines().collect::<Vec<_>>(),
+            [
+                "#MISE raw=true",
+                "#MISE raw_args=true",
+                mount_line("q").as_str()
+            ]
         );
     }
 }

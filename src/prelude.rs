@@ -43,7 +43,7 @@ pub use crate::surface::Surface;
 #[cfg(feature = "render")]
 pub use crate::table::{grid, kv};
 #[cfg(feature = "usage")]
-pub use crate::usage::{mount_line, spec, spec_bin, take};
+pub use crate::usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
 pub use crate::view::{
     Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Present,

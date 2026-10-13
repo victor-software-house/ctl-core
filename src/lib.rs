@@ -102,7 +102,7 @@ pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, 
 #[cfg(feature = "render")]
 pub use table::{grid, kv};
 #[cfg(feature = "usage")]
-pub use usage::{mount_line, spec, spec_bin, take};
+pub use usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
 pub use view::{
     Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Present,
