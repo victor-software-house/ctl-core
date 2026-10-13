@@ -13,11 +13,14 @@ use std::process::Command;
 use ctl_core::fixture::Suite;
 use ctl_core::{formatdoc, indoc, mount_directives};
 
-/// mise relays a task's output itself unless the task is `raw`, and appends an
-/// SGR reset to every relayed line whenever its own colour is on.
-/// `CLICOLOR_FORCE=1` turns that on into a pipe. The task runs in a scrubbed
-/// environment, so neither the caller's mise configuration nor its colour
-/// settings reach it.
+/// In prefix output mode, which mise uses for several tasks at once or when
+/// `MISE_TASK_OUTPUT=prefix` is set, mise relays a task's output itself unless
+/// the task is `raw`, and appends an SGR reset to every relayed line whenever
+/// its own colour is on, which `CLICOLOR_FORCE=1` turns on even into a pipe.
+/// A single task defaults to `interleave`, which passes output through, so the
+/// test forces prefix mode: without `raw` it fails. The task runs in a
+/// scrubbed environment, so neither the caller's mise configuration nor its
+/// colour settings reach it.
 #[test]
 fn a_mounted_task_pipes_json_without_an_escape_byte() {
     let suite = Suite::new("mount-raw");
@@ -49,6 +52,7 @@ fn a_mounted_task_pipes_json_without_an_escape_byte() {
         .env("HOME", std::env::var_os("HOME").unwrap_or_default())
         .env("MISE_CONFIG_DIR", root.path().join("mise-config"))
         .env("MISE_TRUSTED_CONFIG_PATHS", root.path())
+        .env("MISE_TASK_OUTPUT", "prefix")
         .env("CLICOLOR_FORCE", "1")
         .env("FORCE_COLOR", "3")
         .env("COLORTERM", "truecolor")
