@@ -265,11 +265,11 @@ where
         }
         let matches = match command.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, raw_view),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
-            Err(error) => return self.clap_error(&error, raw_view),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
@@ -296,6 +296,33 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
     View::new(parsed.format, parsed.color)
 }
 
+/// The view for a parse error. Clap's lenient read stops at the bad argument,
+/// so a `--format json` after it goes unseen, and the error would print as
+/// text, coloured when `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller
+/// that asked for JSON and pipes it to `jq`. A long `--format json` or
+/// `--format=json` anywhere before `--` makes the error JSON, which never
+/// carries ANSI. The short `-f` is left out: a consumer may bind it to another
+/// flag.
+fn parse_error_view(raw: &[OsString], mut view: View) -> View {
+    if view.format.is_json() {
+        return view;
+    }
+    let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
+    while let Some(arg) = args.next() {
+        let value = match arg {
+            Some("--") => break,
+            Some("--format") => args.next().flatten(),
+            Some(arg) => arg.strip_prefix("--format="),
+            None => None,
+        };
+        if value == Some("json") {
+            view.format = OutputFormat::Json;
+            view.color = ColorMode::Never;
+        }
+    }
+    view
+}
+
 fn is_clap_display(kind: clap::error::ErrorKind) -> bool {
     matches!(
         kind,
@@ -318,7 +345,7 @@ mod tests {
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::{App, is_clap_display, raw_view};
+    use super::{App, is_clap_display, parse_error_view, raw_view};
     use crate::document::{Document, Fields};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
@@ -399,6 +426,34 @@ mod tests {
             });
         assert_eq!(code, std::process::ExitCode::SUCCESS);
         assert!(ran.get());
+    }
+
+    /// A bad argument before `--format json` still gets a JSON error, so
+    /// machine output stays plain whatever the colour environment says.
+    #[test]
+    fn a_parse_error_honours_a_later_json_format() {
+        let pretty = View::new(OutputFormat::Pretty, ColorMode::Always);
+        let cases = [
+            (&["toy", "status", "--bogus", "--format", "json"][..], true),
+            (&["toy", "status", "--bogus", "--format=json"][..], true),
+            (&["toy", "status", "--bogus"][..], false),
+            (
+                &["toy", "status", "--bogus", "--", "--format", "json"][..],
+                false,
+            ),
+            (
+                &["toy", "status", "--bogus", "--format", "pretty"][..],
+                false,
+            ),
+        ];
+        for (argv, json) in cases {
+            let raw: Vec<OsString> = argv.iter().map(OsString::from).collect();
+            let view = parse_error_view(&raw, pretty);
+            assert_eq!(view.format.is_json(), json, "{argv:?}");
+            if json {
+                assert_eq!(view.color, ColorMode::Never, "{argv:?}");
+            }
+        }
     }
 
     #[test]
