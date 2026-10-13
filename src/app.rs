@@ -301,14 +301,13 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
 /// text, coloured when `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller
 /// that asked for JSON and pipes it to `jq`. A long `--format json` or
 /// `--format=json` before `--` makes the error JSON, which never carries
-/// ANSI; the last `--format` wins, as it does in a full parse. The short `-f`
+/// ANSI. The last `--format` value Clap accepts wins in either direction, as
+/// it does in a full parse, so a later `--format pretty` undoes an earlier
+/// JSON choice. The short `-f`
 /// is left out: a consumer may bind it to another flag. The scan is lexical,
 /// so a domain option whose value happens to be `--format=json` also gets a
 /// JSON error; that only changes how a failed parse is reported.
 fn parse_error_view(raw: &[OsString], mut view: View) -> View {
-    if view.format.is_json() {
-        return view;
-    }
     let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
     let mut last = None;
     while let Some(arg) = args.next() {
@@ -318,13 +317,17 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
             Some(arg) => arg.strip_prefix("--format="),
             None => None,
         };
-        if value.is_some() {
-            last = value;
+        if let Some(format) =
+            value.and_then(|value| <OutputFormat as clap::ValueEnum>::from_str(value, false).ok())
+        {
+            last = Some(format);
         }
     }
-    if last == Some("json") {
-        view.format = OutputFormat::Json;
-        view.color = ColorMode::Never;
+    if let Some(format) = last {
+        view.format = format;
+        if format.is_json() {
+            view.color = ColorMode::Never;
+        }
     }
     view
 }
@@ -468,6 +471,15 @@ mod tests {
                 assert_eq!(view.color, ColorMode::Never, "{argv:?}");
             }
         }
+        let json_first = View::new(OutputFormat::Json, ColorMode::Never);
+        let raw: Vec<OsString> = ["toy", "--format", "json", "--bogus", "--format", "pretty"]
+            .iter()
+            .map(OsString::from)
+            .collect();
+        assert!(
+            !parse_error_view(&raw, json_first).format.is_json(),
+            "a later --format pretty undoes the pre-parse's JSON"
+        );
     }
 
     #[test]
