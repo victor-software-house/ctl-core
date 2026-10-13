@@ -4,7 +4,7 @@
     missing_docs,
     reason = "an integration test crate has no public API to document"
 )]
-#![cfg(all(feature = "usage", feature = "fixture"))]
+#![cfg(all(unix, feature = "usage", feature = "fixture"))]
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
