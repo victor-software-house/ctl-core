@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.17
+
+- New `mount_directives(task)`: the `#MISE raw=true`, `#MISE raw_args=true`, and `#USAGE mount` block a served CLI-proxy task carries. Without `raw`, mise relays the task's output and appends an SGR reset to every line whenever its own colour is on, as under `CLICOLOR_FORCE=1`, so `--format json` piped to `jq` carried an ESC byte the CLI never wrote ([#114](https://github.com/victor-software-house/ctl-core/pull/114)).
+
 ## ctl-core 0.6.16
 
 - A parse error under a long `--format json` or `--format=json` is now a JSON error even when the bad argument comes before the flag. Clap's lenient read stopped at the bad argument, so the error printed as text, coloured when `CLICOLOR_FORCE` or `FORCE_COLOR` was set, to a caller that asked for JSON ([#112](https://github.com/victor-software-house/ctl-core/pull/112)).
