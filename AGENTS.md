@@ -61,6 +61,15 @@ prelude compile.
 Crate docs (`src/lib.rs` + `document_features`) are authoritative for the
 feature graph. The GitHub README is not rustdoc.
 
+## Machine output is never coloured
+
+JSON and anything else meant for a parser stays plain whatever the
+environment says. Agent shells set `CLICOLOR_FORCE=1`, `FORCE_COLOR=3`, and
+`COLORTERM=truecolor`; pretty output may honour them, and the JSON path never
+does. A parse error under a long `--format json` is a JSON error even when the
+bad argument comes first. A consumer test runs the binary with
+`CLICOLOR_FORCE=1` and asserts that JSON output holds no ESC byte.
+
 ## Library control
 
 ctl-core supplies sane defaults, never hidden policy. Every automatic behavior

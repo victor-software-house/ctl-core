@@ -265,11 +265,11 @@ where
         }
         let matches = match command.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, raw_view),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
-            Err(error) => return self.clap_error(&error, raw_view),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
@@ -296,6 +296,42 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
     View::new(parsed.format, parsed.color)
 }
 
+/// The view for a parse error. Clap's lenient read stops at the bad argument,
+/// so a `--format json` after it goes unseen, and the error would print as
+/// text, coloured when `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller
+/// that asked for JSON and pipes it to `jq`. A long `--format json` or
+/// `--format=json` before `--` makes the error JSON, which never carries
+/// ANSI. The last `--format` value Clap accepts wins in either direction, as
+/// it does in a full parse, so a later `--format pretty` undoes an earlier
+/// JSON choice. The short `-f`
+/// is left out: a consumer may bind it to another flag. The scan is lexical,
+/// so a domain option whose value happens to be `--format=json` also gets a
+/// JSON error; that only changes how a failed parse is reported.
+fn parse_error_view(raw: &[OsString], mut view: View) -> View {
+    let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
+    let mut last = None;
+    while let Some(arg) = args.next() {
+        let value = match arg {
+            Some("--") => break,
+            Some("--format") => args.next().flatten(),
+            Some(arg) => arg.strip_prefix("--format="),
+            None => None,
+        };
+        if let Some(format) =
+            value.and_then(|value| <OutputFormat as clap::ValueEnum>::from_str(value, false).ok())
+        {
+            last = Some(format);
+        }
+    }
+    if let Some(format) = last {
+        view.format = format;
+        if format.is_json() {
+            view.color = ColorMode::Never;
+        }
+    }
+    view
+}
+
 fn is_clap_display(kind: clap::error::ErrorKind) -> bool {
     matches!(
         kind,
@@ -318,7 +354,7 @@ mod tests {
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::{App, is_clap_display, raw_view};
+    use super::{App, is_clap_display, parse_error_view, raw_view};
     use crate::document::{Document, Fields};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
@@ -399,6 +435,51 @@ mod tests {
             });
         assert_eq!(code, std::process::ExitCode::SUCCESS);
         assert!(ran.get());
+    }
+
+    /// A bad argument before `--format json` still gets a JSON error, so
+    /// machine output stays plain whatever the colour environment says.
+    #[test]
+    fn a_parse_error_honours_a_later_json_format() {
+        let pretty = View::new(OutputFormat::Pretty, ColorMode::Always);
+        let cases = [
+            (&["toy", "status", "--bogus", "--format", "json"][..], true),
+            (&["toy", "status", "--bogus", "--format=json"][..], true),
+            (&["toy", "status", "--bogus"][..], false),
+            (
+                &["toy", "status", "--bogus", "--", "--format", "json"][..],
+                false,
+            ),
+            (
+                &["toy", "status", "--bogus", "--format", "pretty"][..],
+                false,
+            ),
+            (
+                &["toy", "--bogus", "--format", "json", "--format", "pretty"][..],
+                false,
+            ),
+            (
+                &["toy", "--bogus", "--format=pretty", "--format", "json"][..],
+                true,
+            ),
+        ];
+        for (argv, json) in cases {
+            let raw: Vec<OsString> = argv.iter().map(OsString::from).collect();
+            let view = parse_error_view(&raw, pretty);
+            assert_eq!(view.format.is_json(), json, "{argv:?}");
+            if json {
+                assert_eq!(view.color, ColorMode::Never, "{argv:?}");
+            }
+        }
+        let json_first = View::new(OutputFormat::Json, ColorMode::Never);
+        let raw: Vec<OsString> = ["toy", "--format", "json", "--bogus", "--format", "pretty"]
+            .iter()
+            .map(OsString::from)
+            .collect();
+        assert!(
+            !parse_error_view(&raw, json_first).format.is_json(),
+            "a later --format pretty undoes the pre-parse's JSON"
+        );
     }
 
     #[test]
