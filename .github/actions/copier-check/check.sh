@@ -10,7 +10,13 @@ current=$(recorded)
 src=$(sed -n 's/^_src_path: //p' "$answers")
 # The template pins the copier that renders it, in its own mise.toml, so this
 # check runs the version each tag was tested with and never pins one itself.
-tag=$(git ls-remote --tags --refs "$src" 'v*' | sed 's#.*refs/tags/##' | sort -V | tail -n 1)
+# Copier takes the newest release tag and skips prereleases, so only vX.Y.Z
+# tags count.
+tag=$(git ls-remote --tags --refs "$src" 'v*' | sed 's#.*refs/tags/##' | grep -E '^v[0-9]+(\.[0-9]+)*$' | sort -V | tail -n 1)
+if [ -z "$tag" ]; then
+  echo "::error::No release tag in $src."
+  exit 1
+fi
 template=$(mktemp -d)
 trap 'rm -rf "$template"' EXIT
 git clone --quiet --depth 1 --branch "$tag" "$src" "$template"
