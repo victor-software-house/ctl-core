@@ -1,7 +1,8 @@
 name: Copier template check
 description: >-
   Fails when the newest tag of the shared Copier template would change the
-  repository: check.sh runs copier update and fails on any change besides
+  repository: check.sh runs copier update, at the copier version the template
+  pins in its mise.toml at that tag, and fails on any change besides
   .copier-answers.yml. A newer tag that renders the same files passes with a
   notice. Reads the private template repository with a token from the
   vsh-templates-reader GitHub App. The calling repository defines the mise
