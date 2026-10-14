@@ -32,7 +32,7 @@ undefined name.
 #### Scenario: A climbing path
 
 - **WHEN** a template sets `path = "../escaped"`
-- **THEN** the error starts with `.ctl/templates/q.jinja: ` and contains
+- **THEN** the error starts with `.ctl/templates/q.jinja:` and contains
   `path: must stay inside the repository`
 
 ### Requirement: Writing sets the one mode bit git records

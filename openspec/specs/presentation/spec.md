@@ -1,6 +1,7 @@
 # presentation Specification
 
 ## Purpose
+
 How ctl-core lays out records, lists, JSON, and width, and which of those an owner or an operator can change.
 
 ## Requirements

@@ -1,6 +1,7 @@
 # declared-input Specification
 
 ## Purpose
+
 How a ctl CLI reads a config file: shared garde rules, one loader that parses YAML and validates it once, and every problem placed on its file and line.
 
 ## Requirements
