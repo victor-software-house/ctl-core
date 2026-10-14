@@ -84,8 +84,8 @@ in an inline table, and in an array of tables.
 #### Scenario: An array of tables
 
 - **WHEN** `app.toml` has two `[[outputs]]` tables, and the second holds
-  `path = '../outside'` on line 11
-- **THEN** the problem for `outputs[1].path` is on line 11, column 8
+  `path = '../outside'` on line 13
+- **THEN** the problem for `outputs[1].path` is on line 13, column 8
 
 #### Scenario: Several problems in one file
 

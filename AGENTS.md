@@ -27,9 +27,9 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   optional audience notes. `surface-serde` adds serialization without a template
   engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains
   the compatibility aggregate enabling all three.
-- Declared input (`validate`, `input` features): shared garde rules, and one
-  loader that parses YAML, validates once, and places every problem on its
-  file and line.
+- Declared input (`validate`, `input`, `input-toml` features): shared garde
+  rules, and one loader that parses YAML or TOML, validates once, and places
+  every problem on its file and line.
 - Served files (`served` feature): render a template that declares its own
   target through `{%- set -%}` exports, check the declarations once, and write
   the file with its mode.
@@ -158,6 +158,18 @@ default. `enforce_alias_anchor_ratio` is not overridable and stays on.
 the CLI prints each as a warning. A CLI parses config only through `input`; it keeps no `schema.rs` and
 no YAML crate of its own. `CTC-008` tracks the consumer moves and the template
 renderer.
+
+`input-toml` adds TOML on top of `input`, with the `toml` crate's span-carrying
+`DeTable` as parser and location index, so the same `Input` loads either
+format. The format is chosen, never guessed: `Input::open(path)` reads it from
+the extension (`.toml`, `.yaml`, `.yml`, any case) and refuses every other
+extension before reading; `Input::new` and `Input::read` stay YAML whatever the
+name says, and `Input::format(Format)` sets it for text in memory. A TOML text
+reads three `Limits` fields, `max_reader_input_bytes`, `max_depth`, and
+`max_nodes`; every other field names YAML syntax and has no effect on TOML. The
+`toml` parser also bounds nesting at 80 levels, which no limit raises. The
+repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
+`openspec/specs/declared-input` holds the contract and `CTC-021` the row.
 
 ## Served files
 
