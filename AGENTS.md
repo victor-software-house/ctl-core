@@ -185,10 +185,17 @@ The repository setup comes from the shared Copier template, the private
 `victor-software-house/templates` repository (kind `rust-crate`): the whole
 files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
 `lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, `rustfmt.toml`,
-`clippy.toml`, `deny.toml`, `mise-tasks/hooks.toml`, `mise-tasks/commit-msg`,
-and `mise-tasks/commits`, plus the settings, toolchain, and `[task_config]`
-blocks of `mise.toml` and the `[lints]` tables of `Cargo.toml`. Change a
-shared rule in the template, then take its new tag here.
+`clippy.toml`, `deny.toml`, `.rumdl.toml`, `.taplo.toml`, `.typos.toml`,
+`mise.template.toml`, `.github/workflows/ci.yml`, `.github/actionlint.yaml`,
+`mise-tasks/hooks.toml`, `mise-tasks/commit-msg`, `mise-tasks/commits`, and
+`mise-tasks/repo.toml`, plus the settings, toolchain, and `[task_config]`
+blocks of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
+`mise-tasks/local.toml` and `openspec/config.yaml` are this repository's own.
+Local edits survive an update: `ci.yml` runs this repository's copy of the
+`copier-check` action, caches mbx objects, and sets git's default branch to
+`main`; `.taplo.toml` skips `tasks/rust.toml`, `.rumdl.toml` allows the README
+banner's HTML, and `.typos.toml` ignores commit hashes cited in prose. Change
+a shared rule in the template, then take its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
 `MISE_ENV=template mise x -- uvx copier@9.18.2 update --defaults`, review
@@ -241,15 +248,17 @@ and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
 and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
 includes; other ctl repositories include the same file by `git::` URL at a
 ctl-core release tag. This repository's own tasks live in `mise-tasks/`:
-`check:features` is the file task `mise-tasks/check/features`, and
-`check:repo` is in `mise-tasks/check.toml`. `commit-msg`, `commits`, and the
-secrets scans are the template's files in `mise-tasks/`. `[task_config]`
-lists `mise-tasks` first, because an includes list replaces the default task
-dirs. Fragment names are not namespaced by file, so each name carries its
-prefix. The shared `verify` depends on `check:features` and `check:repo` by
-name, so every including repository defines both; `check:repo` holds its own
-checks, and ctl-core's does nothing. Change a shared task in `tasks/rust.toml`,
-never in a consumer.
+`check:features` is the file task `mise-tasks/check/features`.
+`check:repo`, `commit-msg`, `commits`, and the secrets scans are the
+template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
+actionlint, and OpenSpec validation, then `check:local`, which
+`mise-tasks/local.toml` leaves to this repository; ctl-core's does nothing.
+`[task_config]` lists `mise-tasks` first, because an includes list replaces the
+default task dirs. Fragment names are not namespaced by file, so each name
+carries its prefix. The shared `verify` depends on `check:features` and
+`check:repo` by name, so every including repository defines `check:features`
+and takes `check:repo` from the template. Change a shared task in
+`tasks/rust.toml`, never in a consumer.
 Every cargo command that resolves dependencies passes `--locked`, in the
 shared tasks and in each repository's `check:features`, so a stale `Cargo.lock`
 fails `verify` the way it fails a release build. cargo-machete has no
