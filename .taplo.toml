@@ -2,6 +2,8 @@
 # The Copier template owns the layout of the files it renders.
 exclude = [
   "target/**",
+  # The shared task catalog consumers include by URL; its layout is theirs.
+  "tasks/rust.toml",
   ".miserc.toml",
   "committed.toml",
   "mise.dev.toml",
