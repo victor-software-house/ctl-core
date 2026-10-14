@@ -198,14 +198,16 @@ banner's HTML, and `.typos.toml` ignores commit hashes cited in prose. Change
 a shared rule in the template, then take its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
-`MISE_ENV=template mise x -- uvx copier@9.18.2 update --defaults`, review
-the diff, and fix any conflict markers (`git diff --check`) before
-committing.
+`MISE_ENV=template mise x -- uvx copier@<pin> update --defaults --vcs-ref <tag>`,
+where `<pin>` is the `"pypi:copier"` version in the template's `mise.toml` at
+that tag. Review the diff, and fix any conflict markers (`git diff --check`)
+before committing.
 
 The CI job `Template` runs the composite action
 `.github/actions/copier-check`, which mints a token from the
 `vsh-templates-reader` GitHub App and runs its `check.sh`. The script runs
-`copier update` and fails when the newest tag changes any file besides
+`copier update` at the copier version the template pins in its `mise.toml`
+at the newest tag, and fails when the newest tag changes any file besides
 `.copier-answers.yml`. A newer tag that renders the same files passes with a
 notice, and the repository takes the new tag with its next real template
 change. The job is skipped for pull requests from forks. Other repositories
