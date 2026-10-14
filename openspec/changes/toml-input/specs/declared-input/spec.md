@@ -27,10 +27,7 @@ SHALL refuse duplicate keys and merge keys. For TOML, the parser is the
 compared without regard to case: `.toml` is TOML, and `.yaml` and `.yml` are
 YAML. A file with any other extension, or none, SHALL be refused with a
 problem that names the extension and the accepted ones, before the file is
-read. `Format::of(path)` SHALL apply the same rule. `Input::format` SHALL set
-the format of an input, and `Input::new` and `Input::read` SHALL create YAML
-inputs whatever the name says. Without the `input-toml` feature, a `.toml`
-file SHALL be refused with a problem that names the feature.
+read.
 
 #### Scenario: A TOML file is opened by its extension
 
@@ -51,6 +48,14 @@ file SHALL be refused with a problem that names the feature.
 - **WHEN** `Input::open` is given `app`
 - **THEN** it fails with one problem that reads
   `no file extension; name the file *.toml, *.yaml, or *.yml`
+
+### Requirement: Text in memory and a missing feature follow the same rule
+
+`Format::of(path)` SHALL apply the extension rule of `Input::open`.
+`Input::format` SHALL set the format of an input, and `Input::new` and
+`Input::read` SHALL create YAML inputs whatever the name says. Without the
+`input-toml` feature, a `.toml` file SHALL be refused with a problem that
+names the feature.
 
 #### Scenario: A name never changes the format of text in memory
 
@@ -116,10 +121,6 @@ A TOML input SHALL be held to `max_reader_input_bytes`, `max_depth`, and
 `.ctl/input.yaml`, the process default, and serde-saphyr's default, with the
 same limit messages as YAML. Depth counts tables and arrays, and the root
 table is 1. Nodes count the root table and every table, array, and value.
-The depth and node limits are checked on the parsed tree, at the line and
-column of the value that crosses the limit. Every other `Limits` field names
-a YAML syntax feature and SHALL have no effect on TOML. The `toml` parser
-SHALL keep its own bound of 80 nested levels, which no limit raises.
 
 #### Scenario: The input size
 
@@ -139,6 +140,13 @@ SHALL keep its own bound of 80 nested levels, which no limit raises.
 
 - **WHEN** the same text is parsed under `max_depth: 5`
 - **THEN** it parses
+
+### Requirement: A TOML limit sits on the value that crosses it
+
+The depth and node limits SHALL be checked on the parsed tree, at the line and
+column of the value that crosses the limit. Every other `Limits` field names
+a YAML syntax feature and SHALL have no effect on TOML. The `toml` parser
+SHALL keep its own bound of 80 nested levels, which no limit raises.
 
 #### Scenario: Nodes
 

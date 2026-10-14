@@ -73,11 +73,7 @@ counted from the file, with no other position in the text.
 the highest tier that sets it: the call's `Input::limits`, then the
 repository's `limits:` in `.ctl/input.yaml` installed by `use_repo_limits`,
 then the process default from `set_default_limits`, then serde-saphyr's
-default. `Limits` SHALL expose every `Budget` field except
-`enforce_alias_anchor_ratio`, which stays on. `max_reader_input_bytes` SHALL
-also cap text already in memory. `use_repo_limits` SHALL return each field the
-repository sets looser than serde-saphyr's default, with its value and the
-default, for the CLI to print as a warning.
+default.
 
 #### Scenario: The process default applies
 
@@ -105,6 +101,14 @@ default, for the CLI to print as a warning.
 
 - **WHEN** `.ctl/input.yaml` sets `limits: {max_dept: 8}`
 - **THEN** `use_repo_limits` fails naming the file and `max_dept`
+
+### Requirement: The limits cover the whole budget, and a loosened one is reported
+
+`Limits` SHALL expose every `Budget` field except
+`enforce_alias_anchor_ratio`, which stays on. `max_reader_input_bytes` SHALL
+also cap text already in memory. `use_repo_limits` SHALL return each field the
+repository sets looser than serde-saphyr's default, with its value and the
+default, for the CLI to print as a warning.
 
 #### Scenario: The alias ratio cannot be turned off
 
