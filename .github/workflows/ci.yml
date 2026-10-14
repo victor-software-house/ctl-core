@@ -9,6 +9,9 @@ permissions:
   contents: read
 
 env:
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   # The CI profile; local work loads dev from .miserc.toml, which CI never does.
   MISE_ENV: ci
 
@@ -30,8 +33,14 @@ jobs:
         with:
           version: 2026.10.9
           cache: true
+      # The objects payload carries mbx's compiled actions, whatever Cargo's
+      # target layout. A restored target tree still recompiled most of the
+      # clippy, doc-test, and cargo-semver-checks work.
       - name: Cache builds with mbx
         uses: jdx/mr-boxington-action@47ce49b32025d93a7a2f4570815afaa2b7092240 # v1.7.2
+        with:
+          github-cache-mode: objects
+          isolate-objects-cache: true
       - name: Verify
         run: mise run verify
       - name: Advisories
@@ -53,11 +62,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Mints a token from the vsh-templates-reader App, installs only uv and
-      # python from mise.template.toml, and fails when the newest template tag
-      # would change the repository.
+      # This repository owns the action, so its own pull requests test the
+      # copy they change instead of a pinned commit of main.
       - name: Check the template version
-        uses: victor-software-house/ctl-core/.github/actions/copier-check@4c178e81817f4040de9c2e66ccc9aac3172cb1a9 # main, 2026-10-13
+        uses: ./.github/actions/copier-check
         with:
           client-id: ${{ secrets.TEMPLATES_APP_CLIENT_ID }}
           private-key: ${{ secrets.TEMPLATES_APP_PRIVATE_KEY }}
