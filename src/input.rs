@@ -26,7 +26,11 @@ use limits::{Exceeded, Raise};
 pub use limits::{Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits};
 
 /// How a text is written.
+///
+/// Non-exhaustive: `Toml` exists only with `input-toml`, and Cargo unifies
+/// features across a build, so a consumer's `match` needs a wildcard arm.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Format {
     /// YAML, read by serde-saphyr and placed by yamled.
     Yaml,

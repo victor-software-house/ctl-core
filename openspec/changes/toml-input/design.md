@@ -100,7 +100,10 @@ is YAML whatever the Markdown input's format. A `---` line is not TOML.
 `input-toml = ["input", "dep:toml"]` adds the TOML path. A YAML-only consumer
 compiles no TOML crate, and an existing `features = ["input"]` builds
 unchanged. `Format::Toml` and the TOML code exist only with the feature, and
-every `match` on `Format` is exhaustive for each feature set.
+every `match` on `Format` inside ctl-core is exhaustive for each feature set.
+`Format` is `#[non_exhaustive]`: Cargo unifies features across a build, so
+one crate turning on `input-toml` would otherwise break another crate's
+exhaustive `match` written against `input` alone.
 
 Alternative that lost: split the feature into `input-yaml` and `input-toml`,
 with `input` as an alias for the first, so a TOML-only consumer compiles no
