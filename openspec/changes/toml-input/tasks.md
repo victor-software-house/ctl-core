@@ -35,6 +35,9 @@ graph. cargo-deny now warns about two `winnow` versions (0.7.15 under
 serde-saphyr's parser, 1.0.4 under `toml`), a warning by `deny.toml`'s
 `multiple-versions = "warn"`.
 
+`mise run semver` against ctl-core 0.6.18 reported "no semver update
+required" (202 checks, 202 pass).
+
 A scratch copy of the tree passed the CI `Template` job's check: `copier
 update --defaults` changed only `.copier-answers.yml` (`_commit` v0.0.18 to
 v0.0.19).
