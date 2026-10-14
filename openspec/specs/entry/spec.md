@@ -1,6 +1,7 @@
 # entry Specification
 
 ## Purpose
+
 How a consumer binary enters ctl-core: `App` owns parsing, help, rendering, and the exit code.
 
 ## Requirements

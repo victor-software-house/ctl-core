@@ -1,6 +1,7 @@
 # fixture-tree Specification
 
 ## Purpose
+
 Temporary file trees for integration tests: one suite directory per test file, a scenario per case that cannot outlive its suite, and one call per file.
 
 ## Requirements

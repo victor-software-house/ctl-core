@@ -1,6 +1,7 @@
 # shared-rust-tasks Specification
 
 ## Purpose
+
 Every ctl repository runs the same standard Rust tasks from one file that
 ctl-core ships, included at a pinned ctl-core release, so a fix to a shared
 task reaches every repository by bumping the ref.

@@ -1,6 +1,7 @@
 # served-files Specification
 
 ## Purpose
+
 How a repository serves files from templates: a template declares its own target and mode in Jinja exports, and `Served::write` writes it inside the repository only.
 
 ## Requirements
@@ -37,7 +38,7 @@ undefined name.
 #### Scenario: A climbing path
 
 - **WHEN** a template sets `path = "../escaped"`
-- **THEN** the error starts with `.ctl/templates/q.jinja: ` and contains
+- **THEN** the error starts with `.ctl/templates/q.jinja:` and contains
   `path: must stay inside the repository`
 
 ### Requirement: Writing sets the one mode bit git records
