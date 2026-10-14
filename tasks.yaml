@@ -78,6 +78,8 @@ queue:
       - OpenSpec change toml-input in openspec/changes/toml-input.
       - >2-
         Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.
+    links:
+      - https://github.com/victor-software-house/ctl-core/pull/120
 horizon: []
 
 archive:
