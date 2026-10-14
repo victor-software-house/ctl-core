@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.19
+
+- New `input-toml` feature: the declared-input loader reads TOML. `Input::open(path)` takes the format from the extension (`.toml`, `.yaml`, `.yml`) and refuses any other extension; `Input::format(Format)` sets it for text in memory, and `Input::new` and `Input::read` stay YAML, so existing consumers change nothing. A TOML parse error, a serde error, and each garde field problem (a top-level key, a table, an inline table, an array of tables) report a 1-based line and column, and a TOML text is held to `max_reader_input_bytes`, `max_depth`, and `max_nodes` from the same tiers as YAML. The `input` feature keeps meaning YAML and compiles no TOML crate ([#120](https://github.com/victor-software-house/ctl-core/pull/120)).
+
 ## ctl-core 0.6.18
 
 - The shared Rust tasks pass `--locked` to clippy, both test tasks, cargo-deny, and the toolchain check's `cargo metadata`, so `verify` fails when `Cargo.lock` no longer matches `Cargo.toml`. Before, a stale lock passed `verify` and failed only a release build that passes `--locked`. `deps` runs a locked `cargo metadata` before cargo-machete, whose own unlocked metadata call rewrote a stale lock while sibling tasks ran. A repository passes `--locked` in its own `check:features` too ([#117](https://github.com/victor-software-house/ctl-core/pull/117)).
