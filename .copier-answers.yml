@@ -19,6 +19,7 @@ feature_sets:
 - surface
 - validate
 - input
+- input-toml
 - fixture
 - served
 - usage

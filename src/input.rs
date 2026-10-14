@@ -1,8 +1,12 @@
-//! Declared input: read a file, parse its shape with `serde-saphyr`, validate
-//! it once with garde, and report every problem on its file and line.
+//! Declared input: read a file, parse its shape with `serde-saphyr` (YAML) or
+//! the `toml` crate (TOML, with `input-toml`), validate it once with garde,
+//! and report every problem on its file and line.
 //!
 //! This is the one boundary where a CLI's config enters. Downstream code keeps
 //! the validated type and never checks it again.
+//!
+//! A text's [`Format`] is chosen, never guessed: [`Input::open`] reads it from
+//! the file's extension, and [`Input::new`] and [`Input::read`] are YAML.
 
 use std::borrow::Cow;
 use std::fmt;
@@ -15,17 +19,75 @@ use serde_saphyr::{
 };
 
 mod limits;
+#[cfg(feature = "input-toml")]
+mod toml_text;
 
 use limits::{Exceeded, Raise};
 pub use limits::{Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits};
 
-/// A named YAML text, ready to parse and validate.
+/// How a text is written.
+///
+/// Non-exhaustive: `Toml` exists only with `input-toml`, and Cargo unifies
+/// features across a build, so a consumer's `match` needs a wildcard arm.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Format {
+    /// YAML, read by serde-saphyr and placed by yamled.
+    Yaml,
+    /// TOML, read and placed by the `toml` crate.
+    #[cfg(feature = "input-toml")]
+    Toml,
+}
+
+impl Format {
+    /// The format a file's extension names, compared without regard to case:
+    /// `.toml` is TOML, and `.yaml` and `.yml` are YAML.
+    ///
+    /// # Errors
+    ///
+    /// An [`InputError`] with no line, naming the extension and the accepted
+    /// ones, for any other extension or none; and for `.toml` when the
+    /// `input-toml` feature is off.
+    pub fn of(path: &Path) -> Result<Self, InputError> {
+        let name = path.display().to_string();
+        let extension = path
+            .extension()
+            .map(|extension| extension.to_string_lossy().to_ascii_lowercase());
+        match extension.as_deref() {
+            Some("yaml" | "yml") => Ok(Self::Yaml),
+            #[cfg(feature = "input-toml")]
+            Some("toml") => Ok(Self::Toml),
+            #[cfg(not(feature = "input-toml"))]
+            Some("toml") => Err(InputError::whole(
+                name,
+                format!("`.toml` needs ctl-core's input-toml feature; {ACCEPTED}"),
+            )),
+            Some(other) => Err(InputError::whole(
+                name,
+                format!("unsupported extension .{other}; {ACCEPTED}"),
+            )),
+            None => Err(InputError::whole(
+                name,
+                format!("no file extension; {ACCEPTED}"),
+            )),
+        }
+    }
+}
+
+/// What a refusal tells a person to name the file.
+#[cfg(feature = "input-toml")]
+const ACCEPTED: &str = "name the file *.toml, *.yaml, or *.yml";
+#[cfg(not(feature = "input-toml"))]
+const ACCEPTED: &str = "name the file *.yaml or *.yml";
+
+/// A named text, ready to parse and validate.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Input {
     name: String,
     text: String,
     lines_before: usize,
     limits: Limits,
+    format: Format,
 }
 
 /// Why an input was refused: every problem found, each placed on a line when
@@ -53,7 +115,8 @@ pub struct Problem {
 }
 
 impl Input {
-    /// An input from text already in memory.
+    /// A YAML input from text already in memory, whatever its name says. Set
+    /// another format with [`Input::format`].
     #[must_use]
     pub fn new(name: impl Into<String>, text: impl Into<String>) -> Self {
         Self {
@@ -61,10 +124,11 @@ impl Input {
             text: text.into(),
             lines_before: 0,
             limits: Limits::NONE,
+            format: Format::Yaml,
         }
     }
 
-    /// Read a file, named by its path.
+    /// Read a YAML file, named by its path, whatever its extension.
     ///
     /// # Errors
     ///
@@ -75,6 +139,25 @@ impl Input {
             Ok(text) => Ok(Self::new(name, text)),
             Err(error) => Err(InputError::whole(name, error.to_string())),
         }
+    }
+
+    /// Read a file and take its [`Format`] from its extension, as
+    /// [`Format::of`] does. The extension is checked before the file is read.
+    ///
+    /// # Errors
+    ///
+    /// An [`InputError`] for an extension [`Format::of`] refuses, or with the
+    /// I/O failure.
+    pub fn open(path: &Path) -> Result<Self, InputError> {
+        let format = Format::of(path)?;
+        Ok(Self::read(path)?.format(format))
+    }
+
+    /// Set how the text is written, over what [`Input::new`] assumed.
+    #[must_use]
+    pub fn format(mut self, format: Format) -> Self {
+        self.format = format;
+        self
     }
 
     /// The input's name.
@@ -90,9 +173,10 @@ impl Input {
     }
 
     /// Split YAML frontmatter from a Markdown body: the text between a first
-    /// line of `---` and the next line of `---`. Problems in the frontmatter
-    /// keep the line numbers of the whole file. `None` when the text does not
-    /// start with a `---` line, or never closes it.
+    /// line of `---` and the next line of `---`. The frontmatter is YAML
+    /// whatever this input's format. Problems in the frontmatter keep the
+    /// line numbers of the whole file. `None` when the text does not start
+    /// with a `---` line, or never closes it.
     #[must_use]
     pub fn frontmatter(&self) -> Option<(Self, &str)> {
         let text = self.text.strip_prefix('\u{feff}').unwrap_or(&self.text);
@@ -107,6 +191,7 @@ impl Input {
                     text: rest[..offset].to_owned(),
                     lines_before: self.lines_before + 1,
                     limits: self.limits.clone(),
+                    format: Format::Yaml,
                 };
                 return Some((matter, &rest[offset + line.len()..]));
             }
@@ -123,10 +208,13 @@ impl Input {
         self
     }
 
-    /// Parse the text's shape. Only `true` and `false` are booleans, and a
-    /// duplicate key or a merge key (`<<`) is refused. The text must fit the
-    /// limits in force, field by field from this input, the repository's
+    /// Parse the text's shape. In YAML only `true` and `false` are booleans,
+    /// and a duplicate key or a merge key (`<<`) is refused; in TOML a
+    /// duplicate key is refused by the format. The text must fit the limits in
+    /// force, field by field from this input, the repository's
     /// [`REPO_FILE`], the process default, and serde-saphyr's own defaults.
+    /// TOML reads only `max_reader_input_bytes`, `max_depth`, and `max_nodes`
+    /// from them: the other fields name YAML syntax.
     ///
     /// # Errors
     ///
@@ -157,6 +245,19 @@ impl Input {
                 ),
             ));
         }
+        match self.format {
+            Format::Yaml => self.parse_yaml(budget, raise),
+            #[cfg(feature = "input-toml")]
+            Format::Toml => toml_text::parse(self, budget, raise),
+        }
+    }
+
+    /// [`Self::parse_within`] for YAML, once the text's size is known to fit.
+    fn parse_yaml<T: DeserializeOwned>(
+        &self,
+        budget: &Budget,
+        raise: Raise,
+    ) -> Result<T, InputError> {
         let options = serde_saphyr::options! {
             budget: Some(budget.clone()),
             strict_booleans: true,
@@ -217,26 +318,49 @@ impl Input {
         let Err(report) = value.validate_with(context) else {
             return Ok(());
         };
-        let document = yamled::Document::parse(self.text.as_str()).ok();
-        let problems = report
+        let reported: Vec<_> = report
             .iter()
-            .map(|(path, error)| {
-                let field = path.to_string();
-                let location = document
-                    .as_ref()
-                    .and_then(|document| document.locate_nearest(&yaml_path(&field)));
-                Problem {
-                    line: location.map(|at| at.line + self.lines_before),
-                    column: location.map(|at| at.column),
-                    field,
-                    message: error.message().to_owned(),
-                }
+            .map(|(path, error)| (path.to_string(), error.message().to_owned()))
+            .collect();
+        let fields: Vec<_> = reported.iter().map(|(field, _)| field.as_str()).collect();
+        let places = self.places(&fields);
+        let problems = reported
+            .into_iter()
+            .zip(places)
+            .map(|((field, message), place)| Problem {
+                line: place.map(|(line, _)| line + self.lines_before),
+                column: place.map(|(_, column)| column),
+                field,
+                message,
             })
             .collect();
         Err(InputError {
             name: self.name.clone(),
             problems,
         })
+    }
+
+    /// The 1-based line and column in the text of each garde field, or of its
+    /// nearest written ancestor, counted in the text itself.
+    fn places(&self, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
+        match self.format {
+            Format::Yaml => {
+                let document = yamled::Document::parse(self.text.as_str()).ok();
+                fields
+                    .iter()
+                    .map(|field| {
+                        document
+                            .as_ref()
+                            .and_then(|document| {
+                                document.locate_nearest(&yaml_path(&field_steps(field)))
+                            })
+                            .map(|at| (at.line, at.column))
+                    })
+                    .collect()
+            }
+            #[cfg(feature = "input-toml")]
+            Format::Toml => toml_text::places(&self.text, fields),
+        }
     }
 
     /// Parse and validate with the default context.
@@ -300,25 +424,43 @@ fn trailing_position<'a>(
     Some((rest, (line.parse().ok()?, column.parse().ok()?)))
 }
 
-/// A garde field path (`packages[1].name`) as a yamled path. A key holding
-/// `.` or `[` cannot be told apart from nesting, so such a problem lands on
-/// the nearest ancestor that resolves.
-fn yaml_path(field: &str) -> yamled::Path {
-    let mut path = yamled::Path::root();
+/// One step down a garde field path.
+enum Step<'field> {
+    /// A key of a mapping or table.
+    Key(&'field str),
+    /// An item of a sequence or array.
+    Index(usize),
+}
+
+/// A garde field path (`packages[1].name`) as the steps down to it. A key
+/// holding `.` or `[` cannot be told apart from nesting, so such a problem
+/// lands on the nearest ancestor that resolves.
+fn field_steps(field: &str) -> Vec<Step<'_>> {
+    let mut steps = Vec::new();
     for part in field.split('.') {
         let mut pieces = part.split('[');
         if let Some(key) = pieces.next().filter(|key| !key.is_empty()) {
-            path = path.key(key);
+            steps.push(Step::Key(key));
         }
         for index in pieces {
             let index = index.trim_end_matches(']');
-            path = match index.parse::<usize>() {
-                Ok(index) => path.index(index),
-                Err(_) => path.key(index),
-            };
+            steps.push(match index.parse::<usize>() {
+                Ok(index) => Step::Index(index),
+                Err(_) => Step::Key(index),
+            });
         }
     }
-    path
+    steps
+}
+
+/// `steps` as a yamled path.
+fn yaml_path(steps: &[Step<'_>]) -> yamled::Path {
+    steps
+        .iter()
+        .fold(yamled::Path::root(), |path, step| match step {
+            Step::Key(key) => path.key(*key),
+            Step::Index(index) => path.index(*index),
+        })
 }
 
 impl InputError {

@@ -1,5 +1,6 @@
-//! How much a YAML text may hold before [`Input::parse`] refuses it, and who
-//! decides. The order is on [`Limits`].
+//! How much a text may hold before [`Input::parse`] refuses it, and who
+//! decides. The order is on [`Limits`]. A TOML text reads three fields:
+//! `max_reader_input_bytes`, `max_depth`, and `max_nodes`.
 
 use std::fmt;
 use std::path::Path;
@@ -33,6 +34,10 @@ macro_rules! limits {
         /// `enforce_alias_anchor_ratio` is not here: the ratio check is one
         /// comparison after scanning, so turning it off saves nothing. It
         /// stays on; its multiplier and minimum alias count are overridable.
+        ///
+        /// A TOML text reads only `max_reader_input_bytes`, `max_depth`, and
+        /// `max_nodes`. Every other field names a YAML syntax feature, so it
+        /// has no effect on TOML.
         #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
         #[serde(deny_unknown_fields, default)]
         pub struct Limits {
@@ -82,7 +87,8 @@ macro_rules! limits {
 }
 
 limits! {
-    /// Bytes of input text. Also checked for text already in memory.
+    /// Bytes of input text, for YAML and TOML. Also checked for text already
+    /// in memory.
     max_reader_input_bytes: usize => Some,
     /// Comment events buffered while resolving an ambiguous entry.
     max_buffered_comment_events: usize,
@@ -104,13 +110,15 @@ limits! {
     max_property_expansion_depth: usize,
     /// Bytes inspected across all property interpolation.
     max_total_property_interpolation_work: usize,
-    /// Nesting of sequences and mappings.
+    /// Nesting of sequences and mappings; in TOML, of arrays and tables, with
+    /// the root table as 1.
     max_depth: usize,
     /// Nesting of `!include`.
     max_inclusion_depth: u32,
     /// YAML documents in one text.
     max_documents: usize,
-    /// Sequences, mappings, and scalars in total.
+    /// Sequences, mappings, and scalars in total; in TOML, the root table and
+    /// every table, array, and value.
     max_nodes: usize,
     /// Bytes of scalar text in total.
     max_total_scalar_bytes: usize,
@@ -268,8 +276,13 @@ pub(super) struct Exceeded {
 
 impl Exceeded {
     pub(super) fn input_bytes(limit: usize, raise: Raise) -> Self {
+        Self::new("max_reader_input_bytes", limit, raise)
+    }
+
+    /// The [`Limits`] `field` the text went past, with the value in force.
+    pub(super) fn new(field: &'static str, limit: usize, raise: Raise) -> Self {
         Self {
-            field: "max_reader_input_bytes",
+            field,
             limit: limit.to_string(),
             raise,
         }
