@@ -80,6 +80,21 @@ queue:
         Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.
     links:
       - https://github.com/victor-software-house/ctl-core/pull/120
+
+  - id: CTC-022
+    title: Bind every flag to an environment variable
+    scope: ctl-core flags, help, and the env-flags spec
+    outcome: A ctl CLI binds every long option to <PREFIX>_<LONG> with one root attribute, so an action or CI step sets env and runs the bare verb.
+    blocked_by: []
+    acceptance:
+      - 'With #[command(env_prefix = "VERCTL")] on the root parser, every long option of the root and of every subcommand reads VERCTL_<LONG>, and a flag on the command line wins over it.'
+      - An option that declares its own env, has no long name, is hidden, is a --no-* side, or is help or version stays unbound, and an empty variable counts as unset.
+      - 'ctl-core help prints [env: NAME] beside each bound option.'
+      - A command without the attribute binds nothing, and mise run verify passes.
+    notes:
+      - OpenSpec change env-bound-flags in openspec/changes/env-bound-flags.
+      - >2-
+        Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.
 horizon: []
 
 archive:
