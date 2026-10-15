@@ -34,14 +34,19 @@ help or version.
 Before the parse, `ctl_core::flags::env_under_flags(command, argv)` SHALL
 unbind the variable of each option that the command line sets, negates
 (`--no-x` for `--x`, or `--x` for a bound `--no-x`), or conflicts with. It
-SHALL unbind by resetting `Arg::env` on the command it returns, never by
-changing the process environment. `App` SHALL call it and parse the command
+SHALL unbind by resetting `Arg::env` on the command it returns, at the level
+that declares the option, never by changing the process environment. `App` SHALL call it and parse the command
 it returns.
 
 #### Scenario: Flag and variable both set
 
 - **WHEN** the run has `VERCTL_CONFIG=ci/ver.yaml` and `VERCTL_FORMAT=json`, and argv is `verctl --format pretty prepare --config own.yaml`
 - **THEN** `config` is `own.yaml` and the format is `pretty`
+
+#### Scenario: A global flag after the subcommand
+
+- **WHEN** the root flattens `OutputArgs`, the run has `VERCTL_FORMAT=json`, and argv is `verctl prepare --format pretty`
+- **THEN** the format is `pretty`
 
 #### Scenario: A negation on the command line beats the variable
 

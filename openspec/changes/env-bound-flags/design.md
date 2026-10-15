@@ -66,8 +66,11 @@ layer, so the command line wins, with a warning such as "Ignoring
    ignored, which tells it which options the command line set at each
    subcommand level. It then unbinds the variable of each bound option that
    follows. Unbinding resets `Arg::env` on the command the function returns,
-   which `App` then parses; the process environment is never changed, since
-   `std::env::remove_var` is `unsafe` in edition 2024:
+   which `App` then parses, at the level that declares the option: the root
+   for a `global` option, whatever level the command line set it at, since
+   clap copies a global into subcommands only when it builds the command.
+   The process environment is never changed, since `std::env::remove_var` is
+   `unsafe` in edition 2024:
    1. the command line set itself;
    2. the command line negated: `--no-x` given removes `x`'s variable, and
       `--x` given removes the variable of a `--no-x` that declares one;
