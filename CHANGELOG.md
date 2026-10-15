@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.20
+
+- The shared `test` task runs `cargo test --lib --tests` instead of `--lib --bins --tests`. `--bins` selects every binary target and ignores its `test` flag, so a fuzz target declared with `test = false` was built and run as a test. `--tests` selects every target whose `test` flag is on, so bins keep their unit tests ([#124](https://github.com/victor-software-house/ctl-core/pull/124)).
+
 ## ctl-core 0.6.19
 
 - New `input-toml` feature: the declared-input loader reads TOML. `Input::open(path)` takes the format from the extension (`.toml`, `.yaml`, `.yml`) and refuses any other extension; `Input::format(Format)` sets it for text in memory, and `Input::new` and `Input::read` stay YAML, so existing consumers change nothing. A TOML parse error, a serde error, and each garde field problem (a top-level key, a table, an inline table, an array of tables) report a 1-based line and column, and a TOML text is held to `max_reader_input_bytes`, `max_depth`, and `max_nodes` from the same tiers as YAML. The `input` feature keeps meaning YAML and compiles no TOML crate ([#120](https://github.com/victor-software-house/ctl-core/pull/120)).
