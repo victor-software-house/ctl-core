@@ -75,10 +75,12 @@ The crate-root `//!` sections in `src/lib.rs` are the docs.rs landing page,
 and `document_features` there is authoritative for the feature graph. The
 README is the GitHub page and does not copy them. Crate-root re-exports stay
 `#[doc(hidden)]`, so the page lists modules once; the prelude documents the
-flat surface. Traits are the exception: cargo-semver-checks 0.51.0 treats a
-trait with any `#[doc(hidden)]` path as public-API-sealed
-(`trait_newly_sealed`), even when another path is public, so `Present` and
-`EnvPrefix` stay visible at the root. Each module's summary lives in its own `//!`, never also on
+flat surface. Traits are the exception, with every type a required trait
+method takes or returns: cargo-semver-checks 0.51.0 treats a trait as
+public-API-sealed (`trait_newly_sealed`) when any `#[doc(hidden)]` path
+reaches it or such a type, even when another path is public. So `Present`,
+`EnvPrefix`, and `Document` (returned by `Present::present`) stay visible at
+the root. Each module's summary lives in its own `//!`, never also on
 `pub mod`. Every fallible public function documents `# Errors`, with no
 `missing_errors_doc` expect.
 

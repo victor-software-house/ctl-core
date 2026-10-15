@@ -121,10 +121,10 @@ pub use app::App;
 #[doc(hidden)]
 pub use color::ColorMode;
 #[cfg(feature = "document")]
+pub use document::Document;
+#[cfg(feature = "document")]
 #[doc(hidden)]
-pub use document::{
-    Block, Document, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text,
-};
+pub use document::{Block, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text};
 #[cfg(feature = "cli")]
 pub use flags::EnvPrefix;
 #[cfg(feature = "cli")]
