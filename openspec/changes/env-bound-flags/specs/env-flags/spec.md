@@ -31,11 +31,10 @@ help or version.
 
 ### Requirement: The command line wins
 
-A value given on the command line SHALL win over the option's variable, and
-the variable SHALL win over the option's default. For a `--x`/`--no-x` pair
-declared with a mutual `overrides_with` and resolved through
-`ctl_core::flags::switch`, a `--no-x` on the command line SHALL win over a
-`true` read from `x`'s variable.
+Before the parse, `ctl_core::flags::env_under_flags(command, argv)` SHALL
+remove the variable of each option that the command line sets, negates
+(`--no-x` for `--x`, or `--x` for a bound `--no-x`), or conflicts with in
+either direction. `App` SHALL call it before its parse.
 
 #### Scenario: Flag and variable both set
 
@@ -44,23 +43,45 @@ declared with a mutual `overrides_with` and resolved through
 
 #### Scenario: A negation on the command line beats the variable
 
-- **WHEN** `prepare` declares the pair `--pr`/`--no-pr`, the run has `VERCTL_PR=true`, and argv is `verctl prepare --no-pr`
-- **THEN** `switch(pr, no_pr)` is `false`
+- **WHEN** `prepare` declares the pair `--pr`/`--no-pr` with a mutual `overrides_with`, the run has `VERCTL_PR=true`, and argv is `verctl prepare --no-pr`
+- **THEN** the parse succeeds, and `pr` is `false` and `no_pr` is `true`
 
 #### Scenario: The positive side on the command line beats the variable
 
 - **WHEN** the run has `VERCTL_PR=false` and argv is `verctl prepare --pr`
-- **THEN** `switch(pr, no_pr)` is `true`
+- **THEN** the parse succeeds, and `pr` is `true`
 
-### Requirement: An empty variable is unset
+#### Scenario: A conflicting flag beats the variable
+
+- **WHEN** `prepare` declares `--after` and `--before` with `conflicts_with` between them, the run has `VERCTL_AFTER=a1`, and argv is `verctl prepare --before b1`
+- **THEN** the parse succeeds, `before` is `b1`, and `after` is unset
+
+### Requirement: Conflicting variables are refused by name
+
+When two options whose variables both remain conflict, `env_under_flags`
+SHALL return an `ArgumentConflict` error that names both variables.
+
+#### Scenario: Two conflicting variables
+
+- **WHEN** the run has `VERCTL_AFTER=a1` and `VERCTL_BEFORE=b1`, and argv is `verctl prepare`
+- **THEN** the parse fails with `ArgumentConflict`, and the message names `VERCTL_AFTER` and `VERCTL_BEFORE`
+
+### Requirement: An empty or default variable is unset
 
 An option whose variable is set to the empty string SHALL take its default, as
-if the variable were unset. A boolean flag SHALL read `true` and `false`.
+if the variable were unset. A boolean flag SHALL read `true` and `false`. A
+boolean flag's variable that reads as the flag's default SHALL be treated as
+unset, so it cannot conflict with another option.
 
 #### Scenario: A blank action input
 
 - **WHEN** the run has `VERCTL_CONFIG=` and `VERCTL_DRY_RUN=false`
 - **THEN** `verctl prepare` parses with `config` `.ctl/ver.yaml` and `dry_run` `false`
+
+#### Scenario: A false flag variable beside a conflicting flag
+
+- **WHEN** `prepare` declares `--frozen` conflicting with `--check`, the run has `VERCTL_CHECK=false`, and argv is `verctl prepare --frozen`
+- **THEN** the parse succeeds with `frozen` `true` and `check` `false`
 
 ### Requirement: Help names each variable
 

@@ -89,6 +89,7 @@ queue:
     acceptance:
       - 'With #[command(env_prefix = "VERCTL")] on the root parser, every long option of the root and of every subcommand reads VERCTL_<LONG>, and a flag on the command line wins over it.'
       - An option that declares its own env, has no long name, is hidden, is a --no-* side, or is help or version stays unbound, and an empty variable counts as unset.
+      - The command line wins over a variable when it sets the option, its --no-* side, or an option that conflicts with it, and two conflicting variables fail with an error that names both.
       - 'ctl-core help prints [env: NAME] beside each bound option.'
       - A command without the attribute binds nothing, and mise run verify passes.
     notes:

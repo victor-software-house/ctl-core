@@ -9,20 +9,44 @@ help, the bare-invocation check, and the parse. A binding must reach all five
 the same way, or `VERCTL_FORMAT=json` would make the parse JSON while a parse
 error still printed as text.
 
+clap treats a value from the environment as given by the user. In clap
+4.6.6, the validator checks conflicts for every argument whose value is
+explicit, and a value from the environment is explicit
+(`parser/validator.rs`, `validate_conflicts`). It also counts
+`overrides_with` as a conflict ("Overrides are implicitly conflicts",
+`gather_arg_direct_conflicts`). Only the command line resolves an override
+(`remove_overrides`). The environment fills an option after that, wherever
+the option is still absent (`parser.rs`, `add_env`). So with `--pr`
+bound to `VERCTL_PR`:
+
+| Run | clap 4.6.6 |
+|:--|:--|
+| `VERCTL_PR=true verctl prepare --no-pr` | error: `--no-pr` cannot be used with `--pr` |
+| `VERCTL_PR=false verctl prepare --no-pr` | the same error |
+| `QCTL_AFTER=X qctl add --before Y …` | error: `--before` cannot be used with `--after` |
+
+Upstream tracks the `false` case as
+[clap-rs/clap#5591](https://github.com/clap-rs/clap/issues/5591). It is still
+open and labelled a breaking change, so no clap 4 release will change it. uv
+met the same issue
+([astral-sh/uv#13385](https://github.com/astral-sh/uv/issues/13385)). It moved
+`UV_FROZEN` and `UV_LOCKED` out of clap and resolves them in its settings
+layer, so the command line wins, with a warning such as "Ignoring
+`UV_FROZEN` because `--locked` was provided".
+
 ## Decisions
 
-1. **A derive attribute through an extension trait.** clap's derive turns
+1. **A derive attribute names the variables.** clap's derive turns
    `#[command(name = value)]` on a parser into the method call
    `.name(value)` on `clap::Command`, after it has added every argument and
    subcommand. A trait method in scope satisfies that call, so
    `#[command(env_prefix = "VERCTL")]` binds the whole graph inside
-   `C::command()`, and every one of the five places sees it with no change to
-   `App`.
+   `C::command()`, and every one of the five places sees the same names.
    Alternative: `App::env_prefix(prefix)` applied to the command `App`
    builds. It lost because `App` passes the type `C` to the help, parser, and
-   Usage helpers, which call `C::command()` themselves; each would need a
-   second, command-taking form, and a CLI that calls a helper directly would
-   get an unbound graph.
+   Usage helpers, which call `C::command()` themselves. Each helper would
+   need a second form that takes a command, and a CLI that calls a helper
+   directly would get an unbound graph.
    Alternative: `#[arg(env = "…")]` on each option. It lost because the
    shared flags live in ctl-core and cannot carry a CLI's prefix, and because
    a CLI would repeat one attribute per option.
@@ -32,42 +56,64 @@ error still printed as text.
    hidden option has no help to name its variable. A `--no-*` side would
    make two variables for one setting: `VERCTL_PR=false` already says what
    `VERCTL_NO_PR=true` would.
-   Binding only `--x` leaves one hole: clap fills a variable into an option
-   only after the command-line parse, and only where the option is absent.
-   A command-line `--no-x` clears `x` through `overrides_with`, so
-   `VERCTL_X=true` then fills `x` back in and both sides read `true`.
-   `ctl_core::flags::switch(on, off)` therefore returns `on && !off`: with
-   the mutual override, both sides are `true` only when `on` came from the
-   variable and `off` from the command line, and the command line wins.
-   Alternative: read `ArgMatches::value_source` for the pair. It lost
-   because `App` does not hand `ArgMatches` to a CLI.
 3. **Names come from the long name.** `--dry-run` under `VERCTL` reads
    `VERCTL_DRY_RUN`. A long name means one thing across a CLI, so an option
    that several subcommands declare, such as `--config`, reads one
    variable.
-4. **An empty variable is unset.** clap passes an empty variable through as
-   the value `""`. A composite action sets every input it declares, so an
-   input left blank arrives as `""`, and `-c ""` would fail. `env_prefix`
-   leaves an option unbound for the run when its variable is empty, so the
-   option takes its default. clap reads the variable when `Arg::env` runs,
-   so the check happens while the command is built, and help omits the
-   `[env: …]` note for that run.
-   Alternative: a value parser per option that maps `""` to the default. It
-   lost because every option would need one.
-   Alternative: remove empty variables before the parse. It lost because
-   `set_var` is unsafe in edition 2024 and the crate forbids `unsafe`.
-5. **Values parse as on the command line.** A variable goes through the
+4. **The command line goes first, then the variables.**
+   `ctl_core::flags::env_under_flags(command, argv)` runs just before the
+   parse. It parses argv once with every variable removed and errors
+   ignored, which tells it which options the command line set at each
+   subcommand level. It then removes the variable of each bound option that:
+   1. the command line set itself;
+   2. the command line negated: `--no-x` given removes `x`'s variable, and
+      `--x` given removes the variable of a `--no-x` that declares one;
+   3. conflicts with an option the command line set, in either direction,
+      as `Command::get_arg_conflicts_with` reports it;
+   4. is empty;
+   5. is the variable of a boolean flag and reads as the flag's default
+      (`false` for `SetTrue`, `true` for `SetFalse`), so it changes nothing
+      and cannot raise a conflict.
+
+   Each variable that is left goes to clap unchanged. It keeps clap's
+   behaviour: `ValueSource::EnvVariable`, a required option satisfied, the
+   option's own value parser, and `[env: NAME]` in help. `App` calls this
+   function before its parse. A CLI test that parses with its own command
+   calls it too.
+   Two bound options whose variables are both left, and that conflict, make
+   the function return an `ArgumentConflict` error that names both
+   variables. clap's own message would name two flags that the user never
+   typed.
+   The command line wins without a warning, as it does over a config file.
+   Alternative: the variable as the option's default (`default_value`, plus
+   `default_value_if` for each conflicting option). It lost on four counts.
+   clap refuses a default on a required argument. Help would show
+   `[default: …]` instead of the variable. The value source would read
+   `DefaultValue`. And a `default_value_if` with no value leaves a
+   `SetTrue` flag unset, so the derive's `get_flag` panics.
+   Alternative: read the variables outside clap, as uv does. It lost
+   because every CLI would then resolve each flag by hand.
+   Alternative: `switch(on, off)` returning `on && !off`. It lost because
+   clap refuses the run with a conflict before `switch` ever sees the
+   values.
+5. **Only `--x`/`--no-x` overrides are seen.** clap keeps an argument's
+   `overrides_with` list private: `Arg` has no getter for it. A pair is
+   therefore found by its long names. An `overrides_with` between options
+   that are not a `--x`/`--no-x` pair still conflicts with its partner's
+   variable. Every ctl CLI declares its overrides as such pairs.
+6. **Values parse as on the command line.** A variable goes through the
    option's own value parser, so a boolean flag takes `true` or `false`, and
    `1` is refused with the same error a bad flag value gets.
-6. **Flags win.** clap applies the command line, then the variable, then the
-   default. An option that a config file can also set declares no clap
-   default and has an `Option` type, so `None` means neither the flag nor the
-   variable was given; the CLI then takes the file value, then its built-in
-   default. That keeps the full order flag, variable, file, default without
-   reading `ArgMatches::value_source`, which `App` does not hand to a CLI.
+7. **The order is flag, variable, file, default.** An option that a config
+   file can also set declares no clap default and has an `Option` type.
+   `None` then means neither the flag nor the variable was given, and the
+   CLI takes the file value, then its built-in default. That keeps the full
+   order without `ArgMatches::value_source`, which `App` does not hand to a
+   CLI.
 
-Override: an option that declares its own `env` keeps it. Disable: a CLI
-that does not add the attribute binds nothing.
+Override: an option that declares its own `env` keeps it, and decision 4
+applies to it as well. Disable: a CLI that does not add the attribute binds
+nothing.
 
 ## Non-goals
 
@@ -75,3 +121,4 @@ that does not add the attribute binds nothing.
    clap ignores `env`, and a mounted task passes its argv and environment
    through to the CLI, which reads the variables itself.
 2. No config-file layer. Each CLI owns its file and its schema.
+3. No warning when the command line removes a variable.

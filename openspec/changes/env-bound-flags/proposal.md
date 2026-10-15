@@ -27,7 +27,11 @@ Queue row: CTC-022.
    `#[command(env_prefix = "VERCTL")]`. The prelude exports the trait, so
    the attribute resolves without another import.
 3. A flag on the command line wins over its variable, which wins over the
-   option's default. That is clap's own order.
+   option's default. clap alone does not give that order: it treats a
+   variable as given by the user, so a variable that conflicts with a flag
+   on the command line, or with its `--no-*` side, fails the parse. A new
+   function, `ctl_core::flags::env_under_flags`, runs before the parse and
+   removes each variable the command line overrules. `App` calls it.
 4. ctl-core help prints `[env: NAME]` beside each bound option.
 5. Operator rule: every ctl CLI is configurable through the environment, with
    precedence flag, then variable, then config file, then default. A caller
@@ -38,7 +42,8 @@ Queue row: CTC-022.
 ### New Capabilities
 
 - `env-flags`: which options a prefix binds, the variable names, the
-  precedence, empty values, and help.
+  precedence over the command line, conflicting variables, empty values,
+  and help.
 
 ### Modified Capabilities
 
@@ -46,8 +51,9 @@ None.
 
 ## Impact
 
-1. Code: `src/flags/env.rs`, the help description in `src/help.rs`, and the
-   exports in `src/flags/mod.rs`, `src/lib.rs`, and `src/prelude.rs`.
+1. Code: `src/flags/env.rs`, the parse in `src/app.rs`, the help
+   description in `src/help.rs`, and the exports in `src/flags/mod.rs`,
+   `src/lib.rs`, and `src/prelude.rs`.
 2. Consumers: verctl, qctl, and forkctl adopt with one attribute after the
    release that ships this. verctl's actions then run `verctl <verb>` with
    only `env:` set.

@@ -7,9 +7,9 @@
   `src/flags/env.rs` pass on a build runner.
 - [ ] 3. Print `[env: NAME]` in ctl-core help. Proof:
   `help_names_each_variable` in `tests/env_flags.rs` passes.
-- [ ] 4. Make `switch(on, off)` return `on && !off`, so a command-line
-  `--no-x` beats `x`'s variable. Proof: the negation scenarios in
-  `tests/env_flags.rs` pass, and the existing `switch` tests still pass.
+- [ ] 4. Add `env_under_flags` in `src/flags/env.rs`, export it, and call it
+  in `App` before the parse. Proof: the negation, conflict, false-variable,
+  and two-variable scenarios in `tests/env_flags.rs` pass.
 - [ ] 5. Prove the parse through the environment in a child process. Proof:
   every test in `tests/env_flags.rs` passes, and `mise run verify` passes on
   a build runner.
