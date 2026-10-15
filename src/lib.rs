@@ -126,9 +126,11 @@ pub use document::{
     Block, Document, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text,
 };
 #[cfg(feature = "cli")]
+pub use flags::EnvPrefix;
+#[cfg(feature = "cli")]
 #[doc(hidden)]
 pub use flags::{
-    ColorLong, DryRunArgs, EnvPrefix, FlagWarning, FormatArgs, FormatLong, OutputArgs, WarningKind,
+    ColorLong, DryRunArgs, FlagWarning, FormatArgs, FormatLong, OutputArgs, WarningKind,
     chassis_warnings, emit_warnings, resolve_color, switch, warn_opposites,
 };
 #[doc(hidden)]
@@ -156,8 +158,10 @@ pub use table::{grid, kv};
 #[doc(hidden)]
 pub use usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
+pub use view::Present;
+#[cfg(feature = "view")]
 #[doc(hidden)]
 pub use view::{
-    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Present,
-    Stream, View,
+    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Stream,
+    View,
 };

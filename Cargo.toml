@@ -25,7 +25,6 @@ enum_now_doc_hidden = "warn"
 function_now_doc_hidden = "warn"
 pub_module_level_const_now_doc_hidden = "warn"
 struct_now_doc_hidden = "warn"
-trait_now_doc_hidden = "warn"
 
 [package.metadata.cargo-machete]
 ignored = ["usage-lib"]
