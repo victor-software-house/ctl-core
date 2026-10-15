@@ -32,9 +32,11 @@ help or version.
 ### Requirement: The command line wins
 
 Before the parse, `ctl_core::flags::env_under_flags(command, argv)` SHALL
-remove the variable of each option that the command line sets, negates
-(`--no-x` for `--x`, or `--x` for a bound `--no-x`), or conflicts with in
-either direction. `App` SHALL call it before its parse.
+unbind the variable of each option that the command line sets, negates
+(`--no-x` for `--x`, or `--x` for a bound `--no-x`), or conflicts with. It
+SHALL unbind by resetting `Arg::env` on the command it returns, never by
+changing the process environment. `App` SHALL call it and parse the command
+it returns.
 
 #### Scenario: Flag and variable both set
 
@@ -55,6 +57,22 @@ either direction. `App` SHALL call it before its parse.
 
 - **WHEN** `prepare` declares `--after` and `--before` with `conflicts_with` between them, the run has `VERCTL_AFTER=a1`, and argv is `verctl prepare --before b1`
 - **THEN** the parse succeeds, `before` is `b1`, and `after` is unset
+
+### Requirement: Clap's conflicts count
+
+Two options SHALL count as conflicting when either declares `conflicts_with`
+the other, when both belong to a single-choice `ArgGroup`, or when either is
+`exclusive`.
+
+#### Scenario: A flag beats a variable in its single-choice group
+
+- **WHEN** `prepare` flattens a group with `multiple = false` holding `--major` and `--minor`, the run has `VERCTL_MAJOR=true`, and argv is `verctl prepare --minor`
+- **THEN** the parse succeeds with `major` `false` and `minor` `true`
+
+#### Scenario: An exclusive flag beats every variable
+
+- **WHEN** `show` declares `--config` and an `exclusive` `--list`, the run has `VERCTL_CONFIG=ci/ver.yaml`, and argv is `verctl show --list`
+- **THEN** the parse succeeds with `list` `true` and `config` unset
 
 ### Requirement: Conflicting variables are refused by name
 

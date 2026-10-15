@@ -64,12 +64,17 @@ layer, so the command line wins, with a warning such as "Ignoring
    `ctl_core::flags::env_under_flags(command, argv)` runs just before the
    parse. It parses argv once with every variable removed and errors
    ignored, which tells it which options the command line set at each
-   subcommand level. It then removes the variable of each bound option that:
+   subcommand level. It then unbinds the variable of each bound option that
+   follows. Unbinding resets `Arg::env` on the command the function returns,
+   which `App` then parses; the process environment is never changed, since
+   `std::env::remove_var` is `unsafe` in edition 2024:
    1. the command line set itself;
    2. the command line negated: `--no-x` given removes `x`'s variable, and
       `--x` given removes the variable of a `--no-x` that declares one;
-   3. conflicts with an option the command line set, in either direction,
-      as `Command::get_arg_conflicts_with` reports it;
+   3. conflicts with an option the command line set: either side declares
+      `conflicts_with` the other (`Command::get_arg_conflicts_with`), both
+      belong to a single-choice `ArgGroup` (`multiple(false)`), or either
+      side is `exclusive`;
    4. is empty;
    5. is the variable of a boolean flag and reads as the flag's default
       (`false` for `SetTrue`, `true` for `SetFalse`), so it changes nothing
@@ -96,11 +101,14 @@ layer, so the command line wins, with a warning such as "Ignoring
    Alternative: `switch(on, off)` returning `on && !off`. It lost because
    clap refuses the run with a conflict before `switch` ever sees the
    values.
-5. **Only `--x`/`--no-x` overrides are seen.** clap keeps an argument's
-   `overrides_with` list private: `Arg` has no getter for it. A pair is
-   therefore found by its long names. An `overrides_with` between options
-   that are not a `--x`/`--no-x` pair still conflicts with its partner's
-   variable. Every ctl CLI declares its overrides as such pairs.
+5. **Only `--x`/`--no-x` overrides are seen, and no group conflicts.** clap
+   keeps an argument's `overrides_with` list private: `Arg` has no getter
+   for it. A pair is therefore found by its long names. An `overrides_with`
+   between options that are not a `--x`/`--no-x` pair still conflicts with
+   its partner's variable. Every ctl CLI declares its overrides as such
+   pairs. An `ArgGroup`'s own `conflicts_with` is private too, so a conflict
+   declared on a group still fails the parse with clap's message. No ctl
+   CLI declares one.
 6. **Values parse as on the command line.** A variable goes through the
    option's own value parser, so a boolean flag takes `true` or `false`, and
    `1` is refused with the same error a bad flag value gets.
