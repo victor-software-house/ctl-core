@@ -246,10 +246,11 @@ mise run verify
 ```
 
 `verify` is the toolchain pins, format, clippy, the feature sets, `test` (unit
-and integration), `test:doc` (doc-tests), cargo-deny licenses/bans/sources,
-and cargo-machete. Those tasks live in `tasks/rust.toml`, which `mise.toml`
-includes; other ctl repositories include the same file by `git::` URL at a
-ctl-core release tag. This repository's own tasks live in `mise-tasks/`:
+and integration; targets with `test = false` are skipped), `test:doc`
+(doc-tests), cargo-deny licenses/bans/sources, and cargo-machete. Those tasks
+live in `tasks/rust.toml`, which `mise.toml` includes; other ctl repositories
+include the same file by `git::` URL at a ctl-core release tag. This
+repository's own tasks live in `mise-tasks/`:
 `check:features` is the file task `mise-tasks/check/features`.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
