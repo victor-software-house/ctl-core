@@ -168,6 +168,10 @@ struct Placed<'a> {
 
 /// Every option on the path once. A global option appears at the level that
 /// declares it, not at the levels clap copies it into.
+///
+/// Conflicts are read through a non-global copy of each option: for a global,
+/// clap's lookup resolves only argument ids and panics on a group id, while
+/// the declaring level holds every id its conflicts may name.
 fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
     let mut options = Vec::new();
     for (depth, (level, matches)) in levels.iter().enumerate() {
@@ -182,7 +186,7 @@ fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
                 continue;
             }
             let mut conflicts = level
-                .get_arg_conflicts_with(arg)
+                .get_arg_conflicts_with(&arg.clone().global(false))
                 .into_iter()
                 .map(Arg::get_id)
                 .collect::<Vec<_>>();
@@ -287,7 +291,7 @@ fn unbind(command: Command, path: &[&str], depth: usize, unset: &[(usize, Id)]) 
 mod tests {
     use clap::{Args, CommandFactory, Parser, Subcommand};
 
-    use super::{EnvPrefix, env_name};
+    use super::{EnvPrefix, env_name, env_under_flags};
 
     #[derive(Parser)]
     #[command(env_prefix = "TOYCTL_UNIT")]
@@ -372,6 +376,31 @@ mod tests {
         assert_eq!(env_of(&command, "token").as_deref(), Some("OWN_NAME"));
         let prepare = command.find_subcommand("prepare").unwrap();
         assert_eq!(env_of(prepare, "path"), None);
+    }
+
+    #[test]
+    fn a_global_option_that_conflicts_with_a_group_parses() {
+        let command = clap::Command::new("toy")
+            .arg(
+                clap::Arg::new("quiet")
+                    .long("quiet")
+                    .global(true)
+                    .action(clap::ArgAction::SetTrue)
+                    .conflicts_with("loud"),
+            )
+            .arg(
+                clap::Arg::new("verbose")
+                    .long("verbose")
+                    .action(clap::ArgAction::SetTrue),
+            )
+            .group(clap::ArgGroup::new("loud").arg("verbose"))
+            .env_prefix("TOYCTL_GROUP_UNIT");
+        let raw = ["toy", "--quiet"].map(std::ffi::OsString::from);
+        let matches = env_under_flags(command, &raw)
+            .unwrap()
+            .try_get_matches_from(&raw)
+            .unwrap();
+        assert!(matches.get_flag("quiet"));
     }
 
     #[test]
