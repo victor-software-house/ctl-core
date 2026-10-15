@@ -1,4 +1,4 @@
-//! Mise Usage spec from a clap [`Command`](clap::Command).
+//! Mise Usage spec from a clap [`Command`].
 //!
 //! One hidden flag, one mount line, one operator form. A consumer writes
 //! `--usage-spec[=BIN]` (hidden, `require_equals`). The served mise task

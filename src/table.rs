@@ -1,7 +1,7 @@
 //! Compatibility helpers over the semantic document renderer.
 //!
-//! New consumers should compose [`Fields`](crate::Fields) and
-//! [`Table`](crate::Table) inside a [`Document`](crate::Document).
+//! New consumers should compose [`Fields`] and
+//! [`Table`] inside a [`Document`].
 
 use crate::color::ColorMode;
 use crate::document::{Document, Fields, Table};

@@ -1,95 +1,144 @@
-//! Shared clap chassis and presentation kernel for the `*ctl` CLIs.
+//! Shared clap chassis and presentation kernel for the `*ctl` CLIs. A
+//! library, not a command.
 //!
-//! Not a command. Import as [`ctl_core`](crate). Domain handlers return typed
-//! data. [`Document`] describes the human view, [`View`] chooses pretty,
-//! colorless, or JSON, and the terminal engine remains private to this crate.
+//! A consumer owns typed domain requests and results. ctl-core owns parsing,
+//! help, Usage mounts, color policy, terminal layout, streams, errors, and
+//! JSON emission. One serializable result feeds pretty, colorless, and JSON
+//! output.
+//!
+//! ## Quick start
+//!
+//! ```no_run
+//! use ctl_core::prelude::*;
+//! use serde::Serialize;
+//!
+//! #[derive(Parser)]
+//! #[command(version, about = "example")]
+//! struct Cli {
+//!     #[command(flatten)]
+//!     output: OutputArgs,
+//!     #[command(subcommand)]
+//!     command: Command,
+//! }
+//!
+//! #[derive(Subcommand)]
+//! enum Command {
+//!     /// Show status.
+//!     Status,
+//! }
+//!
+//! #[derive(Serialize)]
+//! struct Status {
+//!     pending: usize,
+//! }
+//!
+//! impl Present for Status {
+//!     fn present(&self) -> Document {
+//!         Document::new().fields(Fields::new().row("pending", self.pending.to_string()))
+//!     }
+//! }
+//!
+//! fn main() -> ExitCode {
+//!     App::<Cli>::new("example")
+//!         .view(|cli| cli.output.view())
+//!         .run(|cli| match cli.command {
+//!             Command::Status => Ok(Status { pending: 0 }),
+//!         })
+//! }
+//! ```
+//!
+//! The default `app` feature covers this example.
+//!
+//! ## How output flows
+//!
+//! ```text
+//! Clap types ──→ App ──→ typed domain result ──┬──→ JSON
+//!                                              └──→ Document ──→ pretty/colorless
+//! ```
+//!
+//! - Domain handlers return data. They do not print, read terminal state, or
+//!   choose the output format.
+//! - [`Present`] maps a serializable result to a semantic [`Document`].
+//! - [`View`] serializes the result for JSON and renders its document for
+//!   pretty and colorless output.
+//! - JSON always goes to stdout and never contains ANSI. Human failures go to
+//!   stderr.
+//! - The terminal engines, Comfy Table, Anstyle, and Anstream, stay private.
+//!
+//! [`prelude`] is the one import a `*ctl` binary needs.
 //!
 //! ## Cargo features
+//!
+//! Features are additive. Unused ones do not compile `clap`, `comfy-table`,
+//! or `schemars`.
 #![doc = document_features::document_features!()]
-//!
-//! Unused features do not compile `clap`, `comfy-table`, or `schemars`.
-//!
-//! Crate docs live here. The GitHub README is not rustdoc.
-
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
-#![expect(
-    clippy::missing_errors_doc,
-    reason = "each fallible function returns one typed error whose variants carry the docs"
-)]
 
-/// Fluent typed CLI lifecycle.
 #[cfg(feature = "app")]
 pub mod app;
 /// Color policy (`auto` / `always` / `never`).
 pub mod color;
-/// Semantic human presentation independent of a terminal engine.
 #[cfg(feature = "document")]
 pub mod document;
 /// Output representation (`pretty` / `json`).
 pub mod format;
-/// Schema-first wire types.
 pub mod model;
 
-/// Temporary file trees for integration tests.
 #[cfg(feature = "fixture")]
 pub mod fixture;
-/// Clap flatten structs for shared flags.
 #[cfg(feature = "cli")]
 pub mod flags;
-/// Styled `-h` / `--help` renderer.
 #[cfg(feature = "help")]
 pub mod help;
-/// Declared input: read, parse, validate once, and place every problem.
 #[cfg(feature = "input")]
 pub mod input;
 #[cfg(feature = "render")]
 mod layout;
-/// Parser defaults (`-h` / `-V` stay on).
 #[cfg(feature = "cli")]
 pub mod parser;
-/// One-import surface for a *ctl binary (`use ctl_core::prelude::*`).
 pub mod prelude;
-/// Semantic document renderer.
 #[cfg(feature = "render")]
 pub mod render;
-/// Files a repository serves, rendered from templates that declare where
-/// they go.
 #[cfg(feature = "served")]
 pub mod served;
 #[cfg(feature = "render")]
 mod style;
-/// Shared Clap-derived operator metadata and optional Jinja fragments.
 #[cfg(feature = "surface-model")]
 pub mod surface;
-/// Compact pretty tables for command output.
 #[cfg(feature = "render")]
 pub mod table;
-/// Mise Usage spec from a clap command.
 #[cfg(feature = "usage")]
 pub mod usage;
-/// Garde rules every declared schema shares.
 #[cfg(feature = "validate")]
 pub mod validate;
-/// Pretty / JSON / colorless emitters.
 #[cfg(feature = "view")]
 pub mod view;
 
 #[cfg(feature = "app")]
+#[doc(hidden)]
 pub use app::App;
+#[doc(hidden)]
 pub use color::ColorMode;
 #[cfg(feature = "document")]
+#[doc(hidden)]
 pub use document::{
     Block, Document, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text,
 };
 #[cfg(feature = "cli")]
+#[doc(hidden)]
 pub use flags::{
     ColorLong, DryRunArgs, EnvPrefix, FlagWarning, FormatArgs, FormatLong, OutputArgs, WarningKind,
     chassis_warnings, emit_warnings, resolve_color, switch, warn_opposites,
 };
+#[doc(hidden)]
 pub use format::OutputFormat;
+#[doc(hidden)]
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
+#[doc(hidden)]
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "render")]
+#[doc(hidden)]
 pub use render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
     DEFAULT_FALLBACK_WIDTH, DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS,
@@ -98,12 +147,16 @@ pub use render::{
     Renderer, RowSeparation,
 };
 #[cfg(feature = "surface-model")]
+#[doc(hidden)]
 pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, SurfaceScope};
 #[cfg(feature = "render")]
+#[doc(hidden)]
 pub use table::{grid, kv};
 #[cfg(feature = "usage")]
+#[doc(hidden)]
 pub use usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
+#[doc(hidden)]
 pub use view::{
     Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Present,
     Stream, View,

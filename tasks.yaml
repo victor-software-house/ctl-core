@@ -96,7 +96,27 @@ queue:
       - OpenSpec change env-bound-flags in openspec/changes/env-bound-flags.
       - >2-
         Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.
-horizon: []
+
+  - id: CTC-023
+    title: Crate docs on docs.rs
+    scope: ctl-core
+    outcome: docs.rs shows ctl-core as a landing page with a quick start, how output flows, and its Cargo features, lists modules and the prelude instead of every item twice, and every fallible public function documents its errors.
+    blocked_by: []
+    acceptance:
+      - 'src/lib.rs carries the landing page as //! sections: a summary, Quick start as a compiled no_run doctest, How output flows, and Cargo features from document_features.'
+      - 'Crate-root re-exports are #[doc(hidden)]; the prelude documents the flat surface, and its third-party re-exports are #[doc(no_inline)].'
+      - 'No missing_errors_doc expect remains; every fallible public function has a # Errors section.'
+      - package.metadata.docs.rs sets all-features and rustdoc-args --cap-lints warn, and the crate root enables doc_cfg under docsrs.
+      - Module summaries live once, in each module's //! docs.
+    notes:
+      - Prototype from the docs.rs standard review on 2026-10-15; the standard is the rust-projects skill's Crate docs on docs.rs section.
+horizon:
+  - id: CTC-024
+    title: Remove the doc(hidden) semver-checks override
+    scope: ctl-core
+    outcome: Cargo.toml has no package.metadata.cargo-semver-checks.lints table.
+    kind: deferred
+    open: A ctl-core release with the hidden crate-root re-exports is on crates.io, so cargo-semver-checks compares against it.
 
 archive:
   - id: CTC-019

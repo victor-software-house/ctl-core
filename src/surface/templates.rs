@@ -43,6 +43,11 @@ const FRAGMENTS: [(&str, &str); 3] = [
 ];
 
 /// Add ctl-core's shared operator fragments to an existing environment.
+///
+/// # Errors
+///
+/// Returns minijinja's [`Error`] when a fragment does not compile under
+/// `environment`'s syntax.
 pub fn add_fragments(environment: &mut Environment<'static>) -> Result<(), Error> {
     for (name, source) in FRAGMENTS {
         environment.add_template(name, source)?;
@@ -51,6 +56,10 @@ pub fn add_fragments(environment: &mut Environment<'static>) -> Result<(), Error
 }
 
 /// Create a strict [`Environment`] containing the shared fragments.
+///
+/// # Errors
+///
+/// Returns the [`Error`] from [`add_fragments`].
 pub fn environment() -> Result<Environment<'static>, Error> {
     let mut environment = Environment::new();
     environment.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
@@ -60,6 +69,12 @@ pub fn environment() -> Result<Environment<'static>, Error> {
 }
 
 /// Render one operator template with a [`Surface`] and consumer-owned context.
+///
+/// # Errors
+///
+/// Returns minijinja's [`Error`] when `source` does not compile, or when
+/// rendering fails, such as on a variable the strict environment does not
+/// define.
 pub fn render<T: Serialize>(
     name: &'static str,
     source: &'static str,

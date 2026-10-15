@@ -8,10 +8,13 @@
 //! }
 //! ```
 
+#[doc(no_inline)]
 pub use std::process::ExitCode;
 
 #[cfg(feature = "cli")]
+#[doc(no_inline)]
 pub use clap::{Args, Parser, Subcommand};
+#[doc(no_inline)]
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
 #[cfg(feature = "app")]

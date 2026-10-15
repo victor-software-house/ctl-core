@@ -11,7 +11,21 @@ categories = ["command-line-interface", "development-tools"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cap-lints", "warn"]
+
+# The crate-root re-exports are #[doc(hidden)] so docs.rs lists modules and
+# the prelude instead of every item twice (CTC-023). The paths still resolve,
+# so no consumer breaks, but cargo-semver-checks counts each hidden path as
+# removed from the public API. That change ships in a patch, by the
+# operator's ruling, so these lints warn instead of failing; they still print
+# each finding. CTC-024 removes this table once a release with the hidden
+# re-exports is on crates.io, because the check then compares against it.
+[package.metadata.cargo-semver-checks.lints]
+enum_now_doc_hidden = "warn"
+function_now_doc_hidden = "warn"
+pub_module_level_const_now_doc_hidden = "warn"
+struct_now_doc_hidden = "warn"
+trait_now_doc_hidden = "warn"
 
 [package.metadata.cargo-machete]
 ignored = ["usage-lib"]
@@ -28,6 +42,10 @@ broken_intra_doc_links = "deny"
 private_intra_doc_links = "deny"
 invalid_html_tags = "deny"
 invalid_codeblock_attributes = "deny"
+invalid_rust_codeblocks = "deny"
+bare_urls = "deny"
+missing_crate_level_docs = "deny"
+unescaped_backticks = "deny"
 
 [lints.clippy]
 all = { level = "deny", priority = -1 }
