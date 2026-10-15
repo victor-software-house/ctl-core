@@ -231,6 +231,8 @@ fn value_label(arg: &clap::Arg) -> String {
     }
 }
 
+/// The help text, then `[default: …]` and `[env: …]` notes in muted style.
+/// An option marked `hide_env` keeps its variable out of help, as in clap.
 fn description(arg: &clap::Arg) -> Text {
     let description = arg.get_help().map_or_else(String::new, ToString::to_string);
     let defaults = arg
@@ -238,18 +240,25 @@ fn description(arg: &clap::Arg) -> Text {
         .iter()
         .map(|value| value.to_string_lossy())
         .collect::<Vec<_>>();
-    if defaults.is_empty()
-        || matches!(
+    let mut notes = Vec::new();
+    if !defaults.is_empty()
+        && !matches!(
             arg.get_action(),
             clap::ArgAction::SetTrue | clap::ArgAction::SetFalse
         )
     {
-        return Text::plain(description);
+        notes.push(format!("[default: {}]", defaults.join(", ")));
     }
-    let separator = if description.is_empty() { "" } else { " " };
-    Text::plain(description)
-        .then(separator)
-        .muted(format!("[default: {}]", defaults.join(", ")))
+    if let Some(name) = arg.get_env().filter(|_| !arg.is_hide_env_set()) {
+        notes.push(format!("[env: {}]", name.to_string_lossy()));
+    }
+    let mut separator = if description.is_empty() { "" } else { " " };
+    let mut text = Text::plain(description);
+    for note in notes {
+        text = text.then(separator).muted(note);
+        separator = " ";
+    }
+    text
 }
 
 #[cfg(test)]
@@ -328,6 +337,21 @@ mod tests {
             text.lines().take(2).collect::<Vec<_>>(),
             ["Usage: forkctl patch refresh [OPTIONS]", "[NAME]"]
         );
+    }
+
+    #[test]
+    fn help_names_a_variable_unless_it_is_hidden() {
+        let command = clap::Command::new("toy")
+            .arg(clap::Arg::new("config").long("config").env("TOY_CONFIG"))
+            .arg(
+                clap::Arg::new("token")
+                    .long("token")
+                    .env("TOY_TOKEN")
+                    .hide_env(true),
+            );
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(80));
+        assert!(text.contains("[env: TOY_CONFIG]"), "{text}");
+        assert!(!text.contains("TOY_TOKEN"), "{text}");
     }
 
     #[test]

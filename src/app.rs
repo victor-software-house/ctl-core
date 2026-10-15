@@ -263,6 +263,10 @@ where
         if raw_view.format.is_json() {
             command = command.color(clap::ColorChoice::Never);
         }
+        let command = match crate::flags::env_under_flags(command, &raw) {
+            Ok(command) => command,
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
+        };
         let matches = match command.try_get_matches_from(&raw) {
             Ok(matches) => matches,
             Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
