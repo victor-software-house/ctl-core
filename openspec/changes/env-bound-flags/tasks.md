@@ -7,10 +7,13 @@
   `src/flags/env.rs` pass on a build runner.
 - [ ] 3. Print `[env: NAME]` in ctl-core help. Proof:
   `help_names_each_variable` in `tests/env_flags.rs` passes.
-- [ ] 4. Prove the parse through the environment in a child process. Proof:
+- [ ] 4. Make `switch(on, off)` return `on && !off`, so a command-line
+  `--no-x` beats `x`'s variable. Proof: the negation scenarios in
+  `tests/env_flags.rs` pass, and the existing `switch` tests still pass.
+- [ ] 5. Prove the parse through the environment in a child process. Proof:
   every test in `tests/env_flags.rs` passes, and `mise run verify` passes on
   a build runner.
-- [ ] 5. Document the binding and the precedence rule in AGENTS.md, and add
+- [ ] 6. Document the binding and the precedence rule in AGENTS.md, and add
   the changeset. Proof: the pre-push `verify` passes on the pushed commit.
-- [ ] 6. Open the PR, wait for CI and Kody, and answer each thread with the
+- [ ] 7. Open the PR, wait for CI and Kody, and answer each thread with the
   commit that fixes it. Proof: CI green on the last push, no open thread.

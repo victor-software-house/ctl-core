@@ -32,12 +32,25 @@ help or version.
 ### Requirement: The command line wins
 
 A value given on the command line SHALL win over the option's variable, and
-the variable SHALL win over the option's default.
+the variable SHALL win over the option's default. For a `--x`/`--no-x` pair
+declared with a mutual `overrides_with` and resolved through
+`ctl_core::flags::switch`, a `--no-x` on the command line SHALL win over a
+`true` read from `x`'s variable.
 
 #### Scenario: Flag and variable both set
 
 - **WHEN** the run has `VERCTL_CONFIG=ci/ver.yaml` and `VERCTL_FORMAT=json`, and argv is `verctl --format pretty prepare --config own.yaml`
 - **THEN** `config` is `own.yaml` and the format is `pretty`
+
+#### Scenario: A negation on the command line beats the variable
+
+- **WHEN** `prepare` declares the pair `--pr`/`--no-pr`, the run has `VERCTL_PR=true`, and argv is `verctl prepare --no-pr`
+- **THEN** `switch(pr, no_pr)` is `false`
+
+#### Scenario: The positive side on the command line beats the variable
+
+- **WHEN** the run has `VERCTL_PR=false` and argv is `verctl prepare --pr`
+- **THEN** `switch(pr, no_pr)` is `true`
 
 ### Requirement: An empty variable is unset
 

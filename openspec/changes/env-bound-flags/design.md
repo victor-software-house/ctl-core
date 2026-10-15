@@ -32,6 +32,15 @@ error still printed as text.
    hidden option has no help to name its variable. A `--no-*` side would
    make two variables for one setting: `VERCTL_PR=false` already says what
    `VERCTL_NO_PR=true` would.
+   Binding only `--x` leaves one hole: clap fills a variable into an option
+   only after the command-line parse, and only where the option is absent.
+   A command-line `--no-x` clears `x` through `overrides_with`, so
+   `VERCTL_X=true` then fills `x` back in and both sides read `true`.
+   `ctl_core::flags::switch(on, off)` therefore returns `on && !off`: with
+   the mutual override, both sides are `true` only when `on` came from the
+   variable and `off` from the command line, and the command line wins.
+   Alternative: read `ArgMatches::value_source` for the pair. It lost
+   because `App` does not hand `ArgMatches` to a CLI.
 3. **Names come from the long name.** `--dry-run` under `VERCTL` reads
    `VERCTL_DRY_RUN`. A long name means one thing across a CLI, so an option
    that several subcommands declare, such as `--config`, reads one
