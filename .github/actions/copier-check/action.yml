@@ -40,7 +40,7 @@ runs:
       with:
         # Must reach every calling repository's min_version: mise refuses to
         # load a mise.toml whose floor is newer than itself.
-        version: 2026.10.9
+        version: 2026.10.10
         cache: true
         working_directory: ${{ inputs.working-directory }}
         # check.sh needs only uv and python, not the toolchain.
