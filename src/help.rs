@@ -231,6 +231,7 @@ fn value_label(arg: &clap::Arg) -> String {
     }
 }
 
+/// The help text, then `[default: …]` and `[env: …]` notes in muted style.
 fn description(arg: &clap::Arg) -> Text {
     let description = arg.get_help().map_or_else(String::new, ToString::to_string);
     let defaults = arg
@@ -238,18 +239,25 @@ fn description(arg: &clap::Arg) -> Text {
         .iter()
         .map(|value| value.to_string_lossy())
         .collect::<Vec<_>>();
-    if defaults.is_empty()
-        || matches!(
+    let mut notes = Vec::new();
+    if !defaults.is_empty()
+        && !matches!(
             arg.get_action(),
             clap::ArgAction::SetTrue | clap::ArgAction::SetFalse
         )
     {
-        return Text::plain(description);
+        notes.push(format!("[default: {}]", defaults.join(", ")));
     }
-    let separator = if description.is_empty() { "" } else { " " };
-    Text::plain(description)
-        .then(separator)
-        .muted(format!("[default: {}]", defaults.join(", ")))
+    if let Some(name) = arg.get_env() {
+        notes.push(format!("[env: {}]", name.to_string_lossy()));
+    }
+    let mut separator = if description.is_empty() { "" } else { " " };
+    let mut text = Text::plain(description);
+    for note in notes {
+        text = text.then(separator).muted(note);
+        separator = " ";
+    }
+    text
 }
 
 #[cfg(test)]

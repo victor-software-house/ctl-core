@@ -23,8 +23,8 @@ pub use crate::document::{
 };
 #[cfg(feature = "cli")]
 pub use crate::flags::{
-    ColorLong, DryRunArgs, FormatArgs, FormatLong, OutputArgs, chassis_warnings, emit_warnings,
-    warn_opposites,
+    ColorLong, DryRunArgs, EnvPrefix, FormatArgs, FormatLong, OutputArgs, chassis_warnings,
+    emit_warnings, warn_opposites,
 };
 pub use crate::format::OutputFormat;
 pub use crate::model::{Envelope, ErrorBody, SCHEMA_VERSION};

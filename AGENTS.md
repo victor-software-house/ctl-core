@@ -11,6 +11,17 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
 - Shared flags: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`/`--preview`,
   `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
+- Environment binding: `#[command(env_prefix = "VERCTL")]` on a CLI's root
+  parser binds every long option, shared flags included, to
+  `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude. A flag on
+  the command line wins over its variable, the variable over a config file,
+  and the file over the default. `App` runs `flags::env_under_flags` before
+  the parse, which unbinds the variable of an option that the command line
+  set, negated, or conflicts with, and a variable that is empty or reads as a
+  boolean flag's default. A CLI test that parses its own command calls it
+  too. A caller that
+  holds settings in the environment, such as an action, sets them and runs
+  the bare verb; it never rebuilds argv in a shell.
 - `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and
   exit codes
 - `Document` and the fluent semantic primitives used by help and command output
