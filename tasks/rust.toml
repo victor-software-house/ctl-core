@@ -39,7 +39,10 @@ run = "cargo clippy --locked --all-targets --all-features -- -D warnings"
 
 [test]
 description = "Unit and integration tests"
-run = "cargo test --locked --all-features --lib --bins --tests"
+# --tests selects every target whose `test` flag is on, bins included. --bins
+# would select every bin regardless of the flag, so a fuzz target with
+# `test = false` would build and run as a test.
+run = "cargo test --locked --all-features --lib --tests"
 # Stops a hung test run instead of holding the gate. The limit also counts
 # compile time and waits on the target/ lock, so it sits far above a cold build.
 timeout = "30m"
