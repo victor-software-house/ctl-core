@@ -110,6 +110,21 @@ queue:
       - Module summaries live once, in each module's //! docs.
     notes:
       - Prototype from the docs.rs standard review on 2026-10-15; the standard is the rust-projects skill's Crate docs on docs.rs section.
+
+  - id: CTC-025
+    title: Read TOML input without the YAML and garde crates
+    scope: src/input.rs, src/input/limits.rs, src/input/toml_text.rs, and the input and input-toml features in Cargo.toml
+    outcome: A consumer that reads only TOML config compiles no YAML parser and no garde.
+    blocked_by: []
+    acceptance:
+      - With default features off and only input-toml enabled, cargo tree for ctl-core lists none of serde-saphyr, yamled, or garde.
+      - Input::check and Input::load exist only with the validate feature, and the YAML format, YAML limits, and REPO_FILE only with a YAML feature.
+      - qctl, verctl, and forkctl build unchanged on the release that ships it, and cargo semver-checks reports the change at the version the changeset declares.
+      - A TOML text is held to its own byte, depth, and node limits, with defaults ctl-core states; the call and process tiers apply without YAML, and the repository tier applies when a YAML feature reads REPO_FILE.
+    notes:
+      - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
+      - >2-
+        Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.
 horizon:
   - id: CTC-024
     title: Remove the doc(hidden) semver-checks override
