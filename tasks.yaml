@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.4.2/tasks.schema.json
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.5.9/tasks.schema.json
 schema_version: 4
 prefix: CTC
 
@@ -17,10 +17,10 @@ queue:
       temp root.
     blocked_by: []
     acceptance:
-      - "A cfg(test) or ctl-core test feature exposes the helper (not a new public runtime crate unless we need one)."
-      - "root.file(path, body) (or equivalent) is the write path. Nested paths create parents."
-      - "Suite::new(name) / suite.scenario(name) each own a TempDir that drops at the end of the test."
-      - "verctl (then qctl/forkctl) can drop the copy-pasted fs::write fixtures after pinning that ctl-core version."
+      - A cfg(test) or ctl-core test feature exposes the helper (not a new public runtime crate unless we need one).
+      - root.file(path, body) (or equivalent) is the write path. Nested paths create parents.
+      - Suite::new(name) / suite.scenario(name) each own a TempDir that drops at the end of the test.
+      - verctl (then qctl/forkctl) can drop the copy-pasted fs::write fixtures after pinning that ctl-core version.
     notes:
       - Triggered by verctl tests (prepare_stage, changelog, publish). Do not invent a second tempfile wrapper in each *ctl.
 
@@ -43,20 +43,15 @@ queue:
       - A schema error names its file and line, placed through the yamled location index, and every error in a file is reported, not only the first.
       - The loader splits Markdown frontmatter, so verctl reads changeset fragments through it and drops gray_matter.
     notes:
-      - >2-
-        2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly.
-      - >2-
-        2026-09-24: verctl parses YAML with yaml_serde 0.10.7 and qctl with serde_yml 0.0.12, so two ctl CLIs already disagree on the parser. Pick one crate here, by our own evaluation, and move both.
-      - >2-
-        2026-09-24: verctl's config is YAML (.ctl/ver.yaml) since verctl 0.1.0. The TOML file in the 2026-08-18 note is gone.
-      - >2-
-        2026-09-28: YAML stack decided by evaluation on the build host. serde-saphyr 1.3.0 against yaml_serde 0.10.7: both keep dates as strings and reject 2026-02-31 through a JSON Schema date format; yaml_serde silently keeps the last duplicate key when read into serde_json::Value, turns .inf into null, and gives no line for a missing field; serde-saphyr reports a line for every error and rejects both once strict_booleans, merge_keys: Error, and with_snippet: false are set. Edits move to yamled (github.com/victor-software-house/yamled), a pure-Rust format-preserving editor on granit-parser spans, because yamlpatch requires yaml_serde. That drops yaml_serde, yamlpath, yamlpatch, tree-sitter, serde_yml, gray_matter, and yaml-rust2 from the family.
-      - >2-
-        2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here.
+      - "2026-08-18: verctl built this while shipping served files (VER-018, and VER-022 is the matching row there). It is already shared between two unrelated schemas in that repo — a TOML config file and a Jinja template's own exports — which is the evidence it is not verctl-shaped. Do this row before VER-022 so that one is a move rather than a fork. Related: qctl's schemars work and VER-021 want JSON Schema generated from these same types, so keep the types derive-friendly."
+      - '2026-09-24: verctl parses YAML with yaml_serde 0.10.7 and qctl with serde_yml 0.0.12, so two ctl CLIs already disagree on the parser. Pick one crate here, by our own evaluation, and move both.'
+      - "2026-09-24: verctl's config is YAML (.ctl/ver.yaml) since verctl 0.1.0. The TOML file in the 2026-08-18 note is gone."
+      - '2026-09-28: YAML stack decided by evaluation on the build host. serde-saphyr 1.3.0 against yaml_serde 0.10.7: both keep dates as strings and reject 2026-02-31 through a JSON Schema date format; yaml_serde silently keeps the last duplicate key when read into serde_json::Value, turns .inf into null, and gives no line for a missing field; serde-saphyr reports a line for every error and rejects both once strict_booleans, merge_keys: Error, and with_snippet: false are set. Edits move to yamled (github.com/victor-software-house/yamled), a pure-Rust format-preserving editor on granit-parser spans, because yamlpatch requires yaml_serde. That drops yaml_serde, yamlpath, yamlpatch, tree-sitter, serde_yml, gray_matter, and yaml-rust2 from the family.'
+      - "2026-09-29: first slice in ctl-core. The validate feature carries verctl's four garde rules; the input feature (Input::load, check, parse, frontmatter) reads YAML through serde-saphyr with strict booleans and duplicate and merge keys refused, and places every garde problem on its file and line through yamled 0.0.1 with default features off. Plan: openspec/changes/archive/2026-10-11-declared-input/proposal.md. Left on this row: verctl, qctl, and forkctl move onto input; verctl drops src/schema.rs and gray_matter; the template renderer moves here."
 
   - id: CTC-020
     title: Take template v0.0.5 and lock only the platforms in use
-    scope: '.copier-answers.yml at templates v0.0.5, mise.toml [settings], and every mise lock'
+    scope: .copier-answers.yml at templates v0.0.5, mise.toml [settings], and every mise lock
     outcome: mise install on linux-x64 or macos-arm64 leaves every lock unchanged, because mise.toml declares lockfile_platforms and every lock records exactly those two platforms.
     blocked_by: []
     acceptance:
@@ -76,8 +71,7 @@ queue:
       - The input-toml feature compiles the toml crate and nothing else changes for a YAML-only consumer; check:features builds it alone and mise run verify passes.
     notes:
       - OpenSpec change toml-input in openspec/changes/toml-input.
-      - >2-
-        Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.
+      - 'Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.'
     links:
       - https://github.com/victor-software-house/ctl-core/pull/120
 
@@ -94,8 +88,7 @@ queue:
       - A command without the attribute binds nothing, and mise run verify passes.
     notes:
       - OpenSpec change env-bound-flags in openspec/changes/env-bound-flags.
-      - >2-
-        Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.
+      - 'Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.'
 
   - id: CTC-023
     title: Crate docs on docs.rs
@@ -123,8 +116,7 @@ queue:
       - A TOML text is held to its own byte, depth, and node limits, with defaults ctl-core states; the call and process tiers apply without YAML, and the repository tier applies when a YAML feature reads REPO_FILE.
     notes:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
-      - >2-
-        Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.
+      - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
 horizon:
   - id: CTC-024
     title: Remove the doc(hidden) semver-checks override
@@ -136,7 +128,7 @@ horizon:
 archive:
   - id: CTC-019
     title: Take template v0.0.4 and its task layout
-    scope: '.copier-answers.yml at templates v0.0.4, mise.toml [task_config], mise-tasks/, lefthook.yml, and the AGENTS.md template and checks sections'
+    scope: .copier-answers.yml at templates v0.0.4, mise.toml [task_config], mise-tasks/, lefthook.yml, and the AGENTS.md template and checks sections
     outcome: ctl-core runs the template's v0.0.4 hooks and keeps its own tasks in mise-tasks/, listed first in [task_config].includes
     completed: 2026-10-12T02:10:00
     evidence:
@@ -145,7 +137,7 @@ archive:
 
   - id: CTC-018
     title: Take the shared Rust configuration from the Copier template
-    scope: '.copier-answers.yml at templates v0.0.3, the repository setup the template renders, the template mise env, the CI job that checks for a newer tag, and the retirement of the baseline generator'
+    scope: .copier-answers.yml at templates v0.0.3, the repository setup the template renders, the template mise env, the CI job that checks for a newer tag, and the retirement of the baseline generator
     outcome: ctl-core renders its repository setup and Rust configuration from the Copier template at a recorded tag, CI fails when the template has a newer tag, and the baseline generator is gone
     completed: 2026-10-12T01:30:00
     evidence:
@@ -158,8 +150,7 @@ archive:
     scope: Embedded templates for the shared Rust config files and blocks, the .ctl/rust.yaml schema, render, and the self-check
     outcome: Each ctl repository renders its Rust configuration from the ctl-core release it links, and a drifted copy fails verify through the runner
     notes:
-      - >2-
-        Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand.
+      - "Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand."
     completed: 2026-10-12T01:00:00
     evidence:
       - 'Retired by operator decision: the shared Copier template (kind rust-crate) renders the same files, so ctl-core keeps one generator. CTC-018 removes the baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec.'
@@ -167,7 +158,7 @@ archive:
 
   - id: CTC-017
     title: Repository checks in the shared verify
-    scope: 'tasks/rust.toml verify depends on a repository-defined check:repo; ctl-core defines its own; yamled replaces its verify override'
+    scope: tasks/rust.toml verify depends on a repository-defined check:repo; ctl-core defines its own; yamled replaces its verify override
     outcome: A repository adds its own checks to verify through check:repo, without copying the shared dependency list
     completed: 2026-10-11T23:20:00
     evidence:
@@ -254,8 +245,7 @@ archive:
       The next ctl-core version comes out of a Version PR, so the lane is
       known to work here rather than assumed to because it works elsewhere.
     notes:
-      - >-
-        2026-08-18, checked rather than assumed. The lane is wired and green — Version PR ran twice on main today — but it has never carried a release: there is no changeset, so every run no-ops. v0.0.1 through v0.0.3 were cut by hand, which the history shows plainly, because CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no "version packages" commit exists at all. `[prepare]` arrived after that in cf11ac2 (#6) and has therefore never run. This matters because ctl-core is about to become the home of the declared-input layer (CTC-008), and verctl will pin it — a release path nobody has walked is a bad thing to discover while migrating two other repos onto it. The pin here is still verctl 0.0.3, so this repo has neither served files nor pins-on-the-Version-PR yet.
+      - '2026-08-18, checked rather than assumed. The lane is wired and green — Version PR ran twice on main today — but it has never carried a release: there is no changeset, so every run no-ops. v0.0.1 through v0.0.3 were cut by hand, which the history shows plainly, because CHANGELOG.md was last touched by a feature commit (f8cfdf6) and no "version packages" commit exists at all. `[prepare]` arrived after that in cf11ac2 (#6) and has therefore never run. This matters because ctl-core is about to become the home of the declared-input layer (CTC-008), and verctl will pin it — a release path nobody has walked is a bad thing to discover while migrating two other repos onto it. The pin here is still verctl 0.0.3, so this repo has neither served files nor pins-on-the-Version-PR yet.'
     completed: 2026-08-22T15:18:10
     evidence:
       - 'ctl-core#12 carried the changeset. #13 was the Version PR: 0.0.3 to 0.0.4, CHANGELOG written, Cargo.lock staged by cargo update --workspace.'
@@ -266,65 +256,65 @@ archive:
   - id: CTC-007
     title: Version PR uses the released verctl tarball
     scope: ci
-    completed: "2026-08-17T05:59:57"
+    completed: 2026-08-17T05:59:57
     disposition: completed
     outcome: >-
       Version PR execs github:verctl from PATH. No cargo install --git.
       mise envs match verctl: rust in dev, tarball in release.
     evidence:
-      - "github.com/victor-software-house/ctl-core/pull/3"
-      - "MISE_ENV=release on Version PR; mise install --locked"
-      - "MISE_ENV=dev,release on Publish"
+      - github.com/victor-software-house/ctl-core/pull/3
+      - MISE_ENV=release on Version PR; mise install --locked
+      - MISE_ENV=dev,release on Publish
 
   - id: CTC-005
     title: ColorMode tables for command pretty output
     scope: ctl-core
-    completed: "2026-08-17T02:21:47"
+    completed: 2026-08-17T02:21:47
     disposition: completed
     outcome: >-
       kv/grid take ColorMode. never emits no ANSI. View.show
       passes the view color. Consumers do not strip ANSI.
     evidence:
-      - "crates.io ctl-core 0.0.3"
-      - "src/table.rs; tests use ColorMode::Never"
+      - crates.io ctl-core 0.0.3
+      - src/table.rs; tests use ColorMode::Never
 
   - id: CTC-002
     title: Publish ctl-core to crates.io
     scope: ctl-core
-    completed: "2026-08-17T01:23:25"
+    completed: 2026-08-17T01:23:25
     disposition: completed
     outcome: >-
       Consumers pin a crates.io version instead of a git rev.
     evidence:
-      - "crates.io ctl-core 0.0.3"
-      - "github.com/victor-software-house/ctl-core/releases/tag/v0.0.3"
-      - "mise github:victor-software-house/verctl@0.0.1 for publish"
+      - crates.io ctl-core 0.0.3
+      - github.com/victor-software-house/ctl-core/releases/tag/v0.0.3
+      - mise github:victor-software-house/verctl@0.0.1 for publish
 
   - id: CTC-004
     title: Harden ctl-core tests before any consumer migration
     scope: ctl-core
-    completed: "2026-08-17T00:17:36"
+    completed: 2026-08-17T00:17:36
     disposition: completed
     outcome: >-
       Public API is covered harder than forkctl+qctl+verctl chassis
       tests. No extra clap/help copies land until this is green.
     evidence:
-      - "github.com/victor-software-house/ctl-core main fdf6e67"
-      - "tests/{color_argv,format_tokens,flags_cli,flag_warnings,help_render,view,parse}"
-      - "peek --color --no-color; first-party concat! still fails clippy"
-      - "chassis last-wins + {bin}: warning: on clashes"
+      - github.com/victor-software-house/ctl-core main fdf6e67
+      - tests/{color_argv,format_tokens,flags_cli,flag_warnings,help_render,view,parse}
+      - peek --color --no-color; first-party concat! still fails clippy
+      - 'chassis last-wins + {bin}: warning: on clashes'
     notes:
       - Do not pad empty tests to out-count forkctl+qctl+verctl. Named public-path coverage is the bar.
 
   - id: CTC-001
     title: Shared clap chassis, views, and formatdoc
     scope: ctl-core
-    completed: "2026-08-16T23:13:19"
+    completed: 2026-08-16T23:13:19
     disposition: completed
     outcome: >-
       ctl-core owns flatten flags, styled help, Envelope/View, and
       formatdoc. Not a command.
     evidence:
-      - "github.com/victor-software-house/ctl-core main 02c7e9f"
-      - "prelude, Render, FormatArgs/ColorLong, cargo features"
-      - "verctl already consumes it"
+      - github.com/victor-software-house/ctl-core main 02c7e9f
+      - prelude, Render, FormatArgs/ColorLong, cargo features
+      - verctl already consumes it
