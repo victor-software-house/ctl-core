@@ -312,6 +312,10 @@ impl View {
     }
 
     /// Render without writing. Tests and alternate transports use this path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `value` does not serialize to JSON.
     pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
         let kind = value.message_kind();
         let exit_code = value.exit_code();
@@ -341,6 +345,11 @@ impl View {
     }
 
     /// Render and write one typed model. Returns its process exit semantics.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `value` does not serialize to JSON, or when
+    /// writing to stdout or stderr fails.
     pub fn show(self, value: &impl Present) -> io::Result<ExitCode> {
         let captured = self.capture(value)?;
         match captured.stream() {
@@ -352,6 +361,10 @@ impl View {
     }
 
     /// Emit `{bin}: {message}` or a JSON error envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when writing to stdout or stderr fails.
     pub fn emit_err(self, bin: &str, message: &str) -> io::Result<ExitCode> {
         if self.format.is_json() {
             let envelope = Envelope::<()>::err(ErrorBody::new(bin, message));

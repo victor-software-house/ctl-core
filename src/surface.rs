@@ -2,7 +2,7 @@
 //!
 //! Clap remains the command grammar. [`Surface`] extracts the stable operator
 //! view used by committed skills, installed instructions, and contract tests.
-//! MiniJinja rendering is separately gated behind `surface-templates`.
+//! Rendering with `minijinja` is separately gated behind `surface-templates`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -205,6 +205,11 @@ impl Surface {
     /// allowance includes its command path (`status --archived`). Chassis
     /// mixins that deliberately leave a letter for the consumer (`--format`
     /// for `-f`/`--file`, `--color` for `-c`) belong there.
+    ///
+    /// # Errors
+    ///
+    /// Returns a message that lists every long option without a short,
+    /// outside `allow`.
     pub fn require_shorts<'a>(
         &self,
         allow: impl IntoIterator<Item = &'a str>,

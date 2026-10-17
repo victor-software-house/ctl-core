@@ -10,6 +10,10 @@ use crate::render::RenderOptions;
 const NARROW_HELP_WIDTH: u16 = 64;
 
 /// Styled `-h` / `--help`. Returns `true` when help ran.
+///
+/// # Errors
+///
+/// Returns the error from writing help to stdout.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     let raw = std::env::args_os().collect::<Vec<_>>();
     let color = crate::parser::parsed_output::<C>(&raw).color;
@@ -17,6 +21,10 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
 }
 
 /// Styled help with rendering options supplied by the library owner.
+///
+/// # Errors
+///
+/// Returns the error from writing help to stdout.
 pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<bool> {
     let args = std::env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
@@ -25,6 +33,10 @@ pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::R
 }
 
 /// Same as [`try_emit`] with explicit argv.
+///
+/// # Errors
+///
+/// Returns the error from writing help to stdout.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     let raw = args
         .iter()
@@ -35,6 +47,10 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
 }
 
 /// Explicit-argv help with rendering options supplied by the owning library.
+///
+/// # Errors
+///
+/// Returns the error from writing help to stdout.
 pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
@@ -55,6 +71,10 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 }
 
 /// Render root help to stderr with rendering options supplied by the owner.
+///
+/// # Errors
+///
+/// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
     let output = document(C::command()).render(options);
     let mut stream = anstream::AutoStream::new(io::stderr().lock(), options.color().choice());
