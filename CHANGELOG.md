@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.22
+
+- docs.rs shows ctl-core as a landing page: a summary, a compiled quick start, how output flows, and the Cargo features, with each gated item labelled by its feature. It lists the modules and the prelude once. The crate-root re-exports are hidden from the docs but still resolve, so no import changes. Every fallible public function documents its errors ([#133](https://github.com/victor-software-house/ctl-core/pull/133)).
+
 ## ctl-core 0.6.21
 
 - `EnvPrefix::env_prefix` binds every long option of a command and its subcommands to `<PREFIX>_<LONG>`. Put `#[command(env_prefix = "VERCTL")]` on the root parser, with the prelude in scope, and `VERCTL_CONFIG`, `VERCTL_DRY_RUN`, and `VERCTL_FORMAT` set those flags; a flag on the command line wins over its variable. An option that declares its own `env`, has no long name, is hidden, is a `--no-*` side, or is help or version stays unbound. ctl-core help prints `[env: NAME]` beside each bound option.
