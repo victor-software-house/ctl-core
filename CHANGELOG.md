@@ -1,5 +1,11 @@
 # Changelog
 
+## ctl-core 0.6.23
+
+- ctl-core reads YAML with serde-saphyr 2.0.0 and edits it with yamled 0.0.7. `Limits::budget()` now returns serde-saphyr 2.0's `Budget`; a caller that passes it to serde-saphyr 1.x must move to 2.0 with it. The `comments` feature is on, so the comment limits in `Limits` still apply.
+
+An error raised inside an aliased value keeps serde-saphyr's own wording and points at that value, followed by where the anchor is defined. ctl-core no longer parses positions out of the rendered alias text ([#136](https://github.com/victor-software-house/ctl-core/pull/136)).
+
 ## ctl-core 0.6.22
 
 - docs.rs shows ctl-core as a landing page: a summary, a compiled quick start, how output flows, and the Cargo features, with each gated item labelled by its feature. It lists the modules and the prelude once. The crate-root re-exports are hidden from the docs but still resolve, so no import changes. Every fallible public function documents its errors ([#133](https://github.com/victor-software-house/ctl-core/pull/133)).
