@@ -194,6 +194,47 @@ fn an_alias_error_names_where_its_value_is_defined_in_the_file() {
 }
 
 #[test]
+fn an_alias_reached_through_another_alias_names_the_failing_value() {
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Copied {
+        base: BTreeMap<String, String>,
+        outer: BTreeMap<String, BTreeMap<String, String>>,
+        copy: Wrapped,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Wrapped {
+        nested: Port,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Port {
+        port: u16,
+    }
+    let file = Input::new(
+        "a.md",
+        indoc! {"
+        ---
+        base: &b
+          port: eighty
+        outer: &o
+          nested: *b
+        copy: *o
+        ---
+    "},
+    );
+    let (matter, _) = file.frontmatter().unwrap();
+    let error = matter.parse::<Copied>().unwrap_err();
+    assert_eq!(error.problems[0].line, Some(6), "{error}");
+    assert_eq!(error.problems[0].column, Some(7), "{error}");
+    assert_eq!(
+        error.problems[0].message,
+        "invalid u16 (defined at line 3, column 9)"
+    );
+}
+
+#[test]
 fn a_path_that_leaves_the_repository_is_refused() {
     for outside in ["/etc/passwd", "../up", "docs/../../up"] {
         assert!(
