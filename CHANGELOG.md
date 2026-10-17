@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.24
+
+- ctl-core edits YAML with yamled 0.0.8, which writes one-line text in the document's quotes instead of keeping a quoted node's old quotes. ctl-core's own behaviour does not change: it reads positions from yamled and does not write through it ([#140](https://github.com/victor-software-house/ctl-core/pull/140)).
+
 ## ctl-core 0.6.23
 
 - ctl-core reads YAML with serde-saphyr 2.0.0 and edits it with yamled 0.0.7. `Limits::budget()` now returns serde-saphyr 2.0's `Budget`; a caller that passes it to serde-saphyr 1.x must move to 2.0 with it. The `comments` feature is on, so the comment limits in `Limits` still apply.
