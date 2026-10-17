@@ -1,6 +1,6 @@
 [package]
 name = "ctl-core"
-version = "0.6.23"
+version = "0.6.24"
 edition = "2024"
 rust-version = "1.99.0"
 description = "Shared clap chassis for the *ctl CLIs"
