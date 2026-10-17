@@ -208,10 +208,12 @@ files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
 `lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, `rustfmt.toml`,
 `clippy.toml`, `deny.toml`, `.rumdl.toml`, `.taplo.toml`, `.typos.toml`,
 `mise.template.toml`, `.github/workflows/ci.yml`, `.github/actionlint.yaml`,
-`mise-tasks/hooks.toml`, `mise-tasks/commit-msg`, `mise-tasks/commits`, and
-`mise-tasks/repo.toml`, plus the settings, toolchain, and `[task_config]`
-blocks of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
-`mise-tasks/local.toml` and `openspec/config.yaml` are this repository's own.
+the path-named file tasks in `mise-tasks/` (`check/repo.sh`,
+`commit-msg.sh`, `commits.sh`, `specs.sh`, `format/`, `lint/`, and
+`hooks/secrets/`), plus the settings, toolchain, and `[task_config]` blocks
+of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
+`mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's
+own.
 Local edits survive an update: `ci.yml` runs this repository's copy of the
 `copier-check` action, caches mbx objects, and sets git's default branch to
 `main`; `.taplo.toml` skips `tasks/rust.toml`, `.rumdl.toml` allows the README
@@ -276,7 +278,8 @@ repository's own tasks live in `mise-tasks/`:
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
-`mise-tasks/local.toml` leaves to this repository; ctl-core's does nothing.
+`mise-tasks/check/local.sh` leaves to this repository; ctl-core's does
+nothing.
 `[task_config]` lists `mise-tasks` first, because an includes list replaces the
 default task dirs. Fragment names are not namespaced by file, so each name
 carries its prefix. The shared `verify` depends on `check:features` and
