@@ -30,7 +30,7 @@ feature_sets:
 - app
 - app,usage
 - schema
-kind: rust-crate
+project: rust-crate
 layout: crate
 nightly_fmt: true
 openspec: true
