@@ -203,7 +203,7 @@ context they see stay with the CLI. verctl moves onto it inside its redesign.
 ## Copier template
 
 The repository setup comes from the shared Copier template, the private
-`victor-software-house/templates` repository (kind `rust-crate`): the whole
+`victor-software-house/templates` repository (project `rust-crate`): the whole
 files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
 `lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, `rustfmt.toml`,
 `clippy.toml`, `deny.toml`, `.rumdl.toml`, `.taplo.toml`, `.typos.toml`,

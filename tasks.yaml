@@ -153,7 +153,7 @@ archive:
       - "Runner: verctl, as a post-0.4.0 patch (VER-045). Pending operator decision: join verctl's served-file block, or a separate ver baseline subcommand."
     completed: 2026-10-12T01:00:00
     evidence:
-      - 'Retired by operator decision: the shared Copier template (kind rust-crate) renders the same files, so ctl-core keeps one generator. CTC-018 removes the baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec.'
+      - 'Retired by operator decision: the shared Copier template (project rust-crate) renders the same files, so ctl-core keeps one generator. CTC-018 removes the baseline feature, templates/baseline, tests/baseline.rs, .ctl/rust.yaml, and the served-baseline spec.'
     disposition: dropped
 
   - id: CTC-017
