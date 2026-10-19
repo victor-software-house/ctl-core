@@ -286,6 +286,8 @@ carries its prefix. The shared `verify` depends on `check:features` and
 `check:repo` by name, so every including repository defines `check:features`
 and takes `check:repo` from the template. Change a shared task in
 `tasks/rust.toml`, never in a consumer.
+`lint`, `test`, and `test:doc` pass `--workspace`, so every member is checked,
+not only the root package or the `default-members` list.
 Every cargo command that resolves dependencies passes `--locked`, in the
 shared tasks and in each repository's `check:features`, so a stale `Cargo.lock`
 fails `verify` the way it fails a release build. cargo-machete has no
