@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.25
+
+- The shared `lint`, `test` and `test:doc` tasks pass `--workspace`, so a workspace with a root package or a `default-members` list checks every member ([#144](https://github.com/victor-software-house/ctl-core/pull/144)).
+
 ## ctl-core 0.6.24
 
 - ctl-core edits YAML with yamled 0.0.8, which writes one-line text in the document's quotes instead of keeping a quoted node's old quotes. ctl-core's own behaviour does not change: it reads positions from yamled and does not write through it ([#140](https://github.com/victor-software-house/ctl-core/pull/140)).
