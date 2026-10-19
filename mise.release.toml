@@ -1,5 +1,5 @@
-# Loaded when MISE_ENV contains `release`.
+# Loaded when MISE_ENV contains `release`: the release workflow.
 # Published verctl tarball only. No rust.
 
 [tools]
-"github:victor-software-house/verctl" = "0.4.0"
+"github:victor-software-house/verctl" = "0.5.0"

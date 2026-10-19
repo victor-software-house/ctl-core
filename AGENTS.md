@@ -244,8 +244,7 @@ and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
 `postinstall` hook runs `lefthook install` after every `mise install`, so a
 fresh clone gets its git hooks from `mise install`. CI sets `MISE_ENV=ci`
 (`ci,release` for release jobs) and never loads `dev`, so no runner installs
-hooks. The Version PR job installs only rust, mr-boxington, and verctl,
-because `prepare` runs `cargo update --workspace`.
+hooks.
 
 ## Fixtures
 
@@ -260,7 +259,11 @@ keeps no fixture wrapper of its own. `CTC-006` tracks the consumer moves.
 Human writes `.changeset/*.md` on the same PR that ships the behaviour. Never
 hand-edit versions or CHANGELOG. Declarations live in [`.ctl/ver.yaml`](.ctl/ver.yaml).
 `prepare` runs `cargo update --workspace` and stages `Cargo.lock` because CI
-packages with `--locked`. Prove the lane by shipping through it (`CTC-009`).
+packages with `--locked`. `.github/workflows/release.yml` calls verctl's
+reusable release workflow on every push to `main`: it publishes each version
+commit not yet fully released, then opens or updates the Version PR on
+`verctl/release/main` with auto-merge. Bump its pin together with the verctl
+pin in `mise.release.toml` and the `ver` task include in `mise.toml`.
 
 ## Checks
 
