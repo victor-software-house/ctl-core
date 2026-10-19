@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.28
+
+- The shared `check:versions` passes with nothing to compare in a repository without `.ctl/ver.yaml` (or the file `VERCTL_CONFIG` names), so a repository that declares no releases needs neither verctl's `ver` task nor verctl ([#151](https://github.com/victor-software-house/ctl-core/pull/151)).
+
 ## ctl-core 0.6.27
 
 - The shared `verify` runs `check:versions`, verctl's hand-edit guard, and `semver` runs `verctl semver`, which checks the API at the release type the pending fragments allow. Both run through verctl's served `ver` task, so a repository includes it at verctl 0.5.1 or later, the first that fetches the compared branches in a shallow pull request checkout, and its CI verify step sets `GITHUB_TOKEN` with `pull-requests: read` ([#149](https://github.com/victor-software-house/ctl-core/pull/149)).
