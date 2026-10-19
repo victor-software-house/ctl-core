@@ -12,6 +12,11 @@
 # The repository defines `check:features` and `check:repo` itself; `verify`
 # depends on both. `check:repo` holds the repository's own checks, and does
 # nothing in a repository that has none.
+# `check:versions` and `semver` run verctl through its served `ver` task, so
+# the repository includes that task at a pinned verctl release in the
+# environment verify runs in, and locks verctl there. In CI the verify step
+# sets GITHUB_TOKEN with `pull-requests: read`: when a manifest version
+# differs, the check reads the pull request to tell a Version PR apart.
 # Every task that resolves dependencies passes --locked, so a Cargo.lock that
 # no longer matches Cargo.toml fails verify here, as it fails a release build
 # that passes --locked. A repository's own cargo commands, such as those in
@@ -74,14 +79,20 @@ run = [
 ]
 
 # Published crates only. CI runs it before packaging; it compares against the
-# release on crates.io.
+# release on crates.io, at the release type the pending fragments allow, so a
+# break fails unless a fragment already bumps the minor.
 [semver]
 description = "Public API changes against the last release (network)"
-run = "cargo semver-checks"
+run = "mise run ver semver"
+
+# A manifest version changes only on the Version PR, through a fragment.
+["check:versions"]
+description = "Manifest versions match the default branch outside a Version PR"
+run = "mise run ver check --versions"
 
 [verify]
-description = "Toolchain pins, format, lint, feature sets, tests, doc-tests, deny, unused crates, repository checks"
+description = "Toolchain pins, format, lint, feature sets, tests, doc-tests, deny, unused crates, versions, repository checks"
 depends = [
   "check:toolchain", "format", "lint", "check:features",
-  "test", "test:doc", "deny", "deps", "check:repo",
+  "test", "test:doc", "deny", "deps", "check:versions", "check:repo",
 ]
