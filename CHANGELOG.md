@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.26
+
+- Releases run through verctl's reusable release workflow at 0.5.0: each push to `main` publishes any version commit not yet fully released and opens or updates the Version PR on `verctl/release/main` ([#147](https://github.com/victor-software-house/ctl-core/pull/147)).
+
 ## ctl-core 0.6.25
 
 - The shared `lint`, `test` and `test:doc` tasks pass `--workspace`, so a workspace with a root package or a `default-members` list checks every member ([#144](https://github.com/victor-software-house/ctl-core/pull/144)).

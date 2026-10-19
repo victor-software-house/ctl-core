@@ -1,5 +1,0 @@
----
-ctl-core: patch
----
-
-Releases run through verctl's reusable release workflow at 0.5.0: each push to `main` publishes any version commit not yet fully released and opens or updates the Version PR on `verctl/release/main`.
