@@ -44,11 +44,13 @@ includes = [
   # Pinned git:: catalogs follow mise-tasks.
   "mise-tasks",
   "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.5.9",
-  # `mise run ver`, which the release workflow runs. Bump the ref together
-  # with the verctl pin in mise.release.toml and the workflow's pin.
-  "git::https://github.com/victor-software-house/verctl.git//tasks/ver?ref=v0.5.0",
+  # `mise run ver`, which the release workflow, check:versions, and semver
+  # run. Bump the ref together with the verctl pin in mise.release.toml and
+  # the workflow's pin.
+  "git::https://github.com/victor-software-house/verctl.git//tasks/ver?ref=v0.5.1",
   # The standard Rust tasks (check:toolchain, format, lint, test, test:doc,
-  # deny, deny:advisories, deps, semver, verify). Other repositories include
-  # this file by git:: URL at a release tag; this repository reads its own copy.
+  # deny, deny:advisories, deps, semver, check:versions, verify). Other
+  # repositories include this file by git:: URL at a release tag; this
+  # repository reads its own copy.
   "tasks/rust.toml",
 ]

@@ -273,7 +273,8 @@ mise run verify
 
 `verify` is the toolchain pins, format, clippy, the feature sets, `test` (unit
 and integration; targets with `test = false` are skipped), `test:doc`
-(doc-tests), cargo-deny licenses/bans/sources, and cargo-machete. Those tasks
+(doc-tests), cargo-deny licenses/bans/sources, cargo-machete, and
+`check:versions`, verctl's hand-edit guard. Those tasks
 live in `tasks/rust.toml`, which `mise.toml` includes; other ctl repositories
 include the same file by `git::` URL at a ctl-core release tag. This
 repository's own tasks live in `mise-tasks/`:
@@ -289,6 +290,11 @@ carries its prefix. The shared `verify` depends on `check:features` and
 `check:repo` by name, so every including repository defines `check:features`
 and takes `check:repo` from the template. Change a shared task in
 `tasks/rust.toml`, never in a consumer.
+`check:versions` and `semver` run verctl through its served `ver` task, so
+every including repository includes that task at a pinned verctl release in
+the environment `verify` runs in, locks verctl there, and gives the CI Verify
+step `GITHUB_TOKEN` with `pull-requests: read` (template v0.0.27 renders
+both). The check reads the pull request only when a manifest version differs.
 `lint`, `test`, and `test:doc` pass `--workspace`, so every member is checked,
 not only the root package or the `default-members` list.
 Every cargo command that resolves dependencies passes `--locked`, in the
@@ -312,7 +318,8 @@ invocations share `target/`; the package-cache lock serializes them. Do not
 invent extra `CARGO_TARGET_DIR` trees to hide that. Advisories (and yanked
 crates) are `mise run deny:advisories` on CI only, so a pre-push `verify`
 does not need the network. CI also runs `mise run semver`
-(cargo-semver-checks against the last release) before packaging. An unfixable RUSTSEC or yank is listed in
+(`verctl semver`: cargo-semver-checks against the last release, at the
+release type the pending fragments allow) before packaging. An unfixable RUSTSEC or yank is listed in
 `deny.toml` `[advisories].ignore` with a reason, not by weakening `yanked`
 or `unmaintained`.
 
