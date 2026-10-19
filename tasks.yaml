@@ -75,21 +75,6 @@ queue:
     links:
       - https://github.com/victor-software-house/ctl-core/pull/120
 
-  - id: CTC-022
-    title: Bind every flag to an environment variable
-    scope: ctl-core flags, help, and the env-flags spec
-    outcome: A ctl CLI binds every long option to <PREFIX>_<LONG> with one root attribute, so an action or CI step sets env and runs the bare verb.
-    blocked_by: []
-    acceptance:
-      - 'With #[command(env_prefix = "VERCTL")] on the root parser, every long option of the root and of every subcommand reads VERCTL_<LONG>, and a flag on the command line wins over it.'
-      - An option that declares its own env, has no long name, is hidden, is a --no-* side, or is help or version stays unbound, and an empty variable counts as unset.
-      - The command line wins over a variable when it sets the option, its --no-* side, or an option that conflicts with it, and two conflicting variables fail with an error that names both.
-      - 'ctl-core help prints [env: NAME] beside each bound option.'
-      - A command without the attribute binds nothing, and mise run verify passes.
-    notes:
-      - OpenSpec change env-bound-flags in openspec/changes/env-bound-flags.
-      - 'Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.'
-
   - id: CTC-023
     title: Crate docs on docs.rs
     scope: ctl-core
@@ -125,7 +110,34 @@ horizon:
     kind: deferred
     open: A ctl-core release with the hidden crate-root re-exports is on crates.io, so cargo-semver-checks compares against it.
 
+  - id: CTC-026
+    title: Remove the shared Rust task file and copier-check from ctl-core
+    scope: >-
+      tasks/rust.toml, the copier-check action, the shared-rust-tasks spec, and
+      AGENTS.md
+    outcome: >-
+      The shared Rust tasks and the template check live in the public
+      victor-software-house/actions repository, and ctl-core no longer ships either.
+    kind: deferred
+    open: >-
+      Every consumer points at the new home for the shared Rust tasks and the
+      template check.
+    notes:
+      - The planned public victor-software-house/actions repository will host the reusable CI workflow, the copier-check drift check, and tasks/rust.toml. ctl-core keeps both working until every consumer includes them from there, then removes them in one pull request. Spec the removal as its own OpenSpec change when it starts.
+
 archive:
+  - id: CTC-022
+    title: Bind every flag to an environment variable
+    scope: ctl-core flags, help, and the env-flags spec
+    outcome: A ctl CLI binds every long option to <PREFIX>_<LONG> with one root attribute, so an action or CI step sets env and runs the bare verb.
+    notes:
+      - OpenSpec change env-bound-flags in openspec/changes/env-bound-flags.
+      - 'Operator decision 2026-10-15: every ctl CLI is configurable through environment variables, with precedence flag, then variable, then config file, then default; actions set env and run the bare verb with no argument assembly in bash.'
+    completed: 2026-10-19T17:13:23
+    evidence:
+      - Spec merged in https://github.com/victor-software-house/ctl-core/pull/129 and code in https://github.com/victor-software-house/ctl-core/pull/130, released as ctl-core 0.6.21 on crates.io
+    disposition: completed
+
   - id: CTC-019
     title: Take template v0.0.4 and its task layout
     scope: .copier-answers.yml at templates v0.0.4, mise.toml [task_config], mise-tasks/, lefthook.yml, and the AGENTS.md template and checks sections
