@@ -35,21 +35,24 @@ run = "cargo +nightly-2026-09-29 fmt --all -- --check"
 
 [lint]
 description = "clippy -D warnings"
-run = "cargo clippy --locked --all-targets --all-features -- -D warnings"
+# --workspace in lint, test, and test:doc: without it cargo selects the
+# default members, which is only the root package of a workspace with one, or
+# the default-members list, so the other members would go unchecked.
+run = "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings"
 
 [test]
 description = "Unit and integration tests"
 # --tests selects every target whose `test` flag is on, bins included. --bins
 # would select every bin regardless of the flag, so a fuzz target with
 # `test = false` would build and run as a test.
-run = "cargo test --locked --all-features --lib --tests"
+run = "cargo test --locked --workspace --all-features --lib --tests"
 # Stops a hung test run instead of holding the gate. The limit also counts
 # compile time and waits on the target/ lock, so it sits far above a cold build.
 timeout = "30m"
 
 ["test:doc"]
 description = "Doc-tests"
-run = "cargo test --locked --doc --all-features"
+run = "cargo test --locked --workspace --doc --all-features"
 timeout = "30m"
 
 [deny]
