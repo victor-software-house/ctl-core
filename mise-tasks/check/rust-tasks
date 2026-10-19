@@ -16,7 +16,9 @@ run = "echo verctl-stub-ran"
 EOF
 export MISE_TRUSTED_CONFIG_PATHS="${scratch}"
 
-# Prints the task's output, and fails when the task fails.
+# Prints the task's output, and fails when the task fails. Each call is
+# assigned before it is passed on: set -e stops at a failing assignment, not
+# at a failing substitution inside another command's arguments.
 versions() {
   mise -C "${scratch}" run check:versions 2>&1
 }
@@ -35,15 +37,17 @@ expect() {
   printf '✔ %s\n' "$1"
 }
 
-expect "no .ctl/ver.yaml: passes without verctl" "$(versions)" \
+out="$(versions)"
+expect "no .ctl/ver.yaml: passes without verctl" "${out}" \
   "no .ctl/ver.yaml: this repository declares no releases, nothing to compare" \
   verctl-stub-ran
 
 mkdir "${scratch}/.ctl"
 touch "${scratch}/.ctl/ver.yaml"
-expect ".ctl/ver.yaml: runs verctl" "$(versions)" verctl-stub-ran
+out="$(versions)"
+expect ".ctl/ver.yaml: runs verctl" "${out}" verctl-stub-ran
 
-expect "VERCTL_CONFIG names a missing file: passes without verctl" \
-  "$(VERCTL_CONFIG=release/ver.yaml versions)" \
+out="$(VERCTL_CONFIG=release/ver.yaml versions)"
+expect "VERCTL_CONFIG names a missing file: passes without verctl" "${out}" \
   "no release/ver.yaml: this repository declares no releases" \
   verctl-stub-ran
