@@ -13,8 +13,10 @@
 # depends on both. `check:repo` holds the repository's own checks, and does
 # nothing in a repository that has none.
 # `check:versions` and `semver` run verctl through its served `ver` task, so
-# the repository includes that task at a pinned verctl release in the
-# environment verify runs in, and locks verctl there. In CI the verify step
+# a repository that declares releases in `.ctl/ver.yaml` includes that task
+# at a pinned verctl release in the environment verify runs in, and locks
+# verctl there. Without that file, `check:versions` passes with nothing to
+# compare. In CI the verify step
 # sets GITHUB_TOKEN with `pull-requests: read`: when a manifest version
 # differs, the check reads the pull request to tell a Version PR apart.
 # Every task that resolves dependencies passes --locked, so a Cargo.lock that
@@ -86,9 +88,18 @@ description = "Public API changes against the last release (network)"
 run = "mise run ver semver"
 
 # A manifest version changes only on the Version PR, through a fragment.
+# The release config is what declares releases, so a repository without one
+# has no version to compare, and needs neither the `ver` task nor verctl.
 ["check:versions"]
 description = "Manifest versions match the default branch outside a Version PR"
-run = "mise run ver check --versions"
+run = '''
+config="${VERCTL_CONFIG:-.ctl/ver.yaml}"
+if [ ! -f "$config" ]; then
+  echo "no $config: this repository declares no releases, nothing to compare"
+  exit 0
+fi
+mise run ver check --versions
+'''
 
 [verify]
 description = "Toolchain pins, format, lint, feature sets, tests, doc-tests, deny, unused crates, versions, repository checks"

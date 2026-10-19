@@ -282,8 +282,8 @@ repository's own tasks live in `mise-tasks/`:
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
-`mise-tasks/check/local.sh` leaves to this repository; ctl-core's does
-nothing.
+`mise-tasks/check/local.sh` leaves to this repository; ctl-core's runs
+`check:rust-tasks`.
 `[task_config]` lists `mise-tasks` first, because an includes list replaces the
 default task dirs. Fragment names are not namespaced by file, so each name
 carries its prefix. The shared `verify` depends on `check:features` and
@@ -291,10 +291,15 @@ carries its prefix. The shared `verify` depends on `check:features` and
 and takes `check:repo` from the template. Change a shared task in
 `tasks/rust.toml`, never in a consumer.
 `check:versions` and `semver` run verctl through its served `ver` task, so
-every including repository includes that task at a pinned verctl release in
-the environment `verify` runs in, locks verctl there, and gives the CI Verify
+every including repository that declares releases in `.ctl/ver.yaml` (or
+`VERCTL_CONFIG`) includes that task at a pinned verctl release in the
+environment `verify` runs in, locks verctl there, and gives the CI Verify
 step `GITHUB_TOKEN` with `pull-requests: read` (template v0.0.27 renders
 both). The check reads the pull request only when a manifest version differs.
+A repository without that file declares no releases, so `check:versions`
+passes there with nothing to compare. `check:rust-tasks`, in `check:local`,
+runs the shared `check:versions` in a scratch repository, with and without
+the file.
 `lint`, `test`, and `test:doc` pass `--workspace`, so every member is checked,
 not only the root package or the `default-members` list.
 Every cargo command that resolves dependencies passes `--locked`, in the
