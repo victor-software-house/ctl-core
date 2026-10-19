@@ -1,5 +1,9 @@
 # Changelog
 
+## ctl-core 0.6.27
+
+- The shared `verify` runs `check:versions`, verctl's hand-edit guard, and `semver` runs `verctl semver`, which checks the API at the release type the pending fragments allow. Both run through verctl's served `ver` task, so a repository includes it at verctl 0.5.1 or later, the first that fetches the compared branches in a shallow pull request checkout, and its CI verify step sets `GITHUB_TOKEN` with `pull-requests: read` ([#149](https://github.com/victor-software-house/ctl-core/pull/149)).
+
 ## ctl-core 0.6.26
 
 - Releases run through verctl's reusable release workflow at 0.5.0: each push to `main` publishes any version commit not yet fully released and opens or updates the Version PR on `verctl/release/main` ([#147](https://github.com/victor-software-house/ctl-core/pull/147)).
