@@ -214,8 +214,8 @@ the path-named file tasks in `mise-tasks/` (`check/repo.sh`,
 `hooks/secrets/`), plus the settings, toolchain, and `[task_config]` blocks
 of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
 `mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's
-own; the template's `check/features.sh` starter stays deleted, because
-`mise-tasks/check/features` defines `check:features` here.
+own, and so is `mise-tasks/check/features.sh`, which holds this crate's
+feature sets.
 Local edits survive an update: `.taplo.toml` skips `tasks/rust.toml`,
 `.rumdl.toml` allows the README banner's HTML, and `.typos.toml` ignores
 commit hashes cited in prose. Change a shared rule in the template, then take
@@ -280,7 +280,7 @@ hand-edit guard. Those tasks come from the actions repository's
 `tasks/rust.toml`, which `mise.toml` includes by `git::` URL at the commit
 the template pins, and `mise.toml` composes `verify` from them. This
 repository's own tasks live in `mise-tasks/`:
-`check:features` is the file task `mise-tasks/check/features`.
+`check:features` is the file task `mise-tasks/check/features.sh`.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
