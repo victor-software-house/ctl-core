@@ -31,6 +31,8 @@ invalid_codeblock_attributes = "deny"
 invalid_rust_codeblocks = "deny"
 bare_urls = "deny"
 missing_crate_level_docs = "deny"
+# Allow-by-default, so a -D warnings rustdoc build never fires it: an unbalanced
+# backtick renders the rest of the paragraph as code.
 unescaped_backticks = "deny"
 
 [lints.clippy]
