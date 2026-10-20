@@ -216,9 +216,8 @@ of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
 `mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's
 own, and so is `mise-tasks/check/features.sh`, which holds this crate's
 feature sets.
-Local edits survive an update: `.taplo.toml` skips `tasks/rust.toml`,
-`.rumdl.toml` allows the README banner's HTML, and `.typos.toml` ignores
-commit hashes cited in prose. Change a shared rule in the template, then take
+Local edits survive an update: `.rumdl.toml` allows the README banner's
+HTML, and `.typos.toml` ignores commit hashes cited in prose. Change a shared rule in the template, then take
 its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
@@ -236,9 +235,6 @@ repository at the commit the template pins. Their checks report as
 gets a notice. A push to `main` and a daily run keep one issue, "Template
 update available", open while the newest tag would change this repository.
 The drift check is skipped for pull requests from forks.
-`.github/actions/copier-check` and `tasks/rust.toml` stay here only until
-CTC-026 removes them; nothing in this repository runs either any more, apart
-from `check:rust-tasks`, which tests this copy of `tasks/rust.toml`.
 
 Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
 and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
@@ -284,8 +280,7 @@ repository's own tasks live in `mise-tasks/`:
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
-`mise-tasks/check/local.sh` leaves to this repository; ctl-core's runs
-`check:rust-tasks`.
+`mise-tasks/check/local.sh` leaves to this repository; ctl-core adds none.
 `[task_config]` lists `mise-tasks` first, because an includes list replaces the
 default task dirs. Fragment names are not namespaced by file, so each name
 carries its prefix. `verify` depends on `check:features` and `check:repo` by name, so every
@@ -299,9 +294,7 @@ environment `verify` runs in, locks verctl there, and gives the CI Verify
 step `GITHUB_TOKEN` with `pull-requests: read` (template v0.0.27 renders
 both). The check reads the pull request only when a manifest version differs.
 A repository without that file declares no releases, so `check:versions`
-passes there with nothing to compare. `check:rust-tasks`, in `check:local`,
-runs the shared `check:versions` in a scratch repository, with and without
-the file.
+passes there with nothing to compare.
 `lint`, `test`, and `test:doc` pass `--workspace`, so every member is checked,
 not only the root package or the `default-members` list.
 Every cargo command that resolves dependencies passes `--locked`, in the

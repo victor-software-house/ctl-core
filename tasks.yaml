@@ -102,7 +102,7 @@ queue:
     notes:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
-horizon:
+
   - id: CTC-026
     title: Remove the shared Rust task file and copier-check from ctl-core
     scope: >-
@@ -111,12 +111,13 @@ horizon:
     outcome: >-
       The shared Rust tasks and the template check live in the public
       victor-software-house/actions repository, and ctl-core no longer ships either.
-    kind: deferred
-    open: >-
-      Every consumer points at the new home for the shared Rust tasks and the
-      template check.
     notes:
       - The planned public victor-software-house/actions repository will host the reusable CI workflow, the copier-check drift check, and tasks/rust.toml. ctl-core keeps both working until every consumer includes them from there, then removes them in one pull request. Spec the removal as its own OpenSpec change when it starts.
+    blocked_by: []
+    acceptance:
+      - tasks/rust.toml, .github/actions/copier-check/, and check:rust-tasks are gone from main
+      - Verify and Template pass on the pull request
+horizon: []
 
 archive:
   - id: CTC-024
