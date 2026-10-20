@@ -207,37 +207,38 @@ The repository setup comes from the shared Copier template, the private
 files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
 `lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, `rustfmt.toml`,
 `clippy.toml`, `deny.toml`, `.rumdl.toml`, `.taplo.toml`, `.typos.toml`,
-`mise.template.toml`, `.github/workflows/ci.yml`, `.github/actionlint.yaml`,
+`.github/workflows/ci.yml`, `.github/workflows/template.yml`,
+`.github/actionlint.yaml`,
 the path-named file tasks in `mise-tasks/` (`check/repo.sh`,
 `commit-msg.sh`, `commits.sh`, `specs.sh`, `format/`, `lint/`, and
 `hooks/secrets/`), plus the settings, toolchain, and `[task_config]` blocks
 of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
 `mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's
-own.
-Local edits survive an update: `ci.yml` runs this repository's copy of the
-`copier-check` action, caches mbx objects, and sets git's default branch to
-`main`; `.taplo.toml` skips `tasks/rust.toml`, `.rumdl.toml` allows the README
-banner's HTML, and `.typos.toml` ignores commit hashes cited in prose. Change
-a shared rule in the template, then take its new tag here.
+own, and so is `mise-tasks/check/features.sh`, which holds this crate's
+feature sets.
+Local edits survive an update: `.taplo.toml` skips `tasks/rust.toml`,
+`.rumdl.toml` allows the README banner's HTML, and `.typos.toml` ignores
+commit hashes cited in prose. Change a shared rule in the template, then take
+its new tag here.
 `.copier-answers.yml` records its tag and this repository's answers; never
 edit it by hand. Take a new tag with
-`MISE_ENV=template mise x -- uvx copier@<pin> update --defaults --vcs-ref <tag>`,
+`mise x uv@0.13.1 python@3.14.8 -- uvx copier@<pin> update --defaults --vcs-ref <tag>`,
 where `<pin>` is the `"pypi:copier"` version in the template's `mise.toml` at
 that tag. Review the diff, and fix any conflict markers (`git diff --check`)
 before committing.
 
-The CI job `Template` runs the composite action
-`.github/actions/copier-check`, which mints a token from the
-`vsh-templates-reader` GitHub App and runs its `check.sh`. The script runs
-`copier update` at the copier version the template pins in its `mise.toml`
-at the newest tag, and fails when the newest tag changes any file besides
-`.copier-answers.yml`. A newer tag that renders the same files passes with a
-notice, and the repository takes the new tag with its next real template
-change. The job is skipped for pull requests from forks. Other repositories
-use the same action from this public repository, pinned by commit, with the
-App's client ID and private key as inputs; each defines its own `template`
-mise env with uv and python. A repository that renders the template below
-its root passes that directory as `working-directory`.
+`ci.yml` calls the shared `rust-ci.yml`, and `template.yml` calls the shared
+`template-check.yml`, both from the public `victor-software-house/actions`
+repository at the commit the template pins. Their checks report as
+`verify / Verify` and `template / Template`. The drift check runs
+`template:check`, which fails only a pull request that changes
+`.copier-answers.yml` without reaching the newest tag; any other pull request
+gets a notice. A push to `main` and a daily run keep one issue, "Template
+update available", open while the newest tag would change this repository.
+The drift check is skipped for pull requests from forks.
+`.github/actions/copier-check` and `tasks/rust.toml` stay here only until
+CTC-026 removes them; nothing in this repository runs either any more, apart
+from `check:rust-tasks`, which tests this copy of `tasks/rust.toml`.
 
 Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
 and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
@@ -273,12 +274,13 @@ mise run verify
 
 `verify` is the toolchain pins, format, clippy, the feature sets, `test` (unit
 and integration; targets with `test = false` are skipped), `test:doc`
-(doc-tests), cargo-deny licenses/bans/sources, cargo-machete, and
-`check:versions`, verctl's hand-edit guard. Those tasks
-live in `tasks/rust.toml`, which `mise.toml` includes; other ctl repositories
-include the same file by `git::` URL at a ctl-core release tag. This
+(doc-tests), `doc` (rustdoc as docs.rs builds it), cargo-deny
+licenses/bans/sources, cargo-machete, and `check:versions`, verctl's
+hand-edit guard. Those tasks come from the actions repository's
+`tasks/rust.toml`, which `mise.toml` includes by `git::` URL at the commit
+the template pins, and `mise.toml` composes `verify` from them. This
 repository's own tasks live in `mise-tasks/`:
-`check:features` is the file task `mise-tasks/check/features`.
+`check:features` is the file task `mise-tasks/check/features.sh`.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
@@ -286,10 +288,10 @@ actionlint, and OpenSpec validation, then `check:local`, which
 `check:rust-tasks`.
 `[task_config]` lists `mise-tasks` first, because an includes list replaces the
 default task dirs. Fragment names are not namespaced by file, so each name
-carries its prefix. The shared `verify` depends on `check:features` and
-`check:repo` by name, so every including repository defines `check:features`
-and takes `check:repo` from the template. Change a shared task in
-`tasks/rust.toml`, never in a consumer.
+carries its prefix. `verify` depends on `check:features` and `check:repo` by name, so every
+repository on the template defines `check:features` and takes `check:repo`
+from the template. Change a shared task in the actions repository, never in
+a consumer.
 `check:versions` and `semver` run verctl through its served `ver` task, so
 every including repository that declares releases in `.ctl/ver.yaml` (or
 `VERCTL_CONFIG`) includes that task at a pinned verctl release in the
@@ -313,8 +315,9 @@ test), and mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent
 runs. Do not reintroduce them without new measurements.
 `mise.toml` pins stable 1.99.0 for build, lint, and test, with
 `mr_boxington = true`, which routes Cargo through mr-boxington so worktrees
-share one build store. A dated nightly carries only rustfmt, for
-`rustfmt.toml`'s unstable options, and the `format` task alone uses it. The
+share one build store. A dated nightly carries only rustfmt: `format` runs on
+it for `rustfmt.toml`'s unstable options, and `doc` builds on it as docs.rs
+does. The
 mise pin, `rust-toolchain.toml`, and `rust-version` move together in one
 commit; `check:toolchain` fails when they differ. CI uses the
 same pins and caches through `jdx/mr-boxington-action`.
