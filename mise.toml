@@ -69,7 +69,7 @@ depends = [
 includes = [
   # Pinned git:: catalogs follow mise-tasks.
   "mise-tasks",
-  "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.5.9",
+  "git::https://github.com/victor-software-house/qctl.git//tasks/q?ref=v0.6.0",
   # `mise run ver`, which the release workflow, check:versions, and semver
   # run. Bump the ref together with the verctl pin in mise.release.toml and
   # the workflow's pin.

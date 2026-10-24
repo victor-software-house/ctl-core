@@ -1,5 +1,5 @@
-# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.5.9/tasks.schema.json
-schema_version: 4
+# yaml-language-server: $schema=https://github.com/victor-software-house/qctl/releases/download/v0.6.0/tasks.schema.json
+schema_version: 5
 prefix: CTC
 
 style:
@@ -59,22 +59,6 @@ queue:
       - Every lock is regenerated whole with mise lock --platform linux-x64,macos-arm64, and its linux-x64 and macos-arm64 entries match main.
       - On a fresh linux-x64 machine, mise install leaves git status clean, and mise run verify passes.
 
-  - id: CTC-021
-    title: Read TOML config files through the declared-input loader
-    scope: ctl-core input feature, the input-toml feature, and the declared-input spec
-    outcome: 'A ctl CLI reads a TOML config file through the same Input as YAML: one parse, one garde validation, every problem on its file, line, and column.'
-    blocked_by: []
-    acceptance:
-      - Input::open(path) picks the format from the extension (.toml, .yaml, .yml) and refuses any other extension with a problem; Input::new and Input::read stay YAML.
-      - A TOML parse error, a type error, and each garde field problem (top-level key, table, inline table, array of tables) report a 1-based line and column.
-      - A TOML text is held to max_reader_input_bytes, max_depth, and max_nodes from the same tiers as YAML, and a duplicate key reports on its line.
-      - The input-toml feature compiles the toml crate and nothing else changes for a YAML-only consumer; check:features builds it alone and mise run verify passes.
-    notes:
-      - OpenSpec change toml-input in openspec/changes/toml-input.
-      - 'Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.'
-    links:
-      - https://github.com/victor-software-house/ctl-core/pull/120
-
   - id: CTC-023
     title: Crate docs on docs.rs
     scope: ctl-core
@@ -116,6 +100,21 @@ horizon:
       - 'Records follow one layout: decisions in openspec/decisions/<date>-<slug>.md with MADR 4 frontmatter, and research next to its spec.'
 
 archive:
+  - id: CTC-021
+    title: Read TOML config files through the declared-input loader
+    scope: ctl-core input feature, the input-toml feature, and the declared-input spec
+    outcome: 'A ctl CLI reads a TOML config file through the same Input as YAML: one parse, one garde validation, every problem on its file, line, and column.'
+    notes:
+      - 'Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.'
+    links:
+      - https://github.com/victor-software-house/ctl-core/pull/120
+    plan: openspec/changes/archive/2026-10-24-toml-input/proposal.md
+    completed: 2026-10-24T00:19:10
+    evidence:
+      - openspec/changes/archive/2026-10-24-toml-input/
+      - Shipped in https://github.com/victor-software-house/ctl-core/pull/120, released as ctl-core 0.6.19 by https://github.com/victor-software-house/ctl-core/pull/121.
+    disposition: completed
+
   - id: CTC-026
     title: Remove the shared Rust task file and copier-check from ctl-core
     scope: >-
@@ -151,6 +150,7 @@ archive:
     evidence:
       - Spec merged in https://github.com/victor-software-house/ctl-core/pull/129 and code in https://github.com/victor-software-house/ctl-core/pull/130, released as ctl-core 0.6.21 on crates.io
     disposition: completed
+    plan: openspec/changes/archive/2026-10-24-env-bound-flags/proposal.md
 
   - id: CTC-019
     title: Take template v0.0.4 and its task layout

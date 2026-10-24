@@ -16,8 +16,11 @@
   a build runner.
 - [x] 6. Document the binding and the precedence rule in AGENTS.md, and add
   the changeset. Proof: the pre-push `verify` passes on the pushed commit.
-- [ ] 7. Open the PR, wait for CI and Kody, and answer each thread with the
+- [x] 7. Open the PR, wait for CI and Kody, and answer each thread with the
   commit that fixes it. Proof: CI green on the last push, no open thread.
+  - 2026-10-24 UTC: [PR 130][ctl-core#130] merged as [d794772] on
+    2026-10-15 with every check green on its last push, [5987117], and no
+    open review thread.
 
 ## Evidence
 
@@ -36,3 +39,7 @@ both negation tests with `ArgumentConflict` ("`--no-pr` cannot be used with
 
 Not verified: the change against a consuming CLI. verctl, qctl, and forkctl
 adopt the attribute after the release that ships this.
+
+[ctl-core#130]: https://github.com/victor-software-house/ctl-core/pull/130
+[d794772]: https://github.com/victor-software-house/ctl-core/commit/d794772
+[5987117]: https://github.com/victor-software-house/ctl-core/commit/5987117
