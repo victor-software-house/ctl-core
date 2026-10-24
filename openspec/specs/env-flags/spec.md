@@ -1,6 +1,7 @@
 # env-flags Specification
 
 ## Purpose
+
 Bind every long option of a ctl CLI to an environment variable under one
 prefix, so a caller that holds its settings in the environment can run the
 bare verb. A flag wins over its variable, the variable over the config file,
