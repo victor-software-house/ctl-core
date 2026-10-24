@@ -102,7 +102,18 @@ queue:
     notes:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
-horizon: []
+horizon:
+  - id: CTC-027
+    title: Design the decision and research document checker
+    scope: design
+    outcome: >-
+      One design names how decision and research records in openspec/ are checked,
+      and where the checker lives.
+    kind: research
+    open: Binary name and repository not chosen.
+    notes:
+      - The checker reads the openspec/ layout that qctl already reads for its agreement checks. That reader moves into ctl-core when the checker becomes its second user.
+      - 'Records follow one layout: decisions in openspec/decisions/<date>-<slug>.md with MADR 4 frontmatter, and research next to its spec.'
 
 archive:
   - id: CTC-026
