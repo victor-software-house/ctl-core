@@ -99,6 +99,23 @@ horizon:
       - The checker reads the openspec/ layout that qctl already reads for its agreement checks. That reader moves into ctl-core when the checker becomes its second user.
       - 'Records follow one layout: decisions in openspec/decisions/<date>-<slug>.md with MADR 4 frontmatter, and research next to its spec.'
 
+  - id: CTC-028
+    title: Own OpenSpec's checks in Rust
+    scope: design
+    outcome: >-
+      One decision says whether ctl owns the OpenSpec spec and delta checks in Rust
+      instead of running the upstream OpenSpec CLI.
+    kind: research
+    open: >-
+      Reopen only when one of the triggers in the notes holds; a 2026-10-24 review
+      found no reason to rewrite now.
+    notes:
+      - 'Trigger: upstream breaks the spec or delta format, or archive merges a delta wrongly with no fix.'
+      - 'Trigger: upstream stalls for 60 days or leaves the MIT licence.'
+      - 'Trigger: two more strict-rule bumps arrive with no opt-out; see https://github.com/Fission-AI/OpenSpec/issues/2069.'
+      - 'Trigger: the document checker (CTC-027) ends up parsing specs anyway.'
+      - 'Trigger: the standalone Bun-built binary misbehaves and upstream will not fix it.'
+
 archive:
   - id: CTC-021
     title: Read TOML config files through the declared-input loader
