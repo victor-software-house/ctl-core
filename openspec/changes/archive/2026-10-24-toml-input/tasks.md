@@ -14,8 +14,11 @@
 - [x] 5. Document the feature and the format rule in AGENTS.md and the
   crate docs, and add the changeset. Proof: `mise run verify` passes on a
   build runner, including `test:doc` and `check:features`.
-- [ ] 6. Open the PR, wait for CI, and answer each review thread with the
+- [x] 6. Open the PR, wait for CI, and answer each review thread with the
   commit that fixes it. Proof: CI green on the last push, no open thread.
+  - 2026-10-24 UTC: [PR 120][ctl-core#120] merged as [16d34d5] on
+    2026-10-14 with every check green on its last push, [5052b3d], and no
+    open review thread.
 
 ## Evidence
 
@@ -41,3 +44,7 @@ required" (202 checks, 202 pass).
 A scratch copy of the tree passed the CI `Template` job's check: `copier
 update --defaults` changed only `.copier-answers.yml` (`_commit` v0.0.18 to
 v0.0.19).
+
+[ctl-core#120]: https://github.com/victor-software-house/ctl-core/pull/120
+[16d34d5]: https://github.com/victor-software-house/ctl-core/commit/16d34d5
+[5052b3d]: https://github.com/victor-software-house/ctl-core/commit/5052b3d
