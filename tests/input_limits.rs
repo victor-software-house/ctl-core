@@ -17,11 +17,11 @@ use serde::de::IgnoredAny;
 
 /// Mappings nested `depth` deep, one key per level.
 fn nested(depth: usize) -> String {
-    (0..depth)
+    let keys = (0..depth)
         .map(|level| format!("{}a:", "  ".repeat(level)))
         .collect::<Vec<_>>()
-        .join("\n")
-        + " 1\n"
+        .join("\n");
+    format!("{keys} 1\n")
 }
 
 fn depth(limit: usize) -> Limits {
