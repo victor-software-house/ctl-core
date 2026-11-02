@@ -259,7 +259,8 @@ hand-edit versions or CHANGELOG. Declarations live in [`.ctl/ver.yaml`](.ctl/ver
 packages with `--locked`. `.github/workflows/release.yml` calls verctl's
 reusable release workflow on every push to `main`: it publishes each version
 commit not yet fully released, then opens or updates the Version PR on
-`verctl/release/main` with auto-merge. Bump its pin together with the verctl
+`verctl/release/main`. Only the operator merges the Version PR, so no release
+happens on its own. Bump its pin together with the verctl
 pin in `mise.release.toml` and the `ver` task include in `mise.toml`.
 
 ## Checks

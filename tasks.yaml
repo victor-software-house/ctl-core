@@ -117,6 +117,17 @@ horizon:
       - 'Trigger: the standalone Bun-built binary misbehaves and upstream will not fix it.'
 
 archive:
+  - id: CTC-029
+    title: Only the operator merges the Version PR
+    scope: .github/workflows/release.yml, AGENTS.md
+    outcome: "No ctl-core release happens on its own: the release workflow never arms auto-merge on the Version PR."
+    notes:
+      - Operator decision 2026-11-02, no repository releases on its own.
+    completed: 2026-11-02T14:29:14
+    evidence:
+      - This pull request drops auto-merge from release.yml and states in AGENTS.md that only the operator merges the Version PR.
+    disposition: completed
+
   - id: CTC-021
     title: Read TOML config files through the declared-input loader
     scope: ctl-core input feature, the input-toml feature, and the declared-input spec
