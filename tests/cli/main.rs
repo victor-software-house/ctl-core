@@ -5,6 +5,7 @@
     reason = "an integration test crate has no public API to document"
 )]
 
+#[cfg(feature = "cli")]
 mod common;
 #[cfg(feature = "cli")]
 mod flags_cli;
