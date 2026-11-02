@@ -1,7 +1,6 @@
 #![allow(
     dead_code,
-    missing_docs,
-    reason = "each test crate that includes this fixture uses a different part of it"
+    reason = "each feature set of the test binary uses a different part of this fixture"
 )]
 
 use clap::{CommandFactory, FromArgMatches, Parser};

@@ -1,16 +1,9 @@
 //! Flatten mixins: shorts, longs, `--preview`, `-c` ownership.
-#![allow(
-    missing_docs,
-    reason = "an integration test crate has no public API to document"
-)]
-#![cfg(feature = "cli")]
-
-mod common;
-
 use clap::{CommandFactory, Parser};
-use common::{Toy, ToyCmd, parse};
 use ctl_core::flags::{FormatArgs, FormatLong, switch};
 use ctl_core::prelude::*;
+
+use crate::common::{Toy, ToyCmd, parse};
 
 #[test]
 fn flatten_mixins_do_not_replace_the_root_long_about() {

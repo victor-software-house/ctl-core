@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::fmt;
+use std::io::Write as _;
 use std::marker::PhantomData;
 use std::process::ExitCode;
 
@@ -247,7 +248,7 @@ where
 
         let raw_view = self.configured_view(raw_view::<C>(&raw));
         for warning in raw_view.env_warnings(crate::render::process_env) {
-            eprintln!("{}: warning: {warning}", self.bin);
+            let _ = writeln!(std::io::stderr().lock(), "{}: warning: {warning}", self.bin);
         }
         if words.len() == 1 && crate::parser::requires_input::<C>() {
             return crate::help::emit_bare_with_options::<C>(raw_view.render_options())

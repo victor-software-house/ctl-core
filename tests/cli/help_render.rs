@@ -1,15 +1,8 @@
 //! Help extraction through the public semantic document.
-#![allow(
-    missing_docs,
-    reason = "an integration test crate has no public API to document"
-)]
-#![cfg(feature = "help")]
-
-mod common;
-
 use clap::CommandFactory;
-use common::Toy;
 use ctl_core::{ColorMode, RenderOptions};
+
+use crate::common::Toy;
 
 fn help() -> String {
     ctl_core::help::document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80))
