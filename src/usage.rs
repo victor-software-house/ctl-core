@@ -8,6 +8,7 @@
 //!
 //! Lefthook calls the same task: `mise run q close-from-git`.
 
+use std::io::Write as _;
 use std::process::ExitCode;
 
 use ::usage::Spec;
@@ -53,8 +54,12 @@ pub fn mount_directives(task: &str) -> String {
 #[must_use]
 pub fn take<C: clap::CommandFactory>(default_bin: &str) -> Option<ExitCode> {
     let bin = spec_bin(std::env::args().skip(1), default_bin)?;
-    print!("{}", spec(C::command(), &bin));
-    Some(ExitCode::SUCCESS)
+    let written = write!(std::io::stdout().lock(), "{}", spec(C::command(), &bin));
+    Some(if written.is_ok() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    })
 }
 
 /// Parse `--usage-spec` / `--usage-spec=BIN` from argv (after the program

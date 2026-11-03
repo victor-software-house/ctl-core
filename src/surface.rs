@@ -461,7 +461,7 @@ mod tests {
         assert_eq!(surface.about, "Control toys");
         assert_eq!(
             surface.inherited_arguments.as_slice(),
-            &[] as &[SurfaceArgument]
+            <&[SurfaceArgument]>::default()
         );
         assert!(surface.usage_kdl.contains("status"));
         assert_eq!(

@@ -1,6 +1,7 @@
 //! Warn on duplicate / contradictory chassis flags. Last value still wins.
 
 use std::fmt;
+use std::io::Write as _;
 
 use crate::{formatdoc, writedoc};
 
@@ -109,7 +110,7 @@ where
     I: IntoIterator<Item = &'a FlagWarning>,
 {
     for warning in warnings {
-        eprintln!("{}", warning.line(bin));
+        let _ = writeln!(std::io::stderr().lock(), "{}", warning.line(bin));
     }
 }
 

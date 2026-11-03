@@ -100,11 +100,11 @@ fn quiet_suppresses_only_successful_pretty_output() {
         .unwrap();
 
     assert_eq!(quiet_pretty.stream(), Stream::None);
-    assert_eq!(quiet_pretty.bytes(), &[] as &[u8]);
+    assert_eq!(quiet_pretty.bytes(), b"");
     assert_eq!(quiet_error.stream(), Stream::Stderr);
-    assert_ne!(quiet_error.bytes(), &[] as &[u8]);
+    assert_ne!(quiet_error.bytes(), b"");
     assert_eq!(quiet_json.stream(), Stream::Stdout);
-    assert_ne!(quiet_json.bytes(), &[] as &[u8]);
+    assert_ne!(quiet_json.bytes(), b"");
 }
 
 #[test]
