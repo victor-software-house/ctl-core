@@ -10,7 +10,8 @@
 //! `head -1`, then starts itself with the switch variable set and its stdout
 //! on `head`'s stdin. With the switch set it is the writer: it prints 10,000
 //! rows and exits 0 when the console reports a closed pipe, 3 when every row
-//! went through, and 4 on any other error. Arguments are ignored.
+//! went through, and 4 on any other error. Arguments are ignored, so
+//! `cargo test <filter>` still runs this binary.
 
 #[cfg(unix)]
 mod unix {
@@ -130,6 +131,9 @@ mod unix {
     }
 }
 
+/// Relies on Rust's default of ignoring SIGPIPE, so a closed pipe reaches the
+/// writer as an I/O error; `-Zon-broken-pipe=kill` or a SIGPIPE reset would
+/// kill it by the signal instead, and the parent would report a failure.
 #[cfg(unix)]
 fn main() -> std::process::ExitCode {
     unix::run()
