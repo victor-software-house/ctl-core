@@ -12,8 +12,12 @@ use ctl_core::prelude::{
     indoc,
 };
 
-/// Every case: the name used in the baseline file names, and its document.
-pub(crate) const CASES: &[(&str, fn() -> Document)] = &[
+/// One case: the name used in its baseline file names, and the function that
+/// builds its document.
+pub(crate) type Case = (&'static str, fn() -> Document);
+
+/// Every case in the corpus.
+pub(crate) const CASES: &[Case] = &[
     ("verctl-prepare", verctl_prepare),
     ("verctl-release-urls", verctl_release_urls),
     ("verctl-status-fragments", verctl_status_fragments),
