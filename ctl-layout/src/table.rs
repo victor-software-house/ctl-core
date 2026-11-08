@@ -109,7 +109,7 @@ impl Table {
         R: IntoIterator<Item = C>,
         C: Into<Text>,
     {
-        rows.into_iter().fold(self, |table, cells| table.row(cells))
+        rows.into_iter().fold(self, Table::row)
     }
 
     fn push_row(mut self, mut cells: Vec<Text>) -> Self {
