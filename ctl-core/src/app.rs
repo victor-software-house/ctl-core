@@ -205,9 +205,8 @@ impl<C> App<C> {
         match written {
             Ok(()) => code,
             Err(error) if error.kind() == io::ErrorKind::BrokenPipe => match self.broken_pipe {
-                BrokenPipe::Ignore => code,
                 BrokenPipe::Fail if code == ExitCode::SUCCESS => ExitCode::FAILURE,
-                BrokenPipe::Fail => code,
+                BrokenPipe::Ignore | BrokenPipe::Fail => code,
             },
             Err(_) => ExitCode::FAILURE,
         }
