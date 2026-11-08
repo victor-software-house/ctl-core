@@ -1,16 +1,16 @@
 //! Parser defaults. `-h` / `--help` and `-V` / `--version` stay on.
 
-#[cfg(any(feature = "view", feature = "help"))]
+#[cfg(feature = "help")]
 use std::ffi::OsString;
 
 use clap::Command;
 
-#[cfg(any(feature = "view", feature = "help"))]
+#[cfg(feature = "help")]
 use crate::{ColorMode, OutputFormat};
 
 /// Output policy recovered with the authoritative Clap graph before a full
 /// parse succeeds.
-#[cfg(any(feature = "view", feature = "help"))]
+#[cfg(feature = "help")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ParsedOutput {
     pub(crate) format: OutputFormat,
@@ -21,7 +21,7 @@ pub(crate) struct ParsedOutput {
 ///
 /// Clap still owns option placement, attached short values, domain option
 /// values, global propagation, and `--` semantics.
-#[cfg(any(feature = "view", feature = "help"))]
+#[cfg(feature = "help")]
 pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> ParsedOutput {
     let command = C::command()
         .arg_required_else_help(false)
