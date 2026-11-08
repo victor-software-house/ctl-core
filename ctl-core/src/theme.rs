@@ -68,9 +68,10 @@ pub struct Theme {
     muted: Style,
     token: Style,
     id: Style,
-    success_notice: Style,
-    warning_notice: Style,
-    error_notice: Style,
+    /// A notice label's own style, or `None` to take its role's.
+    success_notice: Option<Style>,
+    warning_notice: Option<Style>,
+    error_notice: Option<Style>,
 }
 
 impl Theme {
@@ -89,9 +90,9 @@ impl Theme {
             muted: Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack))),
             token: bold(AnsiColor::Green),
             id: Style::new().bold(),
-            success_notice: bold(AnsiColor::Green),
-            warning_notice: bold(AnsiColor::Yellow),
-            error_notice: bold(AnsiColor::Red),
+            success_notice: None,
+            warning_notice: None,
+            error_notice: None,
         }
     }
 
@@ -129,13 +130,18 @@ impl Theme {
     }
 
     /// The style the label of a `level` notice (`success`, `warning`, or
-    /// `error`) is drawn in.
+    /// `error`) is drawn in: the style [`Theme::notice_style`] set, or else
+    /// the style of the role of the same name.
     #[must_use]
     pub const fn notice(self, level: NoticeLevel) -> Style {
-        match level {
-            NoticeLevel::Success => self.success_notice,
-            NoticeLevel::Warning => self.warning_notice,
-            NoticeLevel::Error => self.error_notice,
+        let (own, role) = match level {
+            NoticeLevel::Success => (self.success_notice, self.success),
+            NoticeLevel::Warning => (self.warning_notice, self.warning),
+            NoticeLevel::Error => (self.error_notice, self.error),
+        };
+        match own {
+            Some(style) => style,
+            None => role,
         }
     }
 
@@ -143,9 +149,9 @@ impl Theme {
     #[must_use]
     pub const fn notice_style(mut self, level: NoticeLevel, style: Style) -> Self {
         match level {
-            NoticeLevel::Success => self.success_notice = style,
-            NoticeLevel::Warning => self.warning_notice = style,
-            NoticeLevel::Error => self.error_notice = style,
+            NoticeLevel::Success => self.success_notice = Some(style),
+            NoticeLevel::Warning => self.warning_notice = Some(style),
+            NoticeLevel::Error => self.error_notice = Some(style),
         }
         self
     }
@@ -195,5 +201,19 @@ mod tests {
         let plain = Theme::new().notice_style(NoticeLevel::Success, Style::new());
         assert_eq!(plain.notice(NoticeLevel::Success), Style::new());
         assert_eq!(plain.role(Role::Success), Theme::new().role(Role::Success));
+    }
+
+    #[test]
+    fn a_notice_label_follows_its_role_until_given_its_own_style() {
+        let magenta = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Magenta)));
+        let follows = Theme::new().role_style(Role::Error, magenta);
+        assert_eq!(follows.notice(NoticeLevel::Error), magenta);
+
+        let underline = Style::new().effects(Effects::UNDERLINE);
+        let own = Theme::new()
+            .notice_style(NoticeLevel::Error, underline)
+            .role_style(Role::Error, magenta);
+        assert_eq!(own.notice(NoticeLevel::Error), underline);
+        assert_eq!(own.role(Role::Error), magenta);
     }
 }
