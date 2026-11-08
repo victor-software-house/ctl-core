@@ -123,8 +123,8 @@ consumer chose to treat a closed pipe as a failure.
 ### Requirement: A closed pipe never hides a failure
 
 When the reader closes the stream that carries a failed command's error or a
-parse error, `App` SHALL exit with that failure's own code under the default
-policy, and SHALL NOT exit with code 0 under any policy.
+parse error, `App` SHALL exit with that failure's own code under either
+policy.
 
 #### Scenario: A failed command whose error reader stops early
 
@@ -135,4 +135,4 @@ policy, and SHALL NOT exit with code 0 under any policy.
 
 - **WHEN** a parse error with a long message is written to a stderr piped to `head -1`
 - **THEN** the CLI exits with code 2 under the default policy
-- **AND** it exits with a non-zero code when the consumer sets the closed-pipe policy to fail
+- **AND** it exits with code 2 when the consumer sets the closed-pipe policy to fail

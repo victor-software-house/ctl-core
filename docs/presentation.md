@@ -142,7 +142,8 @@ One serializable model feeds all modes:
    exit code as the command set it and puts nothing on stderr. A command that
    succeeded exits 0; a failed command or a parse error keeps its code, so a
    closed pipe never turns a failure into success. `App::broken_pipe` with
-   `BrokenPipe::Fail` makes every closed pipe a failure.
+   `BrokenPipe::Fail` makes every closed pipe a failure, keeping a failure's
+   own code.
 
 ## Help law
 

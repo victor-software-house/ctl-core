@@ -410,6 +410,9 @@ wants the error sets `App::broken_pipe(BrokenPipe::Fail)`.
 A closed pipe never turns a failure into success. Under the default,
 `BrokenPipe::Ignore`, `App` exits with the code the command would have had
 with every byte read: a failed command keeps 1, and a parse error keeps 2.
+`BrokenPipe::Fail` turns only success into a failure and keeps a code that is
+already non-zero, so a closed pipe never hides a more specific code and a
+script that checks `$? -eq 2` behaves the same under both policies.
 Only a command that succeeded exits 0. Exiting 0 on every closed pipe was
 the first version; review found it hid a failed command whose error went to
 a reader that stopped early, which a script would then read as a pass.
