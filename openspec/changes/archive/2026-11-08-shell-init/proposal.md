@@ -64,4 +64,4 @@ archived.
 4. Docs: `README.md`, `AGENTS.md`, `docs/research/shell-init.md`, and the
    `completion-verb` change, which named `completion::view`.
 
-[research]: ../../../docs/research/shell-init.md
+[research]: ../../../../docs/research/shell-init.md

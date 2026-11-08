@@ -87,61 +87,6 @@ queue:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
 
-  - id: CTC-030
-    title: One completion verb for every ctl CLI
-    scope: ctl-core
-    outcome: >-
-      Every ctl CLI prints the same completion script for bash, zsh, and fish from
-      one ctl-core verb, and answers COMPLETE at TAB time.
-    blocked_by: []
-    acceptance:
-      - A CLI that flattens CompletionCommand and calls App::completion() needs no completion code of its own.
-      - The zsh script completes on the first TAB when Homebrew installs it in fpath.
-      - Tests render each shell's script for a toy CLI, and CI passes.
-    plan: openspec/changes/completion-verb/proposal.md
-
-  - id: CTC-031
-    title: Reviewed snapshots for rendered scripts and help
-    scope: ctl-core
-    outcome: >-
-      Every rendered shell script and help page ctl-core tests is a reviewed insta
-      snapshot that passes its own shell's check, and CI never writes a snapshot.
-    blocked_by: []
-    acceptance:
-      - The completion scripts and the verb help are insta file snapshots under tests/snapshots, with no expected text in string literals.
-      - Each rendered script passes bash -n and shellcheck, zsh -n, or fish -n in CI.
-      - CI runs with INSTA_UPDATE=no.
-    plan: openspec/changes/script-snapshots/proposal.md
-
-  - id: CTC-032
-    title: Narrow Clap features and share the verbatim predicate
-    scope: ctl-core
-    outcome: >-
-      ctl-core asks Clap only for the features its own code calls, prints every help
-      Clap stops for through its own renderer, and exports the predicate that decides
-      which characters are unsafe to print verbatim.
-    blocked_by: []
-    acceptance:
-      - cli turns on only Clap's std, derive, env, and string features, and help adds usage.
-      - A command that misses a required argument prints ctl-core's help to stderr with exit code 2.
-      - verbatim::is_unsafe holds the refused set, and Document::verbatim filters with it.
-      - The toy CLI's size per tier is measured on the commit CI verified.
-    plan: openspec/changes/narrow-clap-features/proposal.md
-
-  - id: CTC-033
-    title: One init verb that hooks a ctl CLI into the shell
-    scope: ctl-core
-    outcome: >-
-      A ctl CLI that flattens one ctl-core verb prints a bash, zsh, or fish script
-      that runs one of its commands once, before the first prompt, when an environment
-      variable is set and the binary is on PATH.
-    blocked_by: []
-    acceptance:
-      - A CLI that flattens InitCommand and declares a Hook needs no shell code of its own.
-      - Each script is a reviewed snapshot that passes its shell check, and shellcheck for bash, in CI.
-      - bash, zsh, and fish on a pseudo-terminal run the hook once, keep the first prompt status, and skip it without the variable or the binary, in CI.
-    plan: openspec/changes/shell-init/proposal.md
-
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
     scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"
@@ -257,6 +202,64 @@ horizon:
       - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
+  - id: CTC-033
+    title: One init verb that hooks a ctl CLI into the shell
+    scope: ctl-core
+    outcome: >-
+      A ctl CLI that flattens one ctl-core verb prints a bash, zsh, or fish script
+      that runs one of its commands once, before the first prompt, when an environment
+      variable is set and the binary is on PATH.
+    plan: openspec/changes/archive/2026-11-08-shell-init/proposal.md
+    completed: 2026-11-08T03:04:27
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/191 and https://github.com/victor-software-house/ctl-core/pull/194, merged in main d370c8e
+      - CI https://github.com/victor-software-house/ctl-core/actions/runs/42452511771 (merge queue) passed
+      - openspec/changes/archive/2026-11-08-shell-init
+    disposition: completed
+
+  - id: CTC-032
+    title: Narrow Clap features and share the verbatim predicate
+    scope: ctl-core
+    outcome: >-
+      ctl-core asks Clap only for the features its own code calls, prints every help
+      Clap stops for through its own renderer, and exports the predicate that decides
+      which characters are unsafe to print verbatim.
+    plan: openspec/changes/archive/2026-11-08-narrow-clap-features/proposal.md
+    completed: 2026-11-08T03:04:27
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/183, https://github.com/victor-software-house/ctl-core/pull/186 and https://github.com/victor-software-house/ctl-core/pull/188, merged in main b670378; https://github.com/victor-software-house/ctl-core/pull/194 in d370c8e
+      - CI https://github.com/victor-software-house/ctl-core/actions/runs/42448670375 (merge queue) passed
+      - openspec/changes/archive/2026-11-08-narrow-clap-features
+    disposition: completed
+
+  - id: CTC-031
+    title: Reviewed snapshots for rendered scripts and help
+    scope: ctl-core
+    outcome: >-
+      Every rendered shell script and help page ctl-core tests is a reviewed insta
+      snapshot that passes its own shell's check, and CI never writes a snapshot.
+    plan: openspec/changes/archive/2026-11-08-script-snapshots/proposal.md
+    completed: 2026-11-08T03:04:27
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/181, https://github.com/victor-software-house/ctl-core/pull/184 and https://github.com/victor-software-house/ctl-core/pull/187, merged in main b670378
+      - CI https://github.com/victor-software-house/ctl-core/actions/runs/42448670375 (merge queue) passed
+      - openspec/changes/archive/2026-11-08-script-snapshots
+    disposition: completed
+
+  - id: CTC-030
+    title: One completion verb for every ctl CLI
+    scope: ctl-core
+    outcome: >-
+      Every ctl CLI prints the same completion script for bash, zsh, and fish from
+      one ctl-core verb, and answers COMPLETE at TAB time.
+    plan: openspec/changes/archive/2026-11-08-completion-verb/proposal.md
+    completed: 2026-11-08T03:04:27
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/180 and https://github.com/victor-software-house/ctl-core/pull/188, merged in main b670378
+      - CI https://github.com/victor-software-house/ctl-core/actions/runs/42448670375 (merge queue) passed
+      - openspec/changes/archive/2026-11-08-completion-verb
+    disposition: completed
+
   - id: CTC-029
     title: Only the operator merges the Version PR
     scope: .github/workflows/release.yml, AGENTS.md

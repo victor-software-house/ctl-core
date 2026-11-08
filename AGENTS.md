@@ -132,7 +132,7 @@ Cargo unifies features and a consumer cannot turn off one ctl-core turned on.
 `error-context`, and `suggestions` are the consumer's choice; ctl-core renders
 every help Clap stops for and never calls `Error::print` or `Command::color`.
 Measure a new dependency or feature with `cargo bloat` on a release build
-before adding it (`openspec/changes/narrow-clap-features/design.md`).
+before adding it (`openspec/changes/archive/2026-11-08-narrow-clap-features/design.md`).
 
 The crate-root `//!` sections in `ctl-core/src/lib.rs` are the docs.rs landing page,
 and `document_features` there is authoritative for the feature graph. The

@@ -95,5 +95,5 @@ characters written as literals: both 286,080 bytes of file, `__text`
 The tier sizes of this change, measured on the commit CI verified, are in
 [tasks](tasks.md), task 5.
 
-[presentation]: ../../../docs/presentation.md
+[presentation]: ../../../../docs/presentation.md
 [uax9]: https://www.unicode.org/reports/tr9/tr9-50.html#Directional_Formatting_Characters

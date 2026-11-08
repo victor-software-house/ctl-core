@@ -102,4 +102,4 @@ function and a per-shell quoting API have no consumer and are left out.
 
 [bp-install]: https://github.com/rcaloras/bash-preexec/blob/d866eeefdb8dfce075cbd4e37dc73c4deb4b0bd2/bash-preexec.sh#L538-L561
 [pty-process]: https://github.com/doy/pty-process/tree/v0.5.4/src/blocking
-[research]: ../../../docs/research/shell-init.md
+[research]: ../../../../docs/research/shell-init.md
