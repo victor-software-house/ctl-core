@@ -1,0 +1,9 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+┌────────────────────────────────┬─────────────────────────────────────┐
+│ path                           ┆ title                               │
+╞════════════════════════════════╪═════════════════════════════════════╡
+│ crates/ctl-core/src/renders.rs ┆ Let a ledger declare row separation │
+│ crates/ctl-text/src/wrap.rs    ┆ ok                                  │
+└────────────────────────────────┴─────────────────────────────────────┘

@@ -1,0 +1,17 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+┌─────────┬────────┐
+│ id      ┆ url    │
+╞═════════╪════════╡
+│ QCTL-01 ┆ https: │
+│ 4       ┆ //exam │
+│         ┆ ple.te │
+│         ┆ st/aaa │
+│         ┆ aaaaaa │
+│         ┆ aaaaaa │
+│         ┆ aaaaaa │
+│         ┆ aaaaaa │
+│         ┆ aaaaaa │
+│         ┆ aaaaaa │
+└─────────┴────────┘

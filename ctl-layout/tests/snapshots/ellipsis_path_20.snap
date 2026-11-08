@@ -1,0 +1,13 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+┌──────────────┬───┐
+│ path         ┆ … │
+╞══════════════╪═══╡
+│ crates/ctl-c ┆ … │
+│ ore/src/rend ┆   │
+│ ers.rs       ┆   │
+│ crates/ctl-t ┆ … │
+│ ext/src/wrap ┆   │
+│ .rs          ┆   │
+└──────────────┴───┘

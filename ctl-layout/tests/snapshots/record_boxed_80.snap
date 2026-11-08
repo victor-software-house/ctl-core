@@ -1,0 +1,7 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+┌────────┬────────────┐
+│ ledger ┆ tasks.yaml │
+│ active ┆ QCTL-014   │
+└────────┴────────────┘

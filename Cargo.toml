@@ -1,5 +1,5 @@
 [workspace]
-members = ["ctl-core", "ctl-text"]
+members = ["ctl-core", "ctl-layout", "ctl-text"]
 resolver = "3"
 
 [workspace.package]
