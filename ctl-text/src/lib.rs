@@ -43,15 +43,20 @@
 //! Text from outside the program, such as a commit subject, can hold an
 //! escape sequence that moves the cursor. It can also hold a directional
 //! override that reorders the line. [`Span::new`] and [`Text`] remove every
-//! character that [`verbatim::is_unsafe`] refuses, so a widget built on them
-//! cannot pass one on.
+//! character that [`unsafe_chars::is_unsafe`] refuses, so a widget built on
+//! them cannot pass one on. A line break, such as a carriage return, becomes
+//! a space in a span, which is one line, and a newline in a text, so the words
+//! around it stay apart. [`unsafe_chars::strip_unsafe`] applies the same
+//! rule to a string that goes to a terminal as it is.
 //!
 //! # Widths
 //!
 //! [`text_width`] counts terminal cells per extended grapheme cluster, so a
 //! family emoji is 2 cells and `日本` is 4. The cluster boundaries and the
 //! widths come from two Unicode data sets, whose versions
-//! [`UNICODE_VERSION`] states.
+//! [`UNICODE_VERSIONS`] states. The width of a string is that sum, not the
+//! width one data set gives the whole string, so two letters that a font
+//! joins into one glyph still count 1 cell each.
 //!
 //! # Writing a widget
 //!
@@ -99,12 +104,13 @@ mod sanitize;
 mod span;
 mod style;
 mod text;
-pub mod verbatim;
+pub mod unsafe_chars;
 mod wrap;
 
 pub use anstyle::{self, Style};
 pub use cells::{
-    TAB_WIDTH, UNICODE_VERSION, UnicodeVersions, cluster_width, prefix_len, text_width,
+    TAB_WIDTH, UNICODE_VERSIONS, UnicodeVersion, UnicodeVersions, cluster_width, prefix_len,
+    text_width,
 };
 pub use line::Line;
 pub use protocol::{BoxChars, Context, Measurement, Renderable};

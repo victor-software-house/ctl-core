@@ -1,9 +1,12 @@
 //! The widget protocol: measurements, the context, style overlay, and a
 //! widget built on them.
 
+use std::num::NonZeroU16;
+
 use ctl_text::anstyle::{AnsiColor, Effects};
 use ctl_text::{
-    BoxChars, Context, Line, Measurement, Overflow, Renderable, Span, Style, Text, overlay,
+    BoxChars, Context, Line, Measurement, Overflow, Renderable, Span, Style, TAB_WIDTH, Text,
+    overlay,
 };
 
 fn lines(widget: &dyn Renderable, width: u16) -> Vec<String> {
@@ -18,6 +21,11 @@ fn lines(widget: &dyn Renderable, width: u16) -> Vec<String> {
 fn an_exact_measurement_has_equal_bounds() {
     let measurement = Measurement::exact(12);
     assert_eq!((measurement.minimum(), measurement.maximum()), (12, 12));
+}
+
+#[test]
+fn the_default_measurement_is_empty() {
+    assert_eq!(Measurement::default(), Measurement::exact(0));
 }
 
 #[test]
@@ -61,19 +69,21 @@ fn empty_text_measures_and_renders_nothing() {
 fn a_measurement_counts_tabs_at_the_context_tab_width() {
     let text = Text::plain("a\tb");
     assert_eq!(text.measure(&Context::new(30)).maximum(), 9);
-    let context = Context::new(30).with_tab_width(2);
+    let tab = NonZeroU16::new(2).expect("2 is not zero");
+    let context = Context::new(30).with_tab_width(tab);
     assert_eq!(text.measure(&context).maximum(), 3);
 }
 
 #[test]
 fn a_context_derives_a_child_context() {
+    let tab = NonZeroU16::new(4).expect("4 is not zero");
     let parent = Context::new(80)
-        .with_tab_width(4)
+        .with_tab_width(tab)
         .with_box_chars(BoxChars::Ascii);
     let child = parent.with_width(20);
     assert_eq!(
         (child.width(), child.tab_width(), child.box_chars()),
-        (20, 4, BoxChars::Ascii)
+        (20, tab, BoxChars::Ascii)
     );
     assert_eq!(parent.width(), 80);
 }
@@ -83,8 +93,9 @@ fn a_context_defaults_to_tab_stops_of_eight_and_unicode_boxes() {
     let context = Context::new(80);
     assert_eq!(
         (context.tab_width(), context.box_chars()),
-        (8, BoxChars::Unicode)
+        (TAB_WIDTH, BoxChars::Unicode)
     );
+    assert_eq!(TAB_WIDTH.get(), 8);
 }
 
 #[test]
@@ -93,11 +104,24 @@ fn a_container_holds_widgets_as_trait_objects() {
         Box::new(Text::plain("one two")),
         Box::new(Text::plain("日本語").overflow(Overflow::Fold)),
     ];
-    let rendered: Vec<Vec<String>> = widgets
-        .iter()
-        .map(|widget| lines(widget.as_ref(), 3))
-        .collect();
+    let rendered: Vec<Vec<String>> = widgets.iter().map(|widget| lines(widget, 3)).collect();
     assert_eq!(rendered, [vec!["one", "two"], vec!["日", "本", "語"]]);
+}
+
+fn measured_width(widget: impl Renderable) -> u16 {
+    widget.measure(&Context::new(30)).maximum()
+}
+
+#[test]
+fn a_reference_and_a_box_are_widgets_too() {
+    let text = Text::plain("one two");
+    assert_eq!(measured_width(&text), 7);
+    assert_eq!(measured_width(Box::new(text.clone())), 7);
+    let dynamic: Box<dyn Renderable> = Box::new(text.clone());
+    assert_eq!(measured_width(&dynamic), 7);
+    assert_eq!(measured_width(dynamic), 7);
+    let borrowed: &dyn Renderable = &text;
+    assert_eq!(measured_width(borrowed), 7);
 }
 
 #[test]

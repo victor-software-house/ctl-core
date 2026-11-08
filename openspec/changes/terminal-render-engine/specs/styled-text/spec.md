@@ -11,7 +11,8 @@ it wraps, folds and truncates a line.
 The engine SHALL remove from the text of every span the C0 and C1 control
 characters, including ESC, the twelve UAX #9 directional formatting
 characters, and U+2028 and U+2029, except newline and tab, which it handles as
-the next two requirements state.
+the next requirements state, and the other line breaks, which the requirement
+after them states.
 
 #### Scenario: An escape sequence in a title
 
@@ -34,6 +35,43 @@ as its own line.
 - **WHEN** a paragraph holds `first\nsecond` at width 80
 - **THEN** the output is the two lines `first` and `second`
 
+### Requirement: A line break other than a newline keeps the words apart
+
+The engine SHALL treat newline, carriage return, vertical tab, form feed, next
+line (U+0085), U+2028, and U+2029 as line breaks. A span SHALL replace each
+with a space, and a text SHALL replace each with a newline. A carriage return
+directly before a line feed SHALL be one break with it.
+
+#### Scenario: A separator in a span
+
+- **WHEN** a span holds `a\u{2028}b`
+- **THEN** its text is `a b`
+
+#### Scenario: A newline in a span
+
+- **WHEN** a span holds `first\nsecond`
+- **THEN** its text is `first second`
+
+#### Scenario: A break in a paragraph
+
+- **WHEN** a paragraph holds `first\rsecond` at width 80
+- **THEN** the output is the two lines `first` and `second`
+
+#### Scenario: A carriage return and a line feed
+
+- **WHEN** a paragraph holds `first\r\nsecond` at width 80
+- **THEN** the output is the two lines `first` and `second`, with no blank line between
+
+### Requirement: Empty text renders nothing
+
+The engine SHALL render a paragraph with no characters in it to no lines, as
+it renders a paragraph that was never given text.
+
+#### Scenario: An empty string
+
+- **WHEN** a paragraph holds the empty string at width 80
+- **THEN** the output has no lines
+
 ### Requirement: A tab expands to the next tab stop
 
 The engine SHALL replace each tab with spaces up to the next multiple of 8
@@ -44,6 +82,13 @@ width.
 
 - **WHEN** a paragraph holds `ab\tc`
 - **THEN** the output is `ab` followed by 6 spaces and `c`
+
+#### Scenario: A tab after a cluster that continues from an earlier piece
+
+- **WHEN** a paragraph holds `❤`, and then, pushed apart from it, U+FE0F, a
+  tab, and `x`
+- **THEN** `x` starts at cell 8, because the heart and the selector are one
+  2-cell cluster
 
 ### Requirement: Width is counted per grapheme cluster
 
@@ -61,6 +106,11 @@ East Asian ambiguous characters as 1 cell.
 - **WHEN** the engine measures `日本`
 - **THEN** its width is 4
 
+#### Scenario: Letters a font joins
+
+- **WHEN** the engine measures the Arabic letters lam and alef side by side
+- **THEN** its width is 2, the sum of two 1-cell clusters
+
 ### Requirement: The Unicode versions are stated
 
 The engine SHALL expose the Unicode version of its width data and of its
@@ -74,13 +124,20 @@ segmentation data.
 ### Requirement: A word is kept whole unless the caller allows a fold
 
 When wrapping with the keep-words policy, the engine SHALL break lines only at
-whitespace, and SHALL let a word wider than the width run past it.
+whitespace or at a zero width space, and SHALL let a word wider than the width
+run past it.
 
 #### Scenario: A long URL
 
 - **WHEN** a paragraph holds `see https://example.test/releases/tag/pkg@1.2.3` at width 30
 - **THEN** the URL appears whole on one line
 - **AND** that line is the only line wider than 30 cells
+
+#### Scenario: A zero width space
+
+- **WHEN** a paragraph holds `ab` and `cd` with a zero width space between
+  them, at width 2
+- **THEN** the output is the two lines `ab` and `cd`
 
 ### Requirement: A fold never splits a grapheme cluster
 
@@ -101,12 +158,19 @@ line whole.
 ### Requirement: Truncation ends in an ellipsis
 
 When truncating, the engine SHALL cut the text to one cell less than the
-width and append `…`, and SHALL leave text that fits unchanged.
+width and append `…`, and SHALL leave text that fits unchanged. A wide
+cluster that straddles the cut SHALL be replaced by a space, so the result is
+exactly the width.
 
 #### Scenario: Truncated title
 
 - **WHEN** `Let a ledger declare row separation` is truncated to width 12
 - **THEN** the result is `Let a ledge…`
+
+#### Scenario: A wide character at the cut
+
+- **WHEN** `日本語` is truncated to width 4
+- **THEN** the result is `日`, a space, and `…`, which is 4 cells
 
 ### Requirement: No line ends in a space
 

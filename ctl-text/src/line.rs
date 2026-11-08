@@ -3,11 +3,10 @@
 use std::fmt;
 
 use anstyle::Style;
-use unicode_segmentation::UnicodeSegmentation;
+use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete, UnicodeSegmentation};
 
 use crate::cells::{cluster_width, is_space};
 use crate::span::Span;
-use crate::wrap::{self, Overflow};
 
 /// One grapheme cluster with the style of its span.
 #[derive(Clone, Copy, Debug)]
@@ -38,6 +37,10 @@ impl Line {
 
     /// Adds `span` at the end of the line.
     ///
+    /// A span in the style of the line's last span joins it, so two lines
+    /// with the same text and styles are equal however their spans were
+    /// pushed.
+    ///
     /// When `span` starts with characters that continue the line's last
     /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
     /// sequence, they join the previous span and take its style, since a
@@ -48,8 +51,10 @@ impl Line {
         if span.text.is_empty() {
             return;
         }
-        self.spans.push(span);
-        self.keep_clusters_whole();
+        match self.spans.last_mut() {
+            Some(last) if last.style == span.style => last.text.push_str(&span.text),
+            Some(_) | None => self.push_new(span),
+        }
     }
 
     /// The spans, in order.
@@ -88,34 +93,6 @@ impl Line {
         }
     }
 
-    /// The line cut to at most `width` cells and ended with
-    /// [`ELLIPSIS`](crate::ELLIPSIS), or the line itself when it fits.
-    ///
-    /// The text is cut at a cluster boundary, so a wide cluster that does not
-    /// fit is dropped whole and the result can be one cell narrower than
-    /// `width`. The ellipsis takes the style of the text it replaces. A width
-    /// of 0 gives an empty line.
-    #[must_use]
-    pub fn truncate(&self, width: u16) -> Self {
-        wrap::truncate(self, width)
-    }
-
-    /// The line fitted to `width` cells by `overflow`: wrapped into lines for
-    /// [`Overflow::KeepWords`] and [`Overflow::Fold`], or cut into one line
-    /// for [`Overflow::Ellipsis`].
-    ///
-    /// No resulting line ends in a space: the spaces at the end of the line
-    /// and at each break are dropped. A width of 0 counts as 1 when wrapping.
-    #[must_use]
-    pub fn fit(&self, width: u16, overflow: Overflow) -> Vec<Self> {
-        let mut trimmed = self.clone();
-        trimmed.trim_end();
-        match overflow {
-            Overflow::KeepWords | Overflow::Fold => wrap::wrap(&trimmed, width, overflow),
-            Overflow::Ellipsis => vec![wrap::truncate(&trimmed, width)],
-        }
-    }
-
     /// Adds `text` in `style`, joining the last span when it has the same
     /// style. `text` must already be safe.
     pub(crate) fn append(&mut self, text: &str, style: Style) {
@@ -124,14 +101,17 @@ impl Line {
         }
         match self.spans.last_mut() {
             Some(last) if last.style == style => last.text.push_str(text),
-            Some(_) | None => {
-                self.spans.push(Span {
-                    text: text.to_owned(),
-                    style,
-                });
-                self.keep_clusters_whole();
-            }
+            Some(_) | None => self.push_new(Span {
+                text: text.to_owned(),
+                style,
+            }),
         }
+    }
+
+    /// Adds a non-empty `span` whose style differs from the last span's.
+    fn push_new(&mut self, span: Span) {
+        self.spans.push(span);
+        self.keep_clusters_whole();
     }
 
     /// Moves the start of the last span into the span before it when that
@@ -141,20 +121,11 @@ impl Line {
         let [.., before, last] = self.spans.as_mut_slice() else {
             return;
         };
-        let Some(tail) = before.text.graphemes(true).next_back() else {
-            return;
-        };
-        let tail_len = tail.len();
-        let joined = format!("{tail}{}", last.text);
-        let Some(first) = joined.graphemes(true).next() else {
-            return;
-        };
-        let moved = first.len().saturating_sub(tail_len);
+        let moved = continuation_len(&before.text, &last.text);
         if moved == 0 {
             return;
         }
-        let carried: String = last.text.drain(..moved).collect();
-        before.text.push_str(&carried);
+        before.text.extend(last.text.drain(..moved));
         if last.text.is_empty() {
             self.spans.pop();
         }
@@ -183,6 +154,40 @@ impl Line {
     }
 }
 
+/// The byte length of the start of `after` that continues the last grapheme
+/// cluster of `before`, or 0 when `after` starts a new cluster.
+///
+/// A cursor over `before` followed by `after` decides the boundary at their
+/// join, so no joined copy of the text is built.
+fn continuation_len(before: &str, after: &str) -> usize {
+    let junction = before.len();
+    let mut cursor = GraphemeCursor::new(junction, junction + after.len(), true);
+    loop {
+        match cursor.is_boundary(after, junction) {
+            Ok(true)
+            | Err(
+                GraphemeIncomplete::PrevChunk
+                | GraphemeIncomplete::NextChunk
+                | GraphemeIncomplete::InvalidOffset,
+            ) => return 0,
+            Ok(false) => break,
+            Err(GraphemeIncomplete::PreContext(end)) => cursor.provide_context(&before[..end], 0),
+        }
+    }
+    loop {
+        match cursor.next_boundary(after, junction) {
+            Ok(Some(end)) => return end.saturating_sub(junction),
+            Ok(None) => return after.len(),
+            Err(GraphemeIncomplete::PreContext(end)) => cursor.provide_context(&before[..end], 0),
+            Err(
+                GraphemeIncomplete::PrevChunk
+                | GraphemeIncomplete::NextChunk
+                | GraphemeIncomplete::InvalidOffset,
+            ) => return 0,
+        }
+    }
+}
+
 /// The byte length of the clusters at the end of `text` that are all spaces.
 fn trailing_space_len(text: &str) -> usize {
     text.graphemes(true)
@@ -200,12 +205,18 @@ impl From<Span> for Line {
     }
 }
 
+impl Extend<Span> for Line {
+    fn extend<I: IntoIterator<Item = Span>>(&mut self, spans: I) {
+        for span in spans {
+            self.push(span);
+        }
+    }
+}
+
 impl FromIterator<Span> for Line {
     fn from_iter<I: IntoIterator<Item = Span>>(spans: I) -> Self {
         let mut line = Self::new();
-        for span in spans {
-            line.push(span);
-        }
+        line.extend(spans);
         line
     }
 }

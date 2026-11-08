@@ -1,10 +1,13 @@
-//! Which characters are unsafe to print verbatim to a terminal.
+//! Which characters are unsafe to print to a terminal as they are, and the
+//! function that removes them.
 //!
 //! Text from outside the program, such as a title, a commit subject, or a
 //! file's contents, can carry characters that act on the terminal or on the
 //! layout instead of showing. A CLI that prints such text drops what
-//! [`is_unsafe`] refuses. `Document::verbatim` in ctl-core applies the
-//! same rule, and [`Span::new`](crate::Span::new) applies it to every span.
+//! [`is_unsafe`] refuses, with [`strip_unsafe`]. `Document::verbatim` in
+//! ctl-core applies the same rule. [`Span::new`](crate::Span::new) and
+//! [`Text`](crate::Text) apply it too, but turn a line break into a space or
+//! a newline instead of removing it, so the words around it stay apart.
 //!
 //! The set is three whole sets, each taken by its definition:
 //!
@@ -41,7 +44,7 @@ pub const PARAGRAPH_SEPARATOR: char = '\u{2029}';
 /// Whether `character` is in the set the [module](self) defines.
 ///
 /// Newline and tab are controls, so they are refused too. A caller that
-/// keeps them checks for them first.
+/// keeps them checks for them first, or passes [`Keep`] to [`strip_unsafe`].
 #[must_use]
 pub fn is_unsafe(character: char) -> bool {
     character.is_control()
@@ -63,11 +66,37 @@ pub fn is_unsafe(character: char) -> bool {
         )
 }
 
+/// The controls [`strip_unsafe`] leaves in place.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum Keep {
+    /// Nothing: every unsafe character goes, newline and tab included.
+    Nothing,
+    /// Newline and tab, the two controls that preformatted text needs.
+    NewlineAndTab,
+}
+
+/// `text` without the characters [`is_unsafe`] refuses, except those `keep`
+/// names.
+///
+/// A removed character leaves no space behind, so words on either side of a
+/// removed line separator join. [`Text`](crate::Text) turns a line break into
+/// a newline instead.
+#[must_use]
+pub fn strip_unsafe(text: &str, keep: Keep) -> String {
+    text.chars()
+        .filter(|character| match keep {
+            Keep::Nothing => !is_unsafe(*character),
+            Keep::NewlineAndTab => matches!(character, '\n' | '\t') || !is_unsafe(*character),
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 
-    use super::{LINE_SEPARATOR, PARAGRAPH_SEPARATOR, is_unsafe};
+    use super::{Keep, LINE_SEPARATOR, PARAGRAPH_SEPARATOR, is_unsafe, strip_unsafe};
 
     const BIDI: [char; 12] = [ALM, LRM, RLM, LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI];
 
@@ -134,6 +163,31 @@ mod tests {
             .filter(|character| is_unsafe(*character))
             .count();
         assert_eq!(refused, 65 + BIDI.len() + 2);
+    }
+
+    #[test]
+    fn strips_every_unsafe_character_and_keeps_the_rest() {
+        let text = "a\u{1b}[2J b\u{202e}c\u{2028}d\u{7f}\tx\ny";
+        assert_eq!(strip_unsafe(text, Keep::Nothing), "a[2J bcdxy");
+    }
+
+    #[test]
+    fn keeps_newline_and_tab_when_asked() {
+        let text = "a\u{1b}b\tc\nd\u{2029}e";
+        assert_eq!(strip_unsafe(text, Keep::NewlineAndTab), "ab\tc\nde");
+    }
+
+    #[test]
+    fn strips_the_whole_unsafe_set_and_nothing_else() {
+        let everything: String = (0..=u32::from(char::MAX))
+            .filter_map(char::from_u32)
+            .collect();
+        let stripped = strip_unsafe(&everything, Keep::Nothing);
+        assert_eq!(
+            everything.chars().count() - stripped.chars().count(),
+            65 + BIDI.len() + 2
+        );
+        assert!(stripped.chars().all(|character| !is_unsafe(character)));
     }
 
     #[test]

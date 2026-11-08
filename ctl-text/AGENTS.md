@@ -7,10 +7,10 @@ The repository's root [`AGENTS.md`](../AGENTS.md) holds the workspace rules, and
 ## What it owns
 
 - `Span`, `Line`, and `Text`, and `overlay` for combining two `anstyle::Style` values.
-- Cell widths per extended grapheme cluster: `text_width`, `cluster_width`, `prefix_len`, and `UNICODE_VERSION`.
+- Cell widths per extended grapheme cluster: `text_width`, `cluster_width`, `prefix_len`, and `UNICODE_VERSIONS`.
 - Wrapping and truncation: `Overflow`, `Line::fit`, and `Line::truncate`.
 - The `Renderable` protocol with `Context` and `Measurement`.
-- The `verbatim` module, the one rule for which characters never reach a terminal.
+- The `unsafe_chars` module, the one rule for which characters never reach a terminal, with `strip_unsafe` to apply it.
 
 It depends on `anstyle`, `unicode-width`, `unicode-segmentation`, and `unicode-bidi`, and on nothing else in this repository.
 
@@ -51,12 +51,14 @@ All tests live in `tests/it/`, one target built from `main.rs`:
 | `properties.rs` | `proptest` properties over random text and widths. |
 | `unicode_version.rs` | The pinned Unicode versions. |
 
-The unit tests of the character rule sit in `src/verbatim.rs`.
+The unit tests of the character rule sit in `src/unsafe_chars.rs`.
 The crate has no snapshot files.
 
 The properties generate text with wide, combining, emoji, and control characters, at widths from 1 to 200.
+They build each text from several pushes in several styles, so segments and neighbouring styles vary.
 They assert that lines fit and that no cluster is split.
 They also assert that every non-space character appears once and in order, and that no line ends in a space.
+The oracles list the break spaces and the line breaks, so they do not share the library's rule.
 
 Proptest records a failing case in a `.proptest-regressions` file beside the test source; commit that file with the fix.
 
@@ -83,4 +85,4 @@ These sections of [`design.md`](../openspec/changes/terminal-render-engine/desig
   Tests](../openspec/changes/terminal-render-engine/design.md#17-tests)
 
 Where the code and `design.md` differ, the code is current.
-For example, a cut that lands inside a wide cluster drops the cluster, and `Span` carries no link.
+For example, `Span` carries no link.

@@ -1,10 +1,29 @@
 //! Terminal cell widths, counted per extended grapheme cluster.
 
+use std::num::NonZeroU16;
+
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 /// The tab stop spacing used when a caller sets none: every 8 cells.
-pub const TAB_WIDTH: u16 = 8;
+///
+/// Built from the smallest non-zero value because a denied lint rules out
+/// `NonZeroU16::new(8).unwrap()`.
+pub const TAB_WIDTH: NonZeroU16 = NonZeroU16::MIN.saturating_add(7);
+
+/// A Unicode version, such as 17.0.0.
+///
+/// The dependencies state theirs as bare tuples of different integer types;
+/// this is the one shape the crate hands out.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UnicodeVersion {
+    /// The major version.
+    pub major: u64,
+    /// The minor version.
+    pub minor: u64,
+    /// The update version.
+    pub update: u64,
+}
 
 /// The Unicode versions of the two data sets that decide a width.
 ///
@@ -18,15 +37,28 @@ pub const TAB_WIDTH: u16 = 8;
 #[non_exhaustive]
 pub struct UnicodeVersions {
     /// The version of the width tables in `unicode-width`.
-    pub width: (u8, u8, u8),
+    pub width: UnicodeVersion,
     /// The version of the grapheme cluster tables in `unicode-segmentation`.
-    pub segmentation: (u64, u64, u64),
+    pub segmentation: UnicodeVersion,
+}
+
+/// A `u8` as a `u64`, because `From` cannot run in a constant.
+const fn widen(value: u8) -> u64 {
+    u64::from_le_bytes([value, 0, 0, 0, 0, 0, 0, 0])
 }
 
 /// The Unicode versions behind [`cluster_width`] and [`text_width`].
-pub const UNICODE_VERSION: UnicodeVersions = UnicodeVersions {
-    width: unicode_width::UNICODE_VERSION,
-    segmentation: unicode_segmentation::UNICODE_VERSION,
+pub const UNICODE_VERSIONS: UnicodeVersions = UnicodeVersions {
+    width: UnicodeVersion {
+        major: widen(unicode_width::UNICODE_VERSION.0),
+        minor: widen(unicode_width::UNICODE_VERSION.1),
+        update: widen(unicode_width::UNICODE_VERSION.2),
+    },
+    segmentation: UnicodeVersion {
+        major: unicode_segmentation::UNICODE_VERSION.0,
+        minor: unicode_segmentation::UNICODE_VERSION.1,
+        update: unicode_segmentation::UNICODE_VERSION.2,
+    },
 };
 
 /// The width in cells of `cluster`, taken as one extended grapheme cluster.
@@ -41,6 +73,11 @@ pub fn cluster_width(cluster: &str) -> u16 {
 
 /// The width in cells of `text`: the sum of [`cluster_width`] over its
 /// extended grapheme clusters. A sum over `u16::MAX` saturates.
+///
+/// The sum is per cluster, so it can exceed the width a terminal gives a run
+/// that shapes into one glyph across clusters. The Arabic lam followed by
+/// alef is two clusters of 1 cell each, so 2, though a font may draw one
+/// ligature.
 #[must_use]
 pub fn text_width(text: &str) -> u16 {
     text.graphemes(true)
@@ -66,9 +103,11 @@ pub fn prefix_len(text: &str, width: u16) -> usize {
 }
 
 /// Whether `character` may end a word: whitespace that is not a no-break
-/// space (U+00A0, U+2007, U+202F).
+/// space (U+00A0, U+2007, U+202F), or the zero width space (U+200B), which
+/// marks a place to break and shows nothing.
 pub(crate) fn is_break_space(character: char) -> bool {
-    character.is_whitespace() && !matches!(character, '\u{a0}' | '\u{2007}' | '\u{202f}')
+    (character.is_whitespace() && !matches!(character, '\u{a0}' | '\u{2007}' | '\u{202f}'))
+        || character == '\u{200b}'
 }
 
 /// Whether every character of `cluster` may end a word.
