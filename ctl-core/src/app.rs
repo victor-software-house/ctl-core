@@ -29,14 +29,21 @@ struct Fallback(Option<u16>);
 /// How [`App`] exits when the reader closes stdout or stderr before the
 /// output is written, as `head -1` does.
 ///
+/// A closed pipe never turns a failure into success. A command that failed,
+/// or a parse error, keeps its own exit code under either policy, so a
+/// script never reads a failed run as a passing one because its reader went
+/// away.
+///
 /// A ctl CLI ignores SIGPIPE, as every Rust program does by default, so a
 /// closed pipe reaches it as a failed write, not as a signal.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BrokenPipe {
-    /// Exit with code 0 and write nothing to stderr: the reader had what it
-    /// wanted, and a script under `set -o pipefail` keeps going.
+    /// Exit with the code the command would have exited with had every byte
+    /// been read, and write nothing to stderr. A command that succeeded
+    /// exits 0: the reader had what it wanted, and a script under
+    /// `set -o pipefail` keeps going.
     #[default]
-    Succeed,
+    Ignore,
     /// Exit with a failure code, for a consumer that treats a reader that
     /// stopped early as an error.
     Fail,
@@ -89,7 +96,7 @@ impl<C> App<C> {
             json_layout: None,
             json_layout_envs: None,
             theme: None,
-            broken_pipe: BrokenPipe::Succeed,
+            broken_pipe: BrokenPipe::Ignore,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -178,23 +185,24 @@ impl<C> App<C> {
     }
 
     /// Exit as `policy` says when the reader closes stdout or stderr before
-    /// the output is written. The default, [`BrokenPipe::Succeed`], exits 0
-    /// and writes nothing to stderr.
+    /// the output is written. The default, [`BrokenPipe::Ignore`], exits
+    /// with the command's own code and writes nothing to stderr.
     #[must_use]
     pub fn broken_pipe(mut self, policy: BrokenPipe) -> Self {
         self.broken_pipe = policy;
         self
     }
 
-    /// The exit code for `written`, the result of writing output: its own
-    /// code on success, the [`BrokenPipe`] policy's code when the reader
-    /// closed the stream, and a failure otherwise. Nothing is reported on
+    /// The exit code once output meant to end with `code` was written, with
+    /// `written` the result of the write: `code` when it went through, and a
+    /// failure when it did not, except that [`BrokenPipe::Ignore`] keeps
+    /// `code` when the reader closed the stream. Nothing is reported on
     /// stderr, which may be the stream that closed.
-    fn written(&self, written: io::Result<ExitCode>) -> ExitCode {
+    fn written(&self, written: io::Result<()>, code: ExitCode) -> ExitCode {
         match written {
-            Ok(code) => code,
+            Ok(()) => code,
             Err(error) if error.kind() == io::ErrorKind::BrokenPipe => match self.broken_pipe {
-                BrokenPipe::Succeed => ExitCode::SUCCESS,
+                BrokenPipe::Ignore => code,
                 BrokenPipe::Fail => ExitCode::FAILURE,
             },
             Err(_) => ExitCode::FAILURE,
@@ -309,8 +317,10 @@ where
             let mut command = C::command();
             command.set_bin_name(&spec_bin);
             let spec = (self.render_usage)(command, &spec_bin);
-            return self
-                .written(crate::view::write_stdout(spec.as_bytes()).map(|()| ExitCode::SUCCESS));
+            return self.written(
+                crate::view::write_stdout(spec.as_bytes()),
+                ExitCode::SUCCESS,
+            );
         }
 
         for hook in &self.before_parse {
@@ -325,14 +335,14 @@ where
         }
         if words.len() == 1 && crate::parser::requires_input::<C>() {
             return self.written(
-                crate::help::emit_bare_with_options::<C>(raw_view.render_options())
-                    .map(|()| ExitCode::from(2)),
+                crate::help::emit_bare_with_options::<C>(raw_view.render_options()),
+                ExitCode::from(2),
             );
         }
         match crate::help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
-            Err(error) => return self.written(Err(error)),
+            Err(error) => return self.written(Err(error), ExitCode::SUCCESS),
         }
 
         let command = crate::parser::apply_defaults(C::command());
@@ -356,8 +366,14 @@ where
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
-            Ok(value) => self.written(view.show(&value)),
-            Err(error) => self.written(view.emit_err(&self.bin, &format!("{error:#}"))),
+            Ok(value) => self.written(
+                view.show(&value).map(|_| ()),
+                ExitCode::from(value.exit_code()),
+            ),
+            Err(error) => self.written(
+                view.emit_err(&self.bin, &format!("{error:#}")).map(|_| ()),
+                ExitCode::FAILURE,
+            ),
         }
     }
 
@@ -372,7 +388,8 @@ where
         if !is_clap_display(kind) {
             return self.written(
                 view.emit_err(&self.bin, error.to_string().trim())
-                    .map(|_| code),
+                    .map(|_| ()),
+                code,
             );
         }
         let options = view.render_options();
@@ -383,7 +400,7 @@ where
         } else {
             crate::help::emit_selected_to_stderr::<C>(args, options)
         };
-        self.written(written.map(|()| code))
+        self.written(written, code)
     }
 }
 
@@ -676,17 +693,31 @@ mod tests {
 
     #[test]
     fn a_closed_pipe_exits_as_the_policy_says() {
+        use std::process::ExitCode;
+
         let closed = || Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe));
         let other = || Err(std::io::Error::other("disk full"));
-        let quiet = App::<Cli>::new("toy");
-        assert_eq!(quiet.written(closed()), std::process::ExitCode::SUCCESS);
-        assert_eq!(quiet.written(other()), std::process::ExitCode::FAILURE);
+        let ignore = App::<Cli>::new("toy");
         assert_eq!(
-            quiet.written(Ok(std::process::ExitCode::from(2))),
-            std::process::ExitCode::from(2)
+            ignore.written(closed(), ExitCode::SUCCESS),
+            ExitCode::SUCCESS
         );
-        let strict = App::<Cli>::new("toy").broken_pipe(BrokenPipe::Fail);
-        assert_eq!(strict.written(closed()), std::process::ExitCode::FAILURE);
+        assert_eq!(
+            ignore.written(closed(), ExitCode::from(2)),
+            ExitCode::from(2)
+        );
+        assert_eq!(
+            ignore.written(closed(), ExitCode::FAILURE),
+            ExitCode::FAILURE
+        );
+        assert_eq!(
+            ignore.written(other(), ExitCode::SUCCESS),
+            ExitCode::FAILURE
+        );
+        assert_eq!(ignore.written(Ok(()), ExitCode::from(2)), ExitCode::from(2));
+        let fail = App::<Cli>::new("toy").broken_pipe(BrokenPipe::Fail);
+        assert_eq!(fail.written(closed(), ExitCode::SUCCESS), ExitCode::FAILURE);
+        assert_eq!(fail.written(closed(), ExitCode::from(2)), ExitCode::FAILURE);
     }
 
     #[test]
