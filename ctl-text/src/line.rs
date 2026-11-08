@@ -41,8 +41,12 @@ impl Line {
     /// When `span` starts with characters that continue the line's last
     /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
     /// sequence, they join the previous span, so no cluster crosses a span
-    /// boundary and every width counts the cluster once.
+    /// boundary and every width counts the cluster once. An empty span adds
+    /// nothing, so none can sit between a cluster's parts.
     pub fn push(&mut self, span: Span) {
+        if span.text.is_empty() {
+            return;
+        }
         self.spans.push(span);
         self.keep_clusters_whole();
     }
@@ -189,7 +193,9 @@ fn trailing_space_len(text: &str) -> usize {
 
 impl From<Span> for Line {
     fn from(span: Span) -> Self {
-        Self { spans: vec![span] }
+        let mut line = Self::new();
+        line.push(span);
+        line
     }
 }
 

@@ -168,3 +168,15 @@ fn a_cluster_split_across_spans_counts_once() {
     assert_eq!(accent.spans()[0].text(), "e\u{301}");
     assert_eq!(accent.spans()[1].text(), "x");
 }
+
+#[test]
+fn an_empty_span_between_a_base_and_its_mark_adds_nothing() {
+    let mut line = Line::new();
+    line.push(Span::new("e", Style::new()));
+    line.push(Span::new("", Style::new().effects(Effects::BOLD)));
+    line.push(Span::new("\u{301}", Style::new().effects(Effects::ITALIC)));
+    assert_eq!(line.width(), 1);
+    assert_eq!(line.spans().len(), 1);
+    assert_eq!(line.spans()[0].text(), "e\u{301}");
+    assert_eq!(Line::from(Span::new("", Style::new())).spans().len(), 0);
+}
