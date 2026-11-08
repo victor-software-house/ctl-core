@@ -22,10 +22,8 @@ pub fn resolve_color(color: ColorMode, no_color: bool) -> ColorMode {
 
 /// Last-wins boolean after clap `overrides_with`. `on` is the yes flag.
 ///
-/// Clap clears the flag that lost, so `on` already holds the answer and `_off`
-/// is never read. A call site passes both flags anyway, so removing one of
-/// them stops compiling instead of leaving a stale pair.
+/// Clap clears the flag that lost, so `on` already holds the answer.
 #[must_use]
-pub fn switch(on: bool, _off: bool) -> bool {
+pub fn switch(on: bool) -> bool {
     on
 }

@@ -80,15 +80,15 @@ fn dry_run_preview() {
 #[test]
 fn pr_pair_last_wins() {
     match parse(&["prepare", "--pr"]).command {
-        Command::Prepare(args) => assert!(switch(args.pr, args.no_pr)),
+        Command::Prepare(args) => assert!(switch(args.pr)),
     }
     match parse(&["prepare", "--pr", "--no-pr"]).command {
         Command::Prepare(args) => {
-            assert!(!switch(args.pr, args.no_pr));
+            assert!(!switch(args.pr));
             assert!(args.no_pr);
         }
     }
     match parse(&["prepare", "--no-pr", "--pr"]).command {
-        Command::Prepare(args) => assert!(switch(args.pr, args.no_pr)),
+        Command::Prepare(args) => assert!(switch(args.pr)),
     }
 }
