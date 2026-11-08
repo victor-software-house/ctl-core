@@ -93,7 +93,7 @@ impl Text {
     }
 
     /// The lines of the text with the spaces at the end of each removed.
-    fn trimmed_lines(&self, context: &Context) -> Vec<Line> {
+    fn trimmed_lines(&self, context: Context) -> Vec<Line> {
         let mut lines = self.lines(context.tab_width());
         for line in &mut lines {
             line.trim_end();
@@ -104,7 +104,7 @@ impl Text {
 
 impl Renderable for Text {
     fn measure(&self, context: &Context) -> Measurement {
-        let lines = self.trimmed_lines(context);
+        let lines = self.trimmed_lines(*context);
         let maximum = lines.iter().map(Line::width).max().unwrap_or(0);
         let minimum = lines
             .iter()
@@ -115,7 +115,7 @@ impl Renderable for Text {
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        self.trimmed_lines(context)
+        self.trimmed_lines(*context)
             .iter()
             .flat_map(|line| line.fit(context.width(), self.overflow))
             .collect()

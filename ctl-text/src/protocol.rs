@@ -130,9 +130,17 @@ impl Context {
 /// The crate-root docs show a complete widget.
 pub trait Renderable {
     /// The narrowest and widest this content can usefully be.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "Context gains fields in later phases; a reference keeps the trait unchanged"
+    )]
     fn measure(&self, context: &Context) -> Measurement;
 
     /// Lines no wider than `context.width()`, except a word or cluster that
     /// the content's overflow policy keeps whole.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "Context gains fields in later phases; a reference keeps the trait unchanged"
+    )]
     fn render(&self, context: &Context) -> Vec<Line>;
 }
