@@ -10,7 +10,7 @@ Breaking changes:
 - `Document::render` no longer asks a terminal for its width or colour. It lays out to the explicit width, then the fallback width, then the natural width, and writes colour only under `ColorMode::Always`. `View`, help, and errors still decide colour and width for the stream they write.
 - A tab in a verbatim block expands to the next 8-cell stop.
 - Table layout changes in a few places. An empty column is 2 cells wide, where it was 3. Columns shrink widest first, and a framed table folds only a word wider than its column. Two words never run past the width. Colour no longer changes the layout, and every line that writes a style ends with a reset. A wrapped column still narrows to its widest line, as before. Snapshot tests of command output may change.
-- When the reader closes stdout or stderr early, as `head -1` does, `App` exits with code 0 and writes nothing to stderr, where it exited 1. `App::broken_pipe(BrokenPipe::Fail)` keeps the failure.
+- When the reader closes stdout or stderr early, as `head -1` does, `App` exits with the code the command would have had and writes nothing to stderr, where it exited 1. A command that succeeded exits 0; a failed command or a parse error keeps its own code, so a closed pipe never turns a failure into success. `App::broken_pipe(BrokenPipe::Fail)` makes every closed pipe a failure.
 
 Added:
 

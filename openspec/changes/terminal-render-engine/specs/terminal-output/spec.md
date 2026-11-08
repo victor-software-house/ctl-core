@@ -105,9 +105,9 @@ width.
 
 ### Requirement: A closed pipe ends the program quietly
 
-When the reader closes stdout before the output is written, `App` SHALL exit
-with code 0 and write nothing to stderr, unless the consumer chose to treat a
-closed pipe as a failure.
+When the reader closes stdout before the output of a successful command is
+written, `App` SHALL exit with code 0 and write nothing to stderr, unless the
+consumer chose to treat a closed pipe as a failure.
 
 #### Scenario: Piped to head
 
@@ -119,3 +119,20 @@ closed pipe as a failure.
 
 - **WHEN** the consumer sets the closed-pipe policy to fail and the reader closes stdout
 - **THEN** the CLI exits with a non-zero code
+
+### Requirement: A closed pipe never hides a failure
+
+When the reader closes the stream that carries a failed command's error or a
+parse error, `App` SHALL exit with that failure's own code under the default
+policy, and SHALL NOT exit with code 0 under any policy.
+
+#### Scenario: A failed command whose error reader stops early
+
+- **WHEN** a command fails with a long error and its stderr is piped to `head -1`
+- **THEN** the CLI exits with code 1
+
+#### Scenario: A parse error whose reader stops early
+
+- **WHEN** a parse error with a long message is written to a stderr piped to `head -1`
+- **THEN** the CLI exits with code 2 under the default policy
+- **AND** it exits with a non-zero code when the consumer sets the closed-pipe policy to fail

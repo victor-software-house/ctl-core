@@ -23,8 +23,8 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   holds settings in the environment, such as an action, sets them and runs
   the bare verb; it never rebuilds argv in a shell.
 - `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and
-  exit codes, including exit 0 when the reader closes stdout early
-  (`App::broken_pipe`)
+  exit codes, including the command's own exit code when the reader closes
+  stdout early, never success for a failure (`App::broken_pipe`)
 - `Document` and the fluent semantic primitives used by help and command output
 - Pretty / JSON / colorless `View` over one serializable domain model
 - The only terminal theme, width detection, wrapping, and table configuration

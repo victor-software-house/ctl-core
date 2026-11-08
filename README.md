@@ -138,9 +138,10 @@ fish; the script's first line names that line.
   pretty/colorless output.
 - JSON always goes to stdout and never contains ANSI.
 - Human failures go to stderr. Quiet suppresses successful human output only.
-- A reader that closes stdout early, such as `head -1`, ends the program with
-  exit code 0 and nothing on stderr. `App::broken_pipe(BrokenPipe::Fail)`
-  makes it a failure.
+- A reader that closes stdout early, such as `head -1`, leaves the exit code
+  as the command set it and puts nothing on stderr: success stays 0, and a
+  failure keeps its code. `App::broken_pipe(BrokenPipe::Fail)` makes every
+  closed pipe a failure.
 - Help comes from the Clap graph, uses the same document renderer, and wraps
   long Usage lines within the detected width.
 - `App` runs Usage, pre-parse hooks, help, Clap, execution, and
