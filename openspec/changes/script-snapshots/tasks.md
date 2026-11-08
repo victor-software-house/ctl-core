@@ -21,6 +21,12 @@
     ([run 42433739166][run-cold]): mise reads a task tool's conda
     dependencies from no lockfile (design decision 4). The tools moved to
     lazy `[tools]` entries; the `MISE_ENV=dev` dry run prints `[]`.
+  - 2026-11-08 UTC: CI then failed to start zsh and fish from the tests
+    ([run 42434896632][run-wrapped]): mise takes its shims off the `PATH`
+    of cargo, a command wrapper. `test` now depends on
+    `install:test-tools`. On a cold Linux x64 sandbox with `MISE_ENV=ci`,
+    a task after that dependency found all three installed tools with the
+    shims off `PATH`.
 - [ ] 4. Add `tests/support/shells.rs`, and move the completion script and
   help tests to snapshots that pass their shell's check.
   Proof: the completion tests pass with `INSTA_UPDATE=no`, locally and in
@@ -38,3 +44,4 @@
   Proof: CI green on the last push.
 
 [run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166
+[run-wrapped]: https://github.com/victor-software-house/ctl-core/actions/runs/42434896632

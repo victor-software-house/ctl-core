@@ -286,10 +286,12 @@ own temporary directory.
 A rendered shell script also passes its shell's check through
 `tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
 `fish -n`. zsh, fish, and shellcheck are `lazy` tools in `mise.toml`:
-`mise install` skips them, and `mise run test` installs each the first time a
-test starts it. They are not task tools, because mise 2026.10.25 reads a task
-tool's conda dependencies from no lockfile, and a cold install fails. A
-missing tool fails the test. A script ctl-core writes passes shellcheck with no
+`mise install` skips them, and `test` depends on `install:test-tools`, which
+installs them, so their install directories are on the tests' `PATH`. Their
+bootstrap shims never reach a test: cargo runs through mr-boxington's command
+wrapper, and mise takes its shims off a wrapped command's `PATH`. They are not
+task tools, because mise 2026.10.25 reads a task tool's conda dependencies
+from no lockfile, and a cold install fails. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
 exclusions; only a third-party template's lines may be excluded, by code,
 with the reason beside the list.
 

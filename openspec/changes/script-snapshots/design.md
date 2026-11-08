@@ -80,8 +80,17 @@ below.
    `lazy = true` ([lazy tools][mise-lazy]).
    `mise install`, and with it mise-action's install step, skips them, so the
    lint and release jobs never fetch them.
-   `mise run test` puts their bootstrap shims on `PATH`, and the first test
-   that starts one installs it from `mise.lock`.
+   `test` depends on `install:test-tools`, which runs
+   `mise install conda:zsh conda:fish shellcheck` from `mise.lock`.
+   mise builds a task's toolset when the task starts, after its
+   dependencies ([task_executor.rs L2716-2737][mise-task-context]), so the
+   install directories are on the tests' `PATH`.
+   - Alternative: let a test's first start install the tool through its
+     bootstrap shim.
+     cargo runs through mr-boxington's command wrapper, and mise takes its
+     shims off a wrapped command's `PATH`
+     ([exec.rs L387-391][mise-wrapper-path]), so no test finds the shim
+     ([run 42434896632][run-wrapped]).
    Conda-forge builds cover both locked platforms, linux-x64 and
    macos-arm64; fish's GitHub release has no macOS archive.
    bash stays the platform's own shell.
@@ -144,6 +153,9 @@ below.
 [mise-locked-version]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L5506-L5527
 [mise-source-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L2648-L2650
 [mise-task-arg]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/mod.rs#L168
+[mise-task-context]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/task_executor.rs#L2716-L2737
+[mise-wrapper-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/cli/exec.rs#L387-L391
 [run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166
+[run-wrapped]: https://github.com/victor-software-house/ctl-core/actions/runs/42434896632
 [snapbox]: https://github.com/assert-rs/snapbox/tree/snapbox-v1.2.2
 [snapbox-action]: https://github.com/assert-rs/snapbox/blob/snapbox-v1.2.2/crates/snapbox/src/assert/action.rs#L1-L33
