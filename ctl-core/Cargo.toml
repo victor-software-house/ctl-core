@@ -141,3 +141,12 @@ pty-process.workspace = true
 [[example]]
 name = "gallery"
 required-features = ["view"]
+
+# A reader that closes stdout early. It has no libtest harness, because the
+# harness prints its own banner to stdout, and a reader that quits after the
+# first line would break that write before the code under test runs.
+[[test]]
+name = "closed_pipe"
+path = "tests/closed_pipe.rs"
+harness = false
+required-features = ["app"]

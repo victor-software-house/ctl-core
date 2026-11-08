@@ -130,8 +130,6 @@ pub mod shell_init;
 #[cfg(feature = "surface-model")]
 pub mod surface;
 #[cfg(feature = "render")]
-pub mod table;
-#[cfg(feature = "render")]
 mod theme;
 #[cfg(feature = "usage")]
 pub mod usage;
@@ -150,7 +148,7 @@ pub mod view;
 
 #[cfg(feature = "app")]
 #[doc(hidden)]
-pub use app::App;
+pub use app::{App, BrokenPipe};
 #[doc(hidden)]
 pub use color::ColorMode;
 #[cfg(feature = "document")]
@@ -184,9 +182,6 @@ pub use render::{
 #[cfg(feature = "surface-model")]
 #[doc(hidden)]
 pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, SurfaceScope};
-#[cfg(feature = "render")]
-#[doc(hidden)]
-pub use table::{grid, kv};
 #[cfg(feature = "render")]
 pub use theme::Theme;
 #[cfg(feature = "usage")]

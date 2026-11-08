@@ -18,7 +18,7 @@ pub use clap::{Args, Parser, Subcommand};
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
 #[cfg(feature = "app")]
-pub use crate::app::App;
+pub use crate::app::{App, BrokenPipe};
 pub use crate::color::ColorMode;
 #[cfg(feature = "document")]
 pub use crate::document::{
@@ -43,8 +43,6 @@ pub use crate::render::{
 };
 #[cfg(feature = "surface-model")]
 pub use crate::surface::Surface;
-#[cfg(feature = "render")]
-pub use crate::table::{grid, kv};
 #[cfg(feature = "render")]
 pub use crate::theme::Theme;
 #[cfg(feature = "usage")]
