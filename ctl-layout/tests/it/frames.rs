@@ -180,7 +180,7 @@ fn a_boxed_record_draws_a_full_box() {
 #[test]
 fn an_empty_boxed_record_draws_no_box() {
     let record = Record::new().style(RecordStyle::Boxed);
-    assert!(lines(&record, 80).is_empty());
+    assert_eq!(lines(&record, 80), Vec::<String>::new());
     assert_eq!(record.measure(&Context::new(80)), Measurement::exact(0));
 }
 

@@ -344,7 +344,7 @@ const BUFFER_ENVS: &[&str] = &["CTL_CORE_COLUMN_BUFFER"];
 
 const COLUMNS_100: Variables = &[("COLUMNS", "100")];
 
-fn source_cases() -> Vec<WidthCase> {
+fn columns_cases() -> Vec<WidthCase> {
     let defaults = DetectOptions::new();
     vec![
         width_case(
@@ -398,6 +398,12 @@ fn source_cases() -> Vec<WidthCase> {
             defaults,
             Some(15),
         ),
+    ]
+}
+
+fn source_cases() -> Vec<WidthCase> {
+    let defaults = DetectOptions::new();
+    vec![
         width_case(
             "the window beats COLUMNS",
             window(120),
@@ -596,10 +602,15 @@ fn limit_cases() -> Vec<WidthCase> {
 }
 
 fn width_cases() -> Vec<WidthCase> {
-    [source_cases(), buffer_cases(), limit_cases()]
-        .into_iter()
-        .flatten()
-        .collect()
+    [
+        columns_cases(),
+        source_cases(),
+        buffer_cases(),
+        limit_cases(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 #[test]
