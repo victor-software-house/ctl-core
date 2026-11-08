@@ -19,6 +19,11 @@ while IFS=$'\t' read -r tier features budget; do
     --no-default-features --features "${features}" --message-format json-render-diagnostics |
     jq -r 'select(.reason == "compiler-artifact" and .target.name == "size") | .executable')"
   text="$(size -A "${binary}" | awk '$1 == ".text" { print $2 }')"
+  if [[ ! "${text}" =~ ^[0-9]+$ ]]; then
+    echo "check:size: ${tier}: size -A found no .text size in ${binary}" >&2
+    status=1
+    continue
+  fi
   limit=$((budget + budget * tolerance / 100))
   echo "check:size: ${tier} (${features}): .text ${text} bytes, budget ${budget}, limit ${limit}"
   if ((text > limit)); then
