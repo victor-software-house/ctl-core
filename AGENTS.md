@@ -47,10 +47,11 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a
   flattenable `CompletionCommand`, the registration script for bash, zsh, and
   fish, and `App::completion`, which answers `COMPLETE=<shell>` before
-  parsing. `Shell` lives in its own `shell` feature, which later shell verbs
-  share. `clap_complete` is pinned exactly because its dynamic engine is
-  unstable; a bump is a reviewed change that reruns the script tests. The zsh
-  script carries three lines so it completes on the first TAB from `fpath`
+  parsing; the feature enables `app` for it. `Shell` lives in its own
+  `shell` feature, which later shell verbs share. `clap_complete` is pinned
+  exactly because its dynamic engine is unstable; a bump is a reviewed change
+  that reruns the script tests. The zsh script carries three lines so it
+  completes on the first TAB from `fpath`
   ([research](docs/research/shell-completion.md), section 6); drop them when
   a pinned `clap_complete` writes its own.
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
