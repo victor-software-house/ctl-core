@@ -369,6 +369,24 @@ pseudo-terminal through `pty-process` (`ctl-core/tests/support/terminal.rs`),
 types each line only after the prompt appears, and reads what a fake binary
 logged. A pipe is not enough: fish draws no prompt when it reads one.
 
+## Parity corpus
+
+`ctl-core/tests/parity/` renders a fixed corpus of the documents that verctl,
+qctl, forkctl, and rawr produce.
+`corpus.rs` builds each case with the public API, as a consumer does.
+`main.rs` renders every case through `Document::render` at widths 20, 40, 80,
+and 120, with `ColorMode::Never` and `ColorMode::Always`, and compares the
+output byte for byte with
+`ctl-core/tests/parity/baseline/<case>-w<width>-<plain|color>.txt`.
+A baseline writes each ESC byte as the six characters `\u{1b}`.
+A missing or different baseline fails the test with a line diff.
+`PARITY_UPDATE=1 cargo test --locked -p ctl-core --test parity` writes the
+missing and changed files.
+The baselines are plain files, not insta snapshots, because the 0.6.x files
+stay frozen once committed: the render-engine change adds the new engine's
+outputs beside them and lists each difference in its pull request.
+Add a case to `CASES` with its baselines in the same commit.
+
 ## Release
 
 Human writes `.changeset/*.md` on the same PR that ships the behaviour. Never
