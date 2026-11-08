@@ -61,7 +61,7 @@ They assert that lines fit and that no cluster is split.
 They also assert that every non-space character appears once and in order, and that no line ends in a space.
 The oracles list the break spaces and the line breaks, so they do not share the library's rule.
 
-Proptest records a failing case in a `.proptest-regressions` file beside the test source; commit that file with the fix.
+Proptest records a failing case in `tests/proptest-regressions/properties.txt`; commit that file with the fix.
 
 `unicode_version.rs` fails when a dependency upgrade moves the Unicode version of the width or cluster tables.
 Re-read the width and cluster tests, then update the pin in that file.

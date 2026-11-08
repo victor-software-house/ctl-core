@@ -111,9 +111,13 @@ fn is_space_cluster(cluster: &str) -> bool {
     cluster.chars().all(|c| BREAK_SPACES.contains(&c))
 }
 
+/// The characters that must survive wrapping. A newline ends a line and is
+/// never inside one, and a tab becomes spaces, so neither counts.
 fn non_space_characters(text: &str) -> String {
     text.chars()
-        .filter(|c| !BREAK_SPACES.contains(c) && !NO_BREAK_SPACES.contains(c))
+        .filter(|c| {
+            !BREAK_SPACES.contains(c) && !NO_BREAK_SPACES.contains(c) && !matches!(c, '\n' | '\t')
+        })
         .collect()
 }
 
@@ -318,10 +322,12 @@ proptest! {
     #[test]
     fn truncation_of_a_wide_line_fills_the_width_exactly(
         parts in parts_without_tabs(),
-        width in any_width(),
+        cut in any::<prop::sample::Index>(),
     ) {
         let line = joined_line(&parts);
-        prop_assume!(line.width() > width);
+        prop_assume!(line.width() > 1);
+        let below = cut.index(usize::from(line.width() - 1));
+        let width = u16::try_from(below).map_or(1, |below| below + 1);
         prop_assert_eq!(line.truncate(width).width(), width);
     }
 }
