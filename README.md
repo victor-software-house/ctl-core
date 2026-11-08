@@ -13,8 +13,11 @@ help, Usage mounts, color policy, terminal layout, streams, errors, and JSON
 emission. The same serializable result feeds pretty, colorless, and JSON
 output.
 
-Comfy Table, Anstyle, and Anstream are private rendering engines. Consumer
-crates compose ctl-core semantic documents and never import terminal engines.
+ctl-core renders through this workspace's own crates: `ctl-text` for styled
+text and widths, `ctl-layout` for tables and records, and `ctl-term` for the
+colour, width, and escape decisions of each stream. Consumer crates compose
+ctl-core semantic documents; a CLI that needs a widget directly reaches the
+crates through `ctl_core::{text, layout, term}`.
 
 ## Model
 
@@ -78,10 +81,11 @@ fn main() -> ExitCode {
 
 Enable `app` plus `usage` for that shape. A CLI that already owns `-f` composes
 `FormatLong` with `ColorLong`; one that owns `-c` composes `FormatArgs` with
-`ColorLong`. Features remain additive and explicit: `document` has no terminal
-engine, `render` adds terminal layout, `view` adds JSON emission, `help` adds
-Clap help, `app` composes the runtime lifecycle, and `surface` adds the
-Clap-derived operator model plus shared MiniJinja fragments.
+`ColorLong`. Features remain additive and explicit: `document` has no engine,
+`render` adds `ctl-text` and `ctl-layout` and renders to a `String` with no
+terminal crate, `view` adds JSON emission and `ctl-term`, `help` adds Clap help,
+`app` composes the runtime lifecycle, and `surface` adds the Clap-derived
+operator model plus shared MiniJinja fragments.
 
 ## Operator surface
 
@@ -134,6 +138,9 @@ fish; the script's first line names that line.
   pretty/colorless output.
 - JSON always goes to stdout and never contains ANSI.
 - Human failures go to stderr. Quiet suppresses successful human output only.
+- A reader that closes stdout early, such as `head -1`, ends the program with
+  exit code 0 and nothing on stderr. `App::broken_pipe(BrokenPipe::Fail)`
+  makes it a failure.
 - Help comes from the Clap graph, uses the same document renderer, and wraps
   long Usage lines within the detected width.
 - `App` runs Usage, pre-parse hooks, help, Clap, execution, and

@@ -23,7 +23,8 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   holds settings in the environment, such as an action, sets them and runs
   the bare verb; it never rebuilds argv in a shell.
 - `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and
-  exit codes
+  exit codes, including exit 0 when the reader closes stdout early
+  (`App::broken_pipe`)
 - `Document` and the fluent semantic primitives used by help and command output
 - Pretty / JSON / colorless `View` over one serializable domain model
 - The only terminal theme, width detection, wrapping, and table configuration
@@ -69,8 +70,10 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 
 Domain verbs and result types stay in each CLI. Domain handlers return data and
 never print, inspect the terminal, choose a view, or construct engine tables.
-Comfy Table, Anstyle, and Anstream are private ctl-core implementation details;
-none of their types may cross the public semantic boundary.
+The engine is this workspace's `ctl-text`, `ctl-layout`, and `ctl-term`,
+re-exported as `ctl_core::{text, layout, term}`. A consumer composes `Document`
+blocks; no engine widget type appears in `Document`'s API, and `Theme` is the
+one place a role becomes a style.
 
 Boolean pairs that are domain-specific (`--pr` / `--no-pr`) stay in the CLI.
 Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins
@@ -212,8 +215,7 @@ replaceable, and an empty slice disables lookup.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output. Usage lines wrap without splitting tokens.
 
-See [`docs/presentation.md`](docs/presentation.md). `kv` / `grid` and the
-string-render traits are migration surfaces, not the destination.
+See [`docs/presentation.md`](docs/presentation.md).
 
 ## Strings
 

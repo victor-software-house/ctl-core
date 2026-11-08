@@ -47,17 +47,32 @@ width, or selects pretty versus JSON.
 
 ## Engine boundary
 
-Comfy Table is a private Rust table and wrapping engine. Anstyle and Anstream
-are private style and stream engines. Their types cannot appear in ctl-core's
-public semantic API or in a consumer crate.
+A document renders through three crates of this workspace:
 
-This boundary is deliberate. Comfy Table is mature, width-aware, and tested.
-The broad Rust ports of Python Rich remain young and API-unstable. The facade
-lets ctl-core replace an engine later without changing domain models or
-consumer render adapters.
+- `ctl-text` holds styled spans, lines, and text, with widths in terminal
+  cells, wrapping, and truncation;
+- `ctl-layout` holds the widgets a document becomes, such as tables, records,
+  and rules, and never sees an escape sequence;
+- `ctl-term` decides colour, colour depth, and width for one stream, and holds
+  the encoder, the one place an escape sequence is written.
 
-Do not implement Unicode width, ANSI stripping, table sizing, or terminal
-capability detection from scratch.
+`Theme` maps each role to an `anstyle::Style` when a document becomes widgets,
+so the layout crate never sees a role. Consumers compose `Document` blocks;
+a CLI that needs a widget directly uses `ctl_core::{text, layout, term}`.
+
+What ctl-core writes itself and what it takes from a crate:
+
+1. Taken from crates: Unicode width and segmentation from `unicode-width` and
+   `unicode-segmentation`, the window size from `terminal_size`, and the
+   terminal check from `std::io::IsTerminal`.
+2. Not written at all: ANSI stripping. Nothing is painted before the decision
+   to paint, so there is nothing to strip.
+3. Written in `ctl-layout`: table sizing. No crate sizes styled cells without
+   a terminal crate and a second escape parser, and the closest one ignores
+   minimum widths. The algorithm is specified and property-tested.
+4. Written in `ctl-term`: the colour policy, as a pure function. No crate
+   reads both `NO_COLOR` and `FORCE_COLOR` with an explicit override, per
+   stream, without global state.
 
 ## Automatic width policy
 
@@ -123,6 +138,9 @@ One serializable model feeds all modes:
    one stream.
 5. Quiet suppresses successful human output only. It never hides errors or
    JSON.
+6. A reader that closes stdout or stderr early, as `head -1` does, ends the
+   program with exit code 0 and nothing on stderr. `App::broken_pipe` with
+   `BrokenPipe::Fail` makes it a failure.
 
 ## Help law
 

@@ -63,6 +63,8 @@
 //!   pretty and colorless output.
 //! - JSON always goes to stdout and never contains ANSI. Human failures go to
 //!   stderr.
+//! - A reader that closes stdout early, such as `head -1`, ends the program
+//!   with exit code 0; [`App::broken_pipe`] can make it a failure.
 //!
 //! [`prelude`] is the one import a `*ctl` binary needs.
 //!
