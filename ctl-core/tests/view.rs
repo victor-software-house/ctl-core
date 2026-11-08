@@ -42,7 +42,7 @@ fn same_model_feeds_pretty_and_json() {
         failed: false,
     };
     let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
-        .with_width(60)
+        .width(60)
         .capture(&status)
         .unwrap();
     let json = View::new(OutputFormat::Json, ColorMode::Always)
@@ -68,7 +68,7 @@ fn error_pretty_uses_stderr_and_failure_exit() {
         failed: true,
     };
     let captured = View::new(OutputFormat::Pretty, ColorMode::Never)
-        .with_width(60)
+        .width(60)
         .capture(&status)
         .unwrap();
     assert_eq!(captured.stream(), Destination::Stderr);
@@ -86,16 +86,16 @@ fn quiet_suppresses_only_successful_pretty_output() {
         failed: true,
     };
     let quiet_pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
-        .with_quiet(true)
+        .quiet(true)
         .capture(&success)
         .unwrap();
     let quiet_error = View::new(OutputFormat::Pretty, ColorMode::Never)
-        .with_quiet(true)
-        .with_width(60)
+        .quiet(true)
+        .width(60)
         .capture(&failure)
         .unwrap();
     let quiet_json = View::new(OutputFormat::Json, ColorMode::Never)
-        .with_quiet(true)
+        .quiet(true)
         .capture(&success)
         .unwrap();
 
@@ -128,7 +128,7 @@ fn pretty_json_is_indented_and_never_colored() {
         failed: false,
     };
     let json = View::new(OutputFormat::Json, ColorMode::Always)
-        .with_json_layout(JsonLayout::Pretty)
+        .json_layout(JsonLayout::Pretty)
         .capture(&status)
         .unwrap();
     assert_eq!(

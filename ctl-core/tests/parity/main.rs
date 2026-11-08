@@ -30,10 +30,10 @@ const MODES: [(ColorMode, &str); 2] = [(ColorMode::Never, "plain"), (ColorMode::
 /// (`COLUMNS`, `CTL_CORE_RECORD_STYLE`, and the like) changes a render.
 fn options(color: ColorMode, width: u16) -> RenderOptions {
     RenderOptions::new(color)
-        .with_width(width)
-        .with_record_style(RecordStyle::KeysRight)
-        .with_frame(Frame::Grid)
-        .with_row_separation(RowSeparation::None)
+        .width(width)
+        .record_style(RecordStyle::KeysRight)
+        .frame(Frame::Grid)
+        .row_separation(RowSeparation::None)
 }
 
 #[test]
@@ -93,8 +93,8 @@ fn a_view_writes_what_render_writes() {
             for (color, label) in MODES {
                 let rendered = document.render(options(color, width));
                 let view = View::new(OutputFormat::Pretty, color)
-                    .with_width(width)
-                    .with_styles(options(color, width));
+                    .width(width)
+                    .styles(options(color, width));
                 let captured = view
                     .capture(&Case {
                         document: document.clone(),

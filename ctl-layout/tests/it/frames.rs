@@ -102,7 +102,7 @@ fn a_header_rule_list_can_also_rule_between_rows() {
 
 #[test]
 fn ascii_box_characters_replace_the_unicode_ones() {
-    let context = Context::new(80).with_box_chars(BoxChars::Ascii);
+    let context = Context::new(80).using_box_chars(BoxChars::Ascii);
     let rendered: Vec<String> = small(Frame::Grid, RowSeparation::Rule)
         .render(&context)
         .iter()

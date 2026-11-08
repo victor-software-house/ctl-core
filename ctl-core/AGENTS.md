@@ -68,9 +68,9 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
   Keep a helper `pub(crate)` until a consumer needs it.
 - Every public item has a doc that adds something beyond its name, and every fallible public function documents `# Errors`.
 - No engine widget type appears in `Document`'s API; a consumer reaches the engine crates through `ctl_core::{text, layout, term}`.
-- Setters on `RenderOptions` and `View` are `with_<setting>`, and the getter of the same setting has the bare name.
+- A setter on a builder type takes the name of its setting (`RenderOptions::width`, `View::quiet`, `Theme::style`), never a `with_` prefix.
+  A reader of the same setting gets another name, such as `Theme::role_style`, or no method at all.
   A method that reads the environment starts with `resolved_`, so a caller sees which methods are not pure.
-  `App` is a builder that holds only setters, so it keeps the bare names.
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
   CI runs `mise run semver` against the last release before packaging.
   The crate-docs rules under [Cargo features](#cargo-features) keep traits visible to that check.
@@ -160,7 +160,7 @@ Environment-backed defaults expose their canonical name and let a consumer repla
 An explicit render width is exact and bypasses automatic-width buffering.
 
 The automatic terminal-width buffer defaults to two columns and reads `CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20.
-When no width is detected, output lays out to a fallback width of 80, and `with_fallback_width(None)` disables it.
+When no width is detected, output lays out to a fallback width of 80, and `fallback_width(None)` disables it.
 `RenderOptions`, `View`, and `App` expose the buffer, ordered environment names, minimum, and fallback.
 `View` returns its settings as a `RenderOptions` from `render_options`.
 

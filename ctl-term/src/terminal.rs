@@ -172,7 +172,7 @@ impl Terminal {
     /// A terminal with colour off stays off: the mode decides whether to write
     /// colour, and this only decides how many colours.
     #[must_use]
-    pub fn with_depth(self, depth: ColorDepth) -> Self {
+    pub fn at_depth(self, depth: ColorDepth) -> Self {
         Self {
             color: self.color.map(|_| depth),
             ..self

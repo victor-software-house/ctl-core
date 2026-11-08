@@ -144,8 +144,8 @@ impl JsonLayout {
 /// that stream is not a terminal.
 ///
 /// The colour, width, and style settings are one [`RenderOptions`], which
-/// [`Self::render_options`] returns. A `with_` method changes a setting and
-/// the method without the prefix reads it, as on `RenderOptions`.
+/// [`Self::render_options`] returns. A setter takes the name of its setting
+/// and returns the view changed, as on `RenderOptions`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct View {
     /// Pretty or JSON.
@@ -172,7 +172,7 @@ impl View {
 
     /// Lay out JSON output as `layout`. This beats the environment.
     #[must_use]
-    pub const fn with_json_layout(mut self, layout: JsonLayout) -> Self {
+    pub const fn json_layout(mut self, layout: JsonLayout) -> Self {
         self.json_layout = Some(layout);
         self
     }
@@ -180,7 +180,7 @@ impl View {
     /// Replace the ordered environment names read for the JSON layout.
     /// An empty slice disables lookup.
     #[must_use]
-    pub const fn with_json_layout_envs(mut self, names: &'static [&'static str]) -> Self {
+    pub const fn json_layout_envs(mut self, names: &'static [&'static str]) -> Self {
         self.json_layout_envs = names;
         self
     }
@@ -216,79 +216,70 @@ impl View {
     /// variables they read from `styles`. Its colour and width settings are
     /// ignored; the view owns those.
     #[must_use]
-    pub const fn with_styles(mut self, styles: RenderOptions) -> Self {
-        self.options = self.options.with_styles_of(styles);
+    pub const fn styles(mut self, styles: RenderOptions) -> Self {
+        self.options = self.options.styles(styles);
         self
     }
 
     /// Draw each role in the style `theme` gives it, in place of
-    /// [`Theme::default`]. Colour is still [`Self::color`]'s choice:
-    /// [`ColorMode::Never`] writes no style. A later [`Self::with_styles`]
+    /// [`Theme::default`]. Colour is still the colour mode's choice:
+    /// [`ColorMode::Never`] writes no style. A later [`Self::styles`]
     /// replaces this theme with its own.
     #[must_use]
-    pub const fn with_theme(mut self, theme: Theme) -> Self {
-        self.options = self.options.with_theme(theme);
+    pub const fn theme(mut self, theme: Theme) -> Self {
+        self.options = self.options.theme(theme);
         self
     }
 
     /// Write colour as `color` says, in place of the mode given to
     /// [`Self::new`].
     #[must_use]
-    pub const fn with_color(mut self, color: ColorMode) -> Self {
-        self.options = self.options.with_color(color);
+    pub const fn color(mut self, color: ColorMode) -> Self {
+        self.options = self.options.color(color);
         self
     }
 
     /// Suppress successful pretty output when `quiet` is set.
     #[must_use]
-    pub const fn with_quiet(mut self, quiet: bool) -> Self {
+    pub const fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = quiet;
         self
     }
 
     /// Force an explicit presentation width.
     #[must_use]
-    pub const fn with_width(mut self, width: u16) -> Self {
-        self.options = self.options.with_width(width);
+    pub const fn width(mut self, width: u16) -> Self {
+        self.options = self.options.width(width);
         self
     }
 
     /// Override the buffer subtracted from automatically detected widths.
-    /// Zero disables buffering. Explicit [`Self::with_width`] remains exact.
+    /// Zero disables buffering. Explicit [`Self::width`] remains exact.
     #[must_use]
-    pub const fn with_automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.options = self.options.with_automatic_width_buffer(columns);
+    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
+        self.options = self.options.automatic_width_buffer(columns);
         self
     }
 
     /// Replace the ordered environment names used for the automatic buffer.
     #[must_use]
-    pub const fn with_automatic_width_buffer_envs(
-        mut self,
-        names: &'static [&'static str],
-    ) -> Self {
-        self.options = self.options.with_automatic_width_buffer_envs(names);
+    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.options = self.options.automatic_width_buffer_envs(names);
         self
     }
 
     /// Set the floor for automatically detected effective widths.
     #[must_use]
-    pub const fn with_minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.options = self.options.with_minimum_automatic_width(columns);
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.options = self.options.minimum_automatic_width(columns);
         self
     }
 
     /// Lay out to `width` when no width is detected; `None` disables it.
     #[must_use]
-    pub const fn with_fallback_width(mut self, width: Option<u16>) -> Self {
-        self.options = self.options.with_fallback_width(width);
+    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
+        self.options = self.options.fallback_width(width);
         self
-    }
-
-    /// ANSI policy for pretty output.
-    #[must_use]
-    pub const fn color(self) -> ColorMode {
-        self.options.color()
     }
 
     /// The colour, width, and style settings pretty output renders with:
@@ -417,7 +408,7 @@ mod tests {
         let view = View::new(OutputFormat::Json, ColorMode::Never);
         assert!(view.json(&envelope).unwrap().contains("\n  "));
         let compact = view
-            .with_json_layout(JsonLayout::Compact)
+            .json_layout(JsonLayout::Compact)
             .json(&envelope)
             .unwrap();
         assert_eq!(compact.lines().count(), 1, "{compact}");
@@ -429,12 +420,12 @@ mod tests {
         let view = View::new(OutputFormat::Json, ColorMode::Never);
         assert_eq!(view.json_layout_with(compact), JsonLayout::Compact);
         assert_eq!(
-            view.with_json_layout(JsonLayout::Pretty)
+            view.json_layout(JsonLayout::Pretty)
                 .json_layout_with(compact),
             JsonLayout::Pretty
         );
         assert_eq!(
-            view.with_json_layout_envs(&[]).json_layout_with(compact),
+            view.json_layout_envs(&[]).json_layout_with(compact),
             JsonLayout::Pretty
         );
     }

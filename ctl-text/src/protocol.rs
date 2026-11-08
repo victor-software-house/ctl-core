@@ -68,8 +68,8 @@ pub enum BoxChars {
 /// It is `Clone` but not `Copy`, so a later release can add a field without
 /// breaking a caller that copies it. A widget takes `&Context`.
 ///
-/// The `with_` methods return a changed clone, so a container derives the
-/// context of a child from its own: `context.with_width(column)`.
+/// The `at_*` and `using_*` methods return a changed clone, so a container
+/// derives the context of a child from its own: `context.at_width(column)`.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Context {
     width: u16,
@@ -95,8 +95,9 @@ impl Context {
     ///
     /// [`width`](Self::width) reports `u16::MAX`, so layout arithmetic needs
     /// no special case, and [`is_unbounded`](Self::is_unbounded) tells a
-    /// caller that the width is no limit and not a real one. Every `with_`
-    /// method keeps the flag, including [`with_width`](Self::with_width).
+    /// caller that the width is no limit and not a real one. Every method that
+    /// returns a changed clone keeps the flag, including
+    /// [`at_width`](Self::at_width).
     #[must_use]
     pub fn unbounded() -> Self {
         Self {
@@ -107,7 +108,7 @@ impl Context {
 
     /// This context at another width.
     #[must_use]
-    pub fn with_width(&self, width: u16) -> Self {
+    pub fn at_width(&self, width: u16) -> Self {
         Self {
             width,
             ..self.clone()
@@ -116,7 +117,7 @@ impl Context {
 
     /// This context with tab stops every `tab_width` cells.
     #[must_use]
-    pub fn with_tab_width(&self, tab_width: NonZeroU16) -> Self {
+    pub fn at_tab_width(&self, tab_width: NonZeroU16) -> Self {
         Self {
             tab_width,
             ..self.clone()
@@ -125,7 +126,7 @@ impl Context {
 
     /// This context with `box_chars` for borders.
     #[must_use]
-    pub fn with_box_chars(&self, box_chars: BoxChars) -> Self {
+    pub fn using_box_chars(&self, box_chars: BoxChars) -> Self {
         Self {
             box_chars,
             ..self.clone()

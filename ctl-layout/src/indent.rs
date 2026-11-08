@@ -27,7 +27,7 @@ impl<'a> Indent<'a> {
     }
 
     fn inner(&self, context: &Context) -> Context {
-        context.with_width(context.width().saturating_sub(self.columns).max(1))
+        context.at_width(context.width().saturating_sub(self.columns).max(1))
     }
 }
 

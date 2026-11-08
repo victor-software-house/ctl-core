@@ -112,8 +112,8 @@ impl Renderable for Definitions {
                 .max()
                 .unwrap_or(0)
         };
-        let unbounded = Context::unbounded().with_tab_width(context.tab_width());
-        Measurement::new(widest(&context.with_width(1)), widest(&unbounded))
+        let unbounded = Context::unbounded().at_tab_width(context.tab_width());
+        Measurement::new(widest(&context.at_width(1)), widest(&unbounded))
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {

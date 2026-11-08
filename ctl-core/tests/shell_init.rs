@@ -64,8 +64,7 @@ fn a_shell_parses_from_its_name() {
 #[test]
 fn the_verb_help_names_the_shells() {
     let command = Toy::command().find_subcommand("init").cloned().unwrap();
-    let rendered =
-        help::document(command).render(RenderOptions::new(ColorMode::Never).with_width(100));
+    let rendered = help::document(command).render(RenderOptions::new(ColorMode::Never).width(100));
     insta::assert_snapshot!("help", rendered);
 }
 

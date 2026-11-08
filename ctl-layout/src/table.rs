@@ -196,7 +196,7 @@ impl Table {
                     .zip(widths)
                     .zip(&self.columns)
                     .map(|((cell, width), column)| {
-                        let context = context.with_width(*width);
+                        let context = context.at_width(*width);
                         cell.render_as(&context, self.cell_overflow(column))
                     })
                     .collect()

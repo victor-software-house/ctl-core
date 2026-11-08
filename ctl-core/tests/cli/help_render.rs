@@ -5,8 +5,7 @@ use ctl_core::{ColorMode, RenderOptions};
 use crate::common::Toy;
 
 fn help() -> String {
-    ctl_core::help::document(Toy::command())
-        .render(RenderOptions::new(ColorMode::Never).with_width(80))
+    ctl_core::help::document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80))
 }
 
 #[test]

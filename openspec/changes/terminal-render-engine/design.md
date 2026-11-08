@@ -419,8 +419,8 @@ uses only the 16 named colours, so its output is the same at every depth.
 ### 12. Roles map to styles through a public theme
 
 `ctl_core::Theme` maps each `Role` to an `anstyle::Style`. `Theme::default()`
-is today's palette ([style.rs][style-rs]). `App::theme`, `View::with_theme` and
-`RenderOptions::with_theme` replace it; `ColorMode::Never` disables it. The theme
+is today's palette ([style.rs][style-rs]). `App::theme`, `View::theme` and
+`RenderOptions::theme` replace it; `ColorMode::Never` disables it. The theme
 is applied when `Document` becomes widgets, so `ctl-layout` never sees a role.
 
 ### 13. A closed pipe ends the program quietly
@@ -672,15 +672,15 @@ Alternatives:
 | Behaviour | Public override | Disable path |
 |:--|:--|:--|
 | Colour decided from the environment and the stream | `ColorMode::Always`, `--color always` | `ColorMode::Never`, `--color never`, `NO_COLOR` |
-| Colour depth from `COLORTERM`, `TERM`, `FORCE_COLOR` | `Terminal::with_depth(depth)` | `ColorMode::Never` |
-| Width from the stream, then `COLUMNS` | `with_width(n)` on `RenderOptions`, `View` | an explicit width |
+| Colour depth from `COLORTERM`, `TERM`, `FORCE_COLOR` | `Terminal::at_depth(depth)` | `ColorMode::Never` |
+| Width from the stream, then `COLUMNS` | `width(n)` on `RenderOptions`, `View` | an explicit width |
 | Buffer and minimum on a detected width | `DetectOptions::column_buffer`, `minimum_width` | a buffer or minimum of 0 |
 | Buffer variable | `DetectOptions::column_buffer_envs` | none read by default |
-| Fallback width 80 | `with_fallback_width(Some(n))` | `with_fallback_width(None)` |
+| Fallback width 80 | `fallback_width(Some(n))` | `fallback_width(None)` |
 | Unsafe characters removed from spans | none: it is a safety rule | `Document::verbatim` keeps tabs and newlines |
 | Tabs expanded to 8 | `Context::tab_width(n)` | none |
 | Closed pipe keeps the command's exit code | `App::broken_pipe(BrokenPipe::Fail)` | the same |
-| Default theme | `App::theme`, `View::with_theme`, `RenderOptions::with_theme` | `ColorMode::Never` |
+| Default theme | `App::theme`, `View::theme`, `RenderOptions::theme` | `ColorMode::Never` |
 
 ## Risks / Trade-offs
 

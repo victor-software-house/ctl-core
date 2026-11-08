@@ -61,7 +61,7 @@ impl Renderable for Rule {
                 return None;
             }
             title
-                .render_as(&context.with_width(room), Overflow::Ellipsis)
+                .render_as(&context.at_width(room), Overflow::Ellipsis)
                 .into_iter()
                 .find(|line| !line.is_empty())
         });

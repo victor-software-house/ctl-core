@@ -12,7 +12,7 @@ fn paragraph_wraps_to_explicit_width() {
     let text = "one two three four five six seven eight";
     let rendered = Document::new()
         .paragraph(text)
-        .render(RenderOptions::new(ColorMode::Never).with_width(16));
+        .render(RenderOptions::new(ColorMode::Never).width(16));
     assert!(rendered.lines().count() > 1, "{rendered:?}");
     assert!(rendered.ends_with('\n'), "{rendered:?}");
 }
@@ -25,6 +25,6 @@ fn narrow_table_stacks_labels_and_description() {
             .row(["-f", "--format", "Output representation"]);
     let rendered = Document::new()
         .table(table)
-        .render(RenderOptions::new(ColorMode::Never).with_width(40));
+        .render(RenderOptions::new(ColorMode::Never).width(40));
     assert_eq!(rendered, "  -f --format\n    Output representation\n");
 }

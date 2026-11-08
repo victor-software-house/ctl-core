@@ -70,7 +70,7 @@ fn a_measurement_counts_tabs_at_the_context_tab_width() {
     let text = Text::plain("a\tb");
     assert_eq!(text.measure(&Context::new(30)).maximum(), 9);
     let tab = NonZeroU16::new(2).expect("2 is not zero");
-    let context = Context::new(30).with_tab_width(tab);
+    let context = Context::new(30).at_tab_width(tab);
     assert_eq!(text.measure(&context).maximum(), 3);
 }
 
@@ -78,9 +78,9 @@ fn a_measurement_counts_tabs_at_the_context_tab_width() {
 fn a_context_derives_a_child_context() {
     let tab = NonZeroU16::new(4).expect("4 is not zero");
     let parent = Context::new(80)
-        .with_tab_width(tab)
-        .with_box_chars(BoxChars::Ascii);
-    let child = parent.with_width(20);
+        .at_tab_width(tab)
+        .using_box_chars(BoxChars::Ascii);
+    let child = parent.at_width(20);
     assert_eq!(
         (child.width(), child.tab_width(), child.box_chars()),
         (20, tab, BoxChars::Ascii)
@@ -89,15 +89,15 @@ fn a_context_derives_a_child_context() {
 }
 
 #[test]
-fn an_unbounded_context_stays_unbounded_through_every_with_method() {
+fn an_unbounded_context_stays_unbounded_through_every_changed_clone() {
     let tab = NonZeroU16::new(4).expect("4 is not zero");
     let context = Context::unbounded();
     assert_eq!((context.width(), context.is_unbounded()), (u16::MAX, true));
     assert!(!Context::new(u16::MAX).is_unbounded());
-    assert!(context.with_width(20).is_unbounded());
-    assert!(context.with_tab_width(tab).is_unbounded());
-    assert!(context.with_box_chars(BoxChars::Ascii).is_unbounded());
-    assert!(!Context::new(80).with_width(20).is_unbounded());
+    assert!(context.at_width(20).is_unbounded());
+    assert!(context.at_tab_width(tab).is_unbounded());
+    assert!(context.using_box_chars(BoxChars::Ascii).is_unbounded());
+    assert!(!Context::new(80).at_width(20).is_unbounded());
 }
 
 #[test]

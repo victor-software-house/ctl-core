@@ -214,28 +214,28 @@ impl<C> App<C> {
 
     fn configured_view(&self, mut view: View) -> View {
         if let Some(buffer) = self.automatic_width_buffer {
-            view = view.with_automatic_width_buffer(buffer);
+            view = view.automatic_width_buffer(buffer);
         }
         if let Some(names) = self.automatic_width_buffer_envs {
-            view = view.with_automatic_width_buffer_envs(names);
+            view = view.automatic_width_buffer_envs(names);
         }
         if let Some(minimum) = self.minimum_automatic_width {
-            view = view.with_minimum_automatic_width(minimum);
+            view = view.minimum_automatic_width(minimum);
         }
         if let Some(Fallback(width)) = self.fallback_width {
-            view = view.with_fallback_width(width);
+            view = view.fallback_width(width);
         }
         if let Some(styles) = self.styles {
-            view = view.with_styles(styles);
+            view = view.styles(styles);
         }
         if let Some(theme) = self.theme {
-            view = view.with_theme(theme);
+            view = view.theme(theme);
         }
         if let Some(layout) = self.json_layout {
-            view = view.with_json_layout(layout);
+            view = view.json_layout(layout);
         }
         if let Some(names) = self.json_layout_envs {
-            view = view.with_json_layout_envs(names);
+            view = view.json_layout_envs(names);
         }
         view
     }
@@ -442,7 +442,7 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
     if let Some(format) = last {
         view.format = format;
         if format.is_json() {
-            view = view.with_color(ColorMode::Never);
+            view = view.color(ColorMode::Never);
         }
     }
     view
@@ -542,8 +542,8 @@ mod tests {
         let code = App::<Cli>::new("toy")
             .view(|cli| {
                 View::new(cli.output.format, cli.output.color())
-                    .with_quiet(cli.output.quiet)
-                    .with_width(80)
+                    .quiet(cli.output.quiet)
+                    .width(80)
             })
             .run_from(["toy", "status", "--quiet"], move |_| {
                 observed.set(true);
@@ -584,7 +584,11 @@ mod tests {
             let view = parse_error_view(&raw, pretty);
             assert_eq!(view.format.is_json(), json, "{argv:?}");
             if json {
-                assert_eq!(view.color(), ColorMode::Never, "{argv:?}");
+                assert_eq!(
+                    view.render_options(),
+                    RenderOptions::new(ColorMode::Never),
+                    "{argv:?}"
+                );
             }
         }
         let json_first = View::new(OutputFormat::Json, ColorMode::Never);
@@ -641,13 +645,13 @@ mod tests {
             .automatic_width_buffer_envs(&["TOY_BUFFER", "LEGACY_BUFFER"])
             .minimum_automatic_width(8);
         let view = app.configured_view(View::new(OutputFormat::Pretty, ColorMode::Never));
-        let options = view.render_options();
-        assert_eq!(options.automatic_width_buffer(), Some(0));
         assert_eq!(
-            options.automatic_width_buffer_envs(),
-            ["TOY_BUFFER", "LEGACY_BUFFER"]
+            view.render_options(),
+            RenderOptions::new(ColorMode::Never)
+                .automatic_width_buffer(0)
+                .automatic_width_buffer_envs(&["TOY_BUFFER", "LEGACY_BUFFER"])
+                .minimum_automatic_width(8)
         );
-        assert_eq!(options.minimum_automatic_width(), 8);
     }
 
     #[test]
@@ -667,12 +671,17 @@ mod tests {
     fn app_styles_and_fallback_reach_every_view() {
         let app = App::<Cli>::new("toy")
             .fallback_width(None)
-            .styles(RenderOptions::new(ColorMode::Never).with_record_style(RecordStyle::Boxed))
+            .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed))
             .json_layout(JsonLayout::Compact);
         let options = app
             .configured_view(View::new(OutputFormat::Pretty, ColorMode::Never))
             .render_options();
-        assert_eq!(options.fallback_width(), None);
+        assert_eq!(
+            options,
+            RenderOptions::new(ColorMode::Never)
+                .fallback_width(None)
+                .record_style(RecordStyle::Boxed)
+        );
         assert_eq!(options.resolved_record_style(), RecordStyle::Boxed);
         let json = app
             .configured_view(View::new(OutputFormat::Json, ColorMode::Never))
@@ -684,14 +693,19 @@ mod tests {
     #[test]
     fn app_theme_reaches_every_view_over_the_styles_theme() {
         let underline = ctl_text::Style::new().effects(ctl_text::anstyle::Effects::UNDERLINE);
-        let theme = Theme::new().with_style(Role::Heading, underline);
+        let theme = Theme::new().style(Role::Heading, underline);
         let app = App::<Cli>::new("toy")
             .theme(theme)
-            .styles(RenderOptions::new(ColorMode::Never).with_record_style(RecordStyle::Boxed));
+            .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed));
         let options = app
             .configured_view(View::new(OutputFormat::Pretty, ColorMode::Always))
             .render_options();
-        assert_eq!(options.theme(), theme);
+        assert_eq!(
+            options,
+            RenderOptions::new(ColorMode::Always)
+                .theme(theme)
+                .record_style(RecordStyle::Boxed)
+        );
         assert_eq!(options.resolved_record_style(), RecordStyle::Boxed);
     }
 
@@ -729,8 +743,8 @@ mod tests {
     fn defaults_are_pretty_auto() {
         let app = App::<Cli>::new("toy").view(|_| {
             View::new(OutputFormat::Pretty, ColorMode::Auto)
-                .with_quiet(true)
-                .with_width(80)
+                .quiet(true)
+                .width(80)
         });
         let code = app.run_from(["toy", "status"], |_| Ok(Status { pending: 0 }));
         assert_eq!(code, std::process::ExitCode::SUCCESS);
@@ -790,12 +804,12 @@ mod tests {
         let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
         let view = raw_view::<Cli>(&domain_value);
         assert_eq!(view.format, OutputFormat::Pretty);
-        assert_eq!(view.color(), ColorMode::Auto);
+        assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Auto));
 
         let global_after_subcommand =
             ["toy", "status", "-fjson", "-cnever", "--bogus"].map(OsString::from);
         let view = raw_view::<Cli>(&global_after_subcommand);
         assert_eq!(view.format, OutputFormat::Json);
-        assert_eq!(view.color(), ColorMode::Never);
+        assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Never));
     }
 }

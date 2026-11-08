@@ -60,7 +60,7 @@
 //! When colour is on, the depth is 24-bit when `COLORTERM` is `truecolor` or
 //! `24bit` or `FORCE_COLOR=3`. It is 256 colours when `TERM` contains
 //! `256color` or `FORCE_COLOR=2`, and 16 colours otherwise.
-//! [`Terminal::with_depth`] overrides it. The [`Encoder`] converts every
+//! [`Terminal::at_depth`] overrides it. The [`Encoder`] converts every
 //! colour to the nearest colour at that depth. A 24-bit colour on a
 //! 16-colour terminal prints as the nearest named colour, and an underline
 //! colour is dropped at 16 colours.

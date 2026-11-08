@@ -142,10 +142,10 @@ fn render(out: &mut impl io::Write, document: &Document, options: RenderOptions)
 }
 
 fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result<()> {
-    let base = RenderOptions::new(color).with_width(width);
+    let base = RenderOptions::new(color).width(width);
     for (code, style, label) in RECORDS {
         render(out, &banner(code, label, width), base)?;
-        let options = base.with_record_style(style);
+        let options = base.record_style(style);
         render(out, &record(&ROWS[0]), options)?;
         render(out, &record(&ROWS[1]), options)?;
     }
@@ -156,7 +156,7 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
             let code = format!("L{}", list_index * SEPARATIONS.len() + separation_index + 1);
             let label = format!("{list_label}, {separation_label}");
             render(out, &banner(&code, &label, width), base)?;
-            let options = base.with_frame(list).with_row_separation(separation);
+            let options = base.frame(list).row_separation(separation);
             render(out, &Document::new().table(queue_table()), options)?;
         }
     }
@@ -167,7 +167,7 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
     for (code, layout, label) in JSON {
         render(out, &banner(code, label, width), base)?;
         let captured = View::new(OutputFormat::Json, color)
-            .with_json_layout(layout)
+            .json_layout(layout)
             .capture(&queue)?;
         out.write_all(captured.bytes())?;
         out.write_all(b"\n")?;

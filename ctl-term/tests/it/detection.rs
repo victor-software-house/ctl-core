@@ -284,21 +284,21 @@ fn a_forced_colour_takes_the_depth_the_variables_give() {
 }
 
 #[test]
-fn with_depth_replaces_the_depth_of_a_coloured_terminal() {
+fn at_depth_replaces_the_depth_of_a_coloured_terminal() {
     let coloured = terminal(PIPE, ColorMode::Always, &[("COLORTERM", "truecolor")]);
     for depth in [
         ColorDepth::Ansi16,
         ColorDepth::Ansi256,
         ColorDepth::TrueColor,
     ] {
-        assert_eq!(coloured.with_depth(depth).color(), Some(depth));
+        assert_eq!(coloured.at_depth(depth).color(), Some(depth));
     }
 }
 
 #[test]
-fn with_depth_does_not_turn_colour_on() {
+fn at_depth_does_not_turn_colour_on() {
     let plain = terminal(PIPE, ColorMode::Never, &[]);
-    assert_eq!(plain.with_depth(ColorDepth::TrueColor).color(), None);
+    assert_eq!(plain.at_depth(ColorDepth::TrueColor).color(), None);
 }
 
 #[test]

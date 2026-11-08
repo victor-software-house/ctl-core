@@ -130,9 +130,9 @@ fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
 
 /// Deterministic document rendering options.
 ///
-/// A `with_` method returns the options changed, and the method of the same
-/// name without the prefix reads the setting back. A method that reads the
-/// environment starts with `resolved_`.
+/// A setter takes the name of its setting and returns the options changed.
+/// The options have no getters, which would need the same names. A method that
+/// reads the environment starts with `resolved_`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
     color: ColorMode,
@@ -188,7 +188,7 @@ impl RenderOptions {
     /// Write colour as `color` says, in place of the mode given to
     /// [`Self::new`].
     #[must_use]
-    pub const fn with_color(mut self, color: ColorMode) -> Self {
+    pub const fn color(mut self, color: ColorMode) -> Self {
         self.color = color;
         self
     }
@@ -197,28 +197,28 @@ impl RenderOptions {
     /// [`Theme::default`]. Colour is still the colour mode's choice:
     /// [`ColorMode::Never`] writes no style.
     #[must_use]
-    pub const fn with_theme(mut self, theme: Theme) -> Self {
+    pub const fn theme(mut self, theme: Theme) -> Self {
         self.theme = theme;
         self
     }
 
     /// Frame [`Fields`] records in `style`. This beats the environment.
     #[must_use]
-    pub const fn with_record_style(mut self, style: RecordStyle) -> Self {
+    pub const fn record_style(mut self, style: RecordStyle) -> Self {
         self.record_style = Some(style);
         self
     }
 
     /// Frame [`Table`] lists with `frame`. This beats the environment.
     #[must_use]
-    pub const fn with_frame(mut self, frame: Frame) -> Self {
+    pub const fn frame(mut self, frame: Frame) -> Self {
         self.frame = Some(frame);
         self
     }
 
     /// Separate [`Table`] rows with `separation`. This beats the environment.
     #[must_use]
-    pub const fn with_row_separation(mut self, separation: RowSeparation) -> Self {
+    pub const fn row_separation(mut self, separation: RowSeparation) -> Self {
         self.row_separation = Some(separation);
         self
     }
@@ -226,7 +226,7 @@ impl RenderOptions {
     /// Replace the ordered environment names read for the record style.
     /// An empty slice disables lookup.
     #[must_use]
-    pub const fn with_record_style_envs(mut self, names: &'static [&'static str]) -> Self {
+    pub const fn record_style_envs(mut self, names: &'static [&'static str]) -> Self {
         self.record_style_envs = names;
         self
     }
@@ -234,7 +234,7 @@ impl RenderOptions {
     /// Replace the ordered environment names read for the list frame.
     /// An empty slice disables lookup.
     #[must_use]
-    pub const fn with_frame_envs(mut self, names: &'static [&'static str]) -> Self {
+    pub const fn frame_envs(mut self, names: &'static [&'static str]) -> Self {
         self.frame_envs = names;
         self
     }
@@ -242,23 +242,23 @@ impl RenderOptions {
     /// Replace the ordered environment names read for the row separation.
     /// An empty slice disables lookup.
     #[must_use]
-    pub const fn with_row_separation_envs(mut self, names: &'static [&'static str]) -> Self {
+    pub const fn row_separation_envs(mut self, names: &'static [&'static str]) -> Self {
         self.row_separation_envs = names;
         self
     }
 
     /// Force an explicit width. Tests and redirected renderers should use this.
     #[must_use]
-    pub const fn with_width(mut self, width: u16) -> Self {
+    pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
         self
     }
 
     /// Override the automatic-width buffer. Zero explicitly disables it.
-    /// Explicit [`Self::with_width`] remains exact regardless of this value.
+    /// Explicit [`Self::width`] remains exact regardless of this value.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub const fn with_automatic_width_buffer(mut self, columns: u16) -> Self {
+    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
         self.automatic_width_buffer = Some(columns);
         self
     }
@@ -267,10 +267,7 @@ impl RenderOptions {
     /// Pass aliases in precedence order or an empty slice to disable lookup.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub const fn with_automatic_width_buffer_envs(
-        mut self,
-        names: &'static [&'static str],
-    ) -> Self {
+    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
         self.automatic_width_buffer_envs = names;
         self
     }
@@ -278,7 +275,7 @@ impl RenderOptions {
     /// Set the floor for automatically detected effective widths.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub const fn with_minimum_automatic_width(mut self, columns: u16) -> Self {
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
         self.minimum_automatic_width = columns;
         self
     }
@@ -288,7 +285,7 @@ impl RenderOptions {
     /// touch the minimum automatic width, which applies only to a detected
     /// width.
     #[must_use]
-    pub const fn with_fallback_width(mut self, width: Option<u16>) -> Self {
+    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
         self.fallback_width = width;
         self
     }
@@ -297,7 +294,7 @@ impl RenderOptions {
     /// variables they read from `styles`. Colour and width stay as they are.
     #[cfg(feature = "view")]
     #[must_use]
-    pub(crate) const fn with_styles_of(mut self, styles: Self) -> Self {
+    pub(crate) const fn styles(mut self, styles: Self) -> Self {
         self.theme = styles.theme;
         self.record_style = styles.record_style;
         self.record_style_envs = styles.record_style_envs;
@@ -306,52 +303,6 @@ impl RenderOptions {
         self.row_separation = styles.row_separation;
         self.row_separation_envs = styles.row_separation_envs;
         self
-    }
-
-    /// Color policy.
-    #[must_use]
-    pub const fn color(self) -> ColorMode {
-        self.color
-    }
-
-    /// The theme roles are drawn in: the one [`Self::with_theme`] set, or
-    /// [`Theme::default`].
-    #[must_use]
-    pub const fn theme(self) -> Theme {
-        self.theme
-    }
-
-    /// Explicit width, when set.
-    #[must_use]
-    pub const fn width(self) -> Option<u16> {
-        self.width
-    }
-
-    /// Explicit automatic-width buffer, when the library owner set one.
-    #[cfg(any(feature = "view", feature = "help"))]
-    #[must_use]
-    pub const fn automatic_width_buffer(self) -> Option<u16> {
-        self.automatic_width_buffer
-    }
-
-    /// Ordered environment names used for the automatic-width buffer.
-    #[cfg(any(feature = "view", feature = "help"))]
-    #[must_use]
-    pub const fn automatic_width_buffer_envs(self) -> &'static [&'static str] {
-        self.automatic_width_buffer_envs
-    }
-
-    /// Floor applied only to automatically detected widths.
-    #[cfg(any(feature = "view", feature = "help"))]
-    #[must_use]
-    pub const fn minimum_automatic_width(self) -> u16 {
-        self.minimum_automatic_width
-    }
-
-    /// Width used when none is detected, if any.
-    #[must_use]
-    pub const fn fallback_width(self) -> Option<u16> {
-        self.fallback_width
     }
 
     /// Record framing: the owner's choice, then the environment, then the
@@ -486,11 +437,11 @@ impl Renderer {
     pub(crate) fn render(self, document: &Document) -> String {
         let context = self
             .options
-            .width()
-            .or(self.options.fallback_width())
+            .width
+            .or(self.options.fallback_width)
             .map_or_else(Context::unbounded, Context::new);
         let lines = self.widget(document).render(&context);
-        let depth = (self.options.color() == ColorMode::Always).then_some(ColorDepth::TrueColor);
+        let depth = (self.options.color == ColorMode::Always).then_some(ColorDepth::TrueColor);
         Encoder::new(depth).encode(&lines)
     }
 
@@ -594,17 +545,17 @@ impl Renderer {
     }
 
     fn notice(self, notice: &Notice) -> StyledText {
-        let theme = self.options.theme();
+        let theme = self.options.theme;
         let label = match notice.level() {
             NoticeLevel::Success => "success",
             NoticeLevel::Warning => "warning",
             NoticeLevel::Error => "error",
         };
-        let separator = theme.style(Role::Plain);
-        let mut text = StyledText::styled(label, theme.notice_style(notice.level()));
+        let separator = theme.role_style(Role::Plain);
+        let mut text = StyledText::styled(label, theme.label_style(notice.level()));
         if let Some(code) = notice.code_value() {
             text.push(" · ", separator);
-            text.push(code, theme.style(Role::Muted));
+            text.push(code, theme.role_style(Role::Muted));
         }
         text.push(" · ", separator);
         self.push_spans(&mut text, notice.message(), None);
@@ -621,13 +572,13 @@ impl Renderer {
     }
 
     fn push_spans(self, target: &mut StyledText, text: &Text, default: Option<Role>) {
-        let theme = self.options.theme();
+        let theme = self.options.theme;
         for span in text.spans() {
             let role = match (span.role(), default) {
                 (Role::Plain, Some(default)) => default,
                 (role, _) => role,
             };
-            target.push(span.value(), theme.style(role));
+            target.push(span.value(), theme.role_style(role));
         }
     }
 }
@@ -704,7 +655,7 @@ struct Divider(RuleWidget);
 impl Divider {
     fn context(context: &Context) -> Context {
         if context.is_unbounded() {
-            context.with_width(NATURAL_RULE_WIDTH)
+            context.at_width(NATURAL_RULE_WIDTH)
         } else {
             context.clone()
         }
@@ -737,33 +688,33 @@ mod tests {
     fn automatic_width_policy_is_explicit_and_overridable() {
         let defaults = RenderOptions::new(ColorMode::Never);
         assert_eq!(super::DEFAULT_COLUMN_BUFFER, 2);
-        assert_eq!(defaults.automatic_width_buffer(), None);
+        assert_eq!(defaults.automatic_width_buffer, None);
         assert_eq!(
-            defaults.minimum_automatic_width(),
+            defaults.minimum_automatic_width,
             super::DEFAULT_MINIMUM_AUTOMATIC_WIDTH
         );
 
         let configured = defaults
-            .with_automatic_width_buffer(0)
-            .with_automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"])
-            .with_minimum_automatic_width(8);
-        assert_eq!(configured.automatic_width_buffer(), Some(0));
+            .automatic_width_buffer(0)
+            .automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"])
+            .minimum_automatic_width(8);
+        assert_eq!(configured.automatic_width_buffer, Some(0));
         assert_eq!(
-            configured.automatic_width_buffer_envs(),
+            configured.automatic_width_buffer_envs,
             ["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"]
         );
-        assert_eq!(configured.minimum_automatic_width(), 8);
+        assert_eq!(configured.minimum_automatic_width, 8);
     }
 
     #[cfg(any(feature = "view", feature = "help"))]
     #[test]
     fn explicit_width_ignores_the_automatic_buffer() {
         let document = Document::new().paragraph("one two three four five six");
-        let exact = document.render(RenderOptions::new(ColorMode::Never).with_width(16));
+        let exact = document.render(RenderOptions::new(ColorMode::Never).width(16));
         let buffered = document.render(
             RenderOptions::new(ColorMode::Never)
-                .with_width(16)
-                .with_automatic_width_buffer(8),
+                .width(16)
+                .automatic_width_buffer(8),
         );
         assert_eq!(buffered, exact);
     }
@@ -774,7 +725,7 @@ mod tests {
             .heading("status")
             .fields(Fields::new().row("pending", Text::plain("2")))
             .notice(Notice::new(NoticeLevel::Warning, "one stale row"));
-        let rendered = document.render(RenderOptions::new(ColorMode::Never).with_width(60));
+        let rendered = document.render(RenderOptions::new(ColorMode::Never).width(60));
         let expected = indoc! {"
             status
 
@@ -803,8 +754,8 @@ mod tests {
             )
             .render(
                 RenderOptions::new(ColorMode::Never)
-                    .with_width(80)
-                    .with_record_style(RecordStyle::KeysRight),
+                    .width(80)
+                    .record_style(RecordStyle::KeysRight),
             );
         let expected = indoc! {"
             ledger  tasks.yaml
@@ -823,8 +774,8 @@ mod tests {
             )
             .render(
                 RenderOptions::new(ColorMode::Never)
-                    .with_width(80)
-                    .with_record_style(RecordStyle::KeysLeft),
+                    .width(80)
+                    .record_style(RecordStyle::KeysLeft),
             );
         let expected = indoc! {"
             id       QCTL-014
@@ -837,8 +788,8 @@ mod tests {
     fn header_rule_draws_one_rule_and_no_verticals() {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
-                .with_width(80)
-                .with_frame(Frame::HeaderRule),
+                .width(80)
+                .frame(Frame::HeaderRule),
         );
         let rules = rendered
             .lines()
@@ -856,9 +807,9 @@ mod tests {
     fn rule_separation_draws_a_rule_between_rows() {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
-                .with_width(80)
-                .with_frame(Frame::Plain)
-                .with_row_separation(RowSeparation::Rule),
+                .width(80)
+                .frame(Frame::Plain)
+                .row_separation(RowSeparation::Rule),
         );
         let lines = rendered.lines().collect::<Vec<_>>();
         assert_eq!(lines.len(), 6, "{rendered}");
@@ -872,9 +823,9 @@ mod tests {
     fn blank_separation_leaves_one_empty_line_between_rows() {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
-                .with_width(80)
-                .with_frame(Frame::Plain)
-                .with_row_separation(RowSeparation::Blank),
+                .width(80)
+                .frame(Frame::Plain)
+                .row_separation(RowSeparation::Blank),
         );
         let lines = rendered.lines().collect::<Vec<_>>();
         assert_eq!(lines.len(), 6, "{rendered}");
@@ -887,8 +838,8 @@ mod tests {
         assert_eq!(options.resolved_record_style(), RecordStyle::KeysRight);
         assert_eq!(options.resolved_frame(), Frame::Grid);
         assert_eq!(options.resolved_row_separation(), RowSeparation::None);
-        assert_eq!(options.fallback_width(), Some(80));
-        assert_eq!(options.with_fallback_width(None).fallback_width(), None);
+        assert_eq!(options.fallback_width, Some(80));
+        assert_eq!(options.fallback_width(None).fallback_width, None);
     }
 
     fn operator_env(name: &str) -> Option<String> {
@@ -909,9 +860,9 @@ mod tests {
         assert_eq!(open.row_separation_with(operator_env), RowSeparation::Blank);
 
         let owned = open
-            .with_record_style(RecordStyle::KeysLeft)
-            .with_frame(Frame::Plain)
-            .with_row_separation(RowSeparation::Rule);
+            .record_style(RecordStyle::KeysLeft)
+            .frame(Frame::Plain)
+            .row_separation(RowSeparation::Rule);
         assert_eq!(owned.record_style_with(operator_env), RecordStyle::KeysLeft);
         assert_eq!(owned.frame_with(operator_env), Frame::Plain);
         assert_eq!(owned.row_separation_with(operator_env), RowSeparation::Rule);
@@ -921,13 +872,13 @@ mod tests {
     fn style_env_names_can_be_replaced_or_disabled() {
         let aliased = |name: &str| (name == "TOY_RECORD").then(|| "keys-left".to_owned());
         let replaced = RenderOptions::new(ColorMode::Never)
-            .with_record_style_envs(&["TOY_RECORD", "CTL_CORE_RECORD_STYLE"]);
+            .record_style_envs(&["TOY_RECORD", "CTL_CORE_RECORD_STYLE"]);
         assert_eq!(replaced.record_style_with(aliased), RecordStyle::KeysLeft);
 
         let disabled = RenderOptions::new(ColorMode::Never)
-            .with_record_style_envs(&[])
-            .with_frame_envs(&[])
-            .with_row_separation_envs(&[]);
+            .record_style_envs(&[])
+            .frame_envs(&[])
+            .row_separation_envs(&[]);
         assert_eq!(
             disabled.record_style_with(operator_env),
             RecordStyle::KeysRight
@@ -951,7 +902,7 @@ mod tests {
         );
         assert_eq!(
             options
-                .with_record_style(RecordStyle::Boxed)
+                .record_style(RecordStyle::Boxed)
                 .style_env_warnings(typo),
             Vec::<String>::new()
         );
@@ -960,21 +911,17 @@ mod tests {
     #[test]
     fn colored_document_has_ansi() {
         let document = Document::new().heading("status");
-        let rendered = document.render(RenderOptions::new(ColorMode::Always).with_width(60));
+        let rendered = document.render(RenderOptions::new(ColorMode::Always).width(60));
         assert!(rendered.contains('\u{1b}'));
     }
 
     #[test]
     fn a_notice_separator_takes_the_plain_style() {
         let underline = Style::new().effects(Effects::UNDERLINE);
-        let theme = Theme::new().with_style(Role::Plain, underline);
+        let theme = Theme::new().style(Role::Plain, underline);
         let rendered = Document::new()
             .notice(Notice::new(NoticeLevel::Warning, "one stale row"))
-            .render(
-                RenderOptions::new(ColorMode::Always)
-                    .with_theme(theme)
-                    .with_width(60),
-            );
+            .render(RenderOptions::new(ColorMode::Always).theme(theme).width(60));
         assert!(rendered.contains("\u{1b}[4m · "), "{rendered}");
     }
 
@@ -986,7 +933,7 @@ mod tests {
         let rendered = Document::new()
             .table(table)
             .paragraph(Text::new().id("QCTL-015"))
-            .render(RenderOptions::new(ColorMode::Always).with_width(60));
+            .render(RenderOptions::new(ColorMode::Always).width(60));
         assert!(
             rendered.contains("\u{1b}[1mQCTL-014\u{1b}[0m"),
             "{rendered}"
@@ -1005,7 +952,7 @@ mod tests {
                 "a section title that also runs long",
                 Document::new(),
             ))
-            .render(RenderOptions::new(ColorMode::Never).with_width(20));
+            .render(RenderOptions::new(ColorMode::Never).width(20));
         assert!(rendered.lines().count() > 2, "{rendered}");
         assert!(
             rendered.lines().all(|line| line.chars().count() <= 20),
@@ -1019,7 +966,7 @@ mod tests {
         let rendered = Document::new()
             .fields(Fields::new().row("release", Text::plain(url)))
             .paragraph(Text::plain(format!("see {url}")))
-            .render(RenderOptions::new(ColorMode::Always).with_width(30));
+            .render(RenderOptions::new(ColorMode::Always).width(30));
         assert_eq!(rendered.matches(url).count(), 2, "{rendered}");
     }
 
@@ -1031,7 +978,7 @@ mod tests {
                 .row(["-f", "--format", "Output representation"]);
         let rendered = Document::new()
             .table(table)
-            .render(RenderOptions::new(ColorMode::Never).with_width(40));
+            .render(RenderOptions::new(ColorMode::Never).width(40));
         assert_eq!(rendered, "  -f --format\n    Output representation\n");
     }
 
@@ -1044,7 +991,7 @@ mod tests {
         "};
         let rendered = Document::new()
             .verbatim(source)
-            .render(RenderOptions::new(ColorMode::Never).with_width(5));
+            .render(RenderOptions::new(ColorMode::Never).width(5));
         assert_eq!(rendered, source);
     }
 
@@ -1052,7 +999,7 @@ mod tests {
     fn verbatim_text_removes_terminal_bidi_and_line_controls() {
         let rendered = Document::new()
             .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\tvalue")
-            .render(RenderOptions::new(ColorMode::Never).with_width(5));
+            .render(RenderOptions::new(ColorMode::Never).width(5));
         assert_eq!(rendered, "]52;clipboard   value\n");
     }
 
@@ -1061,7 +1008,7 @@ mod tests {
         let source = "\u{600}\u{6dd}\u{70f}\u{110bd}\u{200b}\u{2060}\u{feff}\u{fff9}\u{1d173}\u{e0001}\u{200c}\u{200d}\u{ad}";
         let rendered = Document::new()
             .verbatim(source)
-            .render(RenderOptions::new(ColorMode::Never).with_width(5));
+            .render(RenderOptions::new(ColorMode::Never).width(5));
         assert_eq!(rendered, format!("{source}\n"));
     }
 
@@ -1072,7 +1019,7 @@ mod tests {
             .row(["one two three four five", "description"]);
         let rendered = Document::new()
             .table(table)
-            .render(RenderOptions::new(ColorMode::Never).with_width(14));
+            .render(RenderOptions::new(ColorMode::Never).width(14));
         let expected = formatdoc! {"
             {label}one two
             {label}three four

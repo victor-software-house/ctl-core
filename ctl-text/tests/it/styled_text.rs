@@ -122,7 +122,7 @@ fn a_tab_on_a_stop_moves_a_whole_stop() {
 #[test]
 fn a_caller_sets_another_tab_width() {
     let tab = NonZeroU16::new(4).expect("4 is not zero");
-    let context = Context::new(80).with_tab_width(tab);
+    let context = Context::new(80).at_tab_width(tab);
     let lines = Text::plain("ab\tc").render(&context);
     assert_eq!(lines[0].to_string(), "ab  c");
 }

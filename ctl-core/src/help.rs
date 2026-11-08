@@ -343,8 +343,7 @@ mod tests {
 
     #[test]
     fn document_lists_commands_and_flags() {
-        let text =
-            document(Toy::command()).render(RenderOptions::new(ColorMode::Never).with_width(80));
+        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(text.contains("Commands"));
         assert!(text.contains("status"));
         assert!(text.contains("--dry-run"));
@@ -354,8 +353,7 @@ mod tests {
 
     #[test]
     fn colorless_help_has_no_ansi() {
-        let text =
-            document(Toy::command()).render(RenderOptions::new(ColorMode::Never).with_width(80));
+        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(!text.contains('\u{1b}'));
     }
 
@@ -369,7 +367,7 @@ mod tests {
                     .action(clap::ArgAction::SetTrue),
             )
             .arg(clap::Arg::new("name").value_name("NAME"));
-        let text = document(command).render(RenderOptions::new(ColorMode::Never).with_width(40));
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(40));
         assert!(text.lines().all(|line| line.chars().count() <= 40));
         assert_eq!(
             text.lines().take(2).collect::<Vec<_>>(),
@@ -387,7 +385,7 @@ mod tests {
                     .env("TOY_TOKEN")
                     .hide_env(true),
             );
-        let text = document(command).render(RenderOptions::new(ColorMode::Never).with_width(80));
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(text.contains("[env: TOY_CONFIG]"), "{text}");
         assert!(!text.contains("TOY_TOKEN"), "{text}");
     }

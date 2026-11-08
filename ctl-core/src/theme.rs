@@ -34,14 +34,14 @@ const fn bold(color: AnsiColor) -> Style {
 /// | [`Role::Id`] | bold, in the terminal's own foreground |
 ///
 /// A notice label takes the style of the role of the same name until
-/// [`Theme::with_notice_style`] replaces it.
+/// [`Theme::notice_style`] replaces it.
 ///
 /// Equality compares the choices a theme holds, including which notice labels
 /// were given their own style, not the output they draw: a label set to its
 /// role's style draws the same as an unset one, yet the two themes differ.
 ///
-/// A theme replaces the default through [`RenderOptions::with_theme`],
-/// [`View::with_theme`], and [`App::theme`]. It only says how a role looks:
+/// A theme replaces the default through [`RenderOptions::theme`],
+/// [`View::theme`], and [`App::theme`]. It only says how a role looks:
 /// whether colour is written is the colour mode's decision, so
 /// [`ColorMode::Never`] writes none whatever the theme holds.
 ///
@@ -50,16 +50,16 @@ const fn bold(color: AnsiColor) -> Style {
 /// use ctl_core::{Role, Theme};
 ///
 /// let magenta = Style::new().fg_color(Some(AnsiColor::Magenta.into()));
-/// let theme = Theme::default().with_style(Role::Id, magenta);
-/// assert_eq!(theme.style(Role::Id), magenta);
+/// let theme = Theme::default().style(Role::Id, magenta);
+/// assert_eq!(theme.role_style(Role::Id), magenta);
 /// assert_eq!(
-///     theme.style(Role::Heading),
-///     Theme::default().style(Role::Heading)
+///     theme.role_style(Role::Heading),
+///     Theme::default().role_style(Role::Heading)
 /// );
 /// ```
 ///
-/// [`RenderOptions::with_theme`]: crate::RenderOptions::with_theme
-/// [`View::with_theme`]: crate::View::with_theme
+/// [`RenderOptions::theme`]: crate::RenderOptions::theme
+/// [`View::theme`]: crate::View::theme
 /// [`App::theme`]: crate::App::theme
 /// [`ColorMode::Never`]: crate::ColorMode::Never
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -103,7 +103,7 @@ impl Theme {
 
     /// The style `role` is drawn in.
     #[must_use]
-    pub const fn style(self, role: Role) -> Style {
+    pub const fn role_style(self, role: Role) -> Style {
         match role {
             Role::Plain => self.plain,
             Role::Heading => self.heading,
@@ -119,7 +119,7 @@ impl Theme {
 
     /// This theme with `role` drawn in `style`.
     #[must_use]
-    pub const fn with_style(mut self, role: Role, style: Style) -> Self {
+    pub const fn style(mut self, role: Role, style: Style) -> Self {
         match role {
             Role::Plain => self.plain = style,
             Role::Heading => self.heading = style,
@@ -135,10 +135,10 @@ impl Theme {
     }
 
     /// The style the label of a `level` notice (`success`, `warning`, or
-    /// `error`) is drawn in: the style [`Theme::with_notice_style`] set, or
+    /// `error`) is drawn in: the style [`Theme::notice_style`] set, or
     /// else the style of the role of the same name.
     #[must_use]
-    pub const fn notice_style(self, level: NoticeLevel) -> Style {
+    pub const fn label_style(self, level: NoticeLevel) -> Style {
         let (own, role) = match level {
             NoticeLevel::Success => (self.success_notice, self.success),
             NoticeLevel::Warning => (self.warning_notice, self.warning),
@@ -152,7 +152,7 @@ impl Theme {
 
     /// This theme with the label of a `level` notice drawn in `style`.
     #[must_use]
-    pub const fn with_notice_style(mut self, level: NoticeLevel, style: Style) -> Self {
+    pub const fn notice_style(mut self, level: NoticeLevel, style: Style) -> Self {
         match level {
             NoticeLevel::Success => self.success_notice = Some(style),
             NoticeLevel::Warning => self.warning_notice = Some(style),
@@ -183,48 +183,51 @@ mod tests {
         let cyan = Style::new()
             .bold()
             .fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
-        assert_eq!(theme.style(Role::Heading), cyan);
-        assert_eq!(theme.style(Role::Plain), Style::new());
-        assert_eq!(theme.style(Role::Id), Style::new().bold());
+        assert_eq!(theme.role_style(Role::Heading), cyan);
+        assert_eq!(theme.role_style(Role::Plain), Style::new());
+        assert_eq!(theme.role_style(Role::Id), Style::new().bold());
         assert_eq!(
-            theme.notice_style(NoticeLevel::Error),
-            theme.style(Role::Error)
+            theme.label_style(NoticeLevel::Error),
+            theme.role_style(Role::Error)
         );
     }
 
     #[test]
     fn replacing_one_role_keeps_the_others() {
         let underline = Style::new().effects(Effects::UNDERLINE);
-        let theme = Theme::new().with_style(Role::Muted, underline);
-        assert_eq!(theme.style(Role::Muted), underline);
-        assert_eq!(theme.style(Role::Value), Theme::new().style(Role::Value));
+        let theme = Theme::new().style(Role::Muted, underline);
+        assert_eq!(theme.role_style(Role::Muted), underline);
         assert_eq!(
-            theme.notice_style(NoticeLevel::Warning),
-            Theme::new().notice_style(NoticeLevel::Warning)
+            theme.role_style(Role::Value),
+            Theme::new().role_style(Role::Value)
+        );
+        assert_eq!(
+            theme.label_style(NoticeLevel::Warning),
+            Theme::new().label_style(NoticeLevel::Warning)
         );
     }
 
     #[test]
     fn a_notice_label_has_its_own_style() {
-        let plain = Theme::new().with_notice_style(NoticeLevel::Success, Style::new());
-        assert_eq!(plain.notice_style(NoticeLevel::Success), Style::new());
+        let plain = Theme::new().notice_style(NoticeLevel::Success, Style::new());
+        assert_eq!(plain.label_style(NoticeLevel::Success), Style::new());
         assert_eq!(
-            plain.style(Role::Success),
-            Theme::new().style(Role::Success)
+            plain.role_style(Role::Success),
+            Theme::new().role_style(Role::Success)
         );
     }
 
     #[test]
     fn a_notice_label_follows_its_role_until_given_its_own_style() {
         let magenta = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Magenta)));
-        let follows = Theme::new().with_style(Role::Error, magenta);
-        assert_eq!(follows.notice_style(NoticeLevel::Error), magenta);
+        let follows = Theme::new().style(Role::Error, magenta);
+        assert_eq!(follows.label_style(NoticeLevel::Error), magenta);
 
         let underline = Style::new().effects(Effects::UNDERLINE);
         let own = Theme::new()
-            .with_notice_style(NoticeLevel::Error, underline)
-            .with_style(Role::Error, magenta);
-        assert_eq!(own.notice_style(NoticeLevel::Error), underline);
-        assert_eq!(own.style(Role::Error), magenta);
+            .notice_style(NoticeLevel::Error, underline)
+            .style(Role::Error, magenta);
+        assert_eq!(own.label_style(NoticeLevel::Error), underline);
+        assert_eq!(own.role_style(Role::Error), magenta);
     }
 }

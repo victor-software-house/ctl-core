@@ -42,7 +42,7 @@ width.
 ### Requirement: List style is a public option
 
 ctl-core SHALL render a `Table` list in the frame set on `RenderOptions`
-(`with_frame`), and SHALL use `Frame::Grid` when none is set.
+(`frame`), and SHALL use `Frame::Grid` when none is set.
 
 #### Scenario: Header rule
 
@@ -57,7 +57,7 @@ option, and SHALL read no variable when the list is empty.
 
 #### Scenario: Disabled lookup
 
-- **WHEN** a consumer sets `with_record_style_envs(&[])` and `CTL_CORE_RECORD_STYLE=boxed` is set
+- **WHEN** a consumer sets `record_style_envs(&[])` and `CTL_CORE_RECORD_STYLE=boxed` is set
 - **THEN** records render with keys right-aligned and no frame
 
 ## ADDED Requirements
