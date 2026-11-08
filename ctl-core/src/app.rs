@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 use std::fmt;
-use std::io::Write as _;
+use std::io::{self, Write as _};
 use std::marker::PhantomData;
 use std::process::ExitCode;
 
@@ -14,6 +14,7 @@ use clap::{CommandFactory, Parser};
 use crate::color::ColorMode;
 use crate::format::OutputFormat;
 use crate::render::RenderOptions;
+use crate::theme::Theme;
 use crate::view::{JsonLayout, Present, View};
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
@@ -24,6 +25,22 @@ type RenderUsage = Box<dyn Fn(Command, &str) -> String>;
 /// A fallback width the owner chose, including `None` to disable it.
 #[derive(Clone, Copy)]
 struct Fallback(Option<u16>);
+
+/// How [`App`] exits when the reader closes stdout or stderr before the
+/// output is written, as `head -1` does.
+///
+/// A ctl CLI ignores SIGPIPE, as every Rust program does by default, so a
+/// closed pipe reaches it as a failed write, not as a signal.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub enum BrokenPipe {
+    /// Exit with code 0 and write nothing to stderr: the reader had what it
+    /// wanted, and a script under `set -o pipefail` keeps going.
+    #[default]
+    Succeed,
+    /// Exit with a failure code, for a consumer that treats a reader that
+    /// stopped early as an error.
+    Fail,
+}
 
 /// One ctl process: short-circuits, help, parsing, execution, and presentation.
 pub struct App<C> {
@@ -37,6 +54,8 @@ pub struct App<C> {
     styles: Option<RenderOptions>,
     json_layout: Option<JsonLayout>,
     json_layout_envs: Option<&'static [&'static str]>,
+    theme: Option<Theme>,
+    broken_pipe: BrokenPipe,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -69,6 +88,8 @@ impl<C> App<C> {
             styles: None,
             json_layout: None,
             json_layout_envs: None,
+            theme: None,
+            broken_pipe: BrokenPipe::Succeed,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -146,6 +167,40 @@ impl<C> App<C> {
         self
     }
 
+    /// Draw help, errors, and command output in `theme`, in place of
+    /// [`Theme::default`]. It also replaces the theme a [`Self::styles`]
+    /// value carries. Colour is still the colour mode's choice:
+    /// `--color never` writes no style.
+    #[must_use]
+    pub fn theme(mut self, theme: Theme) -> Self {
+        self.theme = Some(theme);
+        self
+    }
+
+    /// Exit as `policy` says when the reader closes stdout or stderr before
+    /// the output is written. The default, [`BrokenPipe::Succeed`], exits 0
+    /// and writes nothing to stderr.
+    #[must_use]
+    pub fn broken_pipe(mut self, policy: BrokenPipe) -> Self {
+        self.broken_pipe = policy;
+        self
+    }
+
+    /// The exit code for `written`, the result of writing output: its own
+    /// code on success, the [`BrokenPipe`] policy's code when the reader
+    /// closed the stream, and a failure otherwise. Nothing is reported on
+    /// stderr, which may be the stream that closed.
+    fn written(&self, written: io::Result<ExitCode>) -> ExitCode {
+        match written {
+            Ok(code) => code,
+            Err(error) if error.kind() == io::ErrorKind::BrokenPipe => match self.broken_pipe {
+                BrokenPipe::Succeed => ExitCode::SUCCESS,
+                BrokenPipe::Fail => ExitCode::FAILURE,
+            },
+            Err(_) => ExitCode::FAILURE,
+        }
+    }
+
     fn configured_view(&self, mut view: View) -> View {
         if let Some(buffer) = self.automatic_width_buffer {
             view = view.automatic_width_buffer(buffer);
@@ -161,6 +216,9 @@ impl<C> App<C> {
         }
         if let Some(styles) = self.styles {
             view = view.styles(styles);
+        }
+        if let Some(theme) = self.theme {
+            view = view.theme(theme);
         }
         if let Some(layout) = self.json_layout {
             view = view.json_layout(layout);
@@ -251,8 +309,8 @@ where
             let mut command = C::command();
             command.set_bin_name(&spec_bin);
             let spec = (self.render_usage)(command, &spec_bin);
-            return crate::view::write_stdout(spec.as_bytes())
-                .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS);
+            return self
+                .written(crate::view::write_stdout(spec.as_bytes()).map(|()| ExitCode::SUCCESS));
         }
 
         for hook in &self.before_parse {
@@ -266,13 +324,15 @@ where
             let _ = writeln!(std::io::stderr().lock(), "{}: warning: {warning}", self.bin);
         }
         if words.len() == 1 && crate::parser::requires_input::<C>() {
-            return crate::help::emit_bare_with_options::<C>(raw_view.render_options())
-                .map_or(ExitCode::FAILURE, |()| ExitCode::from(2));
+            return self.written(
+                crate::help::emit_bare_with_options::<C>(raw_view.render_options())
+                    .map(|()| ExitCode::from(2)),
+            );
         }
         match crate::help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
-            Err(_) => return ExitCode::FAILURE,
+            Err(error) => return self.written(Err(error)),
         }
 
         let command = crate::parser::apply_defaults(C::command());
@@ -296,10 +356,8 @@ where
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
-            Ok(value) => view.show(&value).unwrap_or(ExitCode::FAILURE),
-            Err(error) => view
-                .emit_err(&self.bin, &format!("{error:#}"))
-                .unwrap_or(ExitCode::FAILURE),
+            Ok(value) => self.written(view.show(&value)),
+            Err(error) => self.written(view.emit_err(&self.bin, &format!("{error:#}"))),
         }
     }
 
@@ -312,9 +370,10 @@ where
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
-            return view
-                .emit_err(&self.bin, error.to_string().trim())
-                .map_or(ExitCode::FAILURE, |_| code);
+            return self.written(
+                view.emit_err(&self.bin, error.to_string().trim())
+                    .map(|_| code),
+            );
         }
         let options = view.render_options();
         let written = if kind == ErrorKind::DisplayVersion {
@@ -324,7 +383,7 @@ where
         } else {
             crate::help::emit_selected_to_stderr::<C>(args, options)
         };
-        written.map_or(ExitCode::FAILURE, |()| code)
+        self.written(written.map(|()| code))
     }
 }
 
@@ -391,11 +450,11 @@ mod tests {
     use clap::{Parser, Subcommand};
     use serde::Serialize;
 
-    use super::{App, is_clap_display, parse_error_view, raw_view};
+    use super::{App, BrokenPipe, is_clap_display, parse_error_view, raw_view};
     use crate::document::{Document, Fields};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
-    use crate::{ColorMode, OutputArgs, OutputFormat};
+    use crate::{ColorMode, OutputArgs, OutputFormat, Role, Theme};
 
     #[derive(Parser)]
     #[command(version, about = "toy")]
@@ -599,6 +658,35 @@ mod tests {
             .capture(&Status { pending: 1 })
             .unwrap();
         assert_eq!(json.text(), "{\"pending\":1}\n");
+    }
+
+    #[test]
+    fn app_theme_reaches_every_view_over_the_styles_theme() {
+        let underline = ctl_text::Style::new().effects(ctl_text::anstyle::Effects::UNDERLINE);
+        let theme = Theme::new().role_style(Role::Heading, underline);
+        let app = App::<Cli>::new("toy")
+            .theme(theme)
+            .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed));
+        let options = app
+            .configured_view(View::new(OutputFormat::Pretty, ColorMode::Always))
+            .render_options();
+        assert_eq!(options.active_theme(), theme);
+        assert_eq!(options.record(), RecordStyle::Boxed);
+    }
+
+    #[test]
+    fn a_closed_pipe_exits_as_the_policy_says() {
+        let closed = || Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe));
+        let other = || Err(std::io::Error::other("disk full"));
+        let quiet = App::<Cli>::new("toy");
+        assert_eq!(quiet.written(closed()), std::process::ExitCode::SUCCESS);
+        assert_eq!(quiet.written(other()), std::process::ExitCode::FAILURE);
+        assert_eq!(
+            quiet.written(Ok(std::process::ExitCode::from(2))),
+            std::process::ExitCode::from(2)
+        );
+        let strict = App::<Cli>::new("toy").broken_pipe(BrokenPipe::Fail);
+        assert_eq!(strict.written(closed()), std::process::ExitCode::FAILURE);
     }
 
     #[test]
