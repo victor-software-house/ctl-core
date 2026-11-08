@@ -407,6 +407,13 @@ because a ctl CLI is not killed by the signal, and a non-zero exit fails
 `set -o pipefail` scripts for a reader that simply had enough. A consumer that
 wants the error sets `App::broken_pipe(BrokenPipe::Fail)`.
 
+A closed pipe never turns a failure into success. Under the default,
+`BrokenPipe::Ignore`, `App` exits with the code the command would have had
+with every byte read: a failed command keeps 1, and a parse error keeps 2.
+Only a command that succeeded exits 0. Exiting 0 on every closed pipe was
+the first version; review found it hid a failed command whose error went to
+a reader that stopped early, which a script would then read as a pass.
+
 ### 14. Phases: replace first, then add what rich has
 
 | Phase | Delivers | Row |
@@ -621,7 +628,7 @@ new rule keeps two parts and replaces two:
 | Fallback width 80 | `fallback_width(Some(n))` | `fallback_width(None)` |
 | Unsafe characters removed from spans | none: it is a safety rule | `Document::verbatim` keeps tabs and newlines |
 | Tabs expanded to 8 | `Context::tab_width(n)` | none |
-| Closed pipe exits 0 | `App::broken_pipe(BrokenPipe::Fail)` | the same |
+| Closed pipe keeps the command's exit code | `App::broken_pipe(BrokenPipe::Fail)` | the same |
 | Default theme | `App::theme`, `View::theme`, `RenderOptions::theme` | `ColorMode::Never` |
 | Windows virtual-terminal mode | none | `ColorMode::Never` |
 

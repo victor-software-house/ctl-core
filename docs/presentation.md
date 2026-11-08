@@ -138,9 +138,11 @@ One serializable model feeds all modes:
    one stream.
 5. Quiet suppresses successful human output only. It never hides errors or
    JSON.
-6. A reader that closes stdout or stderr early, as `head -1` does, ends the
-   program with exit code 0 and nothing on stderr. `App::broken_pipe` with
-   `BrokenPipe::Fail` makes it a failure.
+6. A reader that closes stdout or stderr early, as `head -1` does, leaves the
+   exit code as the command set it and puts nothing on stderr. A command that
+   succeeded exits 0; a failed command or a parse error keeps its code, so a
+   closed pipe never turns a failure into success. `App::broken_pipe` with
+   `BrokenPipe::Fail` makes every closed pipe a failure.
 
 ## Help law
 

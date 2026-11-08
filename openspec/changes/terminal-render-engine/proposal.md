@@ -50,7 +50,8 @@ Queue row: CTC-034.
 4. Width is read from the stream being written, then `COLUMNS`, then the
    fallback.
 5. `Table` gains `ellipsis_column` and `numeric_column`. A theme maps roles to
-   styles and can be replaced. A closed pipe ends the program with exit code 0.
+   styles and can be replaced. A closed pipe leaves the exit code as the
+   command set it: success stays 0, and a failure keeps its code.
 6. **BREAKING:** `kv` and `grid`, which no consumer calls, are removed.
    Output captured under `ColorMode::Auto` off a terminal no longer holds SGR
    bytes. Column widths can differ from comfy-table's; the parity test lists
@@ -71,7 +72,8 @@ The maintainer decided these on 2026-11-08 (UTC). Each is argued in
    changes ([design, decisions 1 and 2][design]).
 2. The crates are named `ctl-text`, `ctl-layout` and `ctl-term`
    ([design, decision 3][design]).
-3. A closed pipe exits 0 ([design, decision 13][design]).
+3. A closed pipe exits 0 after success and never hides a failure
+   ([design, decision 13][design]).
 4. CI enforces a `.text` budget per tier, kept in a
    `[workspace.metadata.size]` table of the root `Cargo.toml`
    ([design, decision 16][design]).
