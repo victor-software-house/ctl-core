@@ -10,12 +10,14 @@
 //! `head -1`, then starts itself with the switch variable set and its stdout
 //! on `head`'s stdin. With the switch set it is the writer: it prints 10,000
 //! rows and exits 0 when the console reports a closed pipe, 3 when every row
-//! went through, and 4 on any other error. Arguments are ignored.
+//! went through, and 4 on any other error. Arguments are ignored, so
+//! `cargo test <filter>` still runs this binary.
 
 #[cfg(unix)]
 mod unix {
     use std::io::{self, Write};
-    use std::process::{Command, ExitCode, Stdio};
+    use std::path::PathBuf;
+    use std::process::{Child, Command, ExitCode, Stdio};
 
     use ctl_term::{ColorMode, Console, Error, Stream};
     use ctl_text::{Context, Line, Measurement, Renderable, Span, Style};
@@ -82,6 +84,24 @@ mod unix {
         }
     }
 
+    /// Starts the writer with `stdout` as its standard output.
+    ///
+    /// The `Command` keeps its copy of `stdout`, the write end of `head`'s
+    /// stdin, until it is dropped. It is dropped when this returns, so a
+    /// writer that dies before writing a line leaves `head` at end of file
+    /// and the test fails instead of hanging.
+    fn spawn_writer(path: PathBuf, stdout: Stdio) -> io::Result<Child> {
+        let mut writer = Command::new(path);
+        writer
+            .env(WRITER_SWITCH, "1")
+            .stdout(stdout)
+            .stderr(Stdio::piped());
+        for name in COLOUR_VARIABLES {
+            writer.env_remove(name);
+        }
+        writer.spawn()
+    }
+
     fn start_both() -> Result<(), String> {
         let mut head = Command::new("head")
             .arg("-1")
@@ -96,18 +116,11 @@ mod unix {
 
         let path = std::env::current_exe()
             .map_err(|error| format!("could not find the test binary: {error}"))?;
-        let mut writer = Command::new(path);
-        writer
-            .env(WRITER_SWITCH, "1")
-            .stdout(Stdio::from(pipe))
-            .stderr(Stdio::piped());
-        for name in COLOUR_VARIABLES {
-            writer.env_remove(name);
-        }
-        let output = writer
-            .spawn()
-            .and_then(std::process::Child::wait_with_output)
-            .map_err(|error| format!("could not run the writer: {error}"))?;
+        let child = spawn_writer(path, Stdio::from(pipe))
+            .map_err(|error| format!("could not start the writer: {error}"))?;
+        let output = child
+            .wait_with_output()
+            .map_err(|error| format!("could not wait for the writer: {error}"))?;
         let head_output = head
             .wait_with_output()
             .map_err(|error| format!("could not wait for head: {error}"))?;
@@ -130,6 +143,9 @@ mod unix {
     }
 }
 
+/// Relies on Rust's default of ignoring SIGPIPE, so a closed pipe reaches the
+/// writer as an I/O error; `-Zon-broken-pipe=kill` or a SIGPIPE reset would
+/// kill it by the signal instead, and the parent would report a failure.
 #[cfg(unix)]
 fn main() -> std::process::ExitCode {
     unix::run()
