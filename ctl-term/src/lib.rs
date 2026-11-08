@@ -99,6 +99,7 @@
 //! `Console::print`, and brings in `terminal_size`. Without it the crate holds
 //! the [`Encoder`], the colour conversion, and [`Terminal::from_probe`], which
 //! need no terminal.
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod color;
 mod console;
