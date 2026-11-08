@@ -47,8 +47,9 @@ render = [
   "dep:unicode-width",
 ]
 
-## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`).
-verbatim = ["dep:unicode-bidi"]
+## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`),
+## re-exported from `ctl-text`.
+verbatim = ["dep:ctl-text"]
 
 ## JSON Schema for the envelope and enums (`schemars`).
 schema = ["json", "dep:schemars"]
@@ -127,7 +128,7 @@ tempfile = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 yamled = { workspace = true, optional = true }
 usage-lib = { workspace = true, optional = true }
-unicode-bidi = { workspace = true, optional = true }
+ctl-text = { workspace = true, optional = true }
 unicode-width = { workspace = true, optional = true }
 
 [dev-dependencies]

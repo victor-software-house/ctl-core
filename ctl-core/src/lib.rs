@@ -117,7 +117,7 @@ pub mod usage;
 #[cfg(feature = "validate")]
 pub mod validate;
 #[cfg(feature = "verbatim")]
-pub mod verbatim;
+pub use ctl_text::verbatim;
 #[cfg(feature = "view")]
 pub mod view;
 

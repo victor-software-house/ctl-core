@@ -1,0 +1,150 @@
+//! The widget protocol: measurements, the context, style overlay, and a
+//! widget built on them.
+
+use ctl_text::anstyle::{AnsiColor, Effects};
+use ctl_text::{
+    BoxChars, Context, Line, Measurement, Overflow, Renderable, Span, Style, Text, overlay,
+};
+
+fn lines(widget: &dyn Renderable, width: u16) -> Vec<String> {
+    widget
+        .render(&Context::new(width))
+        .iter()
+        .map(ToString::to_string)
+        .collect()
+}
+
+#[test]
+fn an_exact_measurement_has_equal_bounds() {
+    let measurement = Measurement::exact(12);
+    assert_eq!((measurement.minimum(), measurement.maximum()), (12, 12));
+}
+
+#[test]
+fn a_maximum_below_the_minimum_is_raised() {
+    let measurement = Measurement::new(5, 2);
+    assert_eq!((measurement.minimum(), measurement.maximum()), (5, 5));
+}
+
+#[test]
+fn keep_words_measures_the_widest_word_and_the_widest_line() {
+    let text = Text::plain("see https://example.test/releases/tag/pkg@1.2.3\nshort");
+    let measurement = text.measure(&Context::new(30));
+    assert_eq!(measurement.minimum(), 43);
+    assert_eq!(measurement.maximum(), 47);
+}
+
+#[test]
+fn fold_measures_the_widest_cluster() {
+    let text = Text::plain("日本語 ab").overflow(Overflow::Fold);
+    let measurement = text.measure(&Context::new(30));
+    assert_eq!((measurement.minimum(), measurement.maximum()), (2, 9));
+}
+
+#[test]
+fn ellipsis_measures_one_cell_for_text_and_none_for_nothing() {
+    let cut = Text::plain("abc def").overflow(Overflow::Ellipsis);
+    assert_eq!(cut.measure(&Context::new(30)).minimum(), 1);
+    let blank = Text::plain("   ").overflow(Overflow::Ellipsis);
+    let measurement = blank.measure(&Context::new(30));
+    assert_eq!((measurement.minimum(), measurement.maximum()), (0, 0));
+}
+
+#[test]
+fn empty_text_measures_and_renders_nothing() {
+    let text = Text::new();
+    assert_eq!(text.measure(&Context::new(30)), Measurement::exact(0));
+    assert!(text.render(&Context::new(30)).is_empty());
+}
+
+#[test]
+fn a_measurement_counts_tabs_at_the_context_tab_width() {
+    let text = Text::plain("a\tb");
+    assert_eq!(text.measure(&Context::new(30)).maximum(), 9);
+    let context = Context::new(30).with_tab_width(2);
+    assert_eq!(text.measure(&context).maximum(), 3);
+}
+
+#[test]
+fn a_context_derives_a_child_context() {
+    let parent = Context::new(80)
+        .with_tab_width(4)
+        .with_box_chars(BoxChars::Ascii);
+    let child = parent.with_width(20);
+    assert_eq!(
+        (child.width(), child.tab_width(), child.box_chars()),
+        (20, 4, BoxChars::Ascii)
+    );
+    assert_eq!(parent.width(), 80);
+}
+
+#[test]
+fn a_context_defaults_to_tab_stops_of_eight_and_unicode_boxes() {
+    let context = Context::new(80);
+    assert_eq!(
+        (context.tab_width(), context.box_chars()),
+        (8, BoxChars::Unicode)
+    );
+}
+
+#[test]
+fn a_container_holds_widgets_as_trait_objects() {
+    let widgets: Vec<Box<dyn Renderable>> = vec![
+        Box::new(Text::plain("one two")),
+        Box::new(Text::plain("日本語").overflow(Overflow::Fold)),
+    ];
+    let rendered: Vec<Vec<String>> = widgets
+        .iter()
+        .map(|widget| lines(widget.as_ref(), 3))
+        .collect();
+    assert_eq!(rendered, [vec!["one", "two"], vec!["日", "本", "語"]]);
+}
+
+#[test]
+fn a_widget_draws_itself_from_a_measurement() {
+    struct Bar(u16);
+
+    impl Renderable for Bar {
+        fn measure(&self, _: &Context) -> Measurement {
+            Measurement::exact(self.0)
+        }
+
+        fn render(&self, context: &Context) -> Vec<Line> {
+            let cells = self.0.min(context.width());
+            vec![Line::from(Span::new(
+                "=".repeat(cells.into()),
+                Style::new(),
+            ))]
+        }
+    }
+
+    let bar = Bar(10);
+    assert_eq!(bar.measure(&Context::new(4)), Measurement::exact(10));
+    assert_eq!(lines(&bar, 4), ["===="]);
+}
+
+#[test]
+fn overlay_prefers_the_top_colours_and_keeps_the_base_ones_it_leaves_unset() {
+    let base = Style::new()
+        .fg_color(Some(AnsiColor::Red.into()))
+        .bg_color(Some(AnsiColor::White.into()));
+    let top = Style::new().fg_color(Some(AnsiColor::Blue.into()));
+    let merged = overlay(base, top);
+    assert_eq!(merged.get_fg_color(), Some(AnsiColor::Blue.into()));
+    assert_eq!(merged.get_bg_color(), Some(AnsiColor::White.into()));
+}
+
+#[test]
+fn overlay_adds_the_effects_of_both() {
+    let merged = overlay(Style::new().bold(), Style::new().underline());
+    assert_eq!(merged.get_effects(), Effects::BOLD | Effects::UNDERLINE);
+}
+
+#[test]
+fn overlaying_the_default_style_changes_nothing() {
+    let base = Style::new()
+        .fg_color(Some(AnsiColor::Green.into()))
+        .italic();
+    assert_eq!(overlay(base, Style::new()), base);
+    assert_eq!(overlay(Style::new(), base), base);
+}
