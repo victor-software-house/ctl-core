@@ -429,7 +429,8 @@ elsewhere. A change that grows a tier on purpose raises its budget in the
 same pull request, measured with the pinned rustc.
 `lint:prose` runs Vale with the prose-style package over the files
 `.vale.ini` picks: `README.md`, `AGENTS.md`, `docs/` outside
-`docs/research/`, the crate docs in each `src/`, and the changesets.
+`docs/research/`, every comment in the Rust files under each `src/`, and
+the changesets.
 `vale sync` fetches the package into the ignored `.vale/`, so the first run
 needs the network.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
