@@ -34,9 +34,9 @@ Queue row: CTC-031.
    - `fish --no-config -n` for fish.
 
    It writes the script through ctl-core's `fixture` module.
-4. zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 are tools of the `test`
-   task in `mise.toml`, so local runs and CI use the same tools and no other
-   job fetches them.
+4. zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 are lazy tools in
+   `mise.toml`, so local runs and CI use the same tools, and only the
+   `test` task, through its `install:test-tools` dependency, fetches them.
 5. The `completion` tests move to snapshots.
    The test crate drops its `missing_docs` exception, which never fired.
 6. The `Shell` docs state that its set of shells is closed.

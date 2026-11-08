@@ -75,22 +75,47 @@ below.
    - Alternative: parse the snapshot files in a separate mise task.
      A `.snap` header is not shell syntax, and the test already holds the
      text the snapshot compares.
-4. **The tools belong to the `test` task**: `conda:zsh` 5.9.2,
-   `conda:fish` 4.9.3, and `shellcheck` 0.11.0, as `tools` of a
-   `[tasks.test]` in `mise.toml`.
-   That task replaces the shared catalog's `test` and keeps its run line and
-   timeout, because a catalog task takes no extra tools.
-   Only `mise run test` fetches them; `mise install`, the lint jobs, and the
-   release jobs do not.
+4. **The tools are lazy tools in `mise.toml`**: `conda:zsh` 5.9.2,
+   `conda:fish` 4.9.3, and `shellcheck` 0.11.0 in `[tools]` with
+   `lazy = true` ([lazy tools][mise-lazy]).
+   `mise install`, and with it mise-action's install step, skips them, so the
+   lint and release jobs never fetch them.
+   `test` depends on `install:test-tools`, which runs
+   `mise install conda:zsh conda:fish shellcheck` from `mise.lock`.
+   mise builds a task's toolset when the task starts, after its
+   dependencies ([task_executor.rs L2716-2737][mise-task-context]), so the
+   install directories are on the tests' `PATH`.
+   - Alternative: let a test's first start install the tool through its
+     bootstrap shim.
+     cargo runs through mr-boxington's command wrapper, and mise takes its
+     shims off a wrapped command's `PATH`
+     ([exec.rs L387-391][mise-wrapper-path]), so no test finds the shim
+     ([run 42434896632][run-wrapped]).
    Conda-forge builds cover both locked platforms, linux-x64 and
    macos-arm64; fish's GitHub release has no macOS archive.
    bash stays the platform's own shell.
    A test that cannot start a tool fails and names it.
    - Alternative: skip when a tool is missing.
      That check would pass without checking anything.
-   - Alternative: `[tools]` in `mise.toml`.
+   - Alternative: eager `[tools]` in `mise.toml`.
      Every job and every `mise install` would fetch conda zsh, conda fish,
      and their conda dependencies, release jobs included.
+   - Alternative: `tools` of a `[tasks.test]` that replaces the catalog's.
+     It shipped first, and a cold install failed in CI ([run
+     42433739166][run-cold]):
+     `conda package pcre2-10.49-h8b3dc9c_0 not found in lockfile for
+     linux-x64`, although `mise.lock` holds that package.
+     mise 2026.10.25 gives a task tool the source `Argument`
+     ([task/mod.rs][mise-task-arg]).
+     It finds the tool's version by merging every lockfile
+     ([lockfile.rs L5506-5527][mise-locked-version]), but the conda backend
+     reads the dependency packages from the lockfile of the request's own
+     source ([conda.rs L552-569][mise-conda-deps]), and `Argument` maps to
+     none ([lockfile.rs L2648-2650][mise-source-path]), so it reads an
+     empty lockfile.
+     Earlier runs passed only because their mise cache already held both
+     shells.
+     mise 2026.11.4 reads the same way.
    - Alternative: a profile of their own.
      CI's shared workflow sets `MISE_ENV=ci` and takes no profile input,
      so its test job could not select one.
@@ -123,5 +148,14 @@ below.
 [insta]: https://github.com/mitsuhiko/insta/tree/1.49.0
 [insta-ci]: https://github.com/mitsuhiko/insta/blob/1.49.0/insta/src/utils.rs#L9-L16
 [insta-env]: https://github.com/mitsuhiko/insta/blob/1.49.0/insta/src/env.rs#L245-L269
+[mise-conda-deps]: https://github.com/jdx/mise/blob/v2026.10.25/src/backend/conda.rs#L552-L569
+[mise-lazy]: https://github.com/jdx/mise/blob/v2026.10.25/docs/dev-tools/shims.md#L435-L451
+[mise-locked-version]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L5506-L5527
+[mise-source-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L2648-L2650
+[mise-task-arg]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/mod.rs#L168
+[mise-task-context]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/task_executor.rs#L2716-L2737
+[mise-wrapper-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/cli/exec.rs#L387-L391
+[run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166
+[run-wrapped]: https://github.com/victor-software-house/ctl-core/actions/runs/42434896632
 [snapbox]: https://github.com/assert-rs/snapbox/tree/snapbox-v1.2.2
 [snapbox-action]: https://github.com/assert-rs/snapbox/blob/snapbox-v1.2.2/crates/snapbox/src/assert/action.rs#L1-L33

@@ -34,6 +34,15 @@ typos = "1.51.1"
 actionlint = "1.7.12"
 # OpenSpec's standalone release binary; it needs no node.
 "github:Fission-AI/OpenSpec" = "1.16.0"
+# The shells and linter the script tests run each rendered shell script
+# through (tests/support/shells.rs). Lazy, so `mise install` and the jobs that
+# never run the tests skip them; install:test-tools installs them before test.
+# Conda builds cover both locked platforms. They are not task tools: mise
+# 2026.10.25 reads a task tool's conda dependencies from no lockfile, so a cold
+# install fails (openspec/changes/script-snapshots/design.md, decision 4).
+"conda:zsh" = { version = "5.9.2", lazy = true, lazy_bins = ["zsh"] }
+"conda:fish" = { version = "4.9.3", lazy = true, lazy_bins = ["fish"] }
+shellcheck = { version = "0.11.0", lazy = true }
 
 # The shared Rust tasks read their toolchains from here and name none.
 [env]
@@ -61,16 +70,21 @@ depends = [
   "check:repo",
 ]
 
-# The shared catalog's test, plus the shells and linter the script tests run
-# each rendered shell script through (tests/support/shells.rs). Only this task
-# needs them, so they are task tools: no other job or `mise install` fetches
-# them. Conda builds cover both locked platforms. Keep the run line and
-# timeout equal to the catalog's test task.
+# cargo runs through mr-boxington's command wrapper, and mise takes its shims
+# off a wrapped command's PATH, so a lazy tool's bootstrap shim never reaches a
+# test. Installing the tools first puts their install directories on test's
+# PATH, which mise builds when test starts, after its dependencies.
+[tasks."install:test-tools"]
+description = "Install the shells and linter the script tests start"
+run = "mise install conda:zsh conda:fish shellcheck"
+
+# The shared catalog's test, run after install:test-tools. Keep the run line
+# and timeout equal to the catalog's test task.
 [tasks.test]
 description = "Unit and integration tests"
+depends = ["install:test-tools"]
 run = "cargo test --locked --workspace --all-features --tests --no-fail-fast"
 timeout = "30m"
-tools = { "conda:zsh" = "5.9.2", "conda:fish" = "4.9.3", shellcheck = "0.11.0" }
 
 # mise-tasks/ holds this repository's task fragments and file tasks. An
 # includes list replaces the default task dirs, so mise-tasks comes first; add
