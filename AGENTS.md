@@ -82,7 +82,7 @@ The repository is a virtual Cargo workspace (`layout: workspace` in the
 Copier answers). The root `Cargo.toml` holds the members, one version for
 every crate in `[workspace.package]`, `[workspace.dependencies]`, and
 `[workspace.lints]`. Each crate lives in a root folder named like its
-package, today `ctl-core/` and `ctl-text/`, and inherits those tables with
+package, today `ctl-core/`, `ctl-layout/`, and `ctl-text/`, and inherits those tables with
 `workspace = true`. Profiles stay in the root manifest, where Cargo reads
 them. For a workspace the template drops the library-only `print_stdout` and
 `print_stderr` lints and clippy's `allow-print-in-tests`; they stay here as
@@ -91,7 +91,7 @@ virtual manifest, so verctl bumps `workspace.package.version` and publishes
 each member in dependency order. `check:features` passes
 `--package ctl-core`, since Cargo refuses `--features` at the root of a
 virtual workspace. The terminal-render-engine change adds `ctl-text`,
-`ctl-layout`, and `ctl-term` beside `ctl-core/`; only `ctl-text` exists so far.
+`ctl-layout`, and `ctl-term` beside `ctl-core/`; `ctl-term` does not exist yet.
 
 `ctl-text/` holds styled text (`Span`, `Line`, `Text`), cell widths, wrapping and
 truncation, the `Renderable` protocol, and the unsafe-character module
@@ -102,6 +102,14 @@ or unsafe characters changes there, not in ctl-core. ctl-core requires it at
 exactly the workspace version (`version = "=x.y.z"` in the root manifest),
 and a `pins` entry in `.ctl/ver.yaml` moves that requirement with each
 release; keep the two in step if either is renamed.
+
+`ctl-layout/` holds the widgets built on that protocol: `Table` and its
+five-step column algorithm, `Record`, `Rule`, `Stack`, and `Indent`. It depends
+only on `ctl-text`, and nothing in this repository depends on it yet:
+ctl-core moves onto it in its own change. A layout rule, such as how a table
+chooses column widths, changes there. Its snapshots live in
+`ctl-layout/tests/snapshots/` and are the review evidence for a layout change:
+read the diff of every changed file.
 
 ## Cargo features
 
