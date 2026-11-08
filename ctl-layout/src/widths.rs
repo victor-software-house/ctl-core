@@ -28,6 +28,9 @@ pub(crate) enum Framing {
 /// 4. If the minimums still do not fit, an unframed table stops: its keep-words
 ///    columns run past the width. A framed table goes on to the floors, because
 ///    a frame cannot run past the width and stay aligned.
+///
+/// These are the widths cells render at. The table then narrows each column
+/// to its widest rendered line, step 6 of [`Table`](crate::Table).
 pub(crate) fn solve(extents: &[Extent], available: u16, framing: Framing) -> Vec<u16> {
     let mut widths: Vec<u16> = extents.iter().map(|extent| extent.natural).collect();
     let minimums: Vec<u16> = extents.iter().map(|extent| extent.minimum).collect();
