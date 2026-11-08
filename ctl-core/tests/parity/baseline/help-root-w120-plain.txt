@@ -1,0 +1,29 @@
+Usage: ledgerctl [OPTIONS] [COMMAND]
+
+Commands
+┌────────┬───────────────────────────────────────────────────────────┐
+│ status ┆ Show the queue and the active row                         │
+│ add    ┆ Add a row to the queue                                    │
+│ show   ┆ Show one row                                              │
+│ help   ┆ Print this message or the help of the given subcommand(s) │
+└────────┴───────────────────────────────────────────────────────────┘
+
+Options
+┌────┬───────────┬──────┬────────────────────────────────────────────────────────────────────┐
+│    ┆ --config  ┆ PATH ┆ Ledger file to read [default: .ctl/q.yaml] [env: LEDGERCTL_CONFIG] │
+│ -V ┆ --version ┆      ┆ Print version                                                      │
+└────┴───────────┴──────┴────────────────────────────────────────────────────────────────────┘
+
+Output
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────────────────────────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default: pretty] [env: LEDGERCTL_FORMAT]              │
+│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output color policy. JSON never contains ANSI [default: auto] [env:   │
+│    ┆            ┆                     ┆ LEDGERCTL_COLOR]                                                             │
+│    ┆ --no-color ┆                     ┆ Force colorless pretty output. Wins over `--color`                           │
+│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output [env: LEDGERCTL_QUIET]                     │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────────────────────────────────────────────┘
+
+Help
+┌────┬────────┬───┬─────────────────────────────────────┐
+│ -h ┆ --help ┆   ┆ Print help (see more with '--help') │
+└────┴────────┴───┴─────────────────────────────────────┘

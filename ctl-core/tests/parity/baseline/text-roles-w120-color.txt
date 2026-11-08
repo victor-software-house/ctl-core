@@ -1,0 +1,2 @@
+\u{1b}[1m\u{1b}[36mHeading\u{1b}[0m then plain words, a flag \u{1b}[1m\u{1b}[32m--format\u{1b}[0m, a row \u{1b}[1mTSK-012\u{1b}[0m, a metavar \u{1b}[1m\u{1b}[33mPATH\u{1b}[0m, a note \u{1b}[90m(muted)\u{1b}[0m, and the outcomes \u{1b}[1m\u{1b}[32mdone\u{1b}[0m,
+\u{1b}[1m\u{1b}[33mcareful\u{1b}[0m, and \u{1b}[1m\u{1b}[31mfailed\u{1b}[0m, followed by enough ordinary words to wrap the paragraph at every width.

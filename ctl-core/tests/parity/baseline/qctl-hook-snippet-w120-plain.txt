@@ -1,0 +1,6 @@
+pre-push:
+  commands:
+    close-from-git:
+      run: qctl close-from-git
+
+error · add the command under pre-push.commands in lefthook.yml; qctl does not edit Lefthook config; hook not installed

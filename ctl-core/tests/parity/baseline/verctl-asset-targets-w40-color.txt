@@ -1,0 +1,13 @@
+┌────────────┬────────────┬────────────┐
+│ \u{1b}[1m\u{1b}[36mtarget\u{1b}[0m     ┆ \u{1b}[1m\u{1b}[36mruns-on\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[36masset\u{1b}[0m      │
+╞════════════╪════════════╪════════════╡
+│ \u{1b}[1m\u{1b}[32mlinux-x64\u{1b}[0m  ┆ linux,     ┆ demo-cli-l │
+│            ┆ x64, large ┆ inux-x64.t │
+│            ┆            ┆ ar.gz      │
+│ \u{1b}[1m\u{1b}[32mmacos-arm6\u{1b}[0m ┆ macos,     ┆ demo-cli-m │
+│ \u{1b}[1m\u{1b}[32m4\u{1b}[0m          ┆ arm64      ┆ acos-arm64 │
+│            ┆            ┆ .tar.gz    │
+└────────────┴────────────┴────────────┘
+
+    \u{1b}[1m\u{1b}[32mtag\u{1b}[0m  demo-cli@1.8.1
+\u{1b}[1m\u{1b}[32mtarball\u{1b}[0m  dist/demo-cli-1.8.1.tar.gz

@@ -1,0 +1,19 @@
+\u{1b}[1m\u{1b}[32mledger\u{1b}[0m  tasks.yaml
+\u{1b}[1m\u{1b}[32mactive\u{1b}[0m  \u{1b}[1mTSK-012\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36mqueue\u{1b}[0m
+┌──────────┬─────────┬───────────────────────────────────────────────────────────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[36mpriority\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mid\u{1b}[0m      ┆ \u{1b}[1m\u{1b}[36mtitle\u{1b}[0m                                                                                     │
+╞══════════╪═════════╪═══════════════════════════════════════════════════════════════════════════════════════════╡
+│ 1*       ┆ \u{1b}[1mTSK-012\u{1b}[0m ┆ Move the parser onto the shared input loader                                              │
+│ 2        ┆ \u{1b}[1mTSK-014\u{1b}[0m ┆ Add a format flag to the report command                                                   │
+│ 3        ┆ \u{1b}[1mTSK-019\u{1b}[0m ┆ Document the retry rules for the publish step, including the long wait after a rate limit │
+└──────────┴─────────┴───────────────────────────────────────────────────────────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mhorizon\u{1b}[0m
+┌─────────┬────────────┬────────────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[36mid\u{1b}[0m      ┆ \u{1b}[1m\u{1b}[36mkind\u{1b}[0m       ┆ \u{1b}[1m\u{1b}[36mtitle\u{1b}[0m                                      │
+╞═════════╪════════════╪════════════════════════════════════════════╡
+│ \u{1b}[1mTSK-030\u{1b}[0m ┆ research   ┆ Compare two ways to cache parsed ledgers   │
+│ \u{1b}[1mTSK-031\u{1b}[0m ┆ evaluation ┆ Measure start-up time with a thousand rows │
+└─────────┴────────────┴────────────────────────────────────────────┘

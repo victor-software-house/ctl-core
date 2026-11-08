@@ -1,0 +1,13 @@
+┌────────────┬────────────┬────────────┐
+│ target     ┆ runs-on    ┆ asset      │
+╞════════════╪════════════╪════════════╡
+│ linux-x64  ┆ linux,     ┆ demo-cli-l │
+│            ┆ x64, large ┆ inux-x64.t │
+│            ┆            ┆ ar.gz      │
+│ macos-arm6 ┆ macos,     ┆ demo-cli-m │
+│ 4          ┆ arm64      ┆ acos-arm64 │
+│            ┆            ┆ .tar.gz    │
+└────────────┴────────────┴────────────┘
+
+    tag  demo-cli@1.8.1
+tarball  dist/demo-cli-1.8.1.tar.gz

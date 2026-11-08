@@ -1,0 +1,17 @@
+# demo instructions
+
+Run the commands from the repository root. Every command reads its settings from the environment before it reads the config file, so a CI job sets `DEMO_FORMAT=json` and runs the bare verb.
+
+## Commands
+
+| Command | What it does |
+|:--|:--|
+| `status` | Show the queue and the active row. |
+| `check` | Report every problem in the ledger. |
+
+- Pass `--dry-run` to see what a command would write · nothing is written.
+- Pass `--format json` for machine output.
+
+```sh
+demo status --format json | jq .active
+```

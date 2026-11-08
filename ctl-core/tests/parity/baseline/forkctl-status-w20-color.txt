@@ -1,0 +1,73 @@
+\u{1b}[1m\u{1b}[36mforkctl · status\u{1b}[0m
+
+\u{1b}[1m\u{1b}[32mrepository\u{1b}[0m  demo-repository
+  \u{1b}[1m\u{1b}[32mmanifest\u{1b}[0m  .ctl/fork.yaml
+    \u{1b}[1m\u{1b}[32mbranch\u{1b}[0m  main (declared
+            main)
+   \u{1b}[1m\u{1b}[32mpublish\u{1b}[0m  proposal
+\u{1b}[1m\u{1b}[32mdownstream\u{1b}[0m  origin 4f9c2ab
+      \u{1b}[1m\u{1b}[32mbase\u{1b}[0m  upstream/main
+            81d3e07
+    \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  tidy-config
+    \u{1b}[1m\u{1b}[32mstaged\u{1b}[0m  none
+  \u{1b}[1m\u{1b}[32munstaged\u{1b}[0m  src/config.rs,
+            src/lib.rs
+ \u{1b}[1m\u{1b}[32muntracked\u{1b}[0m  none
+     \u{1b}[1m\u{1b}[32mcheck\u{1b}[0m  passed
+
+┌───┬───┬───┬───┬───┐
+│ \u{1b}[1m\u{1b}[36ms\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mp\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mk\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mc\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36ma\u{1b}[0m │
+│ \u{1b}[1m\u{1b}[36mt\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36ma\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mi\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mo\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mc\u{1b}[0m │
+│ \u{1b}[1m\u{1b}[36ma\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mn\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mm\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m │
+│ \u{1b}[1m\u{1b}[36mt\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mc\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36md\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mm\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mi\u{1b}[0m │
+│ \u{1b}[1m\u{1b}[36me\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mh\u{1b}[0m ┆   ┆ \u{1b}[1m\u{1b}[36mi\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mv\u{1b}[0m │
+│   ┆   ┆   ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36me\u{1b}[0m │
+╞═══╪═══╪═══╪═══╪═══╡
+│ a ┆ \u{1b}[1mt\u{1b}[0m ┆ c ┆ 4 ┆ y │
+│ p ┆ \u{1b}[1mi\u{1b}[0m ┆ h ┆ f ┆ e │
+│ p ┆ \u{1b}[1md\u{1b}[0m ┆ a ┆ 9 ┆ s │
+│ l ┆ \u{1b}[1my\u{1b}[0m ┆ n ┆ c ┆   │
+│ i ┆ \u{1b}[1m-\u{1b}[0m ┆ g ┆ 2 ┆   │
+│ e ┆ \u{1b}[1mc\u{1b}[0m ┆ e ┆ a ┆   │
+│ d ┆ \u{1b}[1mo\u{1b}[0m ┆   ┆ b ┆   │
+│   ┆ \u{1b}[1mn\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mf\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mi\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mg\u{1b}[0m ┆   ┆   ┆   │
+│ a ┆ \u{1b}[1mp\u{1b}[0m ┆ c ┆ b ┆   │
+│ p ┆ \u{1b}[1mi\u{1b}[0m ┆ h ┆ 7 ┆   │
+│ p ┆ \u{1b}[1mn\u{1b}[0m ┆ a ┆ 1 ┆   │
+│ l ┆ \u{1b}[1m-\u{1b}[0m ┆ n ┆ e ┆   │
+│ i ┆ \u{1b}[1mr\u{1b}[0m ┆ g ┆ 9 ┆   │
+│ e ┆ \u{1b}[1mu\u{1b}[0m ┆ e ┆ 0 ┆   │
+│ d ┆ \u{1b}[1mn\u{1b}[0m ┆   ┆ d ┆   │
+│   ┆ \u{1b}[1mt\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mi\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mm\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1me\u{1b}[0m ┆   ┆   ┆   │
+│ d ┆ \u{1b}[1md\u{1b}[0m ┆ f ┆ d ┆   │
+│ r ┆ \u{1b}[1mr\u{1b}[0m ┆ i ┆ r ┆   │
+│ a ┆ \u{1b}[1mo\u{1b}[0m ┆ x ┆ a ┆   │
+│ f ┆ \u{1b}[1mp\u{1b}[0m ┆   ┆ f ┆   │
+│ t ┆ \u{1b}[1m-\u{1b}[0m ┆   ┆ t ┆   │
+│   ┆ \u{1b}[1ml\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1me\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mg\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1ma\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mc\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1my\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1m-\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mf\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1ml\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1ma\u{1b}[0m ┆   ┆   ┆   │
+│   ┆ \u{1b}[1mg\u{1b}[0m ┆   ┆   ┆   │
+└───┴───┴───┴───┴───┘
+
+\u{1b}[1m\u{1b}[36moperation\u{1b}[0m
+      \u{1b}[1m\u{1b}[32mid\u{1b}[0m  op-20261101-1
+    \u{1b}[1m\u{1b}[32mkind\u{1b}[0m  rebase
+   \u{1b}[1m\u{1b}[32mphase\u{1b}[0m  replaying
+\u{1b}[1m\u{1b}[32mrecovery\u{1b}[0m  recovery/op-20261101-1
+    \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  forkctl operation
+          continue, forkctl
+          operation abort

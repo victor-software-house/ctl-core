@@ -1,0 +1,14 @@
+┌─────────┬─────────┬─────────┬────────┐
+│ \u{1b}[1m\u{1b}[36mname\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[36mversion\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mvia\u{1b}[0m     ┆ \u{1b}[1m\u{1b}[36mnote\u{1b}[0m   │
+╞═════════╪═════════╪═════════╪════════╡
+│ \u{1b}[1mdemo-co\u{1b}[0m ┆ 0.5.0   ┆ registr ┆        │
+│ \u{1b}[1mre\u{1b}[0m      ┆         ┆ y       ┆        │
+│ \u{1b}[1mdemo-cl\u{1b}[0m ┆ 1.8.1   ┆ registr ┆ tag    │
+│ \u{1b}[1mi\u{1b}[0m       ┆         ┆ y       ┆ alread │
+│         ┆         ┆         ┆ y exis │
+│         ┆         ┆         ┆ ts,    │
+│         ┆         ┆         ┆ skippe │
+│         ┆         ┆         ┆ d      │
+│ \u{1b}[1mdemo-do\u{1b}[0m ┆ 2.0.0   ┆ release ┆        │
+│ \u{1b}[1mcs-site\u{1b}[0m ┆         ┆ -asset  ┆        │
+└─────────┴─────────┴─────────┴────────┘

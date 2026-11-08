@@ -1,0 +1,9 @@
+\u{1b}[1m\u{1b}[36mforkctl · status\u{1b}[0m
+
+\u{1b}[1m\u{1b}[32mrepository\u{1b}[0m  demo-repository
+    \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  none
+
+\u{1b}[90mno patches\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36moperation\u{1b}[0m
+\u{1b}[90mnone\u{1b}[0m

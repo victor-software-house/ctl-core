@@ -1,0 +1,13 @@
+┌───────────────┬──────────────┬───────┐
+│ file          ┆ package      ┆ bump  │
+╞═══════════════╪══════════════╪═══════╡
+│ quiet-lions-s ┆ demo-core    ┆ minor │
+│ ing.md        ┆              ┆       │
+│ quiet-lions-s ┆ demo-cli     ┆ patch │
+│ ing.md        ┆              ┆       │
+│ tidy-owls-wav ┆ demo-docs-si ┆ major │
+│ e.md          ┆ te           ┆       │
+└───────────────┴──────────────┴───────┘
+
+pending  2
+    max  major

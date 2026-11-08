@@ -1,0 +1,73 @@
+forkctl · status
+
+repository  demo-repository
+  manifest  .ctl/fork.yaml
+    branch  main (declared
+            main)
+   publish  proposal
+downstream  origin 4f9c2ab
+      base  upstream/main
+            81d3e07
+    active  tidy-config
+    staged  none
+  unstaged  src/config.rs,
+            src/lib.rs
+ untracked  none
+     check  passed
+
+┌───┬───┬───┬───┬───┐
+│ s ┆ p ┆ k ┆ c ┆ a │
+│ t ┆ a ┆ i ┆ o ┆ c │
+│ a ┆ t ┆ n ┆ m ┆ t │
+│ t ┆ c ┆ d ┆ m ┆ i │
+│ e ┆ h ┆   ┆ i ┆ v │
+│   ┆   ┆   ┆ t ┆ e │
+╞═══╪═══╪═══╪═══╪═══╡
+│ a ┆ t ┆ c ┆ 4 ┆ y │
+│ p ┆ i ┆ h ┆ f ┆ e │
+│ p ┆ d ┆ a ┆ 9 ┆ s │
+│ l ┆ y ┆ n ┆ c ┆   │
+│ i ┆ - ┆ g ┆ 2 ┆   │
+│ e ┆ c ┆ e ┆ a ┆   │
+│ d ┆ o ┆   ┆ b ┆   │
+│   ┆ n ┆   ┆   ┆   │
+│   ┆ f ┆   ┆   ┆   │
+│   ┆ i ┆   ┆   ┆   │
+│   ┆ g ┆   ┆   ┆   │
+│ a ┆ p ┆ c ┆ b ┆   │
+│ p ┆ i ┆ h ┆ 7 ┆   │
+│ p ┆ n ┆ a ┆ 1 ┆   │
+│ l ┆ - ┆ n ┆ e ┆   │
+│ i ┆ r ┆ g ┆ 9 ┆   │
+│ e ┆ u ┆ e ┆ 0 ┆   │
+│ d ┆ n ┆   ┆ d ┆   │
+│   ┆ t ┆   ┆   ┆   │
+│   ┆ i ┆   ┆   ┆   │
+│   ┆ m ┆   ┆   ┆   │
+│   ┆ e ┆   ┆   ┆   │
+│ d ┆ d ┆ f ┆ d ┆   │
+│ r ┆ r ┆ i ┆ r ┆   │
+│ a ┆ o ┆ x ┆ a ┆   │
+│ f ┆ p ┆   ┆ f ┆   │
+│ t ┆ - ┆   ┆ t ┆   │
+│   ┆ l ┆   ┆   ┆   │
+│   ┆ e ┆   ┆   ┆   │
+│   ┆ g ┆   ┆   ┆   │
+│   ┆ a ┆   ┆   ┆   │
+│   ┆ c ┆   ┆   ┆   │
+│   ┆ y ┆   ┆   ┆   │
+│   ┆ - ┆   ┆   ┆   │
+│   ┆ f ┆   ┆   ┆   │
+│   ┆ l ┆   ┆   ┆   │
+│   ┆ a ┆   ┆   ┆   │
+│   ┆ g ┆   ┆   ┆   │
+└───┴───┴───┴───┴───┘
+
+operation
+      id  op-20261101-1
+    kind  rebase
+   phase  replaying
+recovery  recovery/op-20261101-1
+    next  forkctl operation
+          continue, forkctl
+          operation abort

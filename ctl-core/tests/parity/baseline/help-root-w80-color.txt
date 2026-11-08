@@ -1,0 +1,34 @@
+\u{1b}[1m\u{1b}[36mUsage: ledgerctl [OPTIONS] [COMMAND]\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36mCommands\u{1b}[0m
+┌────────┬───────────────────────────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32mstatus\u{1b}[0m ┆ Show the queue and the active row                         │
+│ \u{1b}[1m\u{1b}[32madd\u{1b}[0m    ┆ Add a row to the queue                                    │
+│ \u{1b}[1m\u{1b}[32mshow\u{1b}[0m   ┆ Show one row                                              │
+│ \u{1b}[1m\u{1b}[32mhelp\u{1b}[0m   ┆ Print this message or the help of the given subcommand(s) │
+└────────┴───────────────────────────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mOptions\u{1b}[0m
+┌────┬───────────┬──────┬──────────────────────────────────────────────────────┐
+│    ┆ \u{1b}[1m\u{1b}[32m--config\u{1b}[0m  ┆ \u{1b}[1m\u{1b}[33mPATH\u{1b}[0m ┆ Ledger file to read \u{1b}[90m[default:\u{1b}[0m \u{1b}[90m.ctl/q.yaml]\u{1b}[0m \u{1b}[90m[env:\u{1b}[0m     │
+│    ┆           ┆      ┆ \u{1b}[90mLEDGERCTL_CONFIG]\u{1b}[0m                                    │
+│ \u{1b}[1m\u{1b}[32m-V\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--version\u{1b}[0m ┆      ┆ Print version                                        │
+└────┴───────────┴──────┴──────────────────────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mOutput\u{1b}[0m
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32m-f\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--format\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[33m[pretty|json]\u{1b}[0m       ┆ Output representation \u{1b}[90m[default:\u{1b}[0m      │
+│    ┆            ┆                     ┆ \u{1b}[90mpretty]\u{1b}[0m \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_FORMAT]\u{1b}[0m      │
+│ \u{1b}[1m\u{1b}[32m-c\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--color\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[33m[auto|always|never]\u{1b}[0m ┆ Pretty-output color policy. JSON     │
+│    ┆            ┆                     ┆ never contains ANSI \u{1b}[90m[default:\u{1b}[0m \u{1b}[90mauto]\u{1b}[0m  │
+│    ┆            ┆                     ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_COLOR]\u{1b}[0m               │
+│    ┆ \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m ┆                     ┆ Force colorless pretty output. Wins  │
+│    ┆            ┆                     ┆ over `--color`                       │
+│ \u{1b}[1m\u{1b}[32m-q\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--quiet\u{1b}[0m    ┆                     ┆ Suppress successful pretty output    │
+│    ┆            ┆                     ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_QUIET]\u{1b}[0m               │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mHelp\u{1b}[0m
+┌────┬────────┬───┬─────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32m-h\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--help\u{1b}[0m ┆   ┆ Print help (see more with '--help') │
+└────┴────────┴───┴─────────────────────────────────────┘

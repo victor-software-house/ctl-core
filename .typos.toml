@@ -1,7 +1,13 @@
 # Spelling, checked by `mise run lint:typos`.
 [files]
-# Folded narrow tables split words mid-word on purpose.
-extend-exclude = ["*.lock", "ctl-layout/tests/snapshots/*.snap"]
+# Folded narrow tables split words mid-word on purpose, and the parity
+# baselines store each ESC byte as the text `\u{1b}`, which typos reads as
+# part of the next word.
+extend-exclude = [
+  "*.lock",
+  "ctl-layout/tests/snapshots/*.snap",
+  "ctl-core/tests/parity/baseline/*.txt",
+]
 
 [default]
 # Commit hashes cited in prose, such as `caf2581`, split into short fake words.
