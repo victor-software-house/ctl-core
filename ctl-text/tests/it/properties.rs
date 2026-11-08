@@ -5,8 +5,9 @@
     reason = "proptest! and prop_assert! expand to concat!, which the repository bans in its own code"
 )]
 
+use ctl_text::anstyle::Effects;
 use ctl_text::verbatim::is_unsafe;
-use ctl_text::{Context, Line, Overflow, Renderable, Span, Style, Text};
+use ctl_text::{Context, Line, Overflow, Renderable, Span, Style, Text, text_width};
 use proptest::prelude::*;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -48,6 +49,10 @@ fn any_source() -> impl Strategy<Value = String> {
 
 fn any_source_without_tabs() -> impl Strategy<Value = String> {
     strategy(FRAGMENTS.to_vec())
+}
+
+fn any_spans() -> impl Strategy<Value = Vec<(&'static str, usize)>> {
+    prop::collection::vec((prop::sample::select(FRAGMENTS.to_vec()), 0usize..3), 0..40)
 }
 
 fn any_width() -> impl Strategy<Value = u16> {
@@ -99,6 +104,33 @@ fn non_space_clusters(text: &str) -> Vec<String> {
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(512))]
+
+    #[test]
+    fn spans_count_clusters_as_the_joined_text_does(parts in any_spans()) {
+        let styles = [
+            Style::new(),
+            Style::new().effects(Effects::BOLD),
+            Style::new().effects(Effects::ITALIC),
+        ];
+        let line: Line = parts
+            .iter()
+            .map(|(text, style)| Span::new(text, styles[*style]))
+            .collect();
+        let joined: String = parts
+            .iter()
+            .flat_map(|(text, _)| text.chars())
+            .filter(|c| !is_unsafe(*c))
+            .collect();
+        prop_assert_eq!(line.to_string(), joined.clone());
+        prop_assert_eq!(line.width(), text_width(&joined));
+        let per_span: Vec<&str> = line
+            .spans()
+            .iter()
+            .flat_map(|span| span.text().graphemes(true))
+            .collect();
+        let whole: Vec<&str> = joined.graphemes(true).collect();
+        prop_assert_eq!(per_span, whole);
+    }
 
     #[test]
     fn keep_words_lines_fit_or_hold_one_word(source in any_source(), width in any_width()) {

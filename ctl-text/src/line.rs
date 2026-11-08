@@ -40,7 +40,8 @@ impl Line {
     ///
     /// When `span` starts with characters that continue the line's last
     /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
-    /// sequence, they join the previous span, so no cluster crosses a span
+    /// sequence, they join the previous span and take its style, since a
+    /// terminal cannot style part of a cluster. So no cluster crosses a span
     /// boundary and every width counts the cluster once. An empty span adds
     /// nothing, so none can sit between a cluster's parts.
     pub fn push(&mut self, span: Span) {
