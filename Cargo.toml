@@ -124,6 +124,21 @@ print_stderr = "deny"
 # control; cargo-deny reports them (`bans.multiple-versions`).
 multiple_crate_versions = "allow"
 
+# check:size builds ctl-core's `size` example with the release profile at each
+# tier on linux-x64 and fails when its `.text` exceeds the tier's budget by
+# more than tolerance-percent. A change that grows a tier on purpose raises the
+# budget in the same pull request. The budgets were measured on linux-x64
+# with rustc 1.99.1 (58cf8f9c3 2026-10-13) and GNU size 2.46, at 6b2be38
+# with the size example added.
+[workspace.metadata.size]
+tolerance-percent = 2
+
+[workspace.metadata.size.tiers]
+cli = { features = "cli", text = 343888 }
+help = { features = "help", text = 443676 }
+view = { features = "cli,view", text = 409362 }
+app = { features = "app", text = 469842 }
+
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
 debug = "line-tables-only"
