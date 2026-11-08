@@ -6,7 +6,7 @@ rust-version.workspace = true
 description = "Shared clap chassis for the *ctl CLIs"
 license.workspace = true
 repository.workspace = true
-readme = "../README.md"
+readme = "README.md"
 keywords = ["clap", "cli", "help", "color"]
 categories = ["command-line-interface", "development-tools"]
 

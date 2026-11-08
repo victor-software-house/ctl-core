@@ -198,3 +198,9 @@ pub use view::{
     Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Stream,
     View,
 };
+
+/// The README's example, compiled as a doctest. It needs the default `app`
+/// feature.
+#[doc = include_str!("../README.md")]
+#[cfg(all(doctest, feature = "app"))]
+pub struct ReadmeDoctests;
