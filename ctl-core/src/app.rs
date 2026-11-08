@@ -29,10 +29,11 @@ struct Fallback(Option<u16>);
 /// How [`App`] exits when the reader closes stdout or stderr before the
 /// output is written, as `head -1` does.
 ///
-/// A closed pipe never turns a failure into success. A command that failed,
-/// or a parse error, keeps its own exit code under either policy, so a
-/// script never reads a failed run as a passing one because its reader went
-/// away.
+/// A closed pipe never turns a failure into success, and never hides a more
+/// specific code. A command that failed, or a parse error, keeps its own exit
+/// code under either policy, so a script never reads a failed run as a
+/// passing one because its reader went away, and a check such as
+/// `$? -eq 2` behaves the same under both.
 ///
 /// A ctl CLI ignores SIGPIPE, as every Rust program does by default, so a
 /// closed pipe reaches it as a failed write, not as a signal.
@@ -44,8 +45,9 @@ pub enum BrokenPipe {
     /// `set -o pipefail` keeps going.
     #[default]
     Ignore,
-    /// Exit with a failure code, for a consumer that treats a reader that
-    /// stopped early as an error.
+    /// Exit with a failure code when the command succeeded, for a consumer
+    /// that treats a reader that stopped early as an error. A command that
+    /// already failed keeps its own code.
     Fail,
 }
 
@@ -195,15 +197,17 @@ impl<C> App<C> {
 
     /// The exit code once output meant to end with `code` was written, with
     /// `written` the result of the write: `code` when it went through, and a
-    /// failure when it did not, except that [`BrokenPipe::Ignore`] keeps
-    /// `code` when the reader closed the stream. Nothing is reported on
-    /// stderr, which may be the stream that closed.
+    /// failure when it did not. When the reader closed the stream,
+    /// [`BrokenPipe::Ignore`] keeps `code`, and [`BrokenPipe::Fail`] keeps a
+    /// failing `code` and turns success into a failure. Nothing is reported
+    /// on stderr, which may be the stream that closed.
     fn written(&self, written: io::Result<()>, code: ExitCode) -> ExitCode {
         match written {
             Ok(()) => code,
             Err(error) if error.kind() == io::ErrorKind::BrokenPipe => match self.broken_pipe {
                 BrokenPipe::Ignore => code,
-                BrokenPipe::Fail => ExitCode::FAILURE,
+                BrokenPipe::Fail if code == ExitCode::SUCCESS => ExitCode::FAILURE,
+                BrokenPipe::Fail => code,
             },
             Err(_) => ExitCode::FAILURE,
         }
@@ -717,7 +721,8 @@ mod tests {
         assert_eq!(ignore.written(Ok(()), ExitCode::from(2)), ExitCode::from(2));
         let fail = App::<Cli>::new("toy").broken_pipe(BrokenPipe::Fail);
         assert_eq!(fail.written(closed(), ExitCode::SUCCESS), ExitCode::FAILURE);
-        assert_eq!(fail.written(closed(), ExitCode::from(2)), ExitCode::FAILURE);
+        assert_eq!(fail.written(closed(), ExitCode::from(2)), ExitCode::from(2));
+        assert_eq!(fail.written(closed(), ExitCode::FAILURE), ExitCode::FAILURE);
     }
 
     #[test]

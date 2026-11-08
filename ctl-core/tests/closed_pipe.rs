@@ -89,9 +89,9 @@ mod unix {
         const fn expected(self, policy: BrokenPipe) -> i32 {
             match (self, policy) {
                 (Self::Rows, BrokenPipe::Ignore) => 0,
-                (Self::Rows | Self::Error | Self::Parse, BrokenPipe::Fail)
+                (Self::Rows | Self::Error, BrokenPipe::Fail)
                 | (Self::Error, BrokenPipe::Ignore) => 1,
-                (Self::Parse, BrokenPipe::Ignore) => 2,
+                (Self::Parse, BrokenPipe::Ignore | BrokenPipe::Fail) => 2,
             }
         }
     }
