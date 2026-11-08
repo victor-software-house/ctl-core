@@ -20,8 +20,8 @@ error.
 
 A CLI that flattens `CompletionCommand` into its subcommands SHALL accept
 `<bin> completion <SHELL>`, whose help SHALL read "Print the script that
-loads shell completion for this command." and SHALL name bash, zsh, and fish
-in the argument's help.
+loads shell completion for this command" and SHALL name bash, zsh, and fish
+in the argument's value list and help.
 
 #### Scenario: The verb parses
 
@@ -31,7 +31,7 @@ in the argument's help.
 #### Scenario: The verb's help
 
 - **WHEN** ctl-core renders help for `toy completion`
-- **THEN** the help holds the about line, `<SHELL>`, and "bash, zsh, or fish"
+- **THEN** the help holds the about line, the value list `[bash|zsh|fish]`, and "bash, zsh, or fish"
 
 ### Requirement: The script is the dynamic registration
 
@@ -96,7 +96,7 @@ SHALL print `clap_complete`'s candidates for those words and exit 0.
 #### Scenario: A candidate request
 
 - **WHEN** `COMPLETE=fish` is set and `toy -- toy st` runs
-- **THEN** stdout holds a line starting with `status` and the exit code is 0
+- **THEN** stdout holds `status`, a tab, and `Show status`, and the exit code is 0
 
 ### Requirement: An ordinary run is left alone
 

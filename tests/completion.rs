@@ -142,10 +142,10 @@ fn the_verb_help_names_the_shells() {
         .unwrap();
     let rendered = help::document(command).render(RenderOptions::new(ColorMode::Never).width(100));
     assert!(
-        rendered.contains("Print the script that loads shell completion for this command."),
+        rendered.contains("Print the script that loads shell completion for this command"),
         "{rendered}"
     );
-    assert!(rendered.contains("SHELL"), "{rendered}");
+    assert!(rendered.contains("[bash|zsh|fish]"), "{rendered}");
     assert!(rendered.contains("bash, zsh, or fish"), "{rendered}");
 }
 
@@ -242,10 +242,7 @@ fn the_environment_prints_candidates() {
         return;
     };
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.lines().any(|line| line.starts_with("status")),
-        "{stdout}"
-    );
+    assert!(stdout.contains("status\tShow status"), "{stdout}");
 }
 
 #[test]
