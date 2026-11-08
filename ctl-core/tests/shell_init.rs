@@ -137,6 +137,36 @@ enum PromptCommand {
     Preexec,
 }
 
+impl PromptCommand {
+    /// The startup file's line that sets `PROMPT_COMMAND` before the script
+    /// loads.
+    fn initial(self) -> &'static str {
+        match self {
+            Self::String | Self::Preexec => "PROMPT_COMMAND='seen=$?'",
+            Self::Array => indoc::indoc! {"
+                if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
+                    PROMPT_COMMAND=('seen=$?')
+                else
+                    PROMPT_COMMAND='seen=$?'
+                fi"},
+        }
+    }
+
+    /// The startup file's lines that rewrite `PROMPT_COMMAND` after the
+    /// script loads, if any.
+    fn rewrite(self) -> &'static str {
+        match self {
+            Self::String | Self::Array => "",
+            Self::Preexec => indoc::indoc! {r#"
+                if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
+                    PROMPT_COMMAND+=(':')
+                else
+                    PROMPT_COMMAND="${PROMPT_COMMAND%;}"$'\n'':'
+                fi"#},
+        }
+    }
+}
+
 /// Start `shell` on a terminal with a startup file that sets a prompt
 /// showing the last exit status, then loads the script twice. Type two
 /// lines and `exit`, and return what the fake binary logged and what the
@@ -154,7 +184,36 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
             root.file("bin/.keep", "");
         }
     }
-    let function = match (setup, shell) {
+    let command = shell_command(
+        shell,
+        &root,
+        &startup_function(shell, setup),
+        prompt_command,
+    );
+    let path = std::env::var("PATH").unwrap_or_default();
+    let log = root.path().join("log");
+    let mut command = command
+        .env("PATH", format!("{}:{path}", bin.display()))
+        .env("HOME", root.path())
+        .env("TERM", "xterm")
+        .env("TOY_LOG", &log);
+    match setup {
+        Setup::Ready | Setup::NoBinary | Setup::FunctionOnly => {
+            command = command.env(VARIABLE, "block-1");
+        }
+        Setup::NoVariable => {}
+    }
+    let mut terminal = Terminal::start(command);
+    terminal.type_line("true one");
+    terminal.type_line("true two");
+    let output = terminal.exit();
+    (fs::read_to_string(log).unwrap_or_default(), output)
+}
+
+/// The shell function the startup file defines before it loads the script:
+/// one named like the binary for [`Setup::FunctionOnly`], and none otherwise.
+fn startup_function(shell: Shell, setup: Setup) -> String {
+    match (setup, shell) {
         (Setup::Ready | Setup::NoVariable | Setup::NoBinary, _) => String::new(),
         (Setup::FunctionOnly, Shell::Bash | Shell::Zsh) => {
             format!(r#"{BIN}() {{ echo function >> "$TOY_LOG"; }}"#)
@@ -162,29 +221,24 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
         (Setup::FunctionOnly, Shell::Fish) => {
             format!("function {BIN}; echo function >> $TOY_LOG; end")
         }
-    };
+    }
+}
+
+/// Write `shell`'s startup file under `root`, with `function` and two loads
+/// of the script, and return the command that starts the shell on it with
+/// an empty environment.
+fn shell_command(
+    shell: Shell,
+    root: &Root<'_>,
+    function: &str,
+    prompt_command: PromptCommand,
+) -> Command {
     let script = root.file("init", hook().script(shell).text);
     let script = script.display();
-    let command = match shell {
+    match shell {
         Shell::Bash => {
-            let initial = match prompt_command {
-                PromptCommand::String | PromptCommand::Preexec => "PROMPT_COMMAND='seen=$?'",
-                PromptCommand::Array => indoc::indoc! {"
-                    if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
-                        PROMPT_COMMAND=('seen=$?')
-                    else
-                        PROMPT_COMMAND='seen=$?'
-                    fi"},
-            };
-            let rewrite = match prompt_command {
-                PromptCommand::String | PromptCommand::Array => "",
-                PromptCommand::Preexec => indoc::indoc! {r#"
-                    if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
-                        PROMPT_COMMAND+=(':')
-                    else
-                        PROMPT_COMMAND="${PROMPT_COMMAND%;}"$'\n'':'
-                    fi"#},
-            };
+            let initial = prompt_command.initial();
+            let rewrite = prompt_command.rewrite();
             let rc = root.file(
                 "bashrc",
                 indoc::formatdoc! {"
@@ -230,25 +284,7 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
                 source '{script}'
                 source '{script}'"})
             .env("fish_features", "no-query-term"),
-    };
-    let path = std::env::var("PATH").unwrap_or_default();
-    let log = root.path().join("log");
-    let mut command = command
-        .env("PATH", format!("{}:{path}", bin.display()))
-        .env("HOME", root.path())
-        .env("TERM", "xterm")
-        .env("TOY_LOG", &log);
-    match setup {
-        Setup::Ready | Setup::NoBinary | Setup::FunctionOnly => {
-            command = command.env(VARIABLE, "block-1");
-        }
-        Setup::NoVariable => {}
     }
-    let mut terminal = Terminal::start(command);
-    terminal.type_line("true one");
-    terminal.type_line("true two");
-    let output = terminal.exit();
-    (fs::read_to_string(log).unwrap_or_default(), output)
 }
 
 fn fake_binary(root: &Root<'_>) {
