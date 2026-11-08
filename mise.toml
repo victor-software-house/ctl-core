@@ -51,6 +51,7 @@ depends = [
   "format",
   "lint",
   "check:features",
+  "check:tree",
   "test",
   "test:doc",
   "doc",
