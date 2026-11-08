@@ -86,6 +86,23 @@ queue:
     notes:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
+
+  - id: CTC-034
+    title: A terminal rendering engine of our own in place of comfy-table
+    scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"
+    outcome: >-
+      ctl-core draws every view through its own engine, written once by the writer
+      after layout; comfy-table, crossterm and anstream leave every ctl CLI.
+    blocked_by: []
+    acceptance:
+      - The repository is a virtual workspace and the four crates release at one version.
+      - No ctl-core feature links comfy-table, crossterm, anstream or console.
+      - Every scenario of the styled-text, terminal-output and layout specs and the presentation delta passes in CI.
+      - The parity test lists every output difference from 0.6.x with its reason.
+      - Each tier and each public consumer is measured smaller on the commit CI verified.
+    plan: openspec/changes/terminal-render-engine/proposal.md
+    notes:
+      - 'Research: docs/research/terminal-rendering/. Decisions for the maintainer are listed in the proposal.'
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
@@ -115,6 +132,74 @@ horizon:
       - 'Trigger: two more strict-rule bumps arrive with no opt-out; see https://github.com/Fission-AI/OpenSpec/issues/2069.'
       - 'Trigger: the document checker (CTC-027) ends up parsing specs anyway.'
       - 'Trigger: the standalone Bun-built binary misbehaves and upstream will not fix it.'
+
+  - id: CTC-035
+    title: Panels, trees, columns and hyperlinks in the engine
+    scope: ctl-layout/, ctl-term/
+    outcome: >-
+      A CLI draws a panel, a tree, side-by-side columns and OSC 8 hyperlinks through
+      ctl-core, with a hyperlink allow-list and FORCE_HYPERLINK.
+    kind: deferred
+    open: Starts after CTC-034 ships the engine.
+    notes:
+      - Phase 2 of openspec/changes/terminal-render-engine/design.md, decision 14.
+
+  - id: CTC-036
+    title: Live regions, progress, spinners and prompts
+    scope: ctl-term/, ctl-layout/
+    outcome: >-
+      A CLI redraws a live region on a terminal and prints plain lines otherwise,
+      with a progress bar, a spinner, a confirmation prompt and an echo-off secret prompt.
+    kind: deferred
+    open: Starts after CTC-034 ships the engine.
+    notes:
+      - Phase 3 of the terminal-render-engine design, decision 14.
+
+  - id: CTC-037
+    title: Render bundled Markdown in the terminal
+    scope: ctl-markdown/
+    outcome: >-
+      verctl, qctl and forkctl show their instructions as rendered Markdown instead
+      of raw text, through a ctl-markdown crate on pulldown-cmark.
+    kind: deferred
+    open: Starts after CTC-034 ships the engine.
+    notes:
+      - Phase 4 of the terminal-render-engine design, decision 14. Its own crate because pulldown-cmark is a dependency no other leaf needs.
+
+  - id: CTC-038
+    title: Move declared input to a ctl-input leaf
+    scope: ctl-input/
+    outcome: >-
+      serde-saphyr, yamled, garde and toml sit in a ctl-input crate that ctl-core
+      re-exports behind its input features.
+    kind: deferred
+    open: >-
+      Needs a consumer that reads declared input without the CLI chassis, or a
+      measured build gain.
+    notes:
+      - From decision 2 of the terminal-render-engine design.
+
+  - id: CTC-039
+    title: Move served files and the operator surface to a ctl-surface leaf
+    scope: ctl-surface/
+    outcome: >-
+      MiniJinja and usage-lib sit in a ctl-surface crate that ctl-core re-exports
+      behind its surface and served features.
+    kind: deferred
+    open: >-
+      Needs a consumer that renders operator documents without the CLI chassis, or a
+      measured build gain.
+    notes:
+      - From decision 2 of the terminal-render-engine design.
+
+  - id: CTC-040
+    title: Move test fixtures to a ctl-fixture leaf
+    scope: ctl-fixture/
+    outcome: Consumers take ctl-fixture as a dev-dependency without the rest of ctl-core.
+    kind: deferred
+    open: Needs the workspace from CTC-034.
+    notes:
+      - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
   - id: CTC-029
