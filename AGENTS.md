@@ -73,7 +73,7 @@ The repository is a virtual Cargo workspace (`layout: workspace` in the
 Copier answers). The root `Cargo.toml` holds the members, one version for
 every crate in `[workspace.package]`, `[workspace.dependencies]`, and
 `[workspace.lints]`. Each crate lives in a root folder named like its
-package, today `ctl-core/`, and inherits those tables with
+package, today `ctl-core/` and `ctl-text/`, and inherits those tables with
 `workspace = true`. Profiles stay in the root manifest, where Cargo reads
 them. For a workspace the template drops the library-only `print_stdout` and
 `print_stderr` lints and clippy's `allow-print-in-tests`; they stay here as
@@ -82,7 +82,17 @@ virtual manifest, so verctl bumps `workspace.package.version` and publishes
 each member in dependency order. `check:features` passes
 `--package ctl-core`, since Cargo refuses `--features` at the root of a
 virtual workspace. The terminal-render-engine change adds `ctl-text`,
-`ctl-layout`, and `ctl-term` beside `ctl-core/`.
+`ctl-layout`, and `ctl-term` beside `ctl-core/`; only `ctl-text` exists so far.
+
+`ctl-text/` holds styled text (`Span`, `Line`, `Text`), cell widths, wrapping and
+truncation, the `Renderable` protocol, and the unsafe-character module
+`verbatim`, which `ctl_core::verbatim` re-exports under ctl-core's `verbatim`
+feature. It depends on `anstyle`, `unicode-width`, `unicode-segmentation`, and
+`unicode-bidi`, and on nothing in this repository. A rule about text, widths,
+or unsafe characters changes there, not in ctl-core. ctl-core requires it at
+exactly the workspace version (`version = "=x.y.z"` in the root manifest),
+and a `pins` entry in `.ctl/ver.yaml` moves that requirement with each
+release; keep the two in step if either is renamed.
 
 ## Cargo features
 
@@ -165,7 +175,8 @@ replaceable, and an empty slice disables lookup.
    tab, the 12 UAX #9 directional formatting characters, and U+2028 and
    U+2029); preserves the other format characters (Cf); then normalizes trailing newlines to the
    document. A CLI that prints text it did not write filters with the same
-   predicate.
+   predicate. The predicate lives in `ctl-text` (`ctl_text::verbatim`) and
+   `ctl_core::verbatim` re-exports it.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output. Usage lines wrap without splitting tokens.

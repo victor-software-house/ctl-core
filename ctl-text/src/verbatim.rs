@@ -3,8 +3,8 @@
 //! Text from outside the program, such as a title, a commit subject, or a
 //! file's contents, can carry characters that act on the terminal or on the
 //! layout instead of showing. A CLI that prints such text drops what
-//! [`is_unsafe`] refuses. [`Document::verbatim`](crate::Document::verbatim)
-//! applies the same rule.
+//! [`is_unsafe`] refuses. `Document::verbatim` in ctl-core applies the
+//! same rule, and [`Span::new`](crate::Span::new) applies it to every span.
 //!
 //! The set is three whole sets, each taken by its definition:
 //!

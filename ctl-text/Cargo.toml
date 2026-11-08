@@ -1,0 +1,32 @@
+[package]
+name = "ctl-text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Styled text for terminals: safe spans, cell widths, wrapping, and truncation"
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["terminal", "unicode", "width", "wrap", "text"]
+categories = ["command-line-interface", "text-processing"]
+autotests = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cap-lints", "warn"]
+
+[lints]
+workspace = true
+
+[dependencies]
+anstyle.workspace = true
+unicode-bidi.workspace = true
+unicode-segmentation.workspace = true
+unicode-width.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"

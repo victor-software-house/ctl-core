@@ -1,5 +1,5 @@
 [workspace]
-members = ["ctl-core"]
+members = ["ctl-core", "ctl-text"]
 resolver = "3"
 
 [workspace.package]
@@ -46,9 +46,16 @@ toml = { version = "1.1.8", default-features = false, features = [
   "serde",
 ] }
 yamled = { version = "0.0.8", default-features = false }
+ctl-text = { path = "ctl-text", version = "=0.6.28" }
 usage-lib = { version = "6.0.0", default-features = false, features = ["clap"] }
 unicode-bidi = { version = "0.3.18", default-features = false }
-unicode-width = "0.2.2"
+unicode-segmentation = { version = "1.13.3", default-features = false }
+# `cjk` stays off: East Asian ambiguous characters count 1 cell, and the
+# second width table stays out of the binary.
+unicode-width = { version = "0.2.2", default-features = false }
+# Property tests for the text engine (ctl-text). `std` alone: the default
+# features add process forking and timeouts the tests do not use.
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
 # Snapshot tests for rendered output (tests/snapshots). Pinned exactly: a new
 # insta can change how a snapshot file is read or written, so a bump is a
 # reviewed change. No colors: CI logs and review diffs stay plain.

@@ -7,6 +7,20 @@ packages:
   - name: ctl-core
     path: Cargo.toml
 
+# The workspace crates release together at one version, and ctl-core requires
+# ctl-text at exactly that version. `prepare` rewrites the requirement onto the
+# Version PR commit, so the tagged tree packages with the version it publishes.
+patterns:
+  ctl-text-requirement:
+    match: 'ctl-text = { path = "ctl-text", version = "={version}" }'
+    occurrences: once
+    whole_line: true
+
+pins:
+  - file: Cargo.toml
+    package: ctl-core
+    patterns: [ctl-text-requirement]
+
 # Maintainers and Apps a changelog never credits (verctl 0.4.0).
 changelog:
   internal_authors:
