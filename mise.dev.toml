@@ -6,6 +6,8 @@
 lefthook = "2.2.2"
 "github:crate-ci/committed" = "1.1.11"
 gitleaks = "8.30.1"
+# Reviews snapshot changes: `cargo insta review`. CI never writes snapshots.
+cargo-insta = "1.49.0"
 
 # Installs the git hooks after every `mise install`, even when every tool is
 # already present. CI never loads this file, so runners never get the hooks.

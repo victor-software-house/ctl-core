@@ -2,6 +2,74 @@
 
 lockfile_version = 3
 
+[conda-packages.linux-x64."_openmp_mutex-4.5-20_gnu"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda"
+checksum = "sha256:1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9"
+
+[conda-packages.linux-x64."bzip2-1.0.8-hda65f42_10"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_10.conda"
+checksum = "sha256:1a0d382c515ebf55f8ee1f38c8b81bc95af5c2acc42ad53b66bc5df932032f96"
+
+[conda-packages.linux-x64."gdbm-1.18-h0a1914f_2"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/gdbm-1.18-h0a1914f_2.tar.bz2"
+checksum = "sha256:8b9606dc896bd9262d09ab2ef1cb55c4ee43f352473209b58b37a9289dd7b00c"
+
+[conda-packages.linux-x64."libcap-2.78-h084b8d7_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libcap-2.78-h084b8d7_1.conda"
+checksum = "sha256:8cb25174d6b6fac95d31e86cfe41faffc8ee9dacbf2bfd22e6c23377e8f338c1"
+
+[conda-packages.linux-x64."libgcc-16.2.0-ha9f2e26_7"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libgcc-16.2.0-ha9f2e26_7.conda"
+checksum = "sha256:e031634c3a928f9594eba868bc46ef5230d6571a364a0c63215b06c4563bfcea"
+
+[conda-packages.linux-x64."libgcc-ng-16.2.0-h69a702a_7"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-16.2.0-h69a702a_7.conda"
+checksum = "sha256:03b54d7008de080a17cc2174b0e4acd6d06e1c981b2eb19846f46d8f59966034"
+
+[conda-packages.linux-x64."libgomp-16.2.0-he0feb66_7"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libgomp-16.2.0-he0feb66_7.conda"
+checksum = "sha256:92a0bb350c7be6a4eedcb4e111c60aefd176018e6b1c009a6e025dbe9bbcd758"
+
+[conda-packages.linux-x64."libzlib-1.3.2-h25fd6f3_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_3.conda"
+checksum = "sha256:eb8a0db0aa570124f7d2a93d7c7f596e3390df5e047818d873baad32985fc736"
+
+[conda-packages.linux-x64."ncurses-6.6-hdb14827_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_1.conda"
+checksum = "sha256:5d46557214ed184381dafe835b7c94a474a1c3b307a08a250b1ea4779b44ffb3"
+
+[conda-packages.linux-x64."pcre2-10.49-h8b3dc9c_0"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/pcre2-10.49-h8b3dc9c_0.conda"
+checksum = "sha256:63784a2dd0231cf8944b31a781b4ebab48954a94cd455d13585874370e46b658"
+
+[conda-packages.linux-x64."readline-8.3-hd6e31c0_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/readline-8.3-hd6e31c0_1.conda"
+checksum = "sha256:01b3fe073a66e321970d09e04b388708f8cbdca5cdfbfcb7c9eeb470ad10383d"
+
+[conda-packages.macos-arm64."bzip2-1.0.8-h4e30115_10"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/bzip2-1.0.8-h4e30115_10.conda"
+checksum = "sha256:8ec22f0ba25cbfc2e64d70cf29459eccd7ffdf6436f6a6ff15bbfef799f7d4f6"
+
+[conda-packages.macos-arm64."gdbm-1.18-hce102ff_2"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/gdbm-1.18-hce102ff_2.tar.bz2"
+checksum = "sha256:01ab27db5fd941de1717d334a4cd4b5f05f64a5f0ca001841248f113529b8b3c"
+
+[conda-packages.macos-arm64."libzlib-1.3.2-h8088a28_3"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/libzlib-1.3.2-h8088a28_3.conda"
+checksum = "sha256:a18fa5d5bac452401459f966cf0d872224e8080c4ff93c77e168d43ab42ef9d7"
+
+[conda-packages.macos-arm64."ncurses-6.6-he64c551_1"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.6-he64c551_1.conda"
+checksum = "sha256:7024a48c8c0d0114ed4ab53c76bf9275d50e91ba7cea367a9aead638d3c29c68"
+
+[conda-packages.macos-arm64."pcre2-10.49-he63d830_0"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/pcre2-10.49-he63d830_0.conda"
+checksum = "sha256:f43b18fac9436fbd6c34e7d37cbf9db5c689beb90488d54326032ceb59e8905a"
+
+[conda-packages.macos-arm64."readline-8.3-h8b90a29_1"]
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/readline-8.3-h8b90a29_1.conda"
+checksum = "sha256:d6782b430e6dce4fe8c7ac118cd988d5a193eb4a7f60741edfaede58016b6110"
+
 [[tools.actionlint]]
 version = "1.7.12"
 backend = "aqua:rhysd/actionlint"
@@ -18,6 +86,74 @@ checksum = "sha256:aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e69
 url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924893"
 provenance = "github-attestations"
+
+[[tools."conda:fish"]]
+version = "4.9.3"
+backend = "conda:fish"
+specifiers = ["4.9.3"]
+
+[tools."conda:fish".options]
+channel = "conda-forge"
+
+[tools."conda:fish"."platforms.linux-x64"]
+checksum = "sha256:daeb0743595ee86be9ee313585bd46cecab4ab5f6d7973367fdca7a218f4d06b"
+url = "https://conda.anaconda.org/conda-forge/linux-64/fish-4.9.3-h453271b_1.conda"
+conda_deps = [
+    "pcre2-10.49-h8b3dc9c_0",
+    "libgcc-16.2.0-ha9f2e26_7",
+    "ncurses-6.6-hdb14827_1",
+    "_openmp_mutex-4.5-20_gnu",
+    "libgomp-16.2.0-he0feb66_7",
+    "libzlib-1.3.2-h25fd6f3_3",
+    "bzip2-1.0.8-hda65f42_10",
+]
+
+[tools."conda:fish"."platforms.macos-arm64"]
+checksum = "sha256:8e314a4b9cc823bd02b66dcf0a1fe85f39dc36517d3129bd5e2801cba07fc10f"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/fish-4.9.3-he8fec34_1.conda"
+conda_deps = [
+    "pcre2-10.49-he63d830_0",
+    "ncurses-6.6-he64c551_1",
+    "libzlib-1.3.2-h8088a28_3",
+    "bzip2-1.0.8-h4e30115_10",
+]
+
+[[tools."conda:zsh"]]
+version = "5.9.2"
+backend = "conda:zsh"
+specifiers = ["5.9.2"]
+
+[tools."conda:zsh".options]
+channel = "conda-forge"
+
+[tools."conda:zsh"."platforms.linux-x64"]
+checksum = "sha256:24ed8cc35c124d0c85edfecc19bbb422b40c8e65ac97e4d1b0385cc581533282"
+url = "https://conda.anaconda.org/conda-forge/linux-64/zsh-5.9.2-hfb6a9fe_1.conda"
+conda_deps = [
+    "pcre2-10.49-h8b3dc9c_0",
+    "libcap-2.78-h084b8d7_1",
+    "gdbm-1.18-h0a1914f_2",
+    "ncurses-6.6-hdb14827_1",
+    "libgcc-16.2.0-ha9f2e26_7",
+    "libgcc-ng-16.2.0-h69a702a_7",
+    "_openmp_mutex-4.5-20_gnu",
+    "libgomp-16.2.0-he0feb66_7",
+    "readline-8.3-hd6e31c0_1",
+    "libzlib-1.3.2-h25fd6f3_3",
+    "bzip2-1.0.8-hda65f42_10",
+]
+
+[tools."conda:zsh"."platforms.macos-arm64"]
+checksum = "sha256:8563eef546e8f8971e62db083126bfce009a48e98b6ed6c38dec2f83f24cdef4"
+url = "https://conda.anaconda.org/conda-forge/osx-arm64/zsh-5.9.2-hc4883f9_1.conda"
+conda_deps = [
+    "pcre2-10.49-he63d830_0",
+    "gdbm-1.18-hce102ff_2",
+    "ncurses-6.6-he64c551_1",
+    "readline-8.3-h8b90a29_1",
+    "libzlib-1.3.2-h8088a28_3",
+    "bzip2-1.0.8-h4e30115_10",
+]
 
 [[tools."github:EmbarkStudios/cargo-deny"]]
 version = "0.20.2"
@@ -194,6 +330,23 @@ specifiers = ["nightly-2026-11-01"]
 [tools.rust.options]
 components = "rustfmt"
 profile = "minimal"
+
+[[tools.shellcheck]]
+version = "0.11.0"
+backend = "aqua:koalaman/shellcheck"
+specifiers = ["0.11.0"]
+
+[tools.shellcheck."platforms.linux-x64"]
+checksum = "sha256:8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+checksum_source = "mise-versions"
+url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056942"
+
+[tools.shellcheck."platforms.macos-arm64"]
+checksum = "sha256:56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79"
+checksum_source = "mise-versions"
+url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056932"
 
 [[tools.taplo]]
 version = "0.10.0"
