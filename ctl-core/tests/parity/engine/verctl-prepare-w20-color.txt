@@ -1,26 +1,26 @@
 ┌────┬────┬────┬───┐
-│ \u{1b}[1m\u{1b}[36mna\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mfr\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mto\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mb\u{1b}[0m │\u{1b}[0m
-│ \u{1b}[1m\u{1b}[36mme\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mom\u{1b}[0m ┆    ┆ \u{1b}[1m\u{1b}[36mu\u{1b}[0m │\u{1b}[0m
-│    ┆    ┆    ┆ \u{1b}[1m\u{1b}[36mm\u{1b}[0m │\u{1b}[0m
-│    ┆    ┆    ┆ \u{1b}[1m\u{1b}[36mp\u{1b}[0m │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[36mna\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mfr\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mto\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mb\u{1b}[0m │
+│ \u{1b}[1m\u{1b}[36mme\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mom\u{1b}[0m ┆    ┆ \u{1b}[1m\u{1b}[36mu\u{1b}[0m │
+│    ┆    ┆    ┆ \u{1b}[1m\u{1b}[36mm\u{1b}[0m │
+│    ┆    ┆    ┆ \u{1b}[1m\u{1b}[36mp\u{1b}[0m │
 ╞════╪════╪════╪═══╡
-│ \u{1b}[1mde\u{1b}[0m ┆ 0. ┆ 0. ┆ m │\u{1b}[0m
-│ \u{1b}[1mmo\u{1b}[0m ┆ 4. ┆ 5. ┆ i │\u{1b}[0m
-│ \u{1b}[1m-c\u{1b}[0m ┆ 2  ┆ 0  ┆ n │\u{1b}[0m
-│ \u{1b}[1mor\u{1b}[0m ┆    ┆    ┆ o │\u{1b}[0m
-│ \u{1b}[1me\u{1b}[0m  ┆    ┆    ┆ r │\u{1b}[0m
-│ \u{1b}[1mde\u{1b}[0m ┆ 1. ┆ 1. ┆ p │\u{1b}[0m
-│ \u{1b}[1mmo\u{1b}[0m ┆ 8. ┆ 8. ┆ a │\u{1b}[0m
-│ \u{1b}[1m-c\u{1b}[0m ┆ 0  ┆ 1  ┆ t │\u{1b}[0m
-│ \u{1b}[1mli\u{1b}[0m ┆    ┆    ┆ c │\u{1b}[0m
+│ \u{1b}[1mde\u{1b}[0m ┆ 0. ┆ 0. ┆ m │
+│ \u{1b}[1mmo\u{1b}[0m ┆ 4. ┆ 5. ┆ i │
+│ \u{1b}[1m-c\u{1b}[0m ┆ 2  ┆ 0  ┆ n │
+│ \u{1b}[1mor\u{1b}[0m ┆    ┆    ┆ o │
+│ \u{1b}[1me\u{1b}[0m  ┆    ┆    ┆ r │
+│ \u{1b}[1mde\u{1b}[0m ┆ 1. ┆ 1. ┆ p │
+│ \u{1b}[1mmo\u{1b}[0m ┆ 8. ┆ 8. ┆ a │
+│ \u{1b}[1m-c\u{1b}[0m ┆ 0  ┆ 1  ┆ t │
+│ \u{1b}[1mli\u{1b}[0m ┆    ┆    ┆ c │
 │    ┆    ┆    ┆ h │
-│ \u{1b}[1mde\u{1b}[0m ┆ 2. ┆ 2. ┆ m │\u{1b}[0m
-│ \u{1b}[1mmo\u{1b}[0m ┆ 0. ┆ 0. ┆ a │\u{1b}[0m
-│ \u{1b}[1m-d\u{1b}[0m ┆ 0- ┆ 0  ┆ j │\u{1b}[0m
-│ \u{1b}[1moc\u{1b}[0m ┆ rc ┆    ┆ o │\u{1b}[0m
-│ \u{1b}[1ms-\u{1b}[0m ┆ .1 ┆    ┆ r │\u{1b}[0m
-│ \u{1b}[1msi\u{1b}[0m ┆    ┆    ┆   │\u{1b}[0m
-│ \u{1b}[1mte\u{1b}[0m ┆    ┆    ┆   │\u{1b}[0m
+│ \u{1b}[1mde\u{1b}[0m ┆ 2. ┆ 2. ┆ m │
+│ \u{1b}[1mmo\u{1b}[0m ┆ 0. ┆ 0. ┆ a │
+│ \u{1b}[1m-d\u{1b}[0m ┆ 0- ┆ 0  ┆ j │
+│ \u{1b}[1moc\u{1b}[0m ┆ rc ┆    ┆ o │
+│ \u{1b}[1ms-\u{1b}[0m ┆ .1 ┆    ┆ r │
+│ \u{1b}[1msi\u{1b}[0m ┆    ┆    ┆   │
+│ \u{1b}[1mte\u{1b}[0m ┆    ┆    ┆   │
 └────┴────┴────┴───┘
 
 ## demo-core 0.5.0
@@ -32,9 +32,9 @@ command.
 file after a failed
 publish.
 
-\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/quiet-lions-sing.md\u{1b}[0m
-\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/tidy-owls-wave.md\u{1b}[0m
-    \u{1b}[1m\u{1b}[32mpin\u{1b}[0m  ci/release.yml\u{1b}[0m
-     \u{1b}[1m\u{1b}[32mpr\u{1b}[0m  https://example.test/acme/demo-repository/pull/42\u{1b}[0m
-   \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  mise run ver publish\u{1b}[0m
-\u{1b}[1m\u{1b}[32mdry-run\u{1b}[0m  nothing written\u{1b}[0m
+\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/quiet-lions-sing.md
+\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/tidy-owls-wave.md
+    \u{1b}[1m\u{1b}[32mpin\u{1b}[0m  ci/release.yml
+     \u{1b}[1m\u{1b}[32mpr\u{1b}[0m  https://example.test/acme/demo-repository/pull/42
+   \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  mise run ver publish
+\u{1b}[1m\u{1b}[32mdry-run\u{1b}[0m  nothing written

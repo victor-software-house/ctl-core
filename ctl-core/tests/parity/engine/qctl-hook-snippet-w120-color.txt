@@ -3,4 +3,4 @@ pre-push:
     close-from-git:
       run: qctl close-from-git
 
-\u{1b}[1m\u{1b}[31merror\u{1b}[0m · add the command under pre-push.commands in lefthook.yml; qctl does not edit Lefthook config; hook not installed\u{1b}[0m
+\u{1b}[1m\u{1b}[31merror\u{1b}[0m · add the command under pre-push.commands in lefthook.yml; qctl does not edit Lefthook config; hook not installed

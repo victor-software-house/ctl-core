@@ -1,7 +1,7 @@
 ┌────────────────┬─────────┬───────────────┬─────────────────────────────┐
-│ \u{1b}[1m\u{1b}[36mname\u{1b}[0m           ┆ \u{1b}[1m\u{1b}[36mversion\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mvia\u{1b}[0m           ┆ \u{1b}[1m\u{1b}[36mnote\u{1b}[0m                        │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[36mname\u{1b}[0m           ┆ \u{1b}[1m\u{1b}[36mversion\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mvia\u{1b}[0m           ┆ \u{1b}[1m\u{1b}[36mnote\u{1b}[0m                        │
 ╞════════════════╪═════════╪═══════════════╪═════════════════════════════╡
-│ \u{1b}[1mdemo-core\u{1b}[0m      ┆ 0.5.0   ┆ registry      ┆                             │\u{1b}[0m
-│ \u{1b}[1mdemo-cli\u{1b}[0m       ┆ 1.8.1   ┆ registry      ┆ tag already exists, skipped │\u{1b}[0m
-│ \u{1b}[1mdemo-docs-site\u{1b}[0m ┆ 2.0.0   ┆ release-asset ┆                             │\u{1b}[0m
+│ \u{1b}[1mdemo-core\u{1b}[0m      ┆ 0.5.0   ┆ registry      ┆                             │
+│ \u{1b}[1mdemo-cli\u{1b}[0m       ┆ 1.8.1   ┆ registry      ┆ tag already exists, skipped │
+│ \u{1b}[1mdemo-docs-site\u{1b}[0m ┆ 2.0.0   ┆ release-asset ┆                             │
 └────────────────┴─────────┴───────────────┴─────────────────────────────┘
