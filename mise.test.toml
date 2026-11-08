@@ -1,0 +1,13 @@
+# Loaded when MISE_ENV contains `test`: locally through .miserc.toml, and in CI
+# only by the Build and test job, through the shared workflow's test-profiles
+# input. It holds the shells and the linter the script tests start
+# (tests/support/shells.rs); bash stays the platform's own shell. A profile,
+# not [tools] in mise.toml, so the other CI jobs never fetch them, and its
+# install directories go on PATH, where cargo's tests find them through
+# mr-boxington's command wrapper (openspec/changes/script-snapshots/design.md,
+# decision 4). Conda builds cover both locked platforms.
+
+[tools]
+"conda:zsh" = "5.9.2"
+"conda:fish" = "4.9.3"
+shellcheck = "0.11.0"

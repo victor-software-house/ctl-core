@@ -34,9 +34,10 @@ Queue row: CTC-031.
    - `fish --no-config -n` for fish.
 
    It writes the script through ctl-core's `fixture` module.
-4. zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 are lazy tools in
-   `mise.toml`, so local runs and CI use the same tools, and only the
-   `test` task, through its `install:test-tools` dependency, fetches them.
+4. zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 are a `test` mise
+   profile, `mise.test.toml` with `mise.test.lock`.
+   Local runs load it after `dev`, and CI loads it only in its Build and
+   test job, so both use the same tools and no other job fetches them.
 5. The `completion` tests move to snapshots.
    The test crate drops its `missing_docs` exception, which never fired.
 6. The `Shell` docs state that its set of shells is closed.
@@ -57,8 +58,9 @@ None.
 
 1. Tests: `tests/completion.rs`, `tests/support/shells.rs`, and
    `tests/snapshots/`.
-2. Tools: `mise.toml`, `mise.lock`, `mise.dev.toml`, `mise.dev.lock`, and
-   `mise.ci.toml`.
+2. Tools: `mise.test.toml`, `mise.test.lock`, `.miserc.toml`, `mise.dev.toml`,
+   `mise.dev.lock`, and `mise.ci.toml`, and the shared CI workflow's
+   `test-profiles` input.
 3. `Cargo.toml` and `Cargo.lock` gain `insta` and `similar` as test-only
    crates.
    A consumer's dependency graph does not change.

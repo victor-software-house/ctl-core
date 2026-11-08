@@ -257,12 +257,15 @@ gets a notice. A push to `main` and a daily run keep one issue, "Template
 update available", open while the newest tag would change this repository.
 The drift check is skipped for pull requests from forks.
 
-Local work loads the `dev` profile (`.miserc.toml`): lefthook, committed,
-and gitleaks. Every hook command runs with `MISE_ENV=dev,hooks`. Its
-`postinstall` hook runs `lefthook install` after every `mise install`, so a
-fresh clone gets its git hooks from `mise install`. CI sets `MISE_ENV=ci`
-(`ci,release` for release jobs) and never loads `dev`, so no runner installs
-hooks.
+Local work loads the `dev` and `test` profiles (`.miserc.toml`). `dev`
+holds lefthook, committed, and gitleaks; `test` holds the tools the script
+tests start (see Snapshots). Every hook command runs with
+`MISE_ENV=dev,hooks`, except the pre-push lock check, which runs with
+`MISE_ENV=dev,test`, the list `.miserc.toml` loads. The `postinstall` hook of
+`dev` runs `lefthook install` after every `mise install`, so a fresh clone
+gets its git hooks from `mise install`. CI sets `MISE_ENV=ci` (`ci,test` for
+the Build and test job, `ci,release` for release jobs) and never loads `dev`,
+so no runner installs hooks.
 
 ## Fixtures
 
@@ -285,13 +288,18 @@ own temporary directory.
 
 A rendered shell script also passes its shell's check through
 `tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
-`fish -n`. zsh, fish, and shellcheck are `lazy` tools in `mise.toml`:
-`mise install` skips them, and `test` depends on `install:test-tools`, which
-installs them, so their install directories are on the tests' `PATH`. Their
-bootstrap shims never reach a test: cargo runs through mr-boxington's command
-wrapper, and mise takes its shims off a wrapped command's `PATH`. They are not
-task tools, because mise 2026.10.25 reads a task tool's conda dependencies
-from no lockfile, and a cold install fails. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
+`fish -n`. zsh, fish, and shellcheck are pinned in `mise.test.toml`, the
+`test` profile, and locked in `mise.test.lock`. `.miserc.toml` loads it
+locally after `dev`, and CI loads it only in the Build and test job
+(`MISE_ENV=ci,test`, through the shared workflow's `test-profiles` input), so
+no other job fetches them. Their install directories are on the tests'
+`PATH`, which mr-boxington's command wrapper keeps; only mise's shims are
+taken off it. Generate the locks with the default profiles,
+`mise lock --platform linux-x64,macos-arm64`: mise also writes the pinned
+catalogs' task tools into `mise.test.lock`, and the pre-push lock check runs
+with `MISE_ENV=dev,test`. Write a new lock with the pinned mise, 2026.10.25:
+a newer mise writes a new file as lockfile version 4, which CI's mise cannot
+read. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
 exclusions; only a third-party template's lines may be excluded, by code,
 with the reason beside the list.
 
