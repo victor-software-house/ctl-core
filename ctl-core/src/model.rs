@@ -1,6 +1,25 @@
-//! Schema-first wire types. Views render these; they do not own data.
+//! The JSON envelope types. A view serializes a result as is; the envelope
+//! wraps a payload for a consumer that wants a status and a schema version.
+//!
+//! `View::emit_err` writes an [`Envelope::Err`] for a failure with no model.
+//! The types serialize with the `json` feature and describe themselves with
+//! `schema`.
+//!
+//! ```
+//! use ctl_core::model::{Envelope, ErrorBody, SCHEMA_VERSION};
+//!
+//! let failed = Envelope::<()>::err(ErrorBody::new("toy", "no such row"));
+//! assert!(matches!(
+//!     failed,
+//!     Envelope::Err {
+//!         schema_version: SCHEMA_VERSION,
+//!         ..
+//!     }
+//! ));
+//! ```
 
-/// Bump when the envelope shape changes.
+/// The envelope shape version, written to every envelope as `schema_version`.
+/// Bump it when the envelope shape changes.
 pub const SCHEMA_VERSION: u32 = 1;
 
 /// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
@@ -10,36 +29,40 @@ mod data {
         reason = "schemars' JsonSchema derive expands concat!"
     )]
 
-    /// Machine envelope. Pretty views ignore this and render `data` / `error`.
+    /// A JSON envelope: `status` is `ok` with `data`, or `err` with `error`,
+    /// and both carry `schema_version`.
     #[derive(Clone, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "json", serde(tag = "status", rename_all = "snake_case"))]
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub enum Envelope<T> {
-        /// Successful payload.
+        /// A success. Serializes with `"status": "ok"`.
         Ok {
-            /// Envelope schema version.
+            /// The envelope shape version,
+            /// [`SCHEMA_VERSION`](super::SCHEMA_VERSION).
             schema_version: u32,
-            /// Command result.
+            /// The command's result.
             data: T,
         },
-        /// Failed payload.
+        /// A failure. Serializes with `"status": "err"`.
         Err {
-            /// Envelope schema version.
+            /// The envelope shape version,
+            /// [`SCHEMA_VERSION`](super::SCHEMA_VERSION).
             schema_version: u32,
-            /// Error body.
+            /// What failed.
             error: ErrorBody,
         },
     }
 
-    /// Human and machine error payload.
+    /// The payload of a failure envelope: which binary failed, and why.
     #[derive(Clone, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub struct ErrorBody {
-        /// Binary name (`qctl`, `verctl`, …).
+        /// The name of the binary that failed, such as `qctl`.
         pub bin: String,
-        /// Display message. Use `{error:#}` when the source is `anyhow`.
+        /// The message to show. Format an `anyhow` error with `{error:#}` to
+        /// include its whole chain.
         pub message: String,
     }
 }
@@ -67,7 +90,7 @@ impl<T> Envelope<T> {
 }
 
 impl ErrorBody {
-    /// Build an error from a binary name and message.
+    /// Build an error body from the failing binary's name and a message.
     #[must_use]
     pub fn new(bin: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
