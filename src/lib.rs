@@ -116,6 +116,8 @@ pub mod table;
 pub mod usage;
 #[cfg(feature = "validate")]
 pub mod validate;
+#[cfg(feature = "verbatim")]
+pub mod verbatim;
 #[cfg(feature = "view")]
 pub mod view;
 

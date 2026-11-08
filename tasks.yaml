@@ -113,6 +113,21 @@ queue:
       - CI runs with INSTA_UPDATE=no.
     plan: openspec/changes/script-snapshots/proposal.md
 
+  - id: CTC-032
+    title: Narrow Clap features and share the verbatim predicate
+    scope: ctl-core
+    outcome: >-
+      ctl-core asks Clap only for the features its own code calls, prints every help
+      Clap stops for through its own renderer, and exports the predicate that decides
+      which characters are unsafe to print verbatim.
+    blocked_by: []
+    acceptance:
+      - cli turns on only Clap's std, derive, env, and string features, and help adds usage.
+      - A command that misses a required argument prints ctl-core's help to stderr with exit code 2.
+      - verbatim::is_unsafe holds the refused set, and Document::verbatim filters with it.
+      - The toy CLI's size per tier is measured on the commit CI verified.
+    plan: openspec/changes/narrow-clap-features/proposal.md
+
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
     scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"

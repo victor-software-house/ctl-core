@@ -3,7 +3,7 @@
 #[cfg(any(feature = "view", feature = "help"))]
 use std::ffi::OsString;
 
-use clap::{ColorChoice, Command};
+use clap::Command;
 
 #[cfg(any(feature = "view", feature = "help"))]
 use crate::{ColorMode, OutputFormat};
@@ -28,8 +28,7 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
         .args_override_self(true)
         .disable_help_flag(true)
         .disable_version_flag(true)
-        .ignore_errors(true)
-        .color(ColorChoice::Never);
+        .ignore_errors(true);
     let Ok(matches) = command.try_get_matches_from(raw) else {
         return ParsedOutput {
             format: OutputFormat::Pretty,
@@ -63,7 +62,7 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
 /// Whether Clap interprets this invocation as an explicit help request.
 #[cfg(feature = "help")]
 pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
-    let command = apply_defaults(C::command()).color(ColorChoice::Never);
+    let command = apply_defaults(C::command());
     matches!(
         command.try_get_matches_from(raw),
         Err(error) if error.kind() == clap::error::ErrorKind::DisplayHelp
@@ -87,7 +86,6 @@ pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
     command
         .args_override_self(true)
-        .color(ColorChoice::Auto)
         .disable_help_flag(false)
         .disable_version_flag(false)
 }
@@ -144,9 +142,13 @@ mod tests {
         let mut command = apply_defaults(Toy::command());
         assert_help_enabled(&command);
         assert!(command.is_args_override_self());
-        let help = command.render_long_help().to_string();
-        assert!(help.contains("-h, --help"));
-        assert!(help.contains("-V, --version"));
+        command.build();
+        let flags = command
+            .get_arguments()
+            .filter_map(|arg| arg.get_short().zip(arg.get_long()))
+            .collect::<Vec<_>>();
+        assert!(flags.contains(&('h', "help")), "{flags:?}");
+        assert!(flags.contains(&('V', "version")), "{flags:?}");
     }
 
     #[test]

@@ -275,21 +275,18 @@ where
             Err(_) => return ExitCode::FAILURE,
         }
 
-        let mut command = crate::parser::apply_defaults(C::command());
-        if raw_view.format.is_json() {
-            command = command.color(clap::ColorChoice::Never);
-        }
+        let command = crate::parser::apply_defaults(C::command());
         let command = match crate::flags::env_under_flags(command, &raw) {
             Ok(command) => command,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
         };
         let matches = match command.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view)),
+            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
@@ -300,14 +297,28 @@ where
         }
     }
 
-    fn clap_error(&self, error: &clap::Error, view: View) -> ExitCode {
+    /// Report a parse error, or print the help or version Clap stopped for.
+    /// Help always comes from ctl-core's renderer, so it needs none of Clap's
+    /// help or color features.
+    fn clap_error(&self, error: &clap::Error, view: View, args: &[String]) -> ExitCode {
+        use clap::error::ErrorKind;
+
         let code = exit_code(error.exit_code());
-        if is_clap_display(error.kind()) {
-            let _ = error.print();
-            return code;
+        let kind = error.kind();
+        if !is_clap_display(kind) {
+            return view
+                .emit_err(&self.bin, error.to_string().trim())
+                .map_or(ExitCode::FAILURE, |_| code);
         }
-        view.emit_err(&self.bin, error.to_string().trim())
-            .map_or(ExitCode::FAILURE, |_| code)
+        let options = view.render_options();
+        let written = if kind == ErrorKind::DisplayVersion {
+            crate::view::write_stdout(error.to_string().as_bytes(), ColorMode::Never)
+        } else if kind == ErrorKind::DisplayHelp {
+            crate::help::emit_selected::<C>(args, options)
+        } else {
+            crate::help::emit_selected_to_stderr::<C>(args, options)
+        };
+        written.map_or(ExitCode::FAILURE, |()| code)
     }
 }
 

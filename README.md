@@ -29,6 +29,8 @@ borders. The renderer chooses style, wrapping, width, and color; verbatim blocks
 preserve preformatted Markdown and protocol lines without wrapping, remove
 terminal controls, bidi controls, and Unicode line separators, preserve other
 Unicode formatting, and normalize trailing newlines to the document contract.
+The `verbatim` feature exports that set as `verbatim::is_unsafe`, so a CLI can
+filter text it prints outside a document the same way.
 
 ## Use
 

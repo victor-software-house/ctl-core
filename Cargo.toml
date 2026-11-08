@@ -81,6 +81,9 @@ default = ["app"]
 app = ["cli", "view", "help", "dep:anyhow"]
 
 ## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
+## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
+## and `string`. Error context, suggestions, and Clap's own help and color
+## stay the consumer's choice.
 cli = ["dep:clap"]
 
 ## Semantic presentation documents without a terminal engine.
@@ -92,18 +95,21 @@ json = ["dep:serde", "dep:serde_json"]
 ## Terminal rendering for semantic documents. Engine crates stay private.
 render = [
   "document",
+  "verbatim",
   "dep:anstyle",
   "dep:comfy-table",
-  "dep:unicode-bidi",
-  "dep:unicode-general-category",
   "dep:unicode-width",
 ]
+
+## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`).
+verbatim = ["dep:unicode-bidi"]
 
 ## JSON Schema for the envelope and enums (`schemars`).
 schema = ["json", "dep:schemars"]
 
-## Styled `-h/--help` through the shared document renderer.
-help = ["cli", "render", "dep:anstream"]
+## Styled `-h/--help` through the shared document renderer. Adds Clap's
+## `usage` feature for the usage line.
+help = ["cli", "render", "clap/usage", "dep:anstream"]
 
 ## Pretty / JSON / colorless emitters over serializable models.
 view = ["render", "json", "dep:anstream"]
@@ -160,7 +166,8 @@ usage = ["cli", "dep:usage-lib"]
 anyhow = { version = "1.0.104", optional = true }
 anstream = { version = "1.0.0", optional = true }
 anstyle = { version = "1.0.14", optional = true }
-clap = { version = "4.6.6", optional = true, features = [
+clap = { version = "4.6.6", optional = true, default-features = false, features = [
+  "std",
   "derive",
   "env",
   "string",
@@ -196,7 +203,6 @@ usage-lib = { version = "6.0.0", default-features = false, features = [
   "clap",
 ], optional = true }
 unicode-bidi = { version = "0.3.18", optional = true, default-features = false }
-unicode-general-category = { version = "1.1.0", optional = true }
 unicode-width = { version = "0.2.2", optional = true }
 
 [dev-dependencies]

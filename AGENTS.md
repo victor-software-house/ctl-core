@@ -80,6 +80,15 @@ consumer needs. Never add serialization or rendering behavior to a lower tier.
 `features = ["usage"]` does not pull `help`. Do not add `help` only to make the
 prelude compile.
 
+ctl-core asks a dependency only for the features its own code calls, because
+Cargo unifies features and a consumer cannot turn off one ctl-core turned on.
+`clap` is declared with `default-features = false`: `cli` asks for `std`,
+`derive`, `env`, and `string`, and `help` adds `usage`. Clap's `color`, `help`,
+`error-context`, and `suggestions` are the consumer's choice; ctl-core renders
+every help Clap stops for and never calls `Error::print` or `Command::color`.
+Measure a new dependency or feature with `cargo bloat` on a release build
+before adding it (`openspec/changes/narrow-clap-features/design.md`).
+
 The crate-root `//!` sections in `src/lib.rs` are the docs.rs landing page,
 and `document_features` there is authoritative for the feature graph. The
 README is the GitHub page and does not copy them. Crate-root re-exports stay
@@ -133,9 +142,12 @@ replaceable, and an empty slice disables lookup.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`,
    `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI,
    width, or streams. Verbatim is for preformatted Markdown or protocol text
-   whose line boundaries must survive rendering. It removes terminal controls,
-   bidi controls, and Unicode line separators; preserves other Unicode format
-   characters; then normalizes trailing newlines to the document.
+   whose line boundaries must survive rendering. It removes what
+   `verbatim::is_unsafe` refuses (every Cc control other than newline and
+   tab, the 12 UAX #9 directional formatting characters, and U+2028 and
+   U+2029); preserves the other format characters (Cf); then normalizes trailing newlines to the
+   document. A CLI that prints text it did not write filters with the same
+   predicate.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output. Usage lines wrap without splitting tokens.
