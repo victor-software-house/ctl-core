@@ -121,7 +121,7 @@ proptest! {
     }
 
     #[test]
-    fn coloured_output_resets_at_the_end_of_every_line_that_set_a_style(
+    fn coloured_output_leaves_no_style_open_at_the_end_of_any_line(
         lines in any_lines(),
         depth in any_depth(),
     ) {
@@ -129,10 +129,15 @@ proptest! {
         let encoded_lines: Vec<&str> = encoded.lines().collect();
         prop_assert_eq!(encoded_lines.len(), lines.len());
         for (encoded_line, line) in encoded_lines.iter().zip(&lines) {
-            let styled = line.spans().iter().any(|span| !span.style().is_plain());
-            prop_assert_eq!(has_escape(encoded_line), styled);
-            if styled {
-                prop_assert!(encoded_line.ends_with(RESET), "{:?}", encoded_line);
+            let styled = line
+                .spans()
+                .iter()
+                .any(|span| !span.text().is_empty() && !span.style().is_plain());
+            if !styled {
+                prop_assert!(!has_escape(encoded_line), "{:?}", encoded_line);
+            }
+            if let Some(start) = encoded_line.rfind(crate::common::ESC) {
+                prop_assert!(encoded_line[start..].starts_with(RESET), "{:?}", encoded_line);
             }
         }
     }

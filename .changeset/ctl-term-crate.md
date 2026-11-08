@@ -10,8 +10,11 @@ New crate on crates.io: `ctl-term`, terminal facts and the escape encoder.
   It picks the width from an explicit width, then the stream's window, then `COLUMNS`, then a fallback of 80.
 - `DetectOptions` and `Terminal::with_depth` override each default and can turn it off.
 - `Encoder` turns `ctl_text::Line`s into bytes.
-  It writes a style sequence only where the style changes, and ends each styled line with a reset.
+  It writes a style sequence only where the style changes, and leaves no style open at the end of a line.
   Each colour becomes the nearest one the depth can show.
   With colour off it writes the plain text byte for byte.
 - `Console` renders any `Renderable` at the width of its stream and writes it.
-  It turns on virtual-terminal mode on Windows and reports a closed pipe as `Error::BrokenPipe`.
+  It reports a closed pipe as `Error::BrokenPipe`.
+- The `detect` feature, on by default, holds what asks the operating system.
+  Without it the crate holds only the encoder, the colour conversion, and `Terminal::from_probe`.
+- The crate supports and tests Unix only; Windows is to come with a Windows CI job.

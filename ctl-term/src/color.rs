@@ -6,9 +6,11 @@ use crate::palette::{ansi256_to_ansi16, rgb_to_ansi16, rgb_to_ansi256};
 
 /// Whether to write colour, as the caller asked.
 ///
-/// [`Always`](Self::Always) and [`Never`](Self::Never) read no variable and
-/// ask no stream. [`Auto`](Self::Auto) follows the order in the Colour
-/// section of the [crate docs](crate).
+/// [`Always`](Self::Always) and [`Never`](Self::Never) ignore the variables
+/// that decide whether to write colour, `NO_COLOR`, `CLICOLOR`,
+/// `CLICOLOR_FORCE`, `FORCE_COLOR`, and `TERM=dumb`, and ask no stream. The
+/// depth and the width still follow their variables. [`Auto`](Self::Auto)
+/// follows the order in the Colour section of the [crate docs](crate).
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum ColorMode {

@@ -70,11 +70,24 @@ fn a_sequence_is_written_only_where_the_style_changes() {
 }
 
 #[test]
-fn a_style_ending_mid_line_is_reset_before_plain_text() {
+fn a_style_ending_mid_line_is_reset_once() {
     let lines = [line(&[("a", red()), ("b", Style::new())])];
     assert_eq!(
         encode(Some(ColorDepth::Ansi16), &lines),
-        "\u{1b}[31ma\u{1b}[0mb\u{1b}[0m\n"
+        "\u{1b}[31ma\u{1b}[0mb\n"
+    );
+}
+
+#[test]
+fn a_span_with_no_text_writes_nothing() {
+    let green = fg(AnsiColor::Green);
+    let lines = [
+        line(&[("a", red()), ("", green), ("b", red())]),
+        line(&[("", red())]),
+    ];
+    assert_eq!(
+        encode(Some(ColorDepth::Ansi16), &lines),
+        "\u{1b}[31mab\u{1b}[0m\n\n"
     );
 }
 
@@ -134,6 +147,33 @@ fn colours_that_downgrade_to_one_colour_share_a_sequence() {
         encode(Some(ColorDepth::Ansi16), &lines),
         "\u{1b}[91mab\u{1b}[0m\n"
     );
+}
+
+#[test]
+fn an_underline_colour_is_dropped_at_16_colours_and_kept_above() {
+    let style = Style::new()
+        .effects(Effects::UNDERLINE)
+        .underline_color(Some(RgbColor(255, 0, 0).into()));
+    let lines = [line(&[("x", style)])];
+    assert_eq!(
+        encode(Some(ColorDepth::Ansi16), &lines),
+        "\u{1b}[4mx\u{1b}[0m\n"
+    );
+    assert_eq!(
+        encode(Some(ColorDepth::Ansi256), &lines),
+        "\u{1b}[4m\u{1b}[58;5;196mx\u{1b}[0m\n"
+    );
+    assert_eq!(
+        encode(Some(ColorDepth::TrueColor), &lines),
+        "\u{1b}[4m\u{1b}[58;2;255;0;0mx\u{1b}[0m\n"
+    );
+}
+
+#[test]
+fn a_span_with_only_an_underline_colour_is_plain_at_16_colours() {
+    let style = Style::new().underline_color(Some(AnsiColor::Red.into()));
+    let lines = [line(&[("x", style)])];
+    assert_eq!(encode(Some(ColorDepth::Ansi16), &lines), "x\n");
 }
 
 /// One 24-bit colour at each depth.

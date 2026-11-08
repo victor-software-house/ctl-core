@@ -9,6 +9,7 @@ The crate works on the plain lines `ctl-text` produces, so layout never sees an 
 
 - [`Terminal`](https://docs.rs/ctl-term/latest/ctl_term/struct.Terminal.html) holds the decision for one stream.
   It follows `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, `COLORTERM`, `TERM`, and `COLUMNS`, in a fixed order.
+  `ColorMode::Always` and `ColorMode::Never` skip the variables that decide whether to write colour, and the depth and width still follow theirs.
 - [`Encoder`](https://docs.rs/ctl-term/latest/ctl_term/struct.Encoder.html) is the one place an escape sequence is written.
   It converts every colour to the nearest one the depth can show.
 - [`Console`](https://docs.rs/ctl-term/latest/ctl_term/struct.Console.html) renders any [`ctl-text`](https://docs.rs/ctl-text) widget at the stream's width and writes it.
@@ -16,16 +17,16 @@ The crate works on the plain lines `ctl-text` produces, so layout never sees an 
 
 ## Example
 
-A program calls `Console::from_process(Stream::Stdout, ColorMode::Auto)` and then `print`.
+A program calls `Console::from_process(Stream::Stdout, ColorMode::Auto, DetectOptions::new())` and then `print`.
 This example states the stream's facts instead, so it runs the same with or without a terminal.
 
 ```rust
+use ctl_term::ctl_text::anstyle::AnsiColor;
+use ctl_term::ctl_text::{Style, Text};
 use ctl_term::{ColorMode, Console, DetectOptions, Probe, Stream, Terminal};
-use ctl_text::anstyle::AnsiColor;
-use ctl_text::{Style, Text};
 
 let terminal = Terminal::from_probe(
-    Probe::Pipe,
+    Probe::Redirected,
     ColorMode::Always,
     DetectOptions::new().width(40),
     &|_name: &str| None,
@@ -42,8 +43,13 @@ assert_eq!(out, b"\x1b[31mfailed\x1b[0m\n");
 
 ## Features
 
-`ctl-term` has no optional features.
-On Windows it enables virtual-terminal mode through `anstyle-query` when the stream is a terminal.
+- `detect`, on by default, asks the operating system about a stream.
+  It adds `Probe::of`, `Terminal::detect`, the `from_process` constructors, and `Console::print`, and brings in `terminal_size`.
+  Without it the crate holds the `Encoder`, the colour conversion, and `Terminal::from_probe`, which need no terminal.
+
+`ctl-term` supports and tests Unix only.
+It has no Windows path: it does not turn on virtual-terminal mode, and it reports no window width on another target.
+Windows is to come with a Windows CI job.
 
 ## Documentation
 

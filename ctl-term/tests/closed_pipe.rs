@@ -19,7 +19,7 @@ mod unix {
     use std::path::PathBuf;
     use std::process::{Child, Command, ExitCode, Stdio};
 
-    use ctl_term::{ColorMode, Console, Error, Stream};
+    use ctl_term::{ColorMode, Console, DetectOptions, Error, Stream};
     use ctl_text::{Context, Line, Measurement, Renderable, Span, Style};
 
     /// The variable that makes the binary the writer.
@@ -76,7 +76,7 @@ mod unix {
                 })
                 .collect(),
         );
-        let console = Console::from_process(Stream::Stdout, ColorMode::Auto);
+        let console = Console::from_process(Stream::Stdout, ColorMode::Auto, DetectOptions::new());
         match console.print(&rows) {
             Ok(()) => ExitCode::from(3),
             Err(Error::BrokenPipe(_)) => ExitCode::SUCCESS,
@@ -153,5 +153,12 @@ fn main() -> std::process::ExitCode {
 
 #[cfg(not(unix))]
 fn main() -> std::process::ExitCode {
+    use std::io::{self, Write};
+
+    writeln!(
+        io::stderr(),
+        "closed_pipe: skipped, ctl-term supports and tests Unix only"
+    )
+    .ok();
     std::process::ExitCode::SUCCESS
 }

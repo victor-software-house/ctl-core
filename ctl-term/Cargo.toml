@@ -18,13 +18,18 @@ rustdoc-args = ["--cap-lints", "warn"]
 [lints]
 workspace = true
 
+[features]
+default = ["detect"]
+# Asks the operating system about a stream: its window size, through
+# `terminal_size`, and what it is. It adds `Probe::of`, `Terminal::detect`,
+# the `from_process` constructors, and `Console::print`. Without it the
+# crate holds the encoder, the colour conversion, and `Terminal::from_probe`.
+detect = ["dep:terminal_size"]
+
 [dependencies]
 anstyle.workspace = true
 ctl-text.workspace = true
-terminal_size.workspace = true
-
-[target.'cfg(windows)'.dependencies]
-anstyle-query.workspace = true
+terminal_size = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest.workspace = true
@@ -40,3 +45,4 @@ path = "tests/it/main.rs"
 name = "closed_pipe"
 path = "tests/closed_pipe.rs"
 harness = false
+required-features = ["detect"]

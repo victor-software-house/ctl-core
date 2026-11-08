@@ -12,8 +12,6 @@ repository = "https://github.com/victor-software-house/ctl-core"
 [workspace.dependencies]
 anyhow = "1.0.104"
 anstyle = "1.0.14"
-# Enables ANSI escapes in the Windows console (ctl-term, Windows only).
-anstyle-query = "1.1.5"
 clap = { version = "4.6.6", default-features = false, features = [
   "std",
   "derive",

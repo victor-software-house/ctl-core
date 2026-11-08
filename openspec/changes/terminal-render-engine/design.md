@@ -137,7 +137,7 @@ Alternatives:
 |:--|:--|:--|:--|
 | `ctl-text` | styled text (`Span`, `Line`, `Text`), the cell-width model, wrapping and truncation, the unsafe-character set, and the renderable protocol (`Renderable`, `Measurement`, `Context`) | `anstyle`, `unicode-width`, `unicode-segmentation`, `unicode-bidi` | rawr's title filter and wrapper; private consumers, checked but not named here |
 | `ctl-layout` | widgets built on the protocol: `Table`, `Record`, `Rule`, `Stack`, `Indent`, later `Panel`, `Tree`, `Columns`, `ProgressBar` | `ctl-text` | private consumers, checked but not named here |
-| `ctl-term` | terminal facts (`Terminal`: is a terminal, colour depth, width), colour policy, the escape encoder, the `Console` writer, later `Live` and prompts | `ctl-text`, `anstyle`, `terminal_size` | rawr's terminal check; private consumers, checked but not named here |
+| `ctl-term` | terminal facts (`Terminal`: is attached to a terminal, colour depth, width), colour policy, the escape encoder, the `Console` writer, later `Live` and prompts | `ctl-text`, `anstyle`, and `terminal_size` behind the default `detect` feature | rawr's terminal check; private consumers, checked but not named here |
 | `ctl-core` | the facade and the CLI chassis: `App`, flags, `Document`, the `Theme` that maps roles to styles, `View`, help, JSON | the three leaves behind features | every CLI |
 
 The maintainer chose these names on 2026-11-08 (UTC). All three were free on
@@ -210,15 +210,17 @@ No escape byte exists before `ctl-term`'s encoder. The encoder:
 
 1. writes an SGR sequence only where the style changes between spans, at the
    colour depth the terminal supports (decision 11);
-2. resets at the end of every line, so each line stands alone in `head`,
-   `less -R` and a log;
+2. skips a span with no text, and ends every line with no style open: a reset
+   follows the last styled span, and none follows a line that already ended in
+   plain text, so each line stands alone in `head`, `less -R` and a log;
 3. opens and closes OSC 8 around a linked span when links are on;
 4. writes plain text, byte for byte, when colour is off.
 
 So `anstream`, `anstyle-parse`, `utf8parse`, `colorchoice`, `ansi-str`,
-`ansitok`, `nom`, `vte` and `console` leave the graph. On Windows, `ctl-term`
-turns on the console's virtual-terminal mode through `anstyle-query`'s
-`windows::enable_ansi_colors` and treats a failure as no colour.
+`ansitok`, `nom`, `vte` and `console` leave the graph. The encoder needs no
+terminal: its depth is an argument, so ctl-core's string rendering calls the
+same encoder instead of keeping a second one (decision 19 states what
+`ctl-term` supports).
 
 Alternatives:
 
@@ -348,10 +350,14 @@ a spec: parity snapshots (decision 17) show where the new algorithm differs.
 
 ### 10. Terminal facts are a pure function of an environment snapshot
 
-`Terminal::detect(stream, mode, env)` returns `{ is_terminal, color, width,
-links }`. `env` is a lookup function, so a test passes a map and no test
-touches process state. `Terminal::from_process(stream, mode)` passes
-`std::env::var`.
+`Terminal::detect(stream, mode, options, env)` returns `{ attached, color,
+width }`. `env` is a lookup function, so a test passes a map and no test
+touches process state. `Terminal::from_process(stream, mode, options)` passes
+the process environment, reading it with `std::env::var_os` so that a value
+that is not valid UTF-8 still counts as set. `Terminal::from_probe(probe, mode,
+options, env)` is the whole decision with the stream stated. `options` is
+`DetectOptions`, and there is one constructor of each kind, not a pair with
+and without options.
 
 Colour, for `ColorMode::Auto`, first match wins:
 
@@ -362,14 +368,32 @@ Colour, for `ColorMode::Auto`, first match wins:
 5. `TERM=dumb`: no colour.
 6. The stream is a terminal: colour. Otherwise none.
 
-`ColorMode::Always` and `Never` read no variable. The decision is made once,
-before rendering, for the stream the output goes to.
+`FORCE_COLOR=0` and `FORCE_COLOR=false` are neutral: they neither force colour
+nor turn it off, so rules 4 to 6 still apply. rich treats `FORCE_COLOR=0` as a
+force, which is the flaw this avoids.
+
+`ColorMode::Always` and `Never` skip rules 1 to 6. They still read the
+variables that set the depth (`COLORTERM`, `TERM`, `FORCE_COLOR`) and the
+width (`COLUMNS`). The decision is made once, before rendering, for the stream
+the output goes to.
 
 Width, first match wins: an explicit width (exact); the window size of the
 stream being written, through `terminal_size::terminal_size_of`; `COLUMNS`;
-the fallback (80). The buffer and the minimum apply to a detected width as
-today. Help printed to stderr now asks stderr, not stdout
-([consumer needs, A.6][needs-a6]).
+the fallback (`DEFAULT_FALLBACK_WIDTH`, 80). The column buffer
+(`DEFAULT_COLUMN_BUFFER`, 2) and the minimum (`DEFAULT_MINIMUM_WIDTH`, 20)
+apply to a detected width. The buffer reads no variable until the caller
+names some with `DetectOptions::column_buffer_envs`; ctl-core passes its
+`CTL_CORE_COLUMN_BUFFER` names and uses these constants rather than its own
+copies. A width is at least 1: an explicit width of 0 counts as 1. Help
+printed to stderr now asks stderr, not stdout ([consumer needs, A.6][needs-a6]).
+
+A probe of a stream is `Probe::Redirected` (a pipe, a file, or a closed
+stream) or `Probe::Terminal` with the window width, built with
+`Probe::terminal(columns)`, where a width of 0 counts as not reported.
+Everything that asks the operating system (`Probe::of`, `Terminal::detect`, the
+`from_process` constructors, `Console::print`, and `terminal_size`) sits behind
+the default `detect` feature, so ctl-core's `render` tier takes the encoder
+without it.
 
 Alternatives:
 
@@ -386,8 +410,10 @@ Alternatives:
 Depth: `COLORTERM` of `truecolor` or `24bit`, or `FORCE_COLOR=3`, is 24-bit;
 `TERM` containing `256color`, or `FORCE_COLOR=2`, is 256; anything else with
 colour on is 16. The encoder maps a 24-bit colour to the nearest of the 256
-palette and a 256 colour to the nearest of the 16, as a pure function. No
-surveyed crate does this ([style survey, 5.3][style-depth]). The default theme
+palette and a 256 colour to the nearest of the 16, as a pure function. At 16
+colours the underline colour is dropped, because SGR 58 takes a palette or
+24-bit colour and has no 16-colour form. No surveyed crate does this
+([style survey, 5.3][style-depth]). The default theme
 uses only the 16 named colours, so its output is the same at every depth.
 
 ### 12. Roles map to styles through a public theme
@@ -463,10 +489,10 @@ the facade's re-exports (`ctl_core::layout`, `ctl_core::term`,
 
 ```rust
 use ctl_core::layout::{Column, Overflow, Table};
-use ctl_core::term::{Console, Stream};
+use ctl_core::term::{Console, DetectOptions, Stream};
 use ctl_core::text::{Text, anstyle::AnsiColor};
 
-let console = Console::from_process(Stream::Stdout, ColorMode::Auto);
+let console = Console::from_process(Stream::Stdout, ColorMode::Auto, DetectOptions::new());
 let table = Table::new([
     Column::new("title").overflow(Overflow::Ellipsis),
     Column::new("age").numeric(),
@@ -525,9 +551,9 @@ column is what this change owns:
 
 The leaves' own dependencies cost little over a plain `println!` baseline:
 anstyle 1,620 bytes, unicode-width with unicode-segmentation 10,232,
-terminal_size 788 and anstyle-query 596. comfy-table as ctl-core sets it
-today costs 80,288, crossterm's `terminal::size` alone 23,396
-([measurements, Matrix A][m-a]). `cargo bloat` on the 0.6.28 `app` tier puts
+terminal_size 788 and anstyle-query 596 (since removed, decision 19).
+comfy-table as ctl-core sets it today costs 80,288, crossterm's
+`terminal::size` alone 23,396 ([measurements, Matrix A][m-a]). `cargo bloat` on the 0.6.28 `app` tier puts
 comfy-table and the crates it brings at about 55 KiB, which agrees with the
 engine column.
 
@@ -594,9 +620,9 @@ It lost because a size regression would ship before anyone measured.
    - no grapheme cluster is split;
    - a rendered width never falls below `measure().minimum` unless the target
      width is below it;
-   - colourless output contains no ESC byte; coloured output resets at the
-     end of every line.
-4. **Detection.** A table test of `Terminal::detect` over every variable in
+   - colourless output contains no ESC byte; coloured output leaves no style
+     open at the end of any line.
+4. **Detection.** A table test of `Terminal::from_probe` over every variable in
    decision 10, each alone and in conflicting pairs.
 5. **Consumers.** Each CLI keeps its test that runs the binary with
    `CLICOLOR_FORCE=1` and finds no ESC byte in JSON.
@@ -620,6 +646,27 @@ new rule keeps two parts and replaces two:
    because no crate reads both `NO_COLOR` and `FORCE_COLOR` with an explicit
    override, per stream, without global state.
 
+### 19. ctl-term supports and tests Unix only, for now
+
+The maintainer chose this on 2026-11-08 (UTC). `ctl-term` has no Windows
+path: it does not turn on virtual-terminal mode, it does not depend on
+`anstyle-query`, and a target that is not Unix reports no window width. The
+reason is what the Windows path did. `anstyle-query`'s
+`windows::enable_ansi_colors` enables virtual-terminal mode for stdout and
+stderr at once, so a piped stdout turned off the colour of a terminal stderr,
+and mintty lost its colour. No consumer ships a Windows build, and no CI job
+runs on Windows, so the path could not be tested. The crate docs, the README
+and `ctl-term/AGENTS.md` state it. Windows returns with a Windows CI job that
+runs the tests, and the path comes back with them.
+
+Alternatives:
+
+1. **Enable virtual-terminal mode for the stream being written only.** It
+   needs the Windows console API directly, which means `unsafe` or a new
+   dependency, and no job could test it.
+2. **Keep `anstyle-query` as it was.** It lost for the cross-stream defect
+   above.
+
 ## Automatic behaviours
 
 | Behaviour | Public override | Disable path |
@@ -627,13 +674,13 @@ new rule keeps two parts and replaces two:
 | Colour decided from the environment and the stream | `ColorMode::Always`, `--color always` | `ColorMode::Never`, `--color never`, `NO_COLOR` |
 | Colour depth from `COLORTERM`, `TERM`, `FORCE_COLOR` | `Terminal::with_depth(depth)` | `ColorMode::Never` |
 | Width from the stream, then `COLUMNS` | `width(n)` on `RenderOptions`, `View`, `App` | an explicit width |
-| Buffer and minimum on a detected width | as today | as today |
+| Buffer and minimum on a detected width | `DetectOptions::column_buffer`, `minimum_width` | a buffer or minimum of 0 |
+| Buffer variable | `DetectOptions::column_buffer_envs` | none read by default |
 | Fallback width 80 | `fallback_width(Some(n))` | `fallback_width(None)` |
 | Unsafe characters removed from spans | none: it is a safety rule | `Document::verbatim` keeps tabs and newlines |
 | Tabs expanded to 8 | `Context::tab_width(n)` | none |
 | Closed pipe keeps the command's exit code | `App::broken_pipe(BrokenPipe::Fail)` | the same |
 | Default theme | `App::theme`, `View::theme`, `RenderOptions::theme` | `ColorMode::Never` |
-| Windows virtual-terminal mode | none | `ColorMode::Never` |
 
 ## Risks / Trade-offs
 

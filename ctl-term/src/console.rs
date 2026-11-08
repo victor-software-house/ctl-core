@@ -6,10 +6,13 @@ use std::io::{self, Write};
 
 use ctl_text::{Context, Renderable};
 
+#[cfg(feature = "detect")]
 use crate::color::ColorMode;
 use crate::encode::Encoder;
 use crate::stream::Stream;
-use crate::terminal::{DetectOptions, Terminal};
+#[cfg(feature = "detect")]
+use crate::terminal::DetectOptions;
+use crate::terminal::Terminal;
 
 /// Why writing failed.
 ///
@@ -61,10 +64,6 @@ impl From<io::Error> for Error {
 /// with [`Encoder`], and writes them. With colour off it writes the plain text
 /// of the lines. A stream with no width, because the fallback is off, renders
 /// at `u16::MAX` cells, so a widget takes its natural width.
-///
-/// On Windows, a console for a terminal turns on virtual-terminal mode, which
-/// the console needs to read escapes. When that fails the console writes no
-/// colour.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Console {
     stream: Stream,
@@ -75,24 +74,15 @@ impl Console {
     /// A console for `stream` that follows the decision in `terminal`.
     #[must_use]
     pub fn new(stream: Stream, terminal: Terminal) -> Self {
-        Self {
-            stream,
-            terminal: enable_escapes(terminal),
-        }
+        Self { stream, terminal }
     }
 
     /// A console for `stream` that decides from the process environment and
-    /// the stream, with the defaults of [`DetectOptions::new`].
+    /// the stream, under `options`. Needs the `detect` feature.
+    #[cfg(feature = "detect")]
     #[must_use]
-    pub fn from_process(stream: Stream, mode: ColorMode) -> Self {
-        Self::from_process_with(stream, mode, DetectOptions::new())
-    }
-
-    /// [`from_process`](Self::from_process) with `options` in place of the
-    /// defaults.
-    #[must_use]
-    pub fn from_process_with(stream: Stream, mode: ColorMode, options: DetectOptions) -> Self {
-        Self::new(stream, Terminal::from_process_with(stream, mode, options))
+    pub fn from_process(stream: Stream, mode: ColorMode, options: DetectOptions) -> Self {
+        Self::new(stream, Terminal::from_process(stream, mode, options))
     }
 
     /// The stream this console writes to.
@@ -107,7 +97,7 @@ impl Console {
         self.terminal
     }
 
-    /// The text [`print`](Self::print) writes for `renderable`.
+    /// The text `print` writes for `renderable`, without writing it.
     #[must_use]
     pub fn render(self, renderable: &dyn Renderable) -> String {
         let width = self.terminal.width().unwrap_or(u16::MAX);
@@ -115,8 +105,8 @@ impl Console {
         Encoder::new(self.terminal.color()).encode(&lines)
     }
 
-    /// Writes `renderable` to `writer` as [`print`](Self::print) would write
-    /// it to the stream, then flushes.
+    /// Writes `renderable` to `writer` as `print` would write it to the
+    /// stream, then flushes.
     ///
     /// # Errors
     ///
@@ -132,36 +122,18 @@ impl Console {
         Ok(())
     }
 
-    /// Writes `renderable` to the stream, then flushes.
+    /// Writes `renderable` to the stream, then flushes. Needs the `detect`
+    /// feature.
     ///
     /// # Errors
     ///
     /// [`Error::BrokenPipe`] when the reader has closed the stream, and
     /// [`Error::Io`] for any other write or flush failure.
+    #[cfg(feature = "detect")]
     pub fn print(self, renderable: &dyn Renderable) -> Result<(), Error> {
         match self.stream {
             Stream::Stdout => self.write_to(&mut io::stdout().lock(), renderable),
             Stream::Stderr => self.write_to(&mut io::stderr().lock(), renderable),
         }
     }
-}
-
-#[cfg(windows)]
-fn enable_escapes(terminal: Terminal) -> Terminal {
-    let failed = terminal.is_terminal()
-        && terminal.color().is_some()
-        && anstyle_query::windows::enable_ansi_colors() == Some(false);
-    if failed {
-        Terminal {
-            color: None,
-            ..terminal
-        }
-    } else {
-        terminal
-    }
-}
-
-#[cfg(not(windows))]
-fn enable_escapes(terminal: Terminal) -> Terminal {
-    terminal
 }
