@@ -40,10 +40,10 @@ const fn bold(color: AnsiColor) -> Style {
 /// were given their own style, not the output they draw: a label set to its
 /// role's style draws the same as an unset one, yet the two themes differ.
 ///
-/// A theme replaces the default through [`RenderOptions::theme`] and
-/// [`View::theme`]. It only says how a role looks: whether colour is written
-/// is the colour mode's decision, so [`ColorMode::Never`] writes none
-/// whatever the theme holds.
+/// A theme replaces the default through [`RenderOptions::theme`],
+/// [`View::theme`], and [`App::theme`]. It only says how a role looks: whether
+/// colour is written is the colour mode's decision, so [`ColorMode::Never`]
+/// writes none whatever the theme holds.
 ///
 /// ```
 /// use ctl_core::text::anstyle::{AnsiColor, Style};
@@ -60,6 +60,7 @@ const fn bold(color: AnsiColor) -> Style {
 ///
 /// [`RenderOptions::theme`]: crate::RenderOptions::theme
 /// [`View::theme`]: crate::View::theme
+/// [`App::theme`]: crate::App::theme
 /// [`ColorMode::Never`]: crate::ColorMode::Never
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Theme {
