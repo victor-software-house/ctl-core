@@ -6,7 +6,7 @@ and in CI, as each task says.
 
 ## 1. Plan
 
-- [x] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
+- [ ] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
   change, and the CTC-034 row with the later phases as horizon rows. Proof:
   `openspec validate --all --strict` and `mise run q check` pass on the pushed
   commit, and the maintainer approves the decisions listed in the proposal.
@@ -17,7 +17,9 @@ and in CI, as each task says.
     because their pull requests were still open. On main after [#198]
     landed those rows, `mise run q check` passes, and
     `openspec validate --all --strict` passes 11 of 11. The maintainer
-    merged [#185]; the pull request carries no formal review.
+    merged [#185]; the pull request carries no formal review. Unticked:
+    `mise run q check` did not pass on the pushed commit, and no recorded
+    approval of the decisions exists.
 
 ## 2. Workspace
 
@@ -125,9 +127,11 @@ and in CI, as each task says.
   - 2026-11-08 UTC: [#203] committed the 0.6.x baselines and [#204] fixed
     its lint; CI [run 42456492298][run-204] passed on [5b31f40], and the
     merge queue's [run 42456761995][q-203] on [39e6f88]. [#206] added the
-    engine renders and `ctl-core/tests/parity/DIFFERENCES.md`, and its
-    description lists each kind of difference with its reason. [#208]
-    changed difference 5. The parity test passed in [run 42458984812][q-209].
+    engine renders and [`ctl-core/tests/parity/DIFFERENCES.md`][differences],
+    which lists each of the eight differences with an example and its
+    reason; [#206]'s description summarises them. [#208] changed
+    difference 5 and updated that file. The parity test passed in
+    [run 42458984812][q-209].
 - [x] 6.3 Remove comfy-table, anstream, unicode-general-category, `kv` and
   `grid`; add `App::broken_pipe` and `App::theme`. Proof: `cargo tree` in CI
   lists none of comfy-table, crossterm, anstream, anstyle-parse or console
@@ -231,3 +235,4 @@ and in CI, as each task says.
 [q-209]: https://github.com/victor-software-house/ctl-core/actions/runs/42458984812
 [run-216]: https://github.com/victor-software-house/ctl-core/actions/runs/42460354659
 [q-213]: https://github.com/victor-software-house/ctl-core/actions/runs/42460567403
+[differences]: https://github.com/victor-software-house/ctl-core/blob/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c/ctl-core/tests/parity/DIFFERENCES.md
