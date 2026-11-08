@@ -1,3 +1,5 @@
 # Local work loads the dev profile by default. CI never loads it: workflows
 # set MISE_ENV=ci, or ci,release for release jobs.
-env = ["dev"]
+# The test profiles load after dev here; in CI only the Build and test job
+# loads them, through the shared workflow's test-profiles input.
+env = ["dev", "test"]

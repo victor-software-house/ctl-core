@@ -2,8 +2,9 @@
 //! bash script through shellcheck too, so a snapshot that the shell cannot
 //! read fails its test.
 //!
-//! The shells and shellcheck are lazy tools in `mise.toml`, which the test
-//! task installs first, through `install:test-tools`. A test that cannot start
+//! The shells and shellcheck are pinned in `mise.test.toml`, the `test`
+//! profile, which puts their install directories on the tests' `PATH` locally
+//! and in CI's Build and test job. A test that cannot start
 //! one fails and names the tool: a check that skips itself when a tool is
 //! missing would pass without checking anything.
 
@@ -48,9 +49,7 @@ fn run(program: &str, args: &[&str], path: &Path) {
         .args(args)
         .arg(path)
         .output()
-        .unwrap_or_else(|error| {
-            panic!("start {program}, a tool `mise run test` installs first: {error}")
-        });
+        .unwrap_or_else(|error| panic!("start {program}, a tool mise.test.toml pins: {error}"));
     assert!(
         output.status.success(),
         "{program} {args:?} rejected the script:\n{}{}",

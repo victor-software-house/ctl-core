@@ -10,8 +10,8 @@
   Proof: `Cargo.lock` adds only `insta` and `similar`.
   - 2026-11-08 UTC: `cargo metadata` locked `insta` 1.49.0 and `similar`
     2.7.0, and nothing else.
-- [ ] 3. Pin zsh, fish, and shellcheck as lazy tools in `mise.toml` and
-  lock them for linux-x64 and macos-arm64.
+- [ ] 3. Pin zsh, fish, and shellcheck in the `test` profile,
+  `mise.test.toml`, and lock them for linux-x64 and macos-arm64.
   Proof: `mise lock --dry-run --json` prints `[]`, and `mise run test`
   installs the tools cold in CI.
   - 2026-11-08 UTC: locked for both platforms, first as `[tools]`, then
@@ -27,6 +27,14 @@
     `install:test-tools`. On a cold Linux x64 sandbox with `MISE_ENV=ci`,
     a task after that dependency found all three installed tools with the
     shims off `PATH`.
+  - 2026-11-08 UTC: review rejected the lazy tools and the install task as
+    a workaround. The tools moved to the `test` profile: the shared
+    workflow gained a `test-profiles` input ([actions#55][actions-55]), and
+    a template update set `test_profiles: [test]`, which adds `test` to
+    `.miserc.toml` and passes it to CI's Build and test job. The locks were
+    generated with the default profiles; `mise lock --dry-run --json` prints
+    `[]` with the default profiles and with `MISE_ENV` set to `dev`, `test`,
+    and `release`.
 - [ ] 4. Add `tests/support/shells.rs`, and move the completion script and
   help tests to snapshots that pass their shell's check.
   Proof: the completion tests pass with `INSTA_UPDATE=no`, locally and in
@@ -43,5 +51,6 @@
   in the top PR before the stack merges.
   Proof: CI green on the last push.
 
+[actions-55]: https://github.com/victor-software-house/actions/pull/55
 [run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166
 [run-wrapped]: https://github.com/victor-software-house/ctl-core/actions/runs/42434896632

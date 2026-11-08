@@ -75,22 +75,23 @@ below.
    - Alternative: parse the snapshot files in a separate mise task.
      A `.snap` header is not shell syntax, and the test already holds the
      text the snapshot compares.
-4. **The tools are lazy tools in `mise.toml`**: `conda:zsh` 5.9.2,
-   `conda:fish` 4.9.3, and `shellcheck` 0.11.0 in `[tools]` with
-   `lazy = true` ([lazy tools][mise-lazy]).
-   `mise install`, and with it mise-action's install step, skips them, so the
-   lint and release jobs never fetch them.
-   `test` depends on `install:test-tools`, which runs
-   `mise install conda:zsh conda:fish shellcheck` from `mise.lock`.
-   mise builds a task's toolset when the task starts, after its
-   dependencies ([task_executor.rs L2716-2737][mise-task-context]), so the
-   install directories are on the tests' `PATH`.
-   - Alternative: let a test's first start install the tool through its
-     bootstrap shim.
-     cargo runs through mr-boxington's command wrapper, and mise takes its
-     shims off a wrapped command's `PATH`
-     ([exec.rs L387-391][mise-wrapper-path]), so no test finds the shim
-     ([run 42434896632][run-wrapped]).
+4. **The tools are a `test` profile**: `conda:zsh` 5.9.2, `conda:fish`
+   4.9.3, and `shellcheck` 0.11.0 in `mise.test.toml`, locked in
+   `mise.test.lock`.
+   `.miserc.toml` loads `test` after `dev`, so local runs use the same
+   tools.
+   In CI, the shared workflow loads it only in its Build and test job, as
+   `MISE_ENV=ci,test`, through its `test-profiles` input
+   ([actions#55][actions-55]); the repository template renders both settings
+   from its `test_profiles` answer.
+   The lint, docs, and release jobs never fetch the tools.
+   A profile's tools come from a config file, so mise looks up their conda
+   dependency packages in that file's own lockfile, `mise.test.lock`
+   ([lockfile.rs L2606-2608][mise-config-path],
+   [conda.rs L552-569][mise-conda-deps]).
+   Their install directories are on the tests' `PATH`: mr-boxington's
+   command wrapper takes only mise's shims off it
+   ([exec.rs L387-391][mise-wrapper-path]).
    Conda-forge builds cover both locked platforms, linux-x64 and
    macos-arm64; fish's GitHub release has no macOS archive.
    bash stays the platform's own shell.
@@ -116,11 +117,37 @@ below.
      Earlier runs passed only because their mise cache already held both
      shells.
      mise 2026.11.4 reads the same way.
-   - Alternative: a profile of their own.
-     CI's shared workflow sets `MISE_ENV=ci` and takes no profile input,
-     so its test job could not select one.
+   - Alternative: lazy tools in `mise.toml`, which a test's first start
+     installs through its bootstrap shim ([lazy tools][mise-lazy]).
+     cargo runs through mr-boxington's command wrapper, and mise takes its
+     shims off a wrapped command's `PATH`
+     ([exec.rs L387-391][mise-wrapper-path]), so no test finds the shim
+     ([run 42434896632][run-wrapped]).
+   - Alternative: lazy tools plus an `install:test-tools` task that `test`
+     depends on.
+     mise builds a task's toolset when the task starts, after its
+     dependencies ([task_executor.rs L2716-2737][mise-task-context]), so the
+     install directories reached the tests.
+     It was rejected on review as a workaround: a second install step beside
+     mise's own, and a local copy of the catalog's `test` task.
    - Alternative: pin the tools in `mise.ci.toml` only.
      Local runs would then use other versions, or none.
+
+   Known mise limit: `mise lock` also writes the pinned catalogs' task tools
+   into `mise.test.lock`, beside the test tools.
+   mise makes one target per lockfile and gives each only its own config
+   files ([lock.rs L2432-2471][mise-lock-targets]).
+   A task from a `git::` include has no config file of its own
+   ([task/mod.rs L2564-2571][mise-task-cf]), so mise assigns its tools to
+   any config file of the target with the task's config root
+   ([lock.rs L3050-3088][mise-task-config-path]), and every profile's file
+   has that root.
+   So every lockfile of a loaded profile holds every catalog task tool, and
+   a `mise.test.lock` with only the test tools is reported stale.
+   mise 2026.11.4 still works this way.
+   The locks are therefore generated with the default profiles,
+   `mise lock --platform linux-x64,macos-arm64`, and the pre-push lock check
+   runs with `MISE_ENV=dev,test`, the list `.miserc.toml` loads.
 5. **shellcheck exclusions are named per caller.**
    The bash script `clap_complete` writes breaks SC2207, SC2181, and
    SC2250, in its own template ([shells.rs][clap-bash]).
@@ -148,11 +175,16 @@ below.
 [insta]: https://github.com/mitsuhiko/insta/tree/1.49.0
 [insta-ci]: https://github.com/mitsuhiko/insta/blob/1.49.0/insta/src/utils.rs#L9-L16
 [insta-env]: https://github.com/mitsuhiko/insta/blob/1.49.0/insta/src/env.rs#L245-L269
+[actions-55]: https://github.com/victor-software-house/actions/pull/55
 [mise-conda-deps]: https://github.com/jdx/mise/blob/v2026.10.25/src/backend/conda.rs#L552-L569
+[mise-config-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L2606-L2608
 [mise-lazy]: https://github.com/jdx/mise/blob/v2026.10.25/docs/dev-tools/shims.md#L435-L451
+[mise-lock-targets]: https://github.com/jdx/mise/blob/v2026.11.4/src/cli/lock.rs#L2432-L2471
 [mise-locked-version]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L5506-L5527
 [mise-source-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/lockfile.rs#L2648-L2650
 [mise-task-arg]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/mod.rs#L168
+[mise-task-cf]: https://github.com/jdx/mise/blob/v2026.11.4/src/task/mod.rs#L2564-L2571
+[mise-task-config-path]: https://github.com/jdx/mise/blob/v2026.11.4/src/cli/lock.rs#L3050-L3088
 [mise-task-context]: https://github.com/jdx/mise/blob/v2026.10.25/src/task/task_executor.rs#L2716-L2737
 [mise-wrapper-path]: https://github.com/jdx/mise/blob/v2026.10.25/src/cli/exec.rs#L387-L391
 [run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166
