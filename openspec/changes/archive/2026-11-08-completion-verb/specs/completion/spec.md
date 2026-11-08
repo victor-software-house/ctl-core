@@ -57,8 +57,8 @@ that run the completer when zsh autoloads the file as the function
 
 #### Scenario: The appended lines
 
-- **WHEN** `Shell::Zsh.script("state-sync")` runs
-- **THEN** its text starts with `#compdef state-sync` and ends with the three lines `if [[ ${funcstack[1]} == _state-sync ]]; then`, `_clap_dynamic_completer_state_sync "$@"` indented four spaces, and `fi`
+- **WHEN** `Shell::Zsh.script("demo-cli")` runs
+- **THEN** its text starts with `#compdef demo-cli` and ends with the three lines `if [[ ${funcstack[1]} == _demo-cli ]]; then`, `_clap_dynamic_completer_demo_cli "$@"` indented four spaces, and `fi`
 
 ### Requirement: The script survives quiet and colour settings
 

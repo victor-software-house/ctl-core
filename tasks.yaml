@@ -276,7 +276,7 @@ archive:
     scope: ctl-core input feature, the input-toml feature, and the declared-input spec
     outcome: 'A ctl CLI reads a TOML config file through the same Input as YAML: one parse, one garde validation, every problem on its file, line, and column.'
     notes:
-      - 'Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. forkctl, qctl, verctl, and state-sync keep reading YAML unchanged.'
+      - 'Operator decision 2026-10-14: TOML is better for config files, so ctl-core reads it natively. The CLIs that read YAML today keep reading it unchanged.'
     links:
       - https://github.com/victor-software-house/ctl-core/pull/120
     plan: openspec/changes/archive/2026-10-24-toml-input/proposal.md

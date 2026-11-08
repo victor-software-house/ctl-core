@@ -2,8 +2,8 @@
 source: tests/completion.rs
 expression: text
 ---
-#compdef state-sync
-function _clap_dynamic_completer_state_sync() {
+#compdef demo-cli
+function _clap_dynamic_completer_demo_cli() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
@@ -11,7 +11,7 @@ function _clap_dynamic_completer_state_sync() {
         _CLAP_IFS="$_CLAP_IFS" \
         _CLAP_COMPLETE_INDEX="$_CLAP_COMPLETE_INDEX" \
         COMPLETE="zsh" \
-        state-sync -- "${words[@]}" 2>/dev/null \
+        demo-cli -- "${words[@]}" 2>/dev/null \
     )}")
 
     if [[ -n $completions ]]; then
@@ -37,7 +37,7 @@ function _clap_dynamic_completer_state_sync() {
     fi
 }
 
-compdef _clap_dynamic_completer_state_sync state-sync
-if [[ ${funcstack[1]} == _state-sync ]]; then
-    _clap_dynamic_completer_state_sync "$@"
+compdef _clap_dynamic_completer_demo_cli demo-cli
+if [[ ${funcstack[1]} == _demo-cli ]]; then
+    _clap_dynamic_completer_demo_cli "$@"
 fi

@@ -58,7 +58,7 @@ None.
 1. Code: `src/shell.rs`, `src/completion.rs`, `App::completion` in
    `src/app.rs`, the modules in `src/lib.rs`, the features in `Cargo.toml`,
    and the feature sets in `mise-tasks/check/features.sh`.
-2. Consumers: qctl, verctl, forkctl, state-sync, and rawr adopt the verb in
+2. Consumers: qctl, verctl, forkctl, rawr, and other ctl CLIs adopt the verb in
    their own changes after a release. forkctl's adoption drops its elvish,
    powershell, and nushell scripts, or keeps them as its own verb.
 3. No change for a CLI that does not enable `completion`.
