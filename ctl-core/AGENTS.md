@@ -161,7 +161,9 @@ An explicit render width is exact and bypasses automatic-width buffering.
 
 The automatic terminal-width buffer defaults to two columns and reads `CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20.
 When no width is detected, output lays out to a fallback width of 80, and `with_fallback_width(None)` disables it.
-`RenderOptions`, `View`, and `App` expose the buffer, ordered environment names, minimum, and fallback; `View` returns its settings as a `RenderOptions` from `render_options`.
+`RenderOptions`, `View`, and `App` expose the buffer, ordered environment names, minimum, and fallback.
+`View` returns its settings as a `RenderOptions` from `render_options`.
+
 The buffer, its names, and the minimum exist only with `view` or `help`, since nothing reads them without a stream.
 The defaults are `ctl-term`'s constants, not second copies.
 

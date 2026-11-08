@@ -9,7 +9,8 @@ New crate on crates.io: `ctl-layout`, terminal widgets built on `ctl-text`.
   When the width runs short, the widest column shrinks first, never below the widest word of a keep-words column.
   A framed table folds instead of running past the width.
 - A numeric column aligns right, headers included.
-- `Definitions` draws each entry as a line of labels over indented description lines, and `Breakpoint` draws one widget below a width and another from it up, so a table gives way to definitions on a narrow terminal.
+- `Definitions` draws each entry as a line of labels over indented description lines.
+  `Breakpoint` draws one widget below a width and another from it up, so a table gives way to definitions on a narrow terminal.
 - `Record`, `Rule`, `Stack`, and `Indent` complete the set.
   A `Stack` and an `Indent` take a widget by value or by reference.
   Every widget implements `ctl_text::Renderable`, so it measures before it renders.

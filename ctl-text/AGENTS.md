@@ -56,6 +56,7 @@ The crate has no snapshot files.
 
 The properties generate text with wide, combining, emoji, and control characters, at widths from 1 to 200.
 They build each text from several pushes in several styles, so segments and neighbouring styles vary.
+
 They assert that lines fit and that no cluster is split.
 They also assert that every non-space character appears once and in order, and that no line ends in a space.
 The oracles list the break spaces and the line breaks, so they do not share the library's rule.
