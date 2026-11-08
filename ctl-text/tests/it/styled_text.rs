@@ -339,3 +339,23 @@ fn styles_survive_a_wrap() {
     assert_eq!(lines[0].spans()[0].style(), Style::new());
     assert_eq!(lines[1].spans()[0].style(), red);
 }
+
+#[test]
+fn render_as_matches_a_clone_with_that_overflow() {
+    let red = Style::new().fg_color(Some(AnsiColor::Red.into()));
+    let mut text = Text::new();
+    text.push("plain words ", Style::new());
+    text.push("redwordsthatrunlong and more", red);
+    text.push(" tail\nsecond line wide enough", Style::new());
+    for overflow in [Overflow::KeepWords, Overflow::Fold, Overflow::Ellipsis] {
+        for width in [1, 5, 9, 80] {
+            let context = Context::new(width);
+            let cloned = text.clone().overflow(overflow);
+            assert_eq!(text.render_as(&context, overflow), cloned.render(&context));
+            assert_eq!(
+                text.measure_as(&context, overflow),
+                cloned.measure(&context)
+            );
+        }
+    }
+}

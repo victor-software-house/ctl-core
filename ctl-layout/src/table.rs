@@ -174,9 +174,7 @@ impl Table {
                     let measured = cell.measure(context);
                     let floor = match framing {
                         Framing::Framed if column.overflow != Overflow::Fold => cell
-                            .clone()
-                            .overflow(Overflow::Fold)
-                            .measure(context)
+                            .measure_as(context, Overflow::Fold)
                             .minimum()
                             .min(measured.minimum()),
                         Framing::Framed | Framing::Unframed => measured.minimum(),
@@ -199,12 +197,7 @@ impl Table {
                     .zip(&self.columns)
                     .map(|((cell, width), column)| {
                         let context = context.with_width(*width);
-                        let overflow = self.cell_overflow(column);
-                        if overflow == column.overflow {
-                            cell.render(&context)
-                        } else {
-                            cell.clone().overflow(overflow).render(&context)
-                        }
+                        cell.render_as(&context, self.cell_overflow(column))
                     })
                     .collect()
             })

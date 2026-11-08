@@ -38,20 +38,14 @@ impl Rule {
     pub fn titled(title: Text) -> Self {
         Self { title: Some(title) }
     }
-
-    fn title(&self) -> Option<Text> {
-        self.title
-            .clone()
-            .map(|title| title.overflow(Overflow::Ellipsis))
-    }
 }
 
 impl Renderable for Rule {
     fn measure(&self, context: &Context) -> Measurement {
-        let Some(title) = self.title() else {
+        let Some(title) = &self.title else {
             return Measurement::exact(1);
         };
-        let measured = title.measure(context);
+        let measured = title.measure_as(context, Overflow::Ellipsis);
         Measurement::new(
             measured.minimum().saturating_add(TITLE_MARGIN),
             measured.maximum().saturating_add(TITLE_MARGIN),
@@ -61,13 +55,13 @@ impl Renderable for Rule {
     fn render(&self, context: &Context) -> Vec<Line> {
         let rule_char = Glyphs::for_chars(context.box_chars()).rule;
         let width = context.width();
-        let titled = self.title().and_then(|title| {
+        let titled = self.title.as_ref().and_then(|title| {
             let room = width.saturating_sub(TITLE_MARGIN);
             if room == 0 {
                 return None;
             }
             title
-                .render(&context.with_width(room))
+                .render_as(&context.with_width(room), Overflow::Ellipsis)
                 .into_iter()
                 .find(|line| !line.is_empty())
         });

@@ -154,22 +154,40 @@ impl From<Span> for Text {
     }
 }
 
-impl Renderable for Text {
-    fn measure(&self, context: &Context) -> Measurement {
+impl Text {
+    /// [`measure`](Renderable::measure) as if the text's overflow were
+    /// `overflow`, so a container that decides overflow per column measures a
+    /// cell without cloning it.
+    #[must_use]
+    pub fn measure_as(&self, context: &Context, overflow: Overflow) -> Measurement {
         let lines = self.trimmed_lines(context);
         let maximum = lines.iter().map(Line::width).max().unwrap_or(0);
         let minimum = lines
             .iter()
-            .map(|line| line.minimum_width(self.overflow))
+            .map(|line| line.minimum_width(overflow))
             .max()
             .unwrap_or(0);
         Measurement::new(minimum, maximum)
     }
 
-    fn render(&self, context: &Context) -> Vec<Line> {
+    /// [`render`](Renderable::render) as if the text's overflow were
+    /// `overflow`, so a container that decides overflow per column renders a
+    /// cell without cloning it.
+    #[must_use]
+    pub fn render_as(&self, context: &Context, overflow: Overflow) -> Vec<Line> {
         self.trimmed_lines(context)
             .iter()
-            .flat_map(|line| line.fit(context.width(), self.overflow))
+            .flat_map(|line| line.fit(context.width(), overflow))
             .collect()
+    }
+}
+
+impl Renderable for Text {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.measure_as(context, self.overflow)
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        self.render_as(context, self.overflow)
     }
 }
