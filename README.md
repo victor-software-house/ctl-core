@@ -5,9 +5,8 @@
   <img src="docs/banner.svg" alt="ctl-core: the shared Rust CLI chassis and its terminal render engine.">
 </picture>
 
-The shared Rust chassis for the `*ctl` command-line programs (`verctl`,
-`qctl`, `forkctl`) and `state-sync`, and the terminal render engine it draws
-with. Every crate here is a library, released together at one version.
+The shared Rust chassis for command-line programs such as `verctl`, `qctl`, `forkctl`, and `rawr`, and the terminal render engine it draws with.
+Every crate here is a library, released together at one version.
 
 | Crate | What it is | Docs |
 |:--|:--|:--|
@@ -23,22 +22,19 @@ ctl-text ──┬──→ ctl-layout ──┬──→ ctl-core
            └──→ ctl-term ────┘
 ```
 
-`ctl-layout` and `ctl-term` each depend on `ctl-text`, and never on each
-other. `ctl-core` depends on all three and re-exports them as
-`ctl_core::{text, layout, term}`.
+`ctl-layout` and `ctl-term` each depend on `ctl-text`, and never on each other.
+`ctl-core` depends on all three and re-exports them as `ctl_core::{text, layout, term}`.
 
-A program built on ctl-core returns typed results, and ctl-core turns each
-result into a `Document`. `ctl-layout` lays it out as lines of styled text.
-`ctl-term` writes those lines with the colour and width the stream allows. No
-escape byte exists before that last step, so JSON output and text from outside
-the program stay plain.
+A program built on ctl-core returns typed results, and ctl-core turns each result into a `Document`.
+`ctl-layout` lays it out as lines of styled text.
+`ctl-term` writes those lines with the colour and width the stream allows.
+No escape byte exists before that last step, so JSON output and text from outside the program stay plain.
 
 ## Contributing
 
-[`AGENTS.md`](AGENTS.md) holds the workspace rules and links each crate's own
-guide. [`docs/presentation.md`](docs/presentation.md) describes how output is
-presented. Changes are planned in [`openspec/`](openspec/) and released from
-[Changesets](.changeset/) fragments.
+[`AGENTS.md`](AGENTS.md) holds the workspace rules and links each crate's own guide.
+[`docs/presentation.md`](docs/presentation.md) describes how output is presented.
+Changes are planned in [`openspec/`](openspec/) and released from [Changesets](.changeset/) fragments.
 
 ## License
 

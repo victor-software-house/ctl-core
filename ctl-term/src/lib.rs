@@ -19,9 +19,9 @@
 //! ```
 //! use std::collections::HashMap;
 //!
-//! use anstyle::{AnsiColor, Style};
 //! use ctl_term::{ColorMode, Console, DetectOptions, Probe, Stream, Terminal};
-//! use ctl_text::Text;
+//! use ctl_text::anstyle::AnsiColor;
+//! use ctl_text::{Style, Text};
 //!
 //! let variables = HashMap::from([("FORCE_COLOR", "3")]);
 //! let env = |name: &str| variables.get(name).map(|value| (*value).to_owned());

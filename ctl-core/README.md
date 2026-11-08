@@ -4,8 +4,7 @@ The shared clap chassis for a family of command-line programs.
 It is a library, not a command.
 
 A program built on ctl-core owns its typed requests and results.
-ctl-core owns the rest: parsing, help, shared flags, colour policy, terminal
-layout, streams, errors, exit codes, and JSON output.
+ctl-core owns the rest: parsing, help, shared flags, colour policy, terminal layout, streams, errors, exit codes, and JSON output.
 One serializable result feeds the pretty, colourless, and JSON output.
 
 ```text
@@ -13,13 +12,21 @@ Clap types ──→ App ──→ typed domain result ──┬──→ JSON
                                              └──→ Document ──→ pretty/colourless
 ```
 
-`Document` is a tree of semantic blocks: headings, prose, fields, tables,
-sections, notices, rules, and verbatim text.
+`Document` is a tree of semantic blocks: headings, prose, fields, tables, sections, notices, rules, and verbatim text.
 It holds meaning, not escape codes or table borders.
-The renderer chooses style, wrapping, width, and colour, through the
-[`ctl-text`](https://crates.io/crates/ctl-text),
-[`ctl-layout`](https://crates.io/crates/ctl-layout), and
-[`ctl-term`](https://crates.io/crates/ctl-term) crates.
+The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`](https://crates.io/crates/ctl-text), [`ctl-layout`](https://crates.io/crates/ctl-layout), and [`ctl-term`](https://crates.io/crates/ctl-term) crates.
+
+## What it provides
+
+- `-h`/`--help` and `-V`/`--version`, rendered as documents and wrapped to the terminal's width.
+- Shared flags to flatten into the parser: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`, and `-q`/`--quiet`.
+  With `#[command(env_prefix = "MYCTL")]` on the root parser, every long option also reads `MYCTL_<LONG>` from the environment.
+- JSON on stdout only, never coloured, and human failures on stderr.
+  Quiet hides only successful human output.
+- A reader that closes stdout early, such as `head -1`, leaves the exit code as the command set it.
+  `App::broken_pipe(BrokenPipe::Fail)` turns every closed pipe into a failure.
+- `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and fish, behind the `completion` and `shell-init` features.
+- A loader for declared YAML or TOML input that validates once and reports every problem with its file and line, behind `input` and `input-toml`.
 
 ## Example
 
@@ -63,32 +70,13 @@ fn main() -> ExitCode {
 ```
 
 `example status` prints the field as a record.
-`example status --format json` prints the same `Status` value as JSON, with no
-escape byte, whatever the terminal.
+`example status --format json` prints the same `Status` value as JSON, with no escape byte, whatever the terminal.
 A failure in JSON mode prints an error envelope instead.
-
-## What a program gets
-
-- `-h`/`--help` and `-V`/`--version`, rendered as documents and wrapped to
-  the terminal's width.
-- Shared flags to flatten into the parser: `-c`/`--color`, `-f`/`--format`,
-  `-n`/`--dry-run`, and `-q`/`--quiet`.
-  With `#[command(env_prefix = "MYCTL")]` on the root parser, every long
-  option also reads `MYCTL_<LONG>` from the environment.
-- JSON on stdout only, never coloured, and human failures on stderr.
-  Quiet hides only successful human output.
-- A reader that closes stdout early, such as `head -1`, leaves the exit code
-  as the command set it.
-  `App::broken_pipe(BrokenPipe::Fail)` turns every closed pipe into a
-  failure.
-- `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and
-  fish, behind the `completion` and `shell-init` features.
-- A loader for declared YAML or TOML input that validates once and reports
-  every problem with its file and line, behind `input` and `input-toml`.
 
 ## Features
 
-The default feature is `app`. Each feature turns on only what its code calls.
+The default feature is `app`.
+Each feature turns on only what its code calls.
 
 | Feature | Adds |
 |:--|:--|
@@ -108,8 +96,9 @@ The default feature is `app`. Each feature turns on only what its code calls.
 | `shell`, `completion`, `shell-init` | The shell verbs |
 | `fixture` | Temporary file trees for integration tests |
 
-The [crate documentation](https://docs.rs/ctl-core) lists each feature with
-the items it enables.
+## Documentation
+
+The API reference is on [docs.rs](https://docs.rs/ctl-core), with each feature and the items it enables.
 
 ## License
 

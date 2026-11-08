@@ -3,6 +3,9 @@
 Terminal output for command-line programs.
 `ctl-term` decides, once per output stream, whether to write colour, at what colour depth, and how wide the output is.
 It then writes styled lines as the bytes a terminal reads.
+The crate works on the plain lines `ctl-text` produces, so layout never sees an escape byte.
+
+## What it provides
 
 - [`Terminal`](https://docs.rs/ctl-term/latest/ctl_term/struct.Terminal.html) holds the decision for one stream.
   It follows `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, `COLORTERM`, `TERM`, and `COLUMNS`, in a fixed order.
@@ -11,17 +14,15 @@ It then writes styled lines as the bytes a terminal reads.
 - [`Console`](https://docs.rs/ctl-term/latest/ctl_term/struct.Console.html) renders any [`ctl-text`](https://docs.rs/ctl-text) widget at the stream's width and writes it.
   A reader that closes the pipe early, as `head` does, gives [`Error::BrokenPipe`](https://docs.rs/ctl-term/latest/ctl_term/enum.Error.html), so the caller can exit quietly.
 
-The crate works on the plain lines `ctl-text` produces, so layout never sees an escape byte.
-
 ## Example
 
 A program calls `Console::from_process(Stream::Stdout, ColorMode::Auto)` and then `print`.
 This example states the stream's facts instead, so it runs the same with or without a terminal.
 
 ```rust
-use anstyle::{AnsiColor, Style};
 use ctl_term::{ColorMode, Console, DetectOptions, Probe, Stream, Terminal};
-use ctl_text::Text;
+use ctl_text::anstyle::AnsiColor;
+use ctl_text::{Style, Text};
 
 let terminal = Terminal::from_probe(
     Probe::Pipe,
@@ -47,3 +48,7 @@ On Windows it enables virtual-terminal mode through `anstyle-query` when the str
 ## Documentation
 
 The API reference, including the colour, width, and closed-pipe rules, is on [docs.rs](https://docs.rs/ctl-term).
+
+## License
+
+MIT.

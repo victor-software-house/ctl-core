@@ -1,22 +1,19 @@
 # ctl-text
 
-Styled text for terminals: spans that are safe to print, widths counted in
-terminal cells, and lines wrapped or cut to fit.
+Styled text for terminals: spans that are safe to print, widths counted in terminal cells, and lines wrapped or cut to fit.
 
-`ctl-text` lays text out as plain data before anything is written to a
-terminal.
+`ctl-text` lays text out as plain data before anything is written to a terminal.
 A `Span` is text in one style, and a `Line` is a list of spans.
 A `Text` is a list of lines that wraps to a width.
 
-None of them holds an escape sequence, so text from outside the program cannot
-move the cursor or reorder a line.
-A commit subject is an example.
+None of them holds an escape sequence.
+So text from outside the program, such as a commit subject, cannot move the cursor or reorder a line.
 Whatever writes the lines to a terminal adds the styling after layout.
 
-The crate also provides:
+## What it provides
 
-- `text_width`, `cluster_width`, and `prefix_len`, which count cells per
-  extended grapheme cluster.
+- `Span`, `Line`, and `Text`, and `overlay` for combining two styles.
+- `text_width`, `cluster_width`, and `prefix_len`, which count cells per extended grapheme cluster.
 - `Overflow`, the policy for a line wider than its width.
   It keeps words whole, folds inside a word, or ends with an ellipsis.
 - `Renderable`, `Context`, and `Measurement`, the protocol a widget follows.
@@ -44,3 +41,7 @@ assert_eq!(plain, ["build finished", "with no", "warnings"]);
 ## Documentation
 
 The API reference is on [docs.rs](https://docs.rs/ctl-text).
+
+## License
+
+MIT.

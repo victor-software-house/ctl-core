@@ -1,12 +1,12 @@
 # ctl-layout
 
-Terminal widgets built on [ctl-text](https://docs.rs/ctl-text): tables,
-records, rules, stacks, and indents.
+Terminal widgets built on [ctl-text](https://docs.rs/ctl-text): tables, records, rules, stacks, and indents.
 
-A widget measures the narrowest and the natural width it can be drawn at,
-then renders lines at the width it is given.
+A widget measures the narrowest and the natural width it can be drawn at, then renders lines at the width it is given.
 The lines are plain styled spans with no escape sequence in them.
 Whatever writes them to a terminal adds the styling.
+
+## What it provides
 
 A table gives each column the widest cell it holds.
 When the width runs short, it shrinks the widest columns first.
@@ -51,13 +51,15 @@ assert_eq!(
 );
 ```
 
-Every widget implements `ctl_text::Renderable`,
-so a widget of your own sits in a `Stack` beside these.
-The [API documentation](https://docs.rs/ctl-layout) has the rest.
+Every widget implements `ctl_text::Renderable`, so a widget of your own sits in a `Stack` beside these.
 
 ## Features
 
 ctl-layout has no optional features.
+
+## Documentation
+
+The API reference is on [docs.rs](https://docs.rs/ctl-layout).
 
 ## License
 
