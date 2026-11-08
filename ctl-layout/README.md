@@ -1,6 +1,6 @@
 # ctl-layout
 
-Terminal widgets built on [ctl-text](https://docs.rs/ctl-text): tables, records, rules, stacks, and indents.
+Terminal widgets built on [ctl-text](https://docs.rs/ctl-text): tables, records, rules, stacks, and indents, and a way to swap one widget for another by width.
 
 A widget measures the narrowest and the natural width it can be drawn at, then renders lines at the width it is given.
 The lines are plain styled spans with no escape sequence in them.
@@ -16,6 +16,8 @@ A grid keeps its frame aligned by folding words that no longer fit.
 |:--|:--|
 | `Table` | Rows under column headers, in a grid, under one header rule, or plain |
 | `Record` | Labelled values, with right-aligned keys, left-aligned keys, or a box |
+| `Definitions` | Entries as a line of labels over indented lines of description, the narrow form of a table |
+| `Breakpoint` | One widget below a width and another from it up |
 | `Rule` | A horizontal line with an optional title |
 | `Stack` | Widgets one above the other, with optional blank lines between |
 | `Indent` | A widget moved right by a number of cells |
@@ -23,8 +25,7 @@ A grid keeps its frame aligned by folding words that no longer fit.
 ## Example
 
 ```rust
-use ctl_layout::{Column, Frame, Table};
-use ctl_text::{Context, Overflow, Renderable, Text};
+use ctl_layout::{Column, Context, Frame, Overflow, Renderable, Table};
 
 let table = Table::new([
     Column::new("id"),
@@ -32,8 +33,8 @@ let table = Table::new([
     Column::new("age").numeric(),
 ])
 .frame(Frame::HeaderRule)
-.row([Text::plain("job-0014"), Text::plain("Fix the layout of narrow tables"), Text::plain("3")])
-.row([Text::plain("job-0015"), Text::plain("Document each public item"), Text::plain("120")]);
+.row(["job-0014", "Fix the layout of narrow tables", "3"])
+.row(["job-0015", "Document each public item", "120"]);
 
 let lines: Vec<String> = table
     .render(&Context::new(40))
@@ -51,7 +52,9 @@ assert_eq!(
 );
 ```
 
-Every widget implements `ctl_text::Renderable`, so a widget of your own sits in a `Stack` beside these.
+Every widget implements `Renderable`, so a widget of your own sits in a `Stack` beside these.
+A `Stack` and an `Indent` take a widget by value or by reference.
+ctl-layout re-exports `ctl_text`, `Context`, `Overflow`, `Renderable`, and `Text`.
 
 ## Features
 

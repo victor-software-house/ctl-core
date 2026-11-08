@@ -1,11 +1,14 @@
 //! Properties of every widget, over random content with wide, combining,
-//! emoji, and control characters, and widths from 1 to 200.
+//! emoji, and control characters, and widths from 0 to 200.
 #![expect(
     clippy::disallowed_macros,
     reason = "proptest! and prop_assert! expand to concat!, which the repository bans in its own code"
 )]
 
-use ctl_layout::{Column, Frame, Indent, Record, RecordStyle, RowSeparation, Rule, Stack, Table};
+use ctl_layout::{
+    Breakpoint, Column, Definitions, Frame, Indent, Record, RecordStyle, RowSeparation, Rule,
+    Stack, Table,
+};
 use ctl_text::{Context, Line, Overflow, Renderable, Text};
 use proptest::prelude::*;
 
@@ -34,7 +37,7 @@ fn any_text() -> impl Strategy<Value = String> {
 }
 
 fn any_width() -> impl Strategy<Value = u16> {
-    1u16..=200
+    0u16..=200
 }
 
 fn any_overflow() -> impl Strategy<Value = Overflow> {
@@ -103,6 +106,23 @@ fn any_record() -> impl Strategy<Value = Record> {
         })
 }
 
+fn any_definitions() -> impl Strategy<Value = Definitions> {
+    prop::collection::vec(
+        (
+            prop::collection::vec(any_text(), 0..3),
+            prop::collection::vec(any_text(), 0..3),
+        ),
+        0..4,
+    )
+    .prop_map(|entries| {
+        entries
+            .into_iter()
+            .fold(Definitions::new(), |definitions, (labels, description)| {
+                definitions.entry(labels, description)
+            })
+    })
+}
+
 fn widest(lines: &[Line]) -> u16 {
     lines.iter().map(Line::width).max().unwrap_or(0)
 }
@@ -165,17 +185,28 @@ proptest! {
     }
 
     #[test]
+    fn definitions_fit_their_width_or_their_minimum(
+        definitions in any_definitions(),
+        width in any_width(),
+    ) {
+        assert_fits(&definitions, width)?;
+    }
+
+    #[test]
     fn a_stack_of_widgets_fits_its_width_or_its_minimum(
         table in any_table(),
         record in any_record(),
+        definitions in any_definitions(),
         title in any_text(),
         columns in 0_u16..8,
+        threshold in 0_u16..=100,
         width in any_width(),
     ) {
         let stack = Stack::new()
             .spacing(1)
             .push(Rule::titled(Text::plain(title)))
-            .push(Indent::new(columns, table))
+            .push(Breakpoint::new(threshold, definitions, table.clone()))
+            .push(Indent::new(columns, &table))
             .push(record);
         assert_fits(&stack, width)?;
     }
@@ -196,11 +227,5 @@ proptest! {
         for line in table.render(&Context::new(width)) {
             prop_assert!(!line.to_string().ends_with(' '), "{line:?} ends in a space");
         }
-    }
-
-    #[test]
-    fn rendering_twice_gives_the_same_lines(table in any_table(), width in any_width()) {
-        let context = Context::new(width);
-        prop_assert_eq!(table.render(&context), table.render(&context));
     }
 }

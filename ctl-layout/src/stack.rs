@@ -6,14 +6,16 @@ use ctl_text::{Context, Line, Measurement, Renderable};
 
 /// Widgets one above the other, each rendered at the full width.
 ///
-/// A child that renders no lines is skipped, so it leaves no gap.
+/// A child whose lines are all empty is skipped, so it leaves no gap. A child
+/// may be borrowed, as in `Stack::new().push(&widget)`, so a widget drawn in
+/// two places needs no clone.
 #[derive(Default)]
-pub struct Stack {
-    children: Vec<Box<dyn Renderable>>,
+pub struct Stack<'a> {
+    children: Vec<Box<dyn Renderable + 'a>>,
     spacing: u16,
 }
 
-impl Stack {
+impl<'a> Stack<'a> {
     /// A stack with no children and no space between them.
     #[must_use]
     pub fn new() -> Self {
@@ -29,19 +31,13 @@ impl Stack {
 
     /// Adds `child` below the others.
     #[must_use]
-    pub fn push(self, child: impl Renderable + 'static) -> Self {
-        self.push_boxed(Box::new(child))
-    }
-
-    /// Adds an already boxed `child` below the others.
-    #[must_use]
-    pub fn push_boxed(mut self, child: Box<dyn Renderable>) -> Self {
-        self.children.push(child);
+    pub fn push(mut self, child: impl Renderable + 'a) -> Self {
+        self.children.push(Box::new(child));
         self
     }
 }
 
-impl fmt::Debug for Stack {
+impl fmt::Debug for Stack<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Stack")
@@ -51,7 +47,7 @@ impl fmt::Debug for Stack {
     }
 }
 
-impl Renderable for Stack {
+impl Renderable for Stack<'_> {
     fn measure(&self, context: &Context) -> Measurement {
         self.children
             .iter()
@@ -68,7 +64,7 @@ impl Renderable for Stack {
         let mut lines: Vec<Line> = Vec::new();
         for child in &self.children {
             let rendered = child.render(context);
-            if rendered.is_empty() {
+            if rendered.iter().all(Line::is_empty) {
                 continue;
             }
             if !lines.is_empty() {

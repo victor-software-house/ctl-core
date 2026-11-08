@@ -1,26 +1,15 @@
 //! A table of rows and columns.
 
-use ctl_text::{Context, Line, Measurement, Overflow, Renderable, Span, Style, Text};
+use ctl_text::{Context, Line, Measurement, Overflow, Renderable, Text};
 
-use crate::align::Align;
 use crate::column::Column;
 use crate::frame::{Frame, RowSeparation};
 use crate::glyphs::Glyphs;
-use crate::lines::{indent_lines, literal, push_cell, rule_line};
+use crate::lines::{literal, push_cell, rule_line};
 use crate::widths::{Extent, Framing, solve};
 
 /// Cells between two columns of an unframed table.
 const GAP: u16 = 2;
-/// The indent of a stacked row's label lines.
-const LABEL_INDENT: u16 = 2;
-/// The indent of a stacked row's description lines.
-const DESCRIPTION_INDENT: u16 = 4;
-
-#[derive(Clone, Copy, Debug)]
-struct Stacked {
-    threshold: u16,
-    label_columns: usize,
-}
 
 /// A table of rows under column headers.
 ///
@@ -34,7 +23,9 @@ struct Stacked {
 ///    widest cluster of a fold column. An ellipsis column can shrink to 1 cell.
 /// 4. When the narrowest widths still do not fit, an unframed table lets its
 ///    keep-words columns run past the width. A [`Frame::Grid`] table folds
-///    those columns instead, so its frame stays aligned.
+///    those columns instead, so its frame stays aligned. When one column can
+///    fold alone to make the grid fit, only such columns fold, so a short id
+///    keeps its word beside a long URL.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
 /// 6. Each column then narrows to its widest rendered line, so a column that
@@ -43,15 +34,17 @@ struct Stacked {
 ///    wrapped at a width wraps the same at its own widest line. An ellipsis
 ///    column that cut a cell keeps its width, since the cut cell fills it.
 ///
-/// A table with [`stacked_below`](Self::stacked_below) renders each row as
-/// indented lines instead when the width is under its threshold.
+/// A table with no rows and no header draws nothing and measures 0.
 #[derive(Clone, Debug)]
 pub struct Table {
     columns: Vec<Column>,
+    /// The headers of the columns, moved out of them, with each column's
+    /// overflow applied. `None` when no column has a header.
+    header: Option<Vec<Text>>,
+    /// Every row has one cell per column, each with its column's overflow.
     rows: Vec<Vec<Text>>,
     frame: Frame,
     separation: RowSeparation,
-    stacked: Option<Stacked>,
 }
 
 impl Table {
@@ -61,13 +54,26 @@ impl Table {
         Self::from_columns(columns.into_iter().collect())
     }
 
-    fn from_columns(columns: Vec<Column>) -> Self {
+    fn from_columns(mut columns: Vec<Column>) -> Self {
+        let titled = columns.iter().any(|column| column.header.is_some());
+        let header: Option<Vec<Text>> = titled.then(|| {
+            columns
+                .iter_mut()
+                .map(|column| {
+                    column
+                        .header
+                        .take()
+                        .unwrap_or_default()
+                        .overflow(column.overflow)
+                })
+                .collect()
+        });
         Self {
             columns,
+            header,
             rows: Vec::new(),
             frame: Frame::default(),
             separation: RowSeparation::default(),
-            stacked: None,
         }
     }
 
@@ -85,134 +91,120 @@ impl Table {
         self
     }
 
-    /// Renders each row as indented lines when the width is under
-    /// `threshold`: the first `label_columns` cells on a line indented by 2,
-    /// and the rest below them, indented by 4. A stacked table has no frame
-    /// and no header.
+    /// Adds a row of `&str`, `String`, [`Text`], or anything else that
+    /// converts to a [`Text`].
+    ///
+    /// The column's overflow replaces the cell's own. A row with fewer cells
+    /// than the table has columns gets empty cells, and cells past the last
+    /// column are dropped.
     #[must_use]
-    pub fn stacked_below(mut self, threshold: u16, label_columns: usize) -> Self {
-        self.stacked = Some(Stacked {
-            threshold,
-            label_columns,
-        });
-        self
-    }
-
-    /// Adds a row. A row with fewer cells than the table has columns gets
-    /// empty cells, and cells past the last column are dropped.
-    #[must_use]
-    pub fn row(self, cells: impl IntoIterator<Item = Text>) -> Self {
-        self.push_row(cells.into_iter().collect())
+    pub fn row<C: Into<Text>>(self, cells: impl IntoIterator<Item = C>) -> Self {
+        self.push_row(cells.into_iter().map(Into::into).collect())
     }
 
     /// Adds every row of `rows`, as [`row`](Self::row) adds one.
     #[must_use]
-    pub fn rows<R>(self, rows: impl IntoIterator<Item = R>) -> Self
+    pub fn rows<C, R>(self, rows: impl IntoIterator<Item = R>) -> Self
     where
-        R: IntoIterator<Item = Text>,
+        R: IntoIterator<Item = C>,
+        C: Into<Text>,
     {
-        rows.into_iter().fold(self, Self::row)
+        rows.into_iter().fold(self, |table, cells| table.row(cells))
     }
 
     fn push_row(mut self, mut cells: Vec<Text>) -> Self {
         cells.resize_with(self.columns.len(), Text::new);
+        let cells = cells
+            .into_iter()
+            .zip(&self.columns)
+            .map(|(cell, column)| cell.overflow(column.overflow))
+            .collect();
         self.rows.push(cells);
         self
     }
 
-    fn has_header(&self) -> bool {
-        self.columns.iter().any(|column| column.header.is_some())
+    /// The rows, so a [`Record`](crate::Record) can change its frame without
+    /// losing them.
+    pub(crate) fn into_rows(self) -> Vec<Vec<Text>> {
+        self.rows
     }
 
-    fn framing(&self) -> Framing {
-        if self.frame == Frame::Grid {
-            Framing::Framed
-        } else {
-            Framing::Unframed
-        }
+    /// Whether there is nothing to draw: no columns, or neither a header nor
+    /// a row. A grid would otherwise draw an empty box.
+    fn is_blank(&self) -> bool {
+        self.columns.is_empty() || (self.header.is_none() && self.rows.is_empty())
     }
 
     /// Cells taken by the frame and the gaps, for the columns it has.
     fn frame_width(&self) -> u16 {
         let count = u16::try_from(self.columns.len()).unwrap_or(u16::MAX);
-        if self.frame == Frame::Grid {
-            count.saturating_mul(3).saturating_add(1)
-        } else {
-            count.saturating_sub(1).saturating_mul(GAP)
+        match self.frame.framing() {
+            Framing::Framed => count.saturating_mul(3).saturating_add(1),
+            Framing::Unframed => count.saturating_sub(1).saturating_mul(GAP),
         }
     }
 
-    /// The stacking that applies at `context`'s width, if any.
-    fn stacking(&self, context: Context) -> Option<Stacked> {
-        self.stacked
-            .filter(|stacked| context.width() < stacked.threshold)
+    /// The header row, when there is one, then every row.
+    fn grid(&self) -> impl Iterator<Item = &[Text]> {
+        self.header.iter().chain(&self.rows).map(Vec::as_slice)
     }
 
-    /// Every cell, the header row first when the table has one, each with its
-    /// column's declared overflow.
-    fn cells(&self) -> Vec<Vec<Text>> {
-        let with_overflow = |cells: &[Text]| -> Vec<Text> {
-            cells
-                .iter()
-                .zip(&self.columns)
-                .map(|(cell, column)| cell.clone().overflow(column.overflow))
-                .collect()
-        };
-        let mut grid = Vec::new();
-        if self.has_header() {
-            let header: Vec<Text> = self
-                .columns
-                .iter()
-                .map(|column| column.header.clone().unwrap_or_default())
-                .collect();
-            grid.push(with_overflow(&header));
+    /// The overflow a cell of `column` renders with. A grid folds, so a
+    /// keep-words column folds a word wider than itself and the frame stays
+    /// aligned.
+    fn cell_overflow(&self, column: &Column) -> Overflow {
+        match self.frame.framing() {
+            Framing::Framed if column.overflow == Overflow::KeepWords => Overflow::Fold,
+            Framing::Framed | Framing::Unframed => column.overflow,
         }
-        grid.extend(self.rows.iter().map(|row| with_overflow(row)));
-        grid
     }
 
-    fn extents(&self, grid: &[Vec<Text>], context: Context) -> Vec<Extent> {
-        (0..self.columns.len())
-            .map(|index| {
+    fn extents(&self, context: &Context) -> Vec<Extent> {
+        let framing = self.frame.framing();
+        self.columns
+            .iter()
+            .enumerate()
+            .map(|(index, column)| {
                 let mut extent = Extent {
                     natural: 0,
                     minimum: 0,
                     floor: 0,
                 };
-                for cell in grid.iter().filter_map(|row| row.get(index)) {
-                    let measured = cell.measure(&context);
-                    let folded = cell.clone().overflow(Overflow::Fold).measure(&context);
+                for cell in self.grid().filter_map(|row| row.get(index)) {
+                    let measured = cell.measure(context);
+                    let floor = match framing {
+                        Framing::Framed if column.overflow != Overflow::Fold => cell
+                            .clone()
+                            .overflow(Overflow::Fold)
+                            .measure(context)
+                            .minimum()
+                            .min(measured.minimum()),
+                        Framing::Framed | Framing::Unframed => measured.minimum(),
+                    };
                     extent.natural = extent.natural.max(measured.maximum());
                     extent.minimum = extent.minimum.max(measured.minimum());
-                    extent.floor = extent.floor.max(folded.minimum().min(measured.minimum()));
+                    extent.floor = extent.floor.max(floor);
                 }
                 extent
             })
             .collect()
     }
 
-    /// Rows of cells rendered at `widths`. A grid folds, so a keep-words
-    /// column renders with [`Overflow::Fold`].
-    fn render_cells(
-        &self,
-        grid: &[Vec<Text>],
-        widths: &[u16],
-        context: Context,
-    ) -> Vec<Vec<Vec<Line>>> {
-        grid.iter()
+    /// Rows of cells rendered at `widths`.
+    fn render_cells(&self, widths: &[u16], context: &Context) -> Vec<Vec<Vec<Line>>> {
+        self.grid()
             .map(|row| {
                 row.iter()
                     .zip(widths)
                     .zip(&self.columns)
                     .map(|((cell, width), column)| {
-                        let fold =
-                            self.frame == Frame::Grid && column.overflow == Overflow::KeepWords;
-                        let cell = if fold {
-                            cell.clone().overflow(Overflow::Fold)
+                        let context = context.with_width(*width);
+                        let overflow = self.cell_overflow(column);
+                        if overflow == column.overflow {
+                            cell.render(&context)
                         } else {
-                            cell.clone()
-                        };
-                        cell.render(&context.with_width(*width))
+                            cell.clone().overflow(overflow).render(&context)
+                        }
                     })
                     .collect()
             })
@@ -222,38 +214,33 @@ impl Table {
     fn row_lines(&self, cells: &[Vec<Line>], widths: &[u16], glyphs: &Glyphs) -> Vec<Line> {
         let height = cells.iter().map(Vec::len).max().unwrap_or(0).max(1);
         let empty = Line::new();
+        let framing = self.frame.framing();
+        let (edge, gap, padding) = match framing {
+            Framing::Framed => (
+                glyphs.outer.to_string(),
+                glyphs.inner.to_string(),
+                " ".to_owned(),
+            ),
+            Framing::Unframed => (String::new(), " ".repeat(usize::from(GAP)), String::new()),
+        };
         (0..height)
             .map(|index| {
-                let mut line = Line::new();
-                let framed = self.frame == Frame::Grid;
-                if framed {
-                    line.push(literal(&glyphs.outer.to_string()));
-                }
-                for (column, width) in widths.iter().enumerate() {
+                let mut line = Line::from(literal(&edge));
+                for (column, (width, spec)) in widths.iter().zip(&self.columns).enumerate() {
                     if column > 0 {
-                        line.push(literal(&if framed {
-                            glyphs.inner.to_string()
-                        } else {
-                            " ".repeat(usize::from(GAP))
-                        }));
+                        line.push(literal(&gap));
                     }
-                    if framed {
-                        line.push(literal(" "));
-                    }
+                    line.push(literal(&padding));
                     let cell = cells
                         .get(column)
                         .and_then(|lines| lines.get(index))
                         .unwrap_or(&empty);
-                    let align = self.columns.get(column).map_or(Align::Left, |c| c.align);
-                    push_cell(&mut line, cell, *width, align);
-                    if framed {
-                        line.push(literal(" "));
-                    }
+                    push_cell(&mut line, cell, *width, spec.align);
+                    line.push(literal(&padding));
                 }
-                if framed {
-                    line.push(literal(&glyphs.outer.to_string()));
-                } else {
-                    line.trim_end();
+                match framing {
+                    Framing::Framed => line.push(literal(&edge)),
+                    Framing::Unframed => line.trim_end(),
                 }
                 line
             })
@@ -261,15 +248,16 @@ impl Table {
     }
 
     fn compose(&self, cells: &[Vec<Vec<Line>>], widths: &[u16], glyphs: &Glyphs) -> Vec<Line> {
-        let header = self.has_header();
-        let framed = self.frame == Frame::Grid;
+        let header = self.header.is_some();
+        let framing = self.frame.framing();
         let total = widths
             .iter()
             .fold(self.frame_width(), |sum, width| sum.saturating_add(*width));
         let blank_cells = vec![Vec::new(); widths.len()];
         let mut lines = Vec::new();
-        if framed {
-            lines.push(glyphs.top.line(widths));
+        match framing {
+            Framing::Framed => lines.push(glyphs.top.line(widths)),
+            Framing::Unframed => {}
         }
         for (index, row) in cells.iter().enumerate() {
             if header && index == 1 {
@@ -279,36 +267,22 @@ impl Table {
                     Frame::Plain => {}
                 }
             } else if index > 0 {
-                match self.separation {
-                    RowSeparation::Rule if framed => lines.push(glyphs.row.line(widths)),
-                    RowSeparation::Rule => lines.push(rule_line(glyphs.rule, total)),
-                    RowSeparation::Blank => {
+                match (self.separation, framing) {
+                    (RowSeparation::Rule, Framing::Framed) => lines.push(glyphs.row.line(widths)),
+                    (RowSeparation::Rule, Framing::Unframed) => {
+                        lines.push(rule_line(glyphs.rule, total));
+                    }
+                    (RowSeparation::Blank, Framing::Framed | Framing::Unframed) => {
                         lines.extend(self.row_lines(&blank_cells, widths, glyphs));
                     }
-                    RowSeparation::None => {}
+                    (RowSeparation::None, Framing::Framed | Framing::Unframed) => {}
                 }
             }
             lines.extend(self.row_lines(row, widths, glyphs));
         }
-        if framed {
-            lines.push(glyphs.bottom.line(widths));
-        }
-        lines
-    }
-
-    /// The stacked form of every row, laid out at `width`.
-    fn stacked_lines(&self, context: Context, width: u16, stacked: Stacked) -> Vec<Line> {
-        let tab_width = context.tab_width();
-        let mut lines = Vec::new();
-        for row in &self.rows {
-            let labels = join_cells(row.iter().take(stacked.label_columns), tab_width);
-            let description = join_cells(row.iter().skip(stacked.label_columns), tab_width);
-            for (part, indent) in [(labels, LABEL_INDENT), (description, DESCRIPTION_INDENT)] {
-                if !part.is_empty() {
-                    let fitted = part.fit(width.saturating_sub(indent), Overflow::KeepWords);
-                    lines.extend(indent_lines(fitted, indent));
-                }
-            }
+        match framing {
+            Framing::Framed => lines.push(glyphs.bottom.line(widths)),
+            Framing::Unframed => {}
         }
         lines
     }
@@ -334,46 +308,21 @@ fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16]) -> Vec<u16> {
         .collect()
 }
 
-/// The non-empty cells on one line, separated by a space.
-fn join_cells<'a>(cells: impl Iterator<Item = &'a Text>, tab_width: u16) -> Line {
-    let mut joined = Line::new();
-    for line in cells
-        .flat_map(|cell| cell.lines(tab_width))
-        .filter(|line| !line.is_empty())
-    {
-        if !joined.is_empty() {
-            joined.push(Span::new(" ", Style::new()));
-        }
-        for span in line.spans() {
-            joined.push(span.clone());
-        }
-    }
-    joined
-}
-
 impl Renderable for Table {
     fn measure(&self, context: &Context) -> Measurement {
-        if let Some(stacked) = self.stacking(*context) {
-            let widest = |width| {
-                self.stacked_lines(*context, width, stacked)
-                    .iter()
-                    .map(Line::width)
-                    .max()
-                    .unwrap_or(0)
-            };
-            return Measurement::new(widest(1), widest(u16::MAX));
+        if self.is_blank() {
+            return Measurement::exact(0);
         }
-        let extents = self.extents(&self.cells(), *context);
-        let frame = u32::from(self.frame_width());
+        let extents = self.extents(context);
+        let frame = u64::from(self.frame_width());
         let sum = |value: fn(&Extent) -> u16| {
-            extents
-                .iter()
-                .fold(frame, |total, extent| total + u32::from(value(extent)))
+            extents.iter().fold(frame, |total, extent| {
+                total.saturating_add(u64::from(value(extent)))
+            })
         };
-        let narrowest = if self.frame == Frame::Grid {
-            sum(|extent| extent.floor)
-        } else {
-            sum(|extent| extent.minimum)
+        let narrowest = match self.frame.framing() {
+            Framing::Framed => sum(|extent| extent.floor),
+            Framing::Unframed => sum(|extent| extent.minimum),
         };
         let natural = sum(|extent| extent.natural);
         Measurement::new(
@@ -383,17 +332,13 @@ impl Renderable for Table {
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        if self.columns.is_empty() {
+        if self.is_blank() {
             return Vec::new();
         }
-        if let Some(stacked) = self.stacking(*context) {
-            return self.stacked_lines(*context, context.width(), stacked);
-        }
-        let grid = self.cells();
-        let extents = self.extents(&grid, *context);
+        let extents = self.extents(context);
         let available = context.width().saturating_sub(self.frame_width());
-        let widths = solve(&extents, available, self.framing());
-        let cells = self.render_cells(&grid, &widths, *context);
+        let widths = solve(&extents, available, self.frame.framing());
+        let cells = self.render_cells(&widths, context);
         let widths = narrowed(&cells, &widths);
         let glyphs = Glyphs::for_chars(context.box_chars());
         self.compose(&cells, &widths, &glyphs)

@@ -69,8 +69,9 @@ Example: `verctl-asset-targets-w40-plain`.
 The baseline split `target` mid-word as `macos-arm6` / `4`;
 the engine keeps `target` at its natural 11 cells so `macos-arm64` stays whole, and folds the wider `asset` column instead.
 
-Reason: decision 9, step 3.
+Reason: decision 9, steps 3 and 4.
 Wrappable columns shrink widest first toward the next widest, as rich's collapse does, where comfy-table split the width by its own arrangement.
+A framed table that must fold below its keep-words minimums takes the missing cells from a column that can fold alone to make it fit, so a short id stays whole beside a long URL.
 
 ## 7. A word folds only when it alone is wider than its column
 

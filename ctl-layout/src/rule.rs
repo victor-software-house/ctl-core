@@ -16,9 +16,11 @@ const TITLE_MARGIN: u16 = 4;
 /// ── Title ──────────────
 /// ```
 ///
-/// A rule has no natural width. It measures as its narrowest, and fills any
-/// width it is given. A title that does not fit ends in `…`, and only the
-/// first line of a multi-line title is drawn.
+/// A rule fills any width it is given. It measures 1 cell wide without a
+/// title. With one it measures the 4-cell margin plus the title: one cell of
+/// title at the narrowest, since a title that does not fit ends in `…`, and
+/// the title's widest line at the widest. Only the first non-empty line of a
+/// multi-line title is drawn.
 #[derive(Clone, Debug, Default)]
 pub struct Rule {
     title: Option<Text>,
@@ -74,9 +76,7 @@ impl Renderable for Rule {
         };
         let mut line = Line::new();
         line.push(literal(&format!("{rule_char}{rule_char} ")));
-        for span in title.spans() {
-            line.push(span.clone());
-        }
+        line.extend(title.spans().iter().cloned());
         let fill = width.saturating_sub(title.width().saturating_add(TITLE_MARGIN));
         if fill > 0 {
             let tail: String = std::iter::once(' ')

@@ -23,15 +23,16 @@ pub(crate) fn rule_line(fill: char, count: u16) -> Line {
 /// Adds `cell` to `target`, padded with spaces to `width` on the side
 /// `align` leaves free.
 pub(crate) fn push_cell(target: &mut Line, cell: &Line, width: u16, align: Align) {
-    let gap = width.saturating_sub(cell.width());
-    if align == Align::Right {
-        target.push(spaces(gap));
-    }
-    for span in cell.spans() {
-        target.push(span.clone());
-    }
-    if align == Align::Left {
-        target.push(spaces(gap));
+    let gap = spaces(width.saturating_sub(cell.width()));
+    match align {
+        Align::Left => {
+            target.extend(cell.spans().iter().cloned());
+            target.push(gap);
+        }
+        Align::Right => {
+            target.push(gap);
+            target.extend(cell.spans().iter().cloned());
+        }
     }
 }
 
@@ -44,11 +45,8 @@ pub(crate) fn indent_lines(lines: Vec<Line>, columns: u16) -> Vec<Line> {
             if line.is_empty() {
                 return Line::new();
             }
-            let mut indented = Line::new();
-            indented.push(spaces(columns));
-            for span in line.spans() {
-                indented.push(span.clone());
-            }
+            let mut indented = Line::from(spaces(columns));
+            indented.extend(line.spans().iter().cloned());
             indented
         })
         .collect()

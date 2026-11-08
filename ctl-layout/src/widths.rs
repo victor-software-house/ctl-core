@@ -21,13 +21,15 @@ pub(crate) enum Framing {
 ///
 /// 1. A column starts at its natural width.
 /// 2. If the natural widths fit, they stay.
-/// 3. Otherwise the widest column that can still shrink gives up one cell,
-///    repeatedly, so wide columns come down toward the next widest. A column
-///    never goes below its minimum. A tie gives up the rightmost first, so
-///    equal columns stay within one cell of each other.
+/// 3. Otherwise the widest column that can still shrink gives up cells, so wide
+///    columns come down toward the next widest. A column never goes below its
+///    minimum. A tie gives up the rightmost first, so equal columns stay within
+///    one cell of each other.
 /// 4. If the minimums still do not fit, an unframed table stops: its keep-words
 ///    columns run past the width. A framed table goes on to the floors, because
-///    a frame cannot run past the width and stay aligned.
+///    a frame cannot run past the width and stay aligned. When a column can
+///    fold alone to make the table fit, only such columns fold, so a short word
+///    beside a long URL stays whole.
 ///
 /// These are the widths cells render at. The table then narrows each column
 /// to its widest rendered line, step 6 of [`Table`](crate::Table).
@@ -35,29 +37,107 @@ pub(crate) fn solve(extents: &[Extent], available: u16, framing: Framing) -> Vec
     let mut widths: Vec<u16> = extents.iter().map(|extent| extent.natural).collect();
     let minimums: Vec<u16> = extents.iter().map(|extent| extent.minimum).collect();
     shrink(&mut widths, &minimums, available);
-    if framing == Framing::Framed {
-        let floors: Vec<u16> = extents.iter().map(|extent| extent.floor).collect();
-        shrink(&mut widths, &floors, available);
+    match framing {
+        Framing::Framed => {
+            let floors: Vec<u16> = extents.iter().map(|extent| extent.floor).collect();
+            let limits = folding_limits(&widths, &floors, available);
+            shrink(&mut widths, &limits, available);
+        }
+        Framing::Unframed => {}
     }
     widths
 }
 
+/// The widths the floor pass shrinks `widths` to. A column that can fold to
+/// its floor and make the table fit by itself has its floor, and the others
+/// keep their width. When none can, every column has its floor.
+fn folding_limits(widths: &[u16], floors: &[u16], available: u16) -> Vec<u16> {
+    let missing = excess(widths, available);
+    let alone = |width: u16, floor: u16| u64::from(width.saturating_sub(floor)) >= missing;
+    if widths
+        .iter()
+        .zip(floors)
+        .any(|(width, floor)| alone(*width, *floor))
+    {
+        widths
+            .iter()
+            .zip(floors)
+            .map(|(width, floor)| {
+                if alone(*width, *floor) {
+                    *floor
+                } else {
+                    *width
+                }
+            })
+            .collect()
+    } else {
+        floors.to_vec()
+    }
+}
+
+/// How many cells `widths` take beyond `available`.
+fn excess(widths: &[u16], available: u16) -> u64 {
+    widths
+        .iter()
+        .fold(0_u64, |total, width| {
+            total.saturating_add(u64::from(*width))
+        })
+        .saturating_sub(u64::from(available))
+}
+
+/// Takes cells from the widest columns until `widths` fit in `available` or
+/// no column is above its limit.
+///
+/// The widest group, the columns tied at the widest width, comes down to the
+/// next width in one step: the next widest column's, or a member's limit.
+/// When fewer cells are missing than that step takes, the group gives up the
+/// same share each, and the rightmost members one more.
 fn shrink(widths: &mut [u16], limits: &[u16], available: u16) {
-    let mut total: u32 = widths.iter().map(|width| u32::from(*width)).sum();
-    let available = u32::from(available);
-    while total > available {
-        let widest = widths
+    let mut missing = excess(widths, available);
+    while missing > 0 {
+        let candidates: Vec<(usize, u16)> = widths
             .iter()
             .zip(limits)
             .enumerate()
             .filter(|(_, (width, limit))| width > limit)
-            .max_by_key(|(index, (width, _))| (**width, *index))
-            .map(|(index, _)| index);
-        let Some(index) = widest else {
+            .map(|(index, (width, _))| (index, *width))
+            .collect();
+        let Some(widest) = candidates.iter().map(|(_, width)| *width).max() else {
             return;
         };
-        widths[index] = widths[index].saturating_sub(1);
-        total -= 1;
+        let group: Vec<usize> = candidates
+            .iter()
+            .filter(|(_, width)| *width == widest)
+            .map(|(index, _)| *index)
+            .collect();
+        let next = candidates
+            .iter()
+            .map(|(_, width)| *width)
+            .filter(|width| *width < widest)
+            .max()
+            .unwrap_or(0);
+        let stop = group
+            .iter()
+            .map(|index| limits[*index])
+            .fold(next, u16::max);
+        let members = u64::try_from(group.len()).unwrap_or(u64::MAX);
+        let cells = u64::from(widest - stop).saturating_mul(members);
+        if missing >= cells {
+            for index in &group {
+                widths[*index] = stop;
+            }
+            missing -= cells;
+        } else {
+            let each = u16::try_from(missing / members).unwrap_or(u16::MAX);
+            let extra = usize::try_from(missing % members).unwrap_or(usize::MAX);
+            for index in &group {
+                widths[*index] -= each;
+            }
+            for index in group.iter().rev().take(extra) {
+                widths[*index] -= 1;
+            }
+            return;
+        }
     }
 }
 
@@ -109,6 +189,35 @@ mod tests {
     fn a_framed_table_goes_on_to_the_floors() {
         let extents = [extent(30, 30), extent(40, 12)];
         assert_eq!(solve(&extents, 33, Framing::Framed), [21, 12]);
+    }
+
+    #[test]
+    fn a_framed_table_folds_the_column_that_folds_anyway_and_keeps_the_other_word() {
+        let extents = [
+            Extent {
+                natural: 8,
+                minimum: 8,
+                floor: 1,
+            },
+            Extent {
+                natural: 60,
+                minimum: 60,
+                floor: 1,
+            },
+        ];
+        assert_eq!(solve(&extents, 13, Framing::Framed), [8, 5]);
+    }
+
+    #[test]
+    fn columns_that_cannot_fit_alone_fold_together_widest_first() {
+        let extents = [extent(30, 30), extent(40, 12), extent(10, 10)];
+        assert_eq!(solve(&extents, 20, Framing::Framed), [7, 7, 6]);
+    }
+
+    #[test]
+    fn the_widest_widths_come_down_in_one_step() {
+        let extents = [extent(u16::MAX, 1), extent(u16::MAX, 1)];
+        assert_eq!(solve(&extents, 2, Framing::Unframed), [1, 1]);
     }
 
     #[test]

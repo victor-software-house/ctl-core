@@ -1,7 +1,7 @@
 //! The frames ctl-core draws today, reproduced exactly on a small table.
 
 use ctl_layout::{Column, Frame, Record, RecordStyle, RowSeparation, Table};
-use ctl_text::{BoxChars, Context, Renderable, Text};
+use ctl_text::{BoxChars, Context, Measurement, Renderable, Text};
 
 use crate::common::{cells, lines};
 
@@ -175,4 +175,19 @@ fn a_boxed_record_draws_a_full_box() {
         lines(&record, 80),
         ["┌────┬───┐", "│ a  ┆ b │", "│ cc ┆ d │", "└────┴───┘"]
     );
+}
+
+#[test]
+fn an_empty_boxed_record_draws_no_box() {
+    let record = Record::new().style(RecordStyle::Boxed);
+    assert!(lines(&record, 80).is_empty());
+    assert_eq!(record.measure(&Context::new(80)), Measurement::exact(0));
+}
+
+#[test]
+fn changing_a_records_style_keeps_its_rows() {
+    let record = Record::new()
+        .row(Text::plain("a"), Text::plain("b"))
+        .style(RecordStyle::Boxed);
+    assert_eq!(lines(&record, 80), ["┌───┬───┐", "│ a ┆ b │", "└───┴───┘"]);
 }
