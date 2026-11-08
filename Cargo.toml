@@ -156,8 +156,8 @@ shell = ["cli"]
 
 ## The `completion <SHELL>` verb and the `COMPLETE` request it registers
 ## (`CompletionCommand`, `App::completion`), through `clap_complete`'s
-## dynamic engine.
-completion = ["shell", "view", "dep:clap_complete"]
+## dynamic engine. Enables `app`, which `App::completion` lives on.
+completion = ["shell", "view", "app", "dep:clap_complete"]
 
 ## Mise Usage spec from clap (`--usage-spec`, served-task mount).
 usage = ["cli", "dep:usage-lib"]

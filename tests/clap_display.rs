@@ -58,7 +58,9 @@ fn run(args: &[&str]) -> ExitCode {
 const CHILD: &str = "CTL_CORE_CLAP_DISPLAY_CHILD";
 
 /// Run `test` in a child and return its output, or `None` when this process
-/// is that child and should run the case.
+/// is that child and should run the case. The child writes to a pipe, so
+/// `COLUMNS` and ctl-core's layout variables would set its width and style;
+/// it runs without them, at the fallback width the snapshot holds.
 #[expect(
     clippy::expect_used,
     reason = "a test helper: a failure here is the calling test failing"
@@ -75,6 +77,11 @@ fn in_child(test: &str) -> Option<Output> {
         .env_remove("FORCE_COLOR")
         .env_remove("NO_COLOR")
         .env_remove("COLORTERM")
+        .env_remove("COLUMNS")
+        .env_remove(DEFAULT_COLUMN_BUFFER_ENV)
+        .env_remove(DEFAULT_RECORD_STYLE_ENV)
+        .env_remove(DEFAULT_LIST_STYLE_ENV)
+        .env_remove(DEFAULT_ROW_SEPARATION_ENV)
         .output()
         .expect("spawn child");
     assert!(
