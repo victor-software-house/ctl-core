@@ -106,6 +106,8 @@ pub mod render;
 pub mod served;
 #[cfg(feature = "shell")]
 pub mod shell;
+#[cfg(feature = "shell-init")]
+pub mod shell_init;
 #[cfg(feature = "render")]
 mod style;
 #[cfg(feature = "surface-model")]

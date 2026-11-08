@@ -60,6 +60,10 @@ proptest = { version = "1.12.0", default-features = false, features = ["std"] }
 # insta can change how a snapshot file is read or written, so a bump is a
 # reviewed change. No colors: CI logs and review diffs stay plain.
 insta = { version = "=1.49.0", default-features = false }
+# Runs each shell on a pseudo-terminal for the hook tests
+# (ctl-core/tests/support/terminal.rs): an interactive shell draws no prompt,
+# and fish runs no typed line, when it reads a pipe. Pinned exactly like insta.
+pty-process = "=0.5.4"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

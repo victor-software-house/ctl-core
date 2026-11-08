@@ -128,6 +128,20 @@ queue:
       - The toy CLI's size per tier is measured on the commit CI verified.
     plan: openspec/changes/narrow-clap-features/proposal.md
 
+  - id: CTC-033
+    title: One init verb that hooks a ctl CLI into the shell
+    scope: ctl-core
+    outcome: >-
+      A ctl CLI that flattens one ctl-core verb prints a bash, zsh, or fish script
+      that runs one of its commands once, before the first prompt, when an environment
+      variable is set and the binary is on PATH.
+    blocked_by: []
+    acceptance:
+      - A CLI that flattens InitCommand and declares a Hook needs no shell code of its own.
+      - Each script is a reviewed snapshot that passes its shell check, and shellcheck for bash, in CI.
+      - bash, zsh, and fish on a pseudo-terminal run the hook once, keep the first prompt status, and skip it without the variable or the binary, in CI.
+    plan: openspec/changes/shell-init/proposal.md
+
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
     scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"

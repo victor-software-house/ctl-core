@@ -106,6 +106,10 @@ shell = ["cli"]
 ## dynamic engine. Enables `app`, which `App::completion` lives on.
 completion = ["shell", "view", "app", "dep:clap_complete"]
 
+## The `init <SHELL>` verb: a script that runs one command of the CLI once,
+## before the shell's first prompt (`InitCommand`, `Hook`).
+shell-init = ["shell", "view"]
+
 ## Mise Usage spec from clap (`--usage-spec`, served-task mount).
 usage = ["cli", "dep:usage-lib"]
 
@@ -135,6 +139,7 @@ unicode-width = { workspace = true, optional = true }
 insta.workspace = true
 garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
+pty-process.workspace = true
 
 [[example]]
 name = "gallery"

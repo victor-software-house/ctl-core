@@ -1,4 +1,17 @@
-//! The shells a ctl CLI writes scripts for.
+//! The shells a ctl CLI writes scripts for, and the script a shell verb
+//! prints.
+
+#[cfg(feature = "view")]
+use serde::Serialize;
+
+#[cfg(feature = "view")]
+use crate::color::ColorMode;
+#[cfg(feature = "view")]
+use crate::document::Document;
+#[cfg(feature = "view")]
+use crate::format::OutputFormat;
+#[cfg(feature = "view")]
+use crate::view::{Present, View};
 
 /// A shell a ctl CLI prints a script for: the set Homebrew installs
 /// completion for by default.
@@ -19,4 +32,38 @@ pub enum Shell {
     Zsh,
     /// Fish.
     Fish,
+}
+
+/// One script for one shell, the result of a shell verb such as
+/// `completion` or `init`.
+///
+/// Pretty and colorless output print the script as it is. JSON carries it
+/// under `text`, beside the shell's name under `shell`.
+#[cfg(feature = "view")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Script {
+    /// The shell that reads the script.
+    pub shell: Shell,
+    /// The script.
+    pub text: String,
+}
+
+#[cfg(feature = "view")]
+impl Present for Script {
+    fn present(&self) -> Document {
+        Document::new().verbatim(self.text.clone())
+    }
+}
+
+/// The view a shell verb prints its [`Script`] through: `format`, no color,
+/// and never quiet.
+///
+/// The script is the verb's whole result, and `source <(toy completion zsh)`
+/// or `eval "$(toy init zsh)"` would load nothing if `--quiet` or a quiet
+/// variable hid it. Route the verb here from
+/// [`App::view`](crate::app::App::view).
+#[cfg(feature = "view")]
+#[must_use]
+pub const fn view(format: OutputFormat) -> View {
+    View::new(format, ColorMode::Never)
 }
