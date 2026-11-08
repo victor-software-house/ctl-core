@@ -12,27 +12,32 @@ they apply here too.
   `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
 - Environment binding: `#[command(env_prefix = "VERCTL")]` on a CLI's root
   parser binds every long option, shared flags included, to
-  `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude. A flag on
-  the command line wins over its variable, the variable over a config file,
-  and the file over the default. `App` runs `flags::env_under_flags` before
-  the parse, which unbinds the variable of an option that the command line
-  set, negated, or conflicts with, and a variable that is empty or reads as a
-  boolean flag's default. A CLI test that parses its own command calls it
-  too. A caller that
-  holds settings in the environment, such as an action, sets them and runs
-  the bare verb; it never rebuilds argv in a shell.
+  `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude.
+  - A flag on the command line wins over its variable, the variable over a
+    config file, and the file over the default.
+  - `App` runs `flags::env_under_flags` before the parse.
+    It unbinds the variable of an option that the command line set, negated,
+    or conflicts with.
+    It also unbinds a variable that is empty or reads as a boolean flag's
+    default.
+  - A CLI test that parses its own command calls it too.
+  - A caller that holds settings in the environment, such as an action, sets
+    them and runs the bare verb. It never rebuilds argv in a shell.
 - `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and
-  exit codes, including the command's own exit code when the reader closes
-  stdout early, never success for a failure (`App::broken_pipe`)
+  exit codes.
+  When the reader closes stdout early, it keeps the command's own exit code and
+  never reports success for a failure (`App::broken_pipe`).
 - `Document` and the fluent semantic primitives used by help and command output
 - Pretty / JSON / colorless `View` over one serializable domain model
 - The only terminal theme, width detection, wrapping, and table configuration
 - Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`
-- Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_directives`
-  (`raw`, `raw_args`, and `mount_line`, the block every served CLI-proxy task
-  carries, so piped output stays byte for byte what the CLI wrote), and
-  `App::usage_spec` enrichment, so consumers run `mise run q status` with no
-  `--`. Completion is its own `completion` feature, below.
+- Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_directives`,
+  and `App::usage_spec` enrichment, so consumers run `mise run q status` with
+  no `--`.
+  - `mount_directives` are `raw`, `raw_args`, and `mount_line`, the block every
+    served CLI-proxy task carries, so piped output stays byte for byte what the
+    CLI wrote.
+  - Completion is its own `completion` feature, below.
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names,
   recursive commands, aliases, visibility, arguments, flags, Usage KDL, and
   optional audience notes. `surface-serde` adds serialization without a template
@@ -45,24 +50,27 @@ they apply here too.
   target through `{%- set -%}` exports, check the declarations once, and write
   the file with its mode.
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a
-  flattenable `CompletionCommand`, the registration script for bash, zsh, and
-  fish, and `App::completion`, which answers `COMPLETE=<shell>` before
-  parsing; the feature enables `app` for it. `Shell` lives in its own
-  `shell` feature, which later shell verbs share. `clap_complete` is pinned
-  exactly because its dynamic engine is unstable; a bump is a reviewed change
-  that reruns the script tests. The zsh script carries three lines so it
-  completes on the first TAB from `fpath`
-  ([research](../docs/research/shell-completion.md), section 6); drop them when
-  a pinned `clap_complete` writes its own.
-  `Script` and its `shell::view` live in `shell` behind `view`, shared by both
-  shell verbs.
+  flattenable `CompletionCommand`, and the registration script for bash, zsh,
+  and fish.
+  - `App::completion` answers `COMPLETE=<shell>` before parsing; the feature
+    enables `app` for it.
+  - `Shell` lives in its own `shell` feature, which later shell verbs share.
+  - `clap_complete` is pinned exactly because its dynamic engine is unstable.
+    A bump is a reviewed change that reruns the script tests.
+  - The zsh script carries three lines so it completes on the first TAB from
+    `fpath` ([research](../docs/research/shell-completion.md), section 6).
+    Drop them when a pinned `clap_complete` writes its own.
+  - `Script` and its `shell::view` live in `shell` behind `view`, shared by
+    both shell verbs.
 - Shell integration (`shell-init` feature): the `init <SHELL>` verb as a
   flattenable `InitCommand`, and the bash, zsh, and fish script a `Hook`
-  writes. The hook runs `<bin> <subcommand>` once, before the first prompt,
-  when its variable is non-empty and the binary is on `PATH`, then removes
-  itself. ctl-core writes all shell syntax: `Hook::new` refuses any part that
-  is not a plain word, and the script calls the binary by name, never by path
-  ([research](../docs/research/shell-init.md)).
+  writes.
+  - The hook runs `<bin> <subcommand>` once, before the first prompt, when its
+    variable is non-empty and the binary is on `PATH`, then removes itself.
+  - ctl-core writes all shell syntax.
+    `Hook::new` refuses any part that is not a plain word, and the script
+    calls the binary by name, never by path
+    ([research](../docs/research/shell-init.md)).
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
   per scenario, and one call per fixture file, for consumers' integration
   tests.
@@ -101,9 +109,9 @@ without silence.
   workspace is below 1.0. CI runs `mise run semver` against the last release
   before packaging. The crate-docs rules under
   [Cargo features](#cargo-features) keep traits visible to that check.
-- A change to what an operator sees, such as help text, a variable name, or
-  an error's wording, moves each CLI's skill and instructions in the pull
-  request that adopts the release.
+- A change to what an operator sees moves each CLI's skill and instructions in
+  the pull request that adopts the release.
+  Examples are help text, a variable name, or an error's wording.
 
 ## Tests
 
@@ -134,36 +142,50 @@ the decision together.
 
 Features are tree-shaking. `document` carries no terminal engine. `render` adds
 the private engine, `view` adds JSON, `help` adds Clap help, and `app` composes
-the lifecycle. `surface-model` adds only Clap/Usage operator metadata;
-`surface-serde` adds ctl-core's direct Serde edge without a template engine;
-`surface-templates` adds MiniJinja; `surface` preserves the full legacy aggregate.
+the lifecycle.
+
+`surface-model` adds only Clap/Usage operator metadata.
+`surface-serde` adds ctl-core's direct Serde edge without a template engine.
+`surface-templates` adds MiniJinja, and `surface` preserves the full legacy
+aggregate.
 `surface-model` still inherits Serde from `usage-lib`, whose KDL model requires
-it; that is not ctl-core serialization. Prefer the narrowest feature set a
-consumer needs. Never add serialization or rendering behavior to a lower tier.
+it; that is not ctl-core serialization.
+Prefer the narrowest feature set a consumer needs.
+Never add serialization or rendering behavior to a lower tier.
 
 `features = ["usage"]` does not pull `help`. Do not add `help` only to make the
 prelude compile.
 
-ctl-core asks a dependency only for the features its own code calls, because
-Cargo unifies features and a consumer cannot turn off one ctl-core turned on.
+ctl-core asks a dependency only for the features its own code calls.
+Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
 `clap` is declared with `default-features = false`: `cli` asks for `std`,
-`derive`, `env`, and `string`, and `help` adds `usage`. Clap's `color`, `help`,
-`error-context`, and `suggestions` are the consumer's choice; ctl-core renders
-every help Clap stops for and never calls `Error::print` or `Command::color`.
-Measure a new dependency or feature with `cargo bloat` on a release build
-before adding it (`openspec/changes/archive/2026-11-08-narrow-clap-features/design.md`).
+`derive`, `env`, and `string`, and `help` adds `usage`.
+Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's
+choice.
+ctl-core renders every help Clap stops for and never calls `Error::print` or
+`Command::color`.
 
-The crate-root `//!` sections in `ctl-core/src/lib.rs` are the docs.rs landing page,
-and `document_features` there is authoritative for the feature graph. The
-README is the GitHub page and does not copy them. Crate-root re-exports stay
-`#[doc(hidden)]`, so the page lists modules once; the prelude documents the
-flat surface. Traits are the exception, with every type a required trait
-method takes or returns: cargo-semver-checks 0.51.0 treats a trait as
-public-API-sealed (`trait_newly_sealed`) when any `#[doc(hidden)]` path
-reaches it or such a type, even when another path is public. So `Present`,
-`EnvPrefix`, and `Document` (returned by `Present::present`) stay visible at
-the root. Each module's summary lives in its own `//!`, never also on
-`pub mod`. Every fallible public function documents `# Errors`, with no
+Measure a new dependency or feature with `cargo bloat` on a release build
+before adding it
+(`openspec/changes/archive/2026-11-08-narrow-clap-features/design.md`).
+
+The crate-root `//!` sections in `ctl-core/src/lib.rs` are the docs.rs landing
+page, and `document_features` there is authoritative for the feature graph.
+The README is the GitHub page and does not copy them.
+Crate-root re-exports stay `#[doc(hidden)]`, so the page lists modules once;
+the prelude documents the flat surface.
+
+Traits are the exception, with every type a required trait method takes or
+returns.
+cargo-semver-checks 0.51.0 treats a trait as public-API-sealed
+(`trait_newly_sealed`) when any `#[doc(hidden)]` path reaches it or such a
+type.
+This holds even when another path is public.
+So `Present`, `EnvPrefix`, and `Document` (returned by `Present::present`) stay
+visible at the root.
+
+Each module's summary lives in its own `//!`, never also on `pub mod`.
+Every fallible public function documents `# Errors`, with no
 `missing_errors_doc` expect.
 
 ## Machine output is never coloured
@@ -171,7 +193,9 @@ the root. Each module's summary lives in its own `//!`, never also on
 JSON and anything else meant for a parser stays plain whatever the
 environment says. Agent shells set `CLICOLOR_FORCE=1`, `FORCE_COLOR=3`, and
 `COLORTERM=truecolor`; pretty output may honour them, and the JSON path never
-does. A parse error under a long `--format json` is a JSON error even when the
+does.
+
+A parse error under a long `--format json` is a JSON error even when the
 bad argument comes first. A consumer test runs the binary with
 `CLICOLOR_FORCE=1` and asserts that JSON output holds no ESC byte.
 
@@ -184,13 +208,16 @@ consumer replace the ordered name list with its own aliases or disable lookup.
 An explicit render width is exact and bypasses automatic-width buffering.
 
 The automatic terminal-width buffer defaults to two columns and reads
-`CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20. When no width is
-detected, output lays out to a fallback width of 80, and `fallback_width(None)`
-disables it. `RenderOptions`, `View`, and `App` expose the buffer, ordered
-environment names, minimum, and fallback.
+`CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20.
+When no width is detected, output lays out to a fallback width of 80, and
+`fallback_width(None)` disables it.
+`RenderOptions`, `View`, and `App` expose the buffer, ordered environment
+names, minimum, and fallback.
+
 Buffer zero disables subtraction; an empty environment slice disables lookup.
-Explicit widths remain exact. Public option-aware help entry points keep direct
-help callers under the same policy.
+Explicit widths remain exact.
+Public option-aware help entry points keep direct help callers under the same
+policy.
 
 The record style, list style, row separation, and JSON layout read
 `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and
@@ -205,14 +232,17 @@ replaceable, and an empty slice disables lookup.
    JSON serializes the model directly. Colorless renders the same document.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`,
    `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI,
-   width, or streams. Verbatim is for preformatted Markdown or protocol text
-   whose line boundaries must survive rendering. It removes what
-   `verbatim::is_unsafe` refuses (every Cc control other than newline and
-   tab, the 12 UAX #9 directional formatting characters, and U+2028 and
-   U+2029); preserves the other format characters (Cf); then normalizes trailing newlines to the
-   document. A CLI that prints text it did not write filters with the same
-   predicate. The predicate lives in `ctl-text` (`ctl_text::verbatim`) and
-   `ctl_core::verbatim` re-exports it.
+   width, or streams.
+   - Verbatim is for preformatted Markdown or protocol text whose line
+     boundaries must survive rendering.
+   - It removes what `verbatim::is_unsafe` refuses (every Cc control other than
+     newline and tab, the 12 UAX #9 directional formatting characters, and
+     U+2028 and U+2029).
+     It preserves the other format characters (Cf).
+     Then it normalizes trailing newlines to the document.
+   - A CLI that prints text it did not write filters with the same predicate.
+   - The predicate lives in `ctl-text` (`ctl_text::verbatim`) and
+     `ctl_core::verbatim` re-exports it.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same
    renderer as command output. Usage lines wrap without splitting tokens.
@@ -237,32 +267,46 @@ results. The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 
 ## Declared input
 
-`validate` holds the garde rules every schema shares; `input` reads a file,
-parses it with serde-saphyr (strict booleans, duplicate and merge keys
-refused), validates it once with garde, and reports every problem with its
-file and line through yamled's location index. A message carries no
-position of its own, except that an alias error names where its value is
-defined, counted from the file. `Input::frontmatter` splits YAML frontmatter
-from a Markdown body. Limits are serde-saphyr's `Budget`, overridable field by
-field: the call (`Input::limits`), then the repository (`limits:` in
-`.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup), then the
-process (`set_default_limits` or `App::input_limits`), then serde-saphyr's
-default. `enforce_alias_anchor_ratio` is not overridable and stays on.
+`validate` holds the garde rules every schema shares.
+`input` reads a file, parses it with serde-saphyr (strict booleans, duplicate
+and merge keys refused), and validates it once with garde.
+It reports every problem with its file and line through yamled's location
+index.
+
+A message carries no position of its own, except that an alias error names
+where its value is defined, counted from the file.
+`Input::frontmatter` splits YAML frontmatter from a Markdown body.
+
+Limits are serde-saphyr's `Budget`, overridable field by field, in this order:
+
+1. the call (`Input::limits`);
+2. the repository (`limits:` in `.ctl/input.yaml`, installed by
+   `use_repo_limits(root)` at startup);
+3. the process (`set_default_limits` or `App::input_limits`);
+4. serde-saphyr's default.
+
+`enforce_alias_anchor_ratio` is not overridable and stays on.
 `use_repo_limits` returns each limit the repository raises above the default;
-the CLI prints each as a warning. A CLI parses config only through `input`; it keeps no `schema.rs` and
-no YAML crate of its own. `CTC-008` tracks the consumer moves and the template
-renderer.
+the CLI prints each as a warning.
+A CLI parses config only through `input`; it keeps no `schema.rs` and no YAML
+crate of its own.
+`CTC-008` tracks the consumer moves and the template renderer.
 
 `input-toml` adds TOML on top of `input`, with the `toml` crate's span-carrying
 `DeTable` as parser and location index, so the same `Input` loads either
-format. The format is chosen, never guessed: `Input::open(path)` reads it from
-the extension (`.toml`, `.yaml`, `.yml`, any case) and refuses every other
-extension before reading; `Input::new` and `Input::read` stay YAML whatever the
-name says, and `Input::format(Format)` sets it for text in memory. A TOML text
-reads three `Limits` fields, `max_reader_input_bytes`, `max_depth`, and
-`max_nodes`; every other field names YAML syntax and has no effect on TOML. The
-`toml` parser also bounds nesting at 80 levels, which no limit raises. The
-repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
+format.
+The format is chosen, never guessed.
+`Input::open(path)` reads it from the extension (`.toml`, `.yaml`, `.yml`, any
+case) and refuses every other extension before reading.
+`Input::new` and `Input::read` stay YAML whatever the name is, and
+`Input::format(Format)` sets it for text in memory.
+
+A TOML text reads three `Limits` fields, `max_reader_input_bytes`,
+`max_depth`, and `max_nodes`.
+Every other field names YAML syntax and has no effect on TOML.
+The `toml` parser also bounds nesting at 80 levels, which no limit raises.
+The repository limits file stays `.ctl/input.yaml` for a TOML-config
+repository.
 `openspec/specs/declared-input` holds the contract and `CTC-021` the row.
 
 ## Served files
@@ -284,51 +328,64 @@ keeps no fixture wrapper of its own. `CTC-006` tracks the consumer moves.
 ## Snapshots
 
 Rendered output a reviewer should read, such as a shell script or a help
-page, is an insta file snapshot under `ctl-core/tests/snapshots/`, never a string
-literal or a `contains` check: a change to the output shows as a diff of the
-snapshot. `insta` is pinned exactly; a bump is a reviewed change. CI sets
-`INSTA_UPDATE=no` in `mise.ci.toml`, so it never writes a snapshot. Review a
-change locally with `cargo insta review` (`cargo-insta` is in
-`mise.dev.toml`). A test that writes a temporary file uses `fixture`, not its
-own temporary directory.
+page, is an insta file snapshot under `ctl-core/tests/snapshots/`.
+It is never a string literal or a `contains` check: a change to the output
+shows as a diff of the snapshot.
+
+`insta` is pinned exactly; a bump is a reviewed change.
+CI sets `INSTA_UPDATE=no` in `mise.ci.toml`, so it never writes a snapshot.
+Review a change locally with `cargo insta review` (`cargo-insta` is in
+`mise.dev.toml`).
+A test that writes a temporary file uses `fixture`, not its own temporary
+directory.
 
 A rendered shell script also passes its shell's check through
-`ctl-core/tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
-`fish -n`. zsh, fish, and shellcheck are pinned in `mise.test.toml`, the
-`test` profile, and locked in `mise.test.lock`. `.miserc.toml` loads it
-locally after `dev`, and CI loads it only in the Build and test job
-(`MISE_ENV=ci,test`, through the shared workflow's `test-profiles` input), so
-no other job fetches them. Their install directories are on the tests'
-`PATH`, which mr-boxington's command wrapper keeps; only mise's shims are
-taken off it. Generate the locks with the default profiles,
-`mise lock --platform linux-x64,macos-arm64`: mise also writes the pinned
-catalogs' task tools into `mise.test.lock`, and the pre-push lock check runs
-with `MISE_ENV=dev,test`. Write a new lock with the pinned mise, 2026.10.25:
-a newer mise writes a new file as lockfile version 4, which CI's mise cannot
-read. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
-exclusions; only a third-party template's lines may be excluded, by code,
-with the reason beside the list.
+`ctl-core/tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`,
+`zsh -n`, `fish -n`.
+
+- zsh, fish, and shellcheck are pinned in `mise.test.toml`, the `test` profile,
+  and locked in `mise.test.lock`.
+- `.miserc.toml` loads it locally after `dev`.
+  CI loads it only in the Build and test job (`MISE_ENV=ci,test`, through the
+  shared workflow's `test-profiles` input), so no other job fetches them.
+- Their install directories are on the tests' `PATH`, which mr-boxington's
+  command wrapper keeps; only mise's shims are taken off it.
+- Generate the locks with the default profiles,
+  `mise lock --platform linux-x64,macos-arm64`.
+  mise also writes the pinned catalogs' task tools into `mise.test.lock`.
+  The pre-push lock check runs with `MISE_ENV=dev,test`.
+- Write a new lock with the pinned mise, 2026.10.25.
+  A newer mise writes a new file as lockfile version 4.
+  CI's mise cannot read that version.
+- A missing tool fails the test.
+- A script ctl-core writes passes shellcheck with no exclusions.
+  Only a third-party template's lines may be excluded, by code, with the
+  reason beside the list.
 
 A script that changes what a shell does at run time also runs in that shell.
 `ctl-core/tests/shell_init.rs` starts bash, zsh, and fish on a
 pseudo-terminal through `pty-process` (`ctl-core/tests/support/terminal.rs`),
 types each line only after the prompt appears, and reads what a fake binary
-logged. A pipe is not enough: fish draws no prompt when it reads one.
+logged.
+A pipe is not enough: fish draws no prompt when it reads one.
 
 ## Parity corpus
 
 `ctl-core/tests/parity/` renders a fixed corpus of the documents that verctl,
 qctl, forkctl, and rawr produce.
-`corpus.rs` builds each case with the public API, as a consumer does.
-`main.rs` renders every case through `Document::render` at widths 20, 40, 80,
-and 120, with `ColorMode::Never` and `ColorMode::Always`, and compares the
-output byte for byte with
-`ctl-core/tests/parity/baseline/<case>-w<width>-<plain|color>.txt`.
-A baseline writes each ESC byte as the six characters `\u{1b}`.
-A missing or different baseline fails the test with a line diff.
-`PARITY_UPDATE=1 cargo test --locked -p ctl-core --test parity` writes the
-missing and changed files.
-The baselines are plain files, not insta snapshots, because the 0.6.x files
-stay frozen once committed: the render-engine change adds the new engine's
-outputs beside them and lists each difference in its pull request.
+
+- `corpus.rs` builds each case with the public API, as a consumer does.
+- `main.rs` renders every case through `Document::render` at widths 20, 40, 80,
+  and 120, with `ColorMode::Never` and `ColorMode::Always`, and compares the
+  output byte for byte with
+  `ctl-core/tests/parity/baseline/<case>-w<width>-<plain|color>.txt`.
+- A baseline writes each ESC byte as the six characters `\u{1b}`.
+- A missing or different baseline fails the test with a line diff.
+- `PARITY_UPDATE=1 cargo test --locked -p ctl-core --test parity` writes the
+  missing and changed files.
+- The baselines are plain files, not insta snapshots, because the 0.6.x files
+  stay frozen once committed.
+  The render-engine change adds the new engine's outputs beside them and lists
+  each difference in its pull request.
+
 Add a case to `CASES` with its baselines in the same commit.

@@ -77,32 +77,42 @@ What ctl-core writes itself and what it takes from a crate:
 ## Automatic width policy
 
 An automatically detected TTY or `COLUMNS` width reserves two columns before
-wrapping, stacking, help, fields, and table layout. This default protects hosts
-that indent tool output or whose frame consumes the rightmost column. The configured
-floor is 20 when the detected width permits it. A narrower terminal caps that
-floor, so ctl-core never claims columns the terminal does not have.
+wrapping, stacking, help, fields, and table layout.
+This default protects hosts that indent tool output or whose frame consumes the
+rightmost column.
+The configured floor is 20 when the detected width permits it.
+A narrower terminal caps that floor, so ctl-core never claims columns the
+terminal does not have.
 
-When neither a terminal nor `COLUMNS` gives a width, as in agent and CI
-captures where every stream is piped, ctl-core lays out to a fallback width of
-80. `fallback_width(Some(n))` changes it and `fallback_width(None)` renders
-tables at their natural width. The fallback is separate from the minimum,
-which applies only to a detected width.
+Sometimes neither a terminal nor `COLUMNS` gives a width.
+Agent and CI captures, where every stream is piped, are examples.
+Then ctl-core lays out to a fallback width of 80.
+`fallback_width(Some(n))` changes it and `fallback_width(None)` renders
+tables at their natural width.
+The fallback is separate from the minimum, which applies only to a detected
+width.
 
-Wrapping breaks at whitespace. A word wider than its column, such as a URL or
-a path, runs past the width in records, paragraphs, and headings rather than
-being split, so it can still be copied whole. Grid tables still split it, to
-keep their borders intact.
+Wrapping breaks at whitespace.
+A word wider than its column, such as a URL or a path, is not split in
+records, paragraphs, and headings.
+It runs past the width.
+That keeps it copyable whole.
+Grid tables still split it, to keep their borders intact.
 
-`CTL_CORE_COLUMN_BUFFER` replaces the default buffer. Library consumers have
-full control through `RenderOptions`, `View`, and `App`:
-`automatic_width_buffer(n)` overrides the environment, including zero to disable
-buffering; `automatic_width_buffer_envs(&[...])` replaces the ordered names so a
-consumer can add aliases or disable lookup with an empty slice; and
-`minimum_automatic_width(n)` replaces the default preferred floor of 20, still
-capped by the detected terminal width; and `fallback_width(..)` sets or disables
-the undetected-width fallback. Option-aware help
-entry points accept the same `RenderOptions`. An explicit `width(n)` is always
-exact and ignores every automatic-width setting.
+`CTL_CORE_COLUMN_BUFFER` replaces the default buffer.
+Library consumers have full control through `RenderOptions`, `View`, and `App`:
+
+- `automatic_width_buffer(n)` overrides the environment, including zero to
+  disable buffering;
+- `automatic_width_buffer_envs(&[...])` replaces the ordered names, so a
+  consumer can add aliases or disable lookup with an empty slice;
+- `minimum_automatic_width(n)` replaces the default preferred floor of 20,
+  still capped by the detected terminal width;
+- `fallback_width(..)` sets or disables the undetected-width fallback.
+
+Option-aware help entry points accept the same `RenderOptions`.
+An explicit `width(n)` is always exact and ignores every automatic-width
+setting.
 
 ## Default look
 
@@ -113,16 +123,19 @@ Identifiers render bold in the terminal foreground (`Role::Id`). Each is an
 option on `RenderOptions`, `View`, and `App` (`styles`, `json_layout`), so a
 consumer that needs the box or compact JSON sets it.
 
-An operator picks any option the consumer left open through
-`CTL_CORE_RECORD_STYLE` (`keys-right`, `keys-left`, `boxed`),
-`CTL_CORE_LIST_STYLE` (`grid`, `header-rule`, `plain`),
-`CTL_CORE_ROW_SEPARATION` (`none`, `rule`, `blank`), and
-`CTL_CORE_JSON_LAYOUT` (`pretty`, `compact`, `pretty-on-terminal`). The
-consumer's setter wins over the variable. `record_style_envs`,
-`list_style_envs`, `row_separation_envs`, and `json_layout_envs` replace each
-ordered name list, and an empty slice disables lookup. A value outside the
-list is ignored, and `App` prints one warning line that names the accepted
-values.
+An operator picks any option the consumer left open through these variables:
+
+- `CTL_CORE_RECORD_STYLE` (`keys-right`, `keys-left`, `boxed`)
+- `CTL_CORE_LIST_STYLE` (`grid`, `header-rule`, `plain`)
+- `CTL_CORE_ROW_SEPARATION` (`none`, `rule`, `blank`)
+- `CTL_CORE_JSON_LAYOUT` (`pretty`, `compact`, `pretty-on-terminal`)
+
+The consumer's setter wins over the variable.
+`record_style_envs`, `list_style_envs`, `row_separation_envs`, and
+`json_layout_envs` replace each ordered name list, and an empty slice disables
+lookup.
+A value outside the list is ignored, and `App` prints one warning line that
+lists the accepted values.
 
 ## Output law
 
@@ -139,11 +152,12 @@ One serializable model feeds all modes:
 5. Quiet suppresses successful human output only. It never hides errors or
    JSON.
 6. A reader that closes stdout or stderr early, as `head -1` does, leaves the
-   exit code as the command set it and puts nothing on stderr. A command that
-   succeeded exits 0; a failed command or a parse error keeps its code, so a
-   closed pipe never turns a failure into success. `App::broken_pipe` with
-   `BrokenPipe::Fail` makes every closed pipe a failure, keeping a failure's
-   own code.
+   exit code as the command set it and puts nothing on stderr:
+   - A command that succeeded exits 0.
+   - A failed command or a parse error keeps its code, so a closed pipe never
+     turns a failure into success.
+   - `App::broken_pipe` with `BrokenPipe::Fail` makes every closed pipe a
+     failure, keeping a failure's own code.
 
 ## Help law
 
@@ -175,20 +189,26 @@ It does not choose borders, spacing, ANSI styles, width, or streams.
 
 ## Operator surface
 
-Clap is also the source for committed operator documents. `Surface` extracts
-binary and mounted names, package metadata, recursive commands, aliases,
-visibility, locally declared argument and flag metadata, and mounted Usage KDL.
-That metadata and its validation methods require only `surface-model`;
+Clap is also the source for committed operator documents.
+`Surface` extracts binary and mounted names, package metadata, recursive
+commands, aliases, visibility, locally declared argument and flag metadata, and
+mounted Usage KDL.
+
+That metadata and its validation methods require only `surface-model`.
 `surface-serde` adds serialization without a template engine, and
-`surface-templates` adds MiniJinja. `surface-model` still inherits Serde from
-`usage-lib`, whose KDL model requires it; that is not ctl-core serialization.
+`surface-templates` adds MiniJinja.
+`surface-model` still inherits Serde from `usage-lib`, whose KDL model requires
+it; that is not ctl-core serialization.
 The existing `surface` feature remains the compatibility aggregate.
+
 Ancestor globals stay normalized on their declaring command and appear
-separately as each descendant's `inherited_arguments`. Templates can render the
-effective flag set without losing declaration provenance. It records hidden
-commands for verification while the shared command-inventory fragment renders
-visible commands only. `Surface::note` carries optional skill- or
-instruction-specific prose when Clap's `about` addresses another audience.
+separately as each descendant's `inherited_arguments`.
+Templates can render the effective flag set without losing declaration
+provenance.
+`Surface` records hidden commands for verification, while the shared
+command-inventory fragment renders visible commands only.
+`Surface::note` carries optional skill- or instruction-specific prose when
+Clap's `about` addresses another audience.
 
 ctl-core ships three MiniJinja fragments:
 
@@ -198,9 +218,10 @@ ctl-core ships three MiniJinja fragments:
 
 A consumer template imports those fragments and keeps its own domain prose.
 Tests render with the consumer's Clap type and byte-compare the result with the
-committed skill or installed instructions. Adding or renaming a Clap command
-therefore changes `Surface` and fails the committed-render test until the
-operator document moves with it. No token scan or copied command list remains.
+committed skill or installed instructions.
+Adding or renaming a Clap command therefore changes `Surface`.
+The committed-render test then fails until the operator document moves with it.
+No token scan or copied command list remains.
 
 ## Migration order
 
@@ -211,9 +232,9 @@ operator document moves with it. No token scan or copied command list remains.
    view, layout, and terminal dependencies.
 4. Migrate qctl handlers from direct printing to typed results, then add shared
    pretty, colorless, and JSON views.
-5. Pin the released `surface` feature in each consumer, render its skill and
-   instructions from shared fragments plus domain prose, and delete copied verb
-   scans and invocation rules.
+5. Pin the released `surface` feature in each consumer.
+   Render its skill and instructions from shared fragments plus domain prose.
+   Delete copied verb scans and invocation rules.
 
 Each consumer pins a released ctl-core version. No path dependencies connect
 repositories.
