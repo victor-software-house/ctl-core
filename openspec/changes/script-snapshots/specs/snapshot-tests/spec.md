@@ -50,7 +50,7 @@ the shell or shellcheck it needs.
 #### Scenario: fish is not installed
 
 - **WHEN** `fish` is not on `PATH` and a test checks a fish script
-- **THEN** the test fails with a message that names `fish` and `mise install`
+- **THEN** the test fails with a message that names `fish` and `mise run test`
 
 ### Requirement: The shell set is closed
 

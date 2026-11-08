@@ -2,9 +2,9 @@
 //! bash script through shellcheck too, so a snapshot that the shell cannot
 //! read fails its test.
 //!
-//! The shells and shellcheck come from the repository's mise config. A test
-//! that cannot start one fails and names the tool: a check that skips itself
-//! when a tool is missing would pass without checking anything.
+//! The shells and shellcheck are tools of the `test` task in `mise.toml`. A
+//! test that cannot start one fails and names the tool: a check that skips
+//! itself when a tool is missing would pass without checking anything.
 
 use std::path::Path;
 use std::process::Command;
@@ -47,7 +47,9 @@ fn run(program: &str, args: &[&str], path: &Path) {
         .args(args)
         .arg(path)
         .output()
-        .unwrap_or_else(|error| panic!("start {program}, which `mise install` provides: {error}"));
+        .unwrap_or_else(|error| {
+            panic!("start {program}, a tool of the `mise run test` task: {error}")
+        });
     assert!(
         output.status.success(),
         "{program} {args:?} rejected the script:\n{}{}",

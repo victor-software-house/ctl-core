@@ -10,13 +10,14 @@
   Proof: `Cargo.lock` adds only `insta` and `similar`.
   - 2026-11-08 UTC: `cargo metadata` locked `insta` 1.49.0 and `similar`
     2.7.0, and nothing else.
-- [ ] 3. Pin zsh, fish, and shellcheck in `mise.toml` and lock them for
+- [ ] 3. Pin zsh, fish, and shellcheck as `test` task tools and lock them for
   linux-x64 and macos-arm64.
-  Proof: `mise lock` for those tools on both platforms, and
-  `mise install --locked` installs them.
-  - 2026-11-08 UTC: locked for both platforms; `mise install --locked`
-    installed zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 on macos-arm64.
-    linux-x64 is not yet proven; CI installs it.
+  Proof: `mise lock --dry-run --json` prints `[]`, and `mise run test`
+  installs the tools in CI.
+  - 2026-11-08 UTC: locked for both platforms, first as `[tools]`, then
+    moved to `[tasks.test]` on review; the dry run printed `[]` after the
+    move. On macos-arm64 the locked versions installed and ran. The
+    linux-x64 install through the task is not yet proven; CI runs it.
 - [ ] 4. Add `tests/support/shells.rs`, and move the completion script and
   help tests to snapshots that pass their shell's check.
   Proof: the completion tests pass with `INSTA_UPDATE=no`, locally and in

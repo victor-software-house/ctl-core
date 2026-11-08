@@ -75,14 +75,25 @@ below.
    - Alternative: parse the snapshot files in a separate mise task.
      A `.snap` header is not shell syntax, and the test already holds the
      text the snapshot compares.
-4. **The tools are pinned in `mise.toml`**: `conda:zsh` 5.9.2, `conda:fish`
-   4.9.3, and `shellcheck` 0.11.0.
+4. **The tools belong to the `test` task**: `conda:zsh` 5.9.2,
+   `conda:fish` 4.9.3, and `shellcheck` 0.11.0, as `tools` of a
+   `[tasks.test]` in `mise.toml`.
+   That task replaces the shared catalog's `test` and keeps its run line and
+   timeout, because a catalog task takes no extra tools.
+   Only `mise run test` fetches them; `mise install`, the lint jobs, and the
+   release jobs do not.
    Conda-forge builds cover both locked platforms, linux-x64 and
    macos-arm64; fish's GitHub release has no macOS archive.
    bash stays the platform's own shell.
    A test that cannot start a tool fails and names it.
    - Alternative: skip when a tool is missing.
      That check would pass without checking anything.
+   - Alternative: `[tools]` in `mise.toml`.
+     Every job and every `mise install` would fetch conda zsh, conda fish,
+     and their conda dependencies, release jobs included.
+   - Alternative: a profile of their own.
+     CI's shared workflow sets `MISE_ENV=ci` and takes no profile input,
+     so its test job could not select one.
    - Alternative: pin the tools in `mise.ci.toml` only.
      Local runs would then use other versions, or none.
 5. **shellcheck exclusions are named per caller.**

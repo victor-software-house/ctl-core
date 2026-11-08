@@ -273,8 +273,10 @@ own temporary directory.
 
 A rendered shell script also passes its shell's check through
 `tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
-`fish -n`. zsh, fish, and shellcheck are pinned in `mise.toml`, and a missing
-one fails the test. A script ctl-core writes passes shellcheck with no
+`fish -n`. zsh, fish, and shellcheck are tools of the `test` task in
+`mise.toml`, so only `mise run test` fetches them; this repository's
+`[tasks.test]` replaces the catalog's and keeps its run line and timeout. A
+missing tool fails the test. A script ctl-core writes passes shellcheck with no
 exclusions; only a third-party template's lines may be excluded, by code,
 with the reason beside the list.
 

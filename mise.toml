@@ -34,11 +34,6 @@ typos = "1.51.1"
 actionlint = "1.7.12"
 # OpenSpec's standalone release binary; it needs no node.
 "github:Fission-AI/OpenSpec" = "1.16.0"
-# The shells and linter the script tests run each rendered shell script
-# through (tests/support/shells.rs). Conda builds cover both locked platforms.
-"conda:zsh" = "5.9.2"
-"conda:fish" = "4.9.3"
-shellcheck = "0.11.0"
 
 # The shared Rust tasks read their toolchains from here and name none.
 [env]
@@ -65,6 +60,17 @@ depends = [
   "check:versions",
   "check:repo",
 ]
+
+# The shared catalog's test, plus the shells and linter the script tests run
+# each rendered shell script through (tests/support/shells.rs). Only this task
+# needs them, so they are task tools: no other job or `mise install` fetches
+# them. Conda builds cover both locked platforms. Keep the run line and
+# timeout equal to the catalog's test task.
+[tasks.test]
+description = "Unit and integration tests"
+run = "cargo test --locked --workspace --all-features --tests --no-fail-fast"
+timeout = "30m"
+tools = { "conda:zsh" = "5.9.2", "conda:fish" = "4.9.3", shellcheck = "0.11.0" }
 
 # mise-tasks/ holds this repository's task fragments and file tasks. An
 # includes list replaces the default task dirs, so mise-tasks comes first; add
