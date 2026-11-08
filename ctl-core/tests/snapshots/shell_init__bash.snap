@@ -1,0 +1,31 @@
+---
+source: tests/shell_init.rs
+expression: text
+---
+# Load in ~/.bashrc: eval "$(toy-cli init bash)"
+__toy_cli_first_prompt() {
+    local status=$? kind
+    kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
+    if [[ ${kind} == "declare -a"* ]]; then
+        local hooks=() hook
+        for hook in "${PROMPT_COMMAND[@]}"; do
+            [[ ${hook} == __toy_cli_first_prompt ]] || hooks+=("${hook}")
+        done
+        PROMPT_COMMAND=("${hooks[@]}")
+    else
+        printf -v PROMPT_COMMAND %s "${PROMPT_COMMAND//__toy_cli_first_prompt;/}"
+    fi
+    if [[ -n ${TOY_BLOCK-} ]] && command -v toy-cli >/dev/null; then
+        command toy-cli pick
+    fi
+    return "${status}"
+}
+__toy_cli_first_prompt_kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
+if [[ ${__toy_cli_first_prompt_kind} == "declare -a"* ]]; then
+    if [[ " ${PROMPT_COMMAND[*]} " != *" __toy_cli_first_prompt "* ]]; then
+        PROMPT_COMMAND=(__toy_cli_first_prompt "${PROMPT_COMMAND[@]}")
+    fi
+elif [[ ${PROMPT_COMMAND-} != *__toy_cli_first_prompt\;* ]]; then
+    printf -v PROMPT_COMMAND %s "__toy_cli_first_prompt;${PROMPT_COMMAND-}"
+fi
+unset __toy_cli_first_prompt_kind

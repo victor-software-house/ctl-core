@@ -106,12 +106,24 @@ render the same fragments.
 The `completion` feature gives every ctl CLI one verb,
 `<bin> completion <SHELL>`, for bash, zsh, and fish. Flatten
 `completion::CompletionCommand` into the CLI's subcommands, call
-`App::completion()`, route the verb to `completion::view(format)`, and
+`App::completion()`, route the verb to `shell::view(format)`, and
 return `command.script("<bin>")`. The script is `clap_complete`'s dynamic
 registration: the shell asks the binary for candidates at each TAB through
 `COMPLETE=<shell>`. Load it at shell start with
 `source <(<bin> completion zsh)`, or let Homebrew install it with
 `generate_completions_from_executable(bin/"<bin>", "completion")`.
+
+## Shell integration
+
+The `shell-init` feature gives a ctl CLI `<bin> init <SHELL>` for bash, zsh,
+and fish. Declare the command once with
+`shell_init::Hook::new("<bin>", "<subcommand>", "<VARIABLE>")`, flatten
+`shell_init::InitCommand` into the CLI's subcommands, route the verb to
+`shell::view(format)`, and return `command.script(&hook)`. The script runs
+`<bin> <subcommand>` once, in the foreground, before the shell's first
+prompt, when `VARIABLE` is non-empty and `<bin>` is on `PATH`. Load it with
+`eval "$(<bin> init zsh)"` in bash or zsh, or `<bin> init fish | source` in
+fish; the script's first line names that line.
 
 ## Contract
 

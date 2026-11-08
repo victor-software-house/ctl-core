@@ -33,8 +33,8 @@ Queue row: CTC-030.
       `<bin> completion <SHELL>` the same name, help, and argument in every
       ctl CLI.
    2. `Shell::script(bin)` returns the dynamic registration script as a
-      `Script` model, with the zsh first-TAB fix appended.
-   3. `completion::view(format)` prints the script without colour and
+      `shell::Script` model, with the zsh first-TAB fix appended.
+   3. `shell::view(format)` prints the script without colour and
       ignores `--quiet`.
 3. `App::completion()` answers `COMPLETE=<shell>` before Clap parses: with
    no words it prints the same `Script` as the verb, and with words it

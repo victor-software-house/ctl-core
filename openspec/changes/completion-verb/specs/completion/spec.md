@@ -62,19 +62,19 @@ that run the completer when zsh autoloads the file as the function
 
 ### Requirement: The script survives quiet and colour settings
 
-`completion::view(format)` SHALL print a `Script` in `format`, with no
+`shell::view(format)` SHALL print a `Script` in `format`, with no
 colour, whatever quiet setting the CLI's own view would apply. Pretty output
 SHALL be the script text ending in exactly one newline. JSON output SHALL be
 an object with the shell's name under `shell` and the script under `text`.
 
 #### Scenario: Pretty output
 
-- **WHEN** the `Script` for `Shell::Zsh` and `toy` is captured through `completion::view(OutputFormat::Pretty)`
+- **WHEN** the `Script` for `Shell::Zsh` and `toy` is captured through `shell::view(OutputFormat::Pretty)`
 - **THEN** the captured stdout is the script text with one trailing newline and no ESC byte
 
 #### Scenario: JSON output
 
-- **WHEN** the same script is captured through `completion::view(OutputFormat::Json)`
+- **WHEN** the same script is captured through `shell::view(OutputFormat::Json)`
 - **THEN** stdout parses as JSON with `shell` equal to `"zsh"` and `text` equal to the script text
 
 ### Requirement: The environment prints the registration

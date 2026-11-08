@@ -16,10 +16,10 @@ use std::process::{Command as Process, Output};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
-use ctl_core::completion::{self, CompletionArgs, CompletionCommand, Script};
+use ctl_core::completion::{self, CompletionArgs, CompletionCommand};
 use ctl_core::help;
 use ctl_core::prelude::*;
-use ctl_core::shell::Shell;
+use ctl_core::shell::{self, Script, Shell};
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
@@ -71,7 +71,7 @@ fn run(args: &[&str]) -> ExitCode {
     App::<Toy>::new("toy")
         .completion()
         .view(|cli| match cli.command {
-            Cmd::Completion(_) => completion::view(cli.output.format),
+            Cmd::Completion(_) => shell::view(cli.output.format),
             Cmd::Status => cli.output.view(),
         })
         .run_from(std::iter::once("toy").chain(args.iter().copied()), |cli| {
@@ -178,15 +178,11 @@ fn fish_registers_one_line_that_calls_the_binary_by_name() {
 #[test]
 fn the_view_prints_the_script_as_it_is() {
     let script = Shell::Zsh.script("toy").unwrap();
-    let pretty = completion::view(OutputFormat::Pretty)
-        .capture(&script)
-        .unwrap();
+    let pretty = shell::view(OutputFormat::Pretty).capture(&script).unwrap();
     assert_eq!(pretty.text(), script.text);
     assert!(!pretty.text().contains('\u{1b}'));
 
-    let json = completion::view(OutputFormat::Json)
-        .capture(&script)
-        .unwrap();
+    let json = shell::view(OutputFormat::Json).capture(&script).unwrap();
     let value: serde_json::Value = serde_json::from_str(json.text()).unwrap();
     assert_eq!(value["shell"], "zsh");
     assert_eq!(value["text"], script.text);

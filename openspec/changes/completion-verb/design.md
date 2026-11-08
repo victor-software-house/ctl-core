@@ -69,7 +69,7 @@ where forkctl runs `CompleteEnv`.
    no variable, and `COMPLETE=` or `COMPLETE=0` leaves a run alone.
    Alternative: a per-CLI name such as `QCTL_COMPLETE`. It lost because
    Homebrew's `:clap` format sets only `COMPLETE`.
-9. **The verb's view ignores quiet.** `completion::view(format)` keeps the
+9. **The verb's view ignores quiet.** `shell::view(format)` keeps the
    format, turns colour off, and never sets quiet, because
    `source <(qctl completion zsh)` must load something even when
    `QCTL_QUIET=1` is set. JSON keeps working: `--format json` prints

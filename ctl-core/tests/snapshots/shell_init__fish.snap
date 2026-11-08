@@ -1,0 +1,11 @@
+---
+source: tests/shell_init.rs
+expression: text
+---
+# Load in ~/.config/fish/config.fish: toy-cli init fish | source
+function __toy_cli_first_prompt --on-event fish_prompt
+    functions --erase __toy_cli_first_prompt
+    if test -n "$TOY_BLOCK"; and command -q toy-cli
+        command toy-cli pick
+    end
+end

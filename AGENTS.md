@@ -54,6 +54,15 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   completes on the first TAB from `fpath`
   ([research](docs/research/shell-completion.md), section 6); drop them when
   a pinned `clap_complete` writes its own.
+  `Script` and its `shell::view` live in `shell` behind `view`, shared by both
+  shell verbs.
+- Shell integration (`shell-init` feature): the `init <SHELL>` verb as a
+  flattenable `InitCommand`, and the bash, zsh, and fish script a `Hook`
+  writes. The hook runs `<bin> <subcommand>` once, before the first prompt,
+  when its variable is non-empty and the binary is on `PATH`, then removes
+  itself. ctl-core writes all shell syntax: `Hook::new` refuses any part that
+  is not a plain word, and the script calls the binary by name, never by path
+  ([research](docs/research/shell-init.md)).
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
   per scenario, and one call per fixture file, for consumers' integration
   tests.
@@ -331,6 +340,12 @@ a newer mise writes a new file as lockfile version 4, which CI's mise cannot
 read. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
 exclusions; only a third-party template's lines may be excluded, by code,
 with the reason beside the list.
+
+A script that changes what a shell does at run time also runs in that shell.
+`ctl-core/tests/shell_init.rs` starts bash, zsh, and fish on a
+pseudo-terminal through `pty-process` (`ctl-core/tests/support/terminal.rs`),
+types each line only after the prompt appears, and reads what a fake binary
+logged. A pipe is not enough: fish draws no prompt when it reads one.
 
 ## Release
 

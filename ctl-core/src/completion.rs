@@ -8,11 +8,12 @@
 //! `clap_complete`'s `ArgValueCompleter`.
 //!
 //! A consumer flattens [`CompletionCommand`] into its subcommands, turns the
-//! hook on, routes the verb to [`view`], and returns the script:
+//! hook on, routes the verb to [`shell::view`], and returns the script:
 //!
 //! ```no_run
-//! use ctl_core::completion::{self, CompletionCommand};
+//! use ctl_core::completion::CompletionCommand;
 //! use ctl_core::prelude::*;
+//! use ctl_core::shell;
 //!
 //! #[derive(Parser)]
 //! struct Cli {
@@ -32,7 +33,7 @@
 //!     App::<Cli>::new("toy")
 //!         .completion()
 //!         .view(|cli| match cli.command {
-//!             Command::Completion(_) => completion::view(cli.output.format),
+//!             Command::Completion(_) => shell::view(cli.output.format),
 //!         })
 //!         .run(|cli| match cli.command {
 //!             Command::Completion(command) => Ok(command.script("toy")?),
@@ -54,6 +55,7 @@
 //! with `shell_parameter_format: :clap`, which sets [`VAR`] instead.
 //!
 //! [`App::completion`]: crate::app::App::completion
+//! [`shell::view`]: crate::shell::view
 
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Write as _};
@@ -63,14 +65,10 @@ use std::process::ExitCode;
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::CompleteEnv;
 use clap_complete::env::{Bash, EnvCompleter, Fish, Shells, Zsh};
-use serde::Serialize;
 
 use crate::color::ColorMode;
-use crate::document::Document;
-use crate::format::OutputFormat;
 use crate::formatdoc;
-use crate::shell::Shell;
-use crate::view::{Present, View};
+use crate::shell::{Script, Shell};
 
 /// The environment variable that turns a run into a completion request.
 ///
@@ -164,35 +162,6 @@ pub struct CompletionArgs {
     /// Shell to load completion into: bash, zsh, or fish.
     #[arg(value_enum)]
     pub shell: Shell,
-}
-
-/// One registration script, the result of the `completion` verb.
-///
-/// Pretty and colorless output print the script as it is. JSON carries it
-/// under `text`, beside the shell's name under `shell`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct Script {
-    /// The shell the script registers completion for.
-    pub shell: Shell,
-    /// The script.
-    pub text: String,
-}
-
-impl Present for Script {
-    fn present(&self) -> Document {
-        Document::new().verbatim(self.text.clone())
-    }
-}
-
-/// The view the `completion` verb prints through: `format`, no color, and
-/// never quiet.
-///
-/// The script is the verb's whole result, and `source <(toy completion zsh)`
-/// would load nothing if `--quiet` or a quiet variable hid it. Route the
-/// verb here from [`App::view`](crate::app::App::view).
-#[must_use]
-pub const fn view(format: OutputFormat) -> View {
-    View::new(format, ColorMode::Never)
 }
 
 /// Answer a completion request for `C` when [`VAR`] is set, or return

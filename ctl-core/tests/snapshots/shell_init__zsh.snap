@@ -1,0 +1,14 @@
+---
+source: tests/shell_init.rs
+expression: text
+---
+# Load in ~/.zshrc: eval "$(toy-cli init zsh)"
+__toy_cli_first_prompt() {
+    precmd_functions=(${precmd_functions:#__toy_cli_first_prompt})
+    if [[ -n ${TOY_BLOCK-} ]] && command -v toy-cli >/dev/null; then
+        command toy-cli pick
+    fi
+}
+if (( ! ${precmd_functions[(I)__toy_cli_first_prompt]:-0} )); then
+    precmd_functions+=(__toy_cli_first_prompt)
+fi
