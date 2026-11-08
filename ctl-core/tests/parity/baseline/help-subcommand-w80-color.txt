@@ -1,0 +1,34 @@
+\u{1b}[1m\u{1b}[36mUsage: ledgerctl show [OPTIONS] <ID>\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36mArguments\u{1b}[0m
+┌───┬────┬───┬─────────────────┐
+│   ┆ \u{1b}[1m\u{1b}[33mID\u{1b}[0m ┆   ┆ The row to show │
+└───┴────┴───┴─────────────────┘
+
+\u{1b}[1m\u{1b}[36mOptions\u{1b}[0m
+┌───┬───────────┬───────────────────────┬──────────────────────────────────────┐
+│   ┆ \u{1b}[1m\u{1b}[32m--section\u{1b}[0m ┆ \u{1b}[1m\u{1b}[33m[scope|outcome|notes]\u{1b}[0m ┆ Limit the output to one section      │
+│   ┆           ┆                       ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_SECTION]\u{1b}[0m             │
+│   ┆ \u{1b}[1m\u{1b}[32m--limit\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[33mCOUNT\u{1b}[0m                 ┆ Most rows to print \u{1b}[90m[default:\u{1b}[0m \u{1b}[90m20]\u{1b}[0m     │
+│   ┆           ┆                       ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_LIMIT]\u{1b}[0m               │
+│   ┆ \u{1b}[1m\u{1b}[32m--all\u{1b}[0m     ┆                       ┆ Include archived rows \u{1b}[90m[env:\u{1b}[0m          │
+│   ┆           ┆                       ┆ \u{1b}[90mLEDGERCTL_ALL]\u{1b}[0m                       │
+└───┴───────────┴───────────────────────┴──────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mOutput\u{1b}[0m
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32m-f\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--format\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[33m[pretty|json]\u{1b}[0m       ┆ Output representation \u{1b}[90m[default:\u{1b}[0m      │
+│    ┆            ┆                     ┆ \u{1b}[90mpretty]\u{1b}[0m \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_FORMAT]\u{1b}[0m      │
+│ \u{1b}[1m\u{1b}[32m-c\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--color\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[33m[auto|always|never]\u{1b}[0m ┆ Pretty-output color policy. JSON     │
+│    ┆            ┆                     ┆ never contains ANSI \u{1b}[90m[default:\u{1b}[0m \u{1b}[90mauto]\u{1b}[0m  │
+│    ┆            ┆                     ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_COLOR]\u{1b}[0m               │
+│    ┆ \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m ┆                     ┆ Force colorless pretty output. Wins  │
+│    ┆            ┆                     ┆ over `--color`                       │
+│ \u{1b}[1m\u{1b}[32m-q\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--quiet\u{1b}[0m    ┆                     ┆ Suppress successful pretty output    │
+│    ┆            ┆                     ┆ \u{1b}[90m[env:\u{1b}[0m \u{1b}[90mLEDGERCTL_QUIET]\u{1b}[0m               │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
+
+\u{1b}[1m\u{1b}[36mHelp\u{1b}[0m
+┌────┬────────┬───┬─────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32m-h\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--help\u{1b}[0m ┆   ┆ Print help (see more with '--help') │
+└────┴────────┴───┴─────────────────────────────────────┘

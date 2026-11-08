@@ -1,0 +1,24 @@
+┌──────┬─────┬─────┐
+│ \u{1b}[1m\u{1b}[36mfile\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mpac\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mbum\u{1b}[0m │
+│      ┆ \u{1b}[1m\u{1b}[36mkag\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mp\u{1b}[0m   │
+│      ┆ \u{1b}[1m\u{1b}[36me\u{1b}[0m   ┆     │
+╞══════╪═════╪═════╡
+│ quie ┆ \u{1b}[1mdem\u{1b}[0m ┆ min │
+│ t-li ┆ \u{1b}[1mo-c\u{1b}[0m ┆ or  │
+│ ons- ┆ \u{1b}[1more\u{1b}[0m ┆     │
+│ sing ┆     ┆     │
+│ .md  ┆     ┆     │
+│ quie ┆ \u{1b}[1mdem\u{1b}[0m ┆ pat │
+│ t-li ┆ \u{1b}[1mo-c\u{1b}[0m ┆ ch  │
+│ ons- ┆ \u{1b}[1mli\u{1b}[0m  ┆     │
+│ sing ┆     ┆     │
+│ .md  ┆     ┆     │
+│ tidy ┆ \u{1b}[1mdem\u{1b}[0m ┆ maj │
+│ -owl ┆ \u{1b}[1mo-d\u{1b}[0m ┆ or  │
+│ s-wa ┆ \u{1b}[1mocs\u{1b}[0m ┆     │
+│ ve.m ┆ \u{1b}[1m-si\u{1b}[0m ┆     │
+│ d    ┆ \u{1b}[1mte\u{1b}[0m  ┆     │
+└──────┴─────┴─────┘
+
+\u{1b}[1m\u{1b}[32mpending\u{1b}[0m  2
+    \u{1b}[1m\u{1b}[32mmax\u{1b}[0m  major

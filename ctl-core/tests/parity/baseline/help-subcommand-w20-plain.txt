@@ -1,0 +1,58 @@
+Usage: ledgerctl
+show [OPTIONS] <ID>
+
+Arguments
+  ID
+    The row to show
+
+Options
+  --section
+  [scope|outcome|notes]
+    Limit the output
+    to one section
+    [env:
+    LEDGERCTL_SECTION]
+  --limit COUNT
+    Most rows to
+    print [default:
+    20] [env:
+    LEDGERCTL_LIMIT]
+  --all
+    Include archived
+    rows [env:
+    LEDGERCTL_ALL]
+
+Output
+  -f --format
+  [pretty|json]
+    Output
+    representation
+    [default: pretty]
+    [env:
+    LEDGERCTL_FORMAT]
+  -c --color
+  [auto|always|never]
+    Pretty-output
+    color policy.
+    JSON never
+    contains ANSI
+    [default: auto]
+    [env:
+    LEDGERCTL_COLOR]
+  --no-color
+    Force colorless
+    pretty output.
+    Wins over
+    `--color`
+  -q --quiet
+    Suppress
+    successful
+    pretty output
+    [env:
+    LEDGERCTL_QUIET]
+
+Help
+  -h --help
+    Print help (see
+    more with
+    '--help')

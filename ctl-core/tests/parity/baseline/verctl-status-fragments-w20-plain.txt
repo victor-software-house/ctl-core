@@ -1,0 +1,24 @@
+┌──────┬─────┬─────┐
+│ file ┆ pac ┆ bum │
+│      ┆ kag ┆ p   │
+│      ┆ e   ┆     │
+╞══════╪═════╪═════╡
+│ quie ┆ dem ┆ min │
+│ t-li ┆ o-c ┆ or  │
+│ ons- ┆ ore ┆     │
+│ sing ┆     ┆     │
+│ .md  ┆     ┆     │
+│ quie ┆ dem ┆ pat │
+│ t-li ┆ o-c ┆ ch  │
+│ ons- ┆ li  ┆     │
+│ sing ┆     ┆     │
+│ .md  ┆     ┆     │
+│ tidy ┆ dem ┆ maj │
+│ -owl ┆ o-d ┆ or  │
+│ s-wa ┆ ocs ┆     │
+│ ve.m ┆ -si ┆     │
+│ d    ┆ te  ┆     │
+└──────┴─────┴─────┘
+
+pending  2
+    max  major

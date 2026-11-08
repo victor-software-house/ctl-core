@@ -1,0 +1,40 @@
+┌────┬────┬────┬───┐
+│ na ┆ fr ┆ to ┆ b │
+│ me ┆ om ┆    ┆ u │
+│    ┆    ┆    ┆ m │
+│    ┆    ┆    ┆ p │
+╞════╪════╪════╪═══╡
+│ de ┆ 0. ┆ 0. ┆ m │
+│ mo ┆ 4. ┆ 5. ┆ i │
+│ -c ┆ 2  ┆ 0  ┆ n │
+│ or ┆    ┆    ┆ o │
+│ e  ┆    ┆    ┆ r │
+│ de ┆ 1. ┆ 1. ┆ p │
+│ mo ┆ 8. ┆ 8. ┆ a │
+│ -c ┆ 0  ┆ 1  ┆ t │
+│ li ┆    ┆    ┆ c │
+│    ┆    ┆    ┆ h │
+│ de ┆ 2. ┆ 2. ┆ m │
+│ mo ┆ 0. ┆ 0. ┆ a │
+│ -d ┆ 0- ┆ 0  ┆ j │
+│ oc ┆ rc ┆    ┆ o │
+│ s- ┆ .1 ┆    ┆ r │
+│ si ┆    ┆    ┆   │
+│ te ┆    ┆    ┆   │
+└────┴────┴────┴───┘
+
+## demo-core 0.5.0
+
+- Add the quiet flag
+to every report
+command.
+- Fix a stale lock
+file after a failed
+publish.
+
+consume  .changeset/quiet-lions-sing.md
+consume  .changeset/tidy-owls-wave.md
+    pin  ci/release.yml
+     pr  https://example.test/acme/demo-repository/pull/42
+   next  mise run ver publish
+dry-run  nothing written

@@ -1,0 +1,16 @@
+forkctl · patch refresh
+
+success · mutation plan ready; no state changed
+
+     command  patch refresh
+       reads  manifest, patch ledger, working tree
+      writes  patch export, ledger, recovery tag, three generated files under
+              exports
+       hooks  none
+ ref updates  refs/heads/main, refs/tags/recovery/op-20261101-2
+       paths  src/config.rs, src/lib.rs, tests/config.rs
+confirmation  not required
+
+warning · BaseMoved · the base moved since the last check
+
+warning · a newer release of forkctl is available

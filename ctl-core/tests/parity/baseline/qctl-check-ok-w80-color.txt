@@ -1,0 +1,1 @@
+\u{1b}[1m\u{1b}[32msuccess\u{1b}[0m · \u{1b}[1m\u{1b}[32mok\u{1b}[0m  \u{1b}[1m\u{1b}[32mtasks.yaml\u{1b}[0m

@@ -1,0 +1,20 @@
+forkctl · patch
+finish · error
+
+error · the patch
+check failed, so the
+patch was not
+finished
+
+  code  check_failed
+caused  src/config.rs
+    by  is outside
+        the declared
+        scope
+caused  a required
+    by  text
+        assertion did
+        not match
+  next  forkctl patch
+        refresh
+        tidy-config

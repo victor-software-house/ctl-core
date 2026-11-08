@@ -1,0 +1,16 @@
+\u{1b}[1m\u{1b}[36mforkctl · patch refresh\u{1b}[0m
+
+\u{1b}[1m\u{1b}[32msuccess\u{1b}[0m · mutation plan ready; no state changed
+
+     \u{1b}[1m\u{1b}[32mcommand\u{1b}[0m  patch refresh
+       \u{1b}[1m\u{1b}[32mreads\u{1b}[0m  manifest, patch ledger, working tree
+      \u{1b}[1m\u{1b}[32mwrites\u{1b}[0m  patch export, ledger, recovery tag, three generated files under
+              exports
+       \u{1b}[1m\u{1b}[32mhooks\u{1b}[0m  none
+ \u{1b}[1m\u{1b}[32mref updates\u{1b}[0m  refs/heads/main, refs/tags/recovery/op-20261101-2
+       \u{1b}[1m\u{1b}[32mpaths\u{1b}[0m  src/config.rs, src/lib.rs, tests/config.rs
+\u{1b}[1m\u{1b}[32mconfirmation\u{1b}[0m  not required
+
+\u{1b}[1m\u{1b}[33mwarning\u{1b}[0m · \u{1b}[90mBaseMoved\u{1b}[0m · the base moved since the last check
+
+\u{1b}[1m\u{1b}[33mwarning\u{1b}[0m · a newer release of forkctl is available

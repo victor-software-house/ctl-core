@@ -1,0 +1,3 @@
+TSK-003  Split the loader from the report command  (archived 2026-10-02 14:30:00)
+
+notes  merged in a single pull request · no follow-up needed · loader now has its own tests

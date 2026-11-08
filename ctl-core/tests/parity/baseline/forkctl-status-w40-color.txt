@@ -1,0 +1,37 @@
+\u{1b}[1m\u{1b}[36mforkctl · status\u{1b}[0m
+
+\u{1b}[1m\u{1b}[32mrepository\u{1b}[0m  demo-repository
+  \u{1b}[1m\u{1b}[32mmanifest\u{1b}[0m  .ctl/fork.yaml
+    \u{1b}[1m\u{1b}[32mbranch\u{1b}[0m  main (declared main)
+   \u{1b}[1m\u{1b}[32mpublish\u{1b}[0m  proposal
+\u{1b}[1m\u{1b}[32mdownstream\u{1b}[0m  origin 4f9c2ab
+      \u{1b}[1m\u{1b}[32mbase\u{1b}[0m  upstream/main 81d3e07
+    \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  tidy-config
+    \u{1b}[1m\u{1b}[32mstaged\u{1b}[0m  none
+  \u{1b}[1m\u{1b}[32munstaged\u{1b}[0m  src/config.rs, src/lib.rs
+ \u{1b}[1m\u{1b}[32muntracked\u{1b}[0m  none
+     \u{1b}[1m\u{1b}[32mcheck\u{1b}[0m  passed
+
+┌───────┬───────┬───────┬───────┬──────┐
+│ \u{1b}[1m\u{1b}[36mstate\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mkind\u{1b}[0m  ┆ \u{1b}[1m\u{1b}[36mcommi\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36macti\u{1b}[0m │
+│       ┆       ┆       ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m     ┆ \u{1b}[1m\u{1b}[36mve\u{1b}[0m   │
+╞═══════╪═══════╪═══════╪═══════╪══════╡
+│ appli ┆ \u{1b}[1mtidy-\u{1b}[0m ┆ chang ┆ 4f9c2 ┆ yes  │
+│ ed    ┆ \u{1b}[1mconfi\u{1b}[0m ┆ e     ┆ ab    ┆      │
+│       ┆ \u{1b}[1mg\u{1b}[0m     ┆       ┆       ┆      │
+│ appli ┆ \u{1b}[1mpin-r\u{1b}[0m ┆ chang ┆ b71e9 ┆      │
+│ ed    ┆ \u{1b}[1muntim\u{1b}[0m ┆ e     ┆ 0d    ┆      │
+│       ┆ \u{1b}[1me\u{1b}[0m     ┆       ┆       ┆      │
+│ draft ┆ \u{1b}[1mdrop-\u{1b}[0m ┆ fix   ┆ draft ┆      │
+│       ┆ \u{1b}[1mlegac\u{1b}[0m ┆       ┆       ┆      │
+│       ┆ \u{1b}[1my-fla\u{1b}[0m ┆       ┆       ┆      │
+│       ┆ \u{1b}[1mg\u{1b}[0m     ┆       ┆       ┆      │
+└───────┴───────┴───────┴───────┴──────┘
+
+\u{1b}[1m\u{1b}[36moperation\u{1b}[0m
+      \u{1b}[1m\u{1b}[32mid\u{1b}[0m  op-20261101-1
+    \u{1b}[1m\u{1b}[32mkind\u{1b}[0m  rebase
+   \u{1b}[1m\u{1b}[32mphase\u{1b}[0m  replaying
+\u{1b}[1m\u{1b}[32mrecovery\u{1b}[0m  recovery/op-20261101-1
+    \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  forkctl operation continue,
+          forkctl operation abort

@@ -1,0 +1,9 @@
+forkctl · status
+
+repository  demo-repository
+    active  none
+
+no patches
+
+operation
+none

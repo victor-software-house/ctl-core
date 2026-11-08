@@ -1,0 +1,20 @@
+\u{1b}[1m\u{1b}[36mforkctl\u{1b}[0m \u{1b}[1m\u{1b}[36m·\u{1b}[0m \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m
+\u{1b}[1m\u{1b}[36mfinish\u{1b}[0m \u{1b}[1m\u{1b}[36m·\u{1b}[0m \u{1b}[1m\u{1b}[36merror\u{1b}[0m
+
+\u{1b}[1m\u{1b}[31merror\u{1b}[0m · the patch
+check failed, so the
+patch was not
+finished
+
+  \u{1b}[1m\u{1b}[32mcode\u{1b}[0m  check_failed
+\u{1b}[1m\u{1b}[32mcaused\u{1b}[0m  src/config.rs
+    \u{1b}[1m\u{1b}[32mby\u{1b}[0m  is outside
+        the declared
+        scope
+\u{1b}[1m\u{1b}[32mcaused\u{1b}[0m  a required
+    \u{1b}[1m\u{1b}[32mby\u{1b}[0m  text
+        assertion did
+        not match
+  \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  \u{1b}[1m\u{1b}[32mforkctl\u{1b}[0m \u{1b}[1m\u{1b}[32mpatch\u{1b}[0m
+        \u{1b}[1m\u{1b}[32mrefresh\u{1b}[0m
+        \u{1b}[1m\u{1b}[32mtidy-config\u{1b}[0m

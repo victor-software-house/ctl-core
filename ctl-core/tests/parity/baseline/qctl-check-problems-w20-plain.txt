@@ -1,0 +1,15 @@
+problems
+┌──────────────────┐
+│ problem          │
+╞══════════════════╡
+│ TSK-014: outcome │
+│ is empty         │
+│ TSK-019: scope   │
+│ names a path     │
+│ that does not    │
+│ exist            │
+│ (src/retry.rs)   │
+└──────────────────┘
+
+error · 2 problem(s)
+in tasks.yaml
