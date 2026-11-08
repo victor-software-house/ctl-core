@@ -1,5 +1,5 @@
 [workspace]
-members = ["ctl-core", "ctl-layout", "ctl-text"]
+members = ["ctl-core", "ctl-layout", "ctl-term", "ctl-text"]
 resolver = "3"
 
 [workspace.package]
@@ -13,6 +13,8 @@ repository = "https://github.com/victor-software-house/ctl-core"
 anyhow = "1.0.104"
 anstream = "1.0.0"
 anstyle = "1.0.14"
+# Enables ANSI escapes in the Windows console (ctl-term, Windows only).
+anstyle-query = "1.1.5"
 clap = { version = "4.6.6", default-features = false, features = [
   "std",
   "derive",
@@ -40,6 +42,8 @@ serde-saphyr = { version = "2.0.0", default-features = false, features = [
   "comments",
 ] }
 tempfile = "3.27.0"
+# The window size of the stream being written (ctl-term). It has no features.
+terminal_size = "0.4.4"
 toml = { version = "1.1.8", default-features = false, features = [
   "std",
   "parse",

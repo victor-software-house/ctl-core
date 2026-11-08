@@ -82,7 +82,7 @@ The repository is a virtual Cargo workspace (`layout: workspace` in the
 Copier answers). The root `Cargo.toml` holds the members, one version for
 every crate in `[workspace.package]`, `[workspace.dependencies]`, and
 `[workspace.lints]`. Each crate lives in a root folder named like its
-package, today `ctl-core/`, `ctl-layout/`, and `ctl-text/`, and inherits those tables with
+package, today `ctl-core/`, `ctl-layout/`, `ctl-term/`, and `ctl-text/`, and inherits those tables with
 `workspace = true`. Profiles stay in the root manifest, where Cargo reads
 them. For a workspace the template drops the library-only `print_stdout` and
 `print_stderr` lints and clippy's `allow-print-in-tests`; they stay here as
@@ -91,7 +91,7 @@ virtual manifest, so verctl bumps `workspace.package.version` and publishes
 each member in dependency order. `check:features` passes
 `--package ctl-core`, since Cargo refuses `--features` at the root of a
 virtual workspace. The terminal-render-engine change adds `ctl-text`,
-`ctl-layout`, and `ctl-term` beside `ctl-core/`; `ctl-term` does not exist yet.
+`ctl-layout`, and `ctl-term` beside `ctl-core/`.
 
 `ctl-text/` holds styled text (`Span`, `Line`, `Text`), cell widths, wrapping and
 truncation, the `Renderable` protocol, and the unsafe-character module
@@ -110,6 +110,19 @@ ctl-core moves onto it in its own change. A layout rule, such as how a table
 chooses column widths, changes there. Its snapshots live in
 `ctl-layout/tests/snapshots/` and are the review evidence for a layout change:
 read the diff of every changed file.
+
+`ctl-term/` holds what touches the operating system: `Terminal`, the decision
+for one output stream (is it a terminal, the colour depth or none, the width);
+`ColorMode` and the fixed colour order; the nearest-colour conversions between
+24-bit, 256-colour, and 16-colour; `Encoder`, the only place an escape
+sequence is written; and `Console`, which renders any `Renderable` at the
+width of its stream and writes it, reporting a closed pipe as `Error::BrokenPipe`.
+It depends on `ctl-text`, `anstyle`, and `terminal_size`, and on `anstyle-query`
+on Windows, and never on `ctl-layout`. Nothing in this repository depends on
+it yet: ctl-core moves onto it in its own change. A rule about colour
+detection, depth, or width changes there. The detection tables and the
+encoder goldens in `ctl-term/tests/it/` are the evidence; the closed-pipe test
+runs the test binary as a child piped to `head -1`.
 
 ## Cargo features
 

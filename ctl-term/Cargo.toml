@@ -1,0 +1,34 @@
+[package]
+name = "ctl-term"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Terminal output for CLIs: colour policy per stream, colour depth, width, and an escape encoder"
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["terminal", "color", "ansi", "tty", "cli"]
+categories = ["command-line-interface"]
+autotests = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cap-lints", "warn"]
+
+[lints]
+workspace = true
+
+[dependencies]
+anstyle.workspace = true
+ctl-text.workspace = true
+terminal_size.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+anstyle-query.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
