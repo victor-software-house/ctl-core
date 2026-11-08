@@ -1,0 +1,9 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+  -f --format
+    Output
+    representation
+  -q --quiet
+    Print nothing on
+    success

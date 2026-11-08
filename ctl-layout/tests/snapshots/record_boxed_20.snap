@@ -1,0 +1,9 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+┌────────┬─────────┐
+│ ledger ┆ tasks.y │
+│        ┆ aml     │
+│ active ┆ QCTL-01 │
+│        ┆ 4       │
+└────────┴─────────┘

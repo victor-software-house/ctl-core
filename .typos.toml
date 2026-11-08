@@ -1,6 +1,7 @@
 # Spelling, checked by `mise run lint:typos`.
 [files]
-extend-exclude = ["*.lock"]
+# Folded narrow tables split words mid-word on purpose.
+extend-exclude = ["*.lock", "ctl-layout/tests/snapshots/*.snap"]
 
 [default]
 # Commit hashes cited in prose, such as `caf2581`, split into short fake words.

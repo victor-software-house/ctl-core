@@ -1,0 +1,16 @@
+---
+source: ctl-layout/tests/it/snapshots.rs
+---
+    id        title       age
+    QCTL-014  Let a         3
+              ledger
+              declare
+              row
+              separation
+    QCTL-015  Write a     120
+              ledger
+              atomically
+    QCTL-016  Name the     45
+              next
+              startable
+              row

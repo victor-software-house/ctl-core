@@ -311,6 +311,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctl-layout"
+version = "0.6.28"
+dependencies = [
+ "ctl-text",
+ "insta",
+ "proptest",
+]
+
+[[package]]
 name = "ctl-text"
 version = "0.6.28"
 dependencies = [
