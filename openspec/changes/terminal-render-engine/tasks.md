@@ -32,19 +32,21 @@ and in CI, as each task says.
     shows 0 changed lines in them). The run's Package step packaged and
     verified `ctl-core v0.6.28`, the version before the move.
 - [x] 2.2 Point `.ctl/ver.yaml` at the virtual manifest so verctl releases the
-  workspace as one package, and add the `wrappers` entries for the new crates
-  to `deny.toml`. Proof: `verctl publish --plan` lists the members in
-  dependency order, and `mise run deny` passes in CI.
+  workspace as one package. Proof: `verctl publish --dry-run` lists the
+  members in dependency order, and `mise run deny` passes in CI.
+  - Amended 2026-11-08 UTC. The task first named `verctl publish --plan`,
+    which now lists only version commits whose release is incomplete;
+    `--dry-run` prints the publish order. It also asked for `wrappers`
+    entries in `deny.toml`, which allow a named crate to depend on a
+    banned one. `deny.toml` bans only `openssl` and `native-tls`, which no
+    member uses, so no ban needs a wrapper and none was added.
   - 2026-11-08 UTC: `.ctl/ver.yaml` reads the root `Cargo.toml`, the
     virtual manifest, and pins each member's `={version}` entry in
     `[workspace.dependencies]`. On main at [93c8642], `ver publish --dry-run`
     listed `ctl-text`, `ctl-layout`, `ctl-term`, then `ctl-core`, all at
-    0.6.28 through cargo, and published nothing. verctl's `--plan` now
-    lists only version commits whose release is incomplete; `--dry-run`
-    prints the publish order. `cargo deny --locked check licenses bans
-    sources` passed in the merge queue's [run 42460567403][q-213]. No `wrappers` entry was added:
-    `deny.toml` bans only `openssl` and `native-tls`, which no member uses,
-    so no ban needs a member listed as an allowed wrapper.
+    0.6.28 through cargo, and published nothing.
+    `cargo deny --locked check licenses bans sources` passed in the merge
+    queue's [run 42460567403][q-213].
 
 ## 3. `ctl-text`
 
