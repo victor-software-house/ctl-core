@@ -373,7 +373,9 @@ hand-edit guard. Those tasks come from the actions repository's
 `tasks/rust.toml`, which `mise.toml` includes by `git::` URL at the commit
 the template pins, and `mise.toml` composes `verify` from them. This
 repository's own tasks live in `mise-tasks/`:
-`check:features` is the file task `mise-tasks/check/features.sh`.
+`check:features` is the file task `mise-tasks/check/features.sh`. It denies
+warnings, so an item gated on more features than use it fails the set that
+compiles it unused.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
