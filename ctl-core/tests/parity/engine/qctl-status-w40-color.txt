@@ -1,0 +1,22 @@
+\u{1b}[1m\u{1b}[32mledger\u{1b}[0m  tasks.yaml\u{1b}[0m
+\u{1b}[1m\u{1b}[32mactive\u{1b}[0m  \u{1b}[1mTSK-012\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36mqueue\u{1b}[0m
+  \u{1b}[1m\u{1b}[32m1*\u{1b}[0m \u{1b}[1m\u{1b}[32mTSK-012\u{1b}[0m
+    Move the parser onto the shared
+    input loader
+  \u{1b}[1m\u{1b}[32m2\u{1b}[0m \u{1b}[1m\u{1b}[32mTSK-014\u{1b}[0m
+    Add a format flag to the report
+    command
+  \u{1b}[1m\u{1b}[32m3\u{1b}[0m \u{1b}[1m\u{1b}[32mTSK-019\u{1b}[0m
+    Document the retry rules for the
+    publish step, including the long
+    wait after a rate limit
+
+\u{1b}[1m\u{1b}[36mhorizon\u{1b}[0m
+  \u{1b}[1m\u{1b}[32mTSK-030\u{1b}[0m \u{1b}[1m\u{1b}[32mresearch\u{1b}[0m
+    Compare two ways to cache parsed
+    ledgers
+  \u{1b}[1m\u{1b}[32mTSK-031\u{1b}[0m \u{1b}[1m\u{1b}[32mevaluation\u{1b}[0m
+    Measure start-up time with a
+    thousand rows

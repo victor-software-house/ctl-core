@@ -1,0 +1,8 @@
+forkctl · patch finish · error
+
+error · the patch check failed, so the patch was not finished
+
+     code  check_failed
+caused by  src/config.rs is outside the declared scope
+caused by  a required text assertion did not match
+     next  forkctl patch refresh tidy-config

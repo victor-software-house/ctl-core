@@ -1,0 +1,27 @@
+┌──────┬─────┬─────┐
+│ \u{1b}[1m\u{1b}[36mtarg\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mrun\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mass\u{1b}[0m │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[36met\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[36ms-o\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36met\u{1b}[0m  │\u{1b}[0m
+│      ┆ \u{1b}[1m\u{1b}[36mn\u{1b}[0m   ┆     │\u{1b}[0m
+╞══════╪═════╪═════╡
+│ \u{1b}[1m\u{1b}[32mlinu\u{1b}[0m ┆ lin ┆ dem │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[32mx-x6\u{1b}[0m ┆ ux, ┆ o-c │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[32m4\u{1b}[0m    ┆ x64 ┆ li- │\u{1b}[0m
+│      ┆ ,   ┆ lin │
+│      ┆ lar ┆ ux- │
+│      ┆ ge  ┆ x64 │
+│      ┆     ┆ .ta │
+│      ┆     ┆ r.g │
+│      ┆     ┆ z   │
+│ \u{1b}[1m\u{1b}[32mmaco\u{1b}[0m ┆ mac ┆ dem │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[32ms-ar\u{1b}[0m ┆ os, ┆ o-c │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[32mm64\u{1b}[0m  ┆ arm ┆ li- │\u{1b}[0m
+│      ┆ 64  ┆ mac │
+│      ┆     ┆ os- │
+│      ┆     ┆ arm │
+│      ┆     ┆ 64. │
+│      ┆     ┆ tar │
+│      ┆     ┆ .gz │
+└──────┴─────┴─────┘
+
+    \u{1b}[1m\u{1b}[32mtag\u{1b}[0m  demo-cli@1.8.1\u{1b}[0m
+\u{1b}[1m\u{1b}[32mtarball\u{1b}[0m  dist/demo-cli-1.8.1.tar.gz\u{1b}[0m

@@ -1,0 +1,14 @@
+\u{1b}[1mTSK-003\u{1b}[0m\u{1b}[1m\u{1b}[36m  Split the\u{1b}[0m
+\u{1b}[1m\u{1b}[36mloader from the\u{1b}[0m
+\u{1b}[1m\u{1b}[36mreport command\u{1b}[0m
+\u{1b}[90m(archived 2026-10-02\u{1b}[0m
+\u{1b}[90m14:30:00)\u{1b}[0m
+
+\u{1b}[1m\u{1b}[32mnotes\u{1b}[0m  merged in a\u{1b}[0m
+       single pull
+       request · no
+       follow-up
+       needed ·
+       loader now
+       has its own
+       tests

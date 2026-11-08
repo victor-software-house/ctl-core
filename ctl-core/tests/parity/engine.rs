@@ -66,9 +66,14 @@ pub(crate) fn check(name: &str, actual: &str) -> Option<String> {
 
 /// One report per engine file with no baseline of the same name, so every
 /// engine render is compared with a 0.6.x one.
+///
+/// A missing directory holds no engine file, so it reports nothing: the
+/// first `PARITY_UPDATE=1` run creates it while this test may already be
+/// running, and a case with no engine file fails its own comparison.
 pub(crate) fn without_baseline() -> Vec<String> {
-    let entries = fs::read_dir(directory())
-        .unwrap_or_else(|error| panic!("read {}: {error}", directory().display()));
+    let Ok(entries) = fs::read_dir(directory()) else {
+        return Vec::new();
+    };
     let mut reports = entries
         .map(|entry| {
             entry

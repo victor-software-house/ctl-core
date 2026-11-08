@@ -1,0 +1,27 @@
+┌──────┬─────┬─────┐
+│ targ ┆ run ┆ ass │
+│ et   ┆ s-o ┆ et  │
+│      ┆ n   ┆     │
+╞══════╪═════╪═════╡
+│ linu ┆ lin ┆ dem │
+│ x-x6 ┆ ux, ┆ o-c │
+│ 4    ┆ x64 ┆ li- │
+│      ┆ ,   ┆ lin │
+│      ┆ lar ┆ ux- │
+│      ┆ ge  ┆ x64 │
+│      ┆     ┆ .ta │
+│      ┆     ┆ r.g │
+│      ┆     ┆ z   │
+│ maco ┆ mac ┆ dem │
+│ s-ar ┆ os, ┆ o-c │
+│ m64  ┆ arm ┆ li- │
+│      ┆ 64  ┆ mac │
+│      ┆     ┆ os- │
+│      ┆     ┆ arm │
+│      ┆     ┆ 64. │
+│      ┆     ┆ tar │
+│      ┆     ┆ .gz │
+└──────┴─────┴─────┘
+
+    tag  demo-cli@1.8.1
+tarball  dist/demo-cli-1.8.1.tar.gz

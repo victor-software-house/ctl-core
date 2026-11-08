@@ -1,0 +1,14 @@
+\u{1b}[1mTSK-014\u{1b}[0m\u{1b}[1m\u{1b}[36m  Add a\u{1b}[0m
+\u{1b}[1m\u{1b}[36mformat flag to the\u{1b}[0m
+\u{1b}[1m\u{1b}[36mreport command\u{1b}[0m
+
+  \u{1b}[1m\u{1b}[32mscope\u{1b}[0m  src/report.rs,\u{1b}[0m
+         src/flags.rs
+\u{1b}[1m\u{1b}[32moutcome\u{1b}[0m  The report\u{1b}[0m
+         command
+         accepts a
+         format flag
+         and prints the
+         same rows as
+         JSON.
+  \u{1b}[1m\u{1b}[32mpatch\u{1b}[0m  report-format\u{1b}[0m

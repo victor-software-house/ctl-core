@@ -1,0 +1,18 @@
+\u{1b}[1m\u{1b}[36mforkctl · patch show\u{1b}[0m
+
+        \u{1b}[1m\u{1b}[32mpatch\u{1b}[0m  tidy-config\u{1b}[0m
+         \u{1b}[1m\u{1b}[32mkind\u{1b}[0m  change\u{1b}[0m
+      \u{1b}[1m\u{1b}[32mpurpose\u{1b}[0m  Read the config file once\u{1b}[0m
+               at start-up instead of
+               once per command.
+     \u{1b}[1m\u{1b}[32mupstream\u{1b}[0m  proposed, not yet\u{1b}[0m
+       \u{1b}[1m\u{1b}[32mstatus\u{1b}[0m  reviewed\u{1b}[0m
+    \u{1b}[1m\u{1b}[32mdrop when\u{1b}[0m  upstream reads the config\u{1b}[0m
+               file once
+        \u{1b}[1m\u{1b}[32mscope\u{1b}[0m  src/config.rs,\u{1b}[0m
+               src/lib.rs,
+               tests/config.rs
+       \u{1b}[1m\u{1b}[32mcommit\u{1b}[0m  4f9c2ab\u{1b}[0m
+\u{1b}[1m\u{1b}[32mchanged paths\u{1b}[0m  src/config.rs, src/lib.rs\u{1b}[0m
+       \u{1b}[1m\u{1b}[32mexport\u{1b}[0m  exports/tidy-config.patch\u{1b}[0m
+       \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  true\u{1b}[0m

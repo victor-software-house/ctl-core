@@ -1,0 +1,3 @@
+Heading then plain words, a flag --format, a row TSK-012, a metavar PATH, a note
+(muted), and the outcomes done, careful, and failed, followed by enough ordinary
+words to wrap the paragraph at every width.
