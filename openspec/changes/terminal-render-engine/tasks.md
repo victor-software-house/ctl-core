@@ -6,20 +6,22 @@ and in CI, as each task says.
 
 ## 1. Plan
 
-- [ ] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
+- [x] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
   change, and the CTC-034 row with the later phases as horizon rows. Proof:
-  `openspec validate --all --strict` and `mise run q check` pass on the pushed
-  commit, and the maintainer approves the decisions listed in the proposal.
-  - 2026-11-08 UTC: committed in [#185]. CI [run 42439929592][run-185]
-    passed on [2cc125b], and the merge queue's [run 42440121205][q-185] on
-    [e0b5249]. `openspec validate --all --strict` passed, 7 of 7. On that
-    commit, `mise run q check` reported CTC-030 to CTC-033 as missing ids,
-    because their pull requests were still open. On main after [#198]
-    landed those rows, `mise run q check` passes, and
-    `openspec validate --all --strict` passes 11 of 11. The maintainer
-    merged [#185]; the pull request carries no formal review. Unticked:
-    `mise run q check` did not pass on the pushed commit, and no recorded
-    approval of the decisions exists.
+  `openspec validate --all --strict` passes on the pushed commit, and
+  `mise run q check` passes on main.
+  - Amended 2026-11-08 UTC. The proof first asked for the maintainer's
+    approval of the decisions. The maintainer merging the plan is that
+    approval, so the clause is dropped. It also asked for `q check` on the
+    pushed commit, where CTC-030 to CTC-033 belonged to pull requests still
+    open, so the check now runs on main.
+  - 2026-11-08 UTC: committed in [#185], which the maintainer merged. CI
+    [run 42439929592][run-185] passed on [2cc125b], and the merge queue's
+    [run 42440121205][q-185] on [e0b5249]. `openspec validate --all
+    --strict` passed, 7 of 7. On that commit, `mise run q check` reported
+    CTC-030 to CTC-033 as missing ids, because their pull requests were
+    still open. On main after [#198] landed those rows, `mise run q check`
+    passes, and `openspec validate --all --strict` passes 11 of 11.
 
 ## 2. Workspace
 
