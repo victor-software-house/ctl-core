@@ -144,12 +144,18 @@ and in CI, as each task says.
     `CLICOLOR_FORCE=1`.
 - [x] 6.4 Replace the rule in `docs/presentation.md` with design decision 18,
   update `AGENTS.md`, `README.md`, crate docs and the feature list, and add
-  the changeset, which states each break. Proof: `rg 'comfy|anstream'` over `docs`,
-  `AGENTS.md` and `README.md` finds only history, and the pre-push hooks pass.
+  the changeset, which states each break. Proof: `rg 'comfy|anstream'` over
+  `docs`, `AGENTS.md` and `README.md` finds only history, or a rule that
+  names the crates as removed, and the pre-push hooks pass.
+  - Amended 2026-11-08 UTC. The proof first allowed only history. The
+    `check:tree` task that 6.3 added must name the crates it refuses, and
+    `AGENTS.md` describes that task, so a current rule naming them is
+    allowed too.
   - 2026-11-08 UTC: [#212], in the same runs as 6.3; the pre-push hooks
     passed on its push. On this branch, `rg 'comfy|anstream'` over `docs`,
-    `AGENTS.md` and `README.md` finds `docs/research/terminal-rendering/`
-    and one `AGENTS.md` line on what `check:tree` refuses.
+    `AGENTS.md` and `README.md` finds the research in
+    `docs/research/terminal-rendering/`, which is history, and one
+    `AGENTS.md` line listing the crates `check:tree` refuses.
 
 ## 7. Size
 
