@@ -58,8 +58,8 @@ This file holds what applies to this crate alone.
 
 ## Running them
 
-The repository forbids compiling before a push, and CI runs the checks.
-Where a build is allowed, such as CI or a measurement instance:
+`mise run verify` runs them with the rest of the workspace.
+To run this crate's tests alone:
 
 ```sh
 cargo test --locked -p ctl-term --all-features

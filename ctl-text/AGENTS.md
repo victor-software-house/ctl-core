@@ -74,8 +74,8 @@ test source; commit that file with the fix.
 version of the width or cluster tables.
 Re-read the width and cluster tests, then update the pin in that file.
 
-The repository forbids compiling before a push.
-Push the branch and read the result of the CI run on that commit.
+Run them alone with `cargo test --locked -p ctl-text`; `mise run verify`
+runs them with the rest of the workspace.
 
 ## Decisions that bind this crate
 
