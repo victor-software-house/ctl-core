@@ -36,6 +36,10 @@ const fn bold(color: AnsiColor) -> Style {
 /// A notice label takes the style of the role of the same name until
 /// [`Theme::notice_style`] replaces it.
 ///
+/// Equality compares the choices a theme holds, including which notice labels
+/// were given their own style, not the output they draw: a label set to its
+/// role's style draws the same as an unset one, yet the two themes differ.
+///
 /// A theme replaces the default through [`RenderOptions::theme`] and
 /// [`View::theme`]. It only says how a role looks: whether colour is written
 /// is the colour mode's decision, so [`ColorMode::Never`] writes none
