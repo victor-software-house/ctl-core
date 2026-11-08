@@ -57,6 +57,16 @@ below its narrowest width in this step.
 - **WHEN** a list with an id column of 8 cells and a title column of 70 cells renders at width 40
 - **THEN** the id column keeps 8 cells and the title wraps
 
+### Requirement: A wrapped column narrows to its widest line
+
+After it renders the cells, a table SHALL narrow each column to its widest
+rendered line, and SHALL NOT widen a column in this step.
+
+#### Scenario: A title that wraps short of its width
+
+- **WHEN** a grid list with an id column of 8 cells and a title of eight 7-letter words and one 6-letter word renders at width 40
+- **THEN** the title column is 23 cells, its widest wrapped line, and the grid is 38 cells wide
+
 ### Requirement: Ellipsis columns give way before words break
 
 When the narrowest widths still do not fit, a table SHALL shrink ellipsis and

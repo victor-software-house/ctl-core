@@ -37,6 +37,11 @@ struct Stacked {
 ///    those columns instead, so its frame stays aligned.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
+/// 6. Each column then narrows to its widest rendered line, so a column that
+///    wrapped holds no blank cells down every row, and a table sized to its
+///    content draws no wider than it needs. The lines stay as rendered: text
+///    wrapped at a width wraps the same at its own widest line. An ellipsis
+///    column that cut a cell keeps its width, since the cut cell fills it.
 ///
 /// A table with [`stacked_below`](Self::stacked_below) renders each row as
 /// indented lines instead when the width is under its threshold.
@@ -309,6 +314,26 @@ impl Table {
     }
 }
 
+/// Each of `widths` lowered to the widest line its column rendered, step 6 of
+/// [`Table`]. A width never grows: a word kept whole past its column's width
+/// runs past it as before.
+fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16]) -> Vec<u16> {
+    widths
+        .iter()
+        .enumerate()
+        .map(|(index, width)| {
+            cells
+                .iter()
+                .filter_map(|row| row.get(index))
+                .flatten()
+                .map(Line::width)
+                .max()
+                .unwrap_or(0)
+                .min(*width)
+        })
+        .collect()
+}
+
 /// The non-empty cells on one line, separated by a space.
 fn join_cells<'a>(cells: impl Iterator<Item = &'a Text>, tab_width: u16) -> Line {
     let mut joined = Line::new();
@@ -369,6 +394,7 @@ impl Renderable for Table {
         let available = context.width().saturating_sub(self.frame_width());
         let widths = solve(&extents, available, self.framing());
         let cells = self.render_cells(&grid, &widths, *context);
+        let widths = narrowed(&cells, &widths);
         let glyphs = Glyphs::for_chars(context.box_chars());
         self.compose(&cells, &widths, &glyphs)
     }

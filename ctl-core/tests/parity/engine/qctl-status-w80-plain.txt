@@ -2,14 +2,14 @@ ledger  tasks.yaml
 active  TSK-012
 
 queue
-┌──────────┬─────────┬─────────────────────────────────────────────────────────┐
-│ priority ┆ id      ┆ title                                                   │
-╞══════════╪═════════╪═════════════════════════════════════════════════════════╡
-│ 1*       ┆ TSK-012 ┆ Move the parser onto the shared input loader            │
-│ 2        ┆ TSK-014 ┆ Add a format flag to the report command                 │
-│ 3        ┆ TSK-019 ┆ Document the retry rules for the publish step,          │
-│          ┆         ┆ including the long wait after a rate limit              │
-└──────────┴─────────┴─────────────────────────────────────────────────────────┘
+┌──────────┬─────────┬────────────────────────────────────────────────┐
+│ priority ┆ id      ┆ title                                          │
+╞══════════╪═════════╪════════════════════════════════════════════════╡
+│ 1*       ┆ TSK-012 ┆ Move the parser onto the shared input loader   │
+│ 2        ┆ TSK-014 ┆ Add a format flag to the report command        │
+│ 3        ┆ TSK-019 ┆ Document the retry rules for the publish step, │
+│          ┆         ┆ including the long wait after a rate limit     │
+└──────────┴─────────┴────────────────────────────────────────────────┘
 
 horizon
 ┌─────────┬────────────┬────────────────────────────────────────────┐

@@ -53,6 +53,19 @@ fn a_table_shrinks_its_widest_wrappable_column_first() {
 }
 
 #[test]
+fn a_wrapped_column_narrows_to_its_widest_line() {
+    let title = format!("{} abcdef", ["abcdefg"; 8].join(" "));
+    let table = Table::new([Column::new("id"), Column::new("title")])
+        .row([Text::plain("QCTL-014"), Text::plain(title)]);
+    let rendered = lines(&table, 40);
+    assert_eq!(widest(&rendered), 38, "{rendered:?}");
+    assert!(
+        rendered[3].ends_with("┆ abcdefg abcdefg abcdefg │"),
+        "{rendered:?}"
+    );
+}
+
+#[test]
 fn ellipsis_columns_give_way_before_a_word_breaks() {
     let rendered = lines(&paths(), 40);
     assert!(widest(&rendered) <= 40, "{rendered:?}");
