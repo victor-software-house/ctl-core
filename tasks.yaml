@@ -87,6 +87,19 @@ queue:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
 
+  - id: CTC-030
+    title: One completion verb for every ctl CLI
+    scope: ctl-core
+    outcome: >-
+      Every ctl CLI prints the same completion script for bash, zsh, and fish from
+      one ctl-core verb, and answers COMPLETE at TAB time.
+    blocked_by: []
+    acceptance:
+      - A CLI that flattens CompletionCommand and calls App::completion() needs no completion code of its own.
+      - The zsh script completes on the first TAB when Homebrew installs it in fpath.
+      - Tests render each shell's script for a toy CLI, and CI passes.
+    plan: openspec/changes/completion-verb/proposal.md
+
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
     scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"
