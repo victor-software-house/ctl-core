@@ -142,6 +142,11 @@ pty-process.workspace = true
 name = "gallery"
 required-features = ["view"]
 
+# The toy check:size builds at each tier; see [workspace.metadata.size].
+[[example]]
+name = "size"
+required-features = ["cli"]
+
 # A reader that closes stdout early. It has no libtest harness, because the
 # harness prints its own banner to stdout, and a reader that quits after the
 # first line would break that write before the code under test runs.
