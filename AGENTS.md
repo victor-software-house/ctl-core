@@ -297,7 +297,9 @@ no other job fetches them. Their install directories are on the tests'
 taken off it. Generate the locks with the default profiles,
 `mise lock --platform linux-x64,macos-arm64`: mise also writes the pinned
 catalogs' task tools into `mise.test.lock`, and the pre-push lock check runs
-with `MISE_ENV=dev,test`. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
+with `MISE_ENV=dev,test`. Write a new lock with the pinned mise, 2026.10.25:
+a newer mise writes a new file as lockfile version 4, which CI's mise cannot
+read. A missing tool fails the test. A script ctl-core writes passes shellcheck with no
 exclusions; only a third-party template's lines may be excluded, by code,
 with the reason beside the list.
 
