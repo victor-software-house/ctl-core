@@ -4,8 +4,18 @@
 //! A [`Suite`] owns a temporary directory named after the test file, and each
 //! [`Suite::scenario`] owns its own directory inside it. Both are removed when
 //! the value drops, so a test cleans up by going out of scope. A write that
-//! fails panics with the path it could not write: a broken fixture is a broken
-//! test, and the message says which file.
+//! fails panics with the path it could not write. A broken fixture is a broken
+//! test, and the message names the file.
+//!
+//! ```
+//! use ctl_core::fixture::Suite;
+//!
+//! let suite = Suite::new("example");
+//! let root = suite.scenario("one");
+//! let path = root.file("notes/a.md", "hello");
+//! assert!(path.starts_with(root.path()));
+//! assert_eq!(root.read("notes/a.md"), "hello");
+//! ```
 
 use std::fs;
 use std::marker::PhantomData;
@@ -21,7 +31,8 @@ pub struct Suite {
 }
 
 impl Suite {
-    /// A fresh directory whose name starts with `name`.
+    /// A fresh directory whose name starts with `name`. Removed when the suite
+    /// drops.
     ///
     /// # Panics
     ///
@@ -69,7 +80,8 @@ impl Suite {
         }
     }
 
-    /// The suite's own directory.
+    /// The suite's own directory, which holds the scenario directories. Write
+    /// files here when a test needs one shared by every scenario.
     #[must_use]
     pub fn root(&self) -> &Root<'static> {
         &self.root
@@ -78,6 +90,9 @@ impl Suite {
 
 /// A temporary directory a test writes files into, alive no longer than the
 /// suite it sits in.
+///
+/// Every path a method takes is relative to the directory, and a path that
+/// leaves it panics.
 #[derive(Debug)]
 pub struct Root<'suite> {
     dir: TempDir,
@@ -85,7 +100,7 @@ pub struct Root<'suite> {
 }
 
 impl Root<'_> {
-    /// Where the directory is.
+    /// The absolute path of the directory.
     #[must_use]
     pub fn path(&self) -> &Path {
         self.dir.path()
@@ -109,7 +124,7 @@ impl Root<'_> {
         path
     }
 
-    /// Read a file back as text.
+    /// Read the file at `relative` back as text.
     ///
     /// # Panics
     ///

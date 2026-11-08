@@ -1,12 +1,32 @@
-//! Declared input: read a file, parse its shape with `serde-saphyr` (YAML) or
-//! the `toml` crate (TOML, with `input-toml`), validate it once with garde,
-//! and report every problem on its file and line.
+//! Declared input: read a file, parse it, validate it once, and report every
+//! problem on its file and line.
 //!
-//! This is the one boundary where a CLI's config enters. Downstream code keeps
-//! the validated type and never checks it again.
+//! Parsing uses `serde-saphyr` for YAML, or the `toml` crate for TOML with the
+//! `input-toml` feature. Validation uses garde. This is the one boundary where
+//! a CLI's config enters. Downstream code keeps the validated type and never
+//! checks it again.
 //!
-//! A text's [`Format`] is chosen, never guessed: [`Input::open`] reads it from
+//! A text's [`Format`] is chosen, never guessed. [`Input::open`] reads it from
 //! the file's extension, and [`Input::new`] and [`Input::read`] are YAML.
+//!
+//! ```
+//! use ctl_core::input::Input;
+//! use serde::Deserialize;
+//!
+//! #[derive(Deserialize)]
+//! struct Config {
+//!     name: String,
+//! }
+//!
+//! let config: Config = Input::new("ver.yaml", "name: release\n").parse()?;
+//! assert_eq!(config.name, "release");
+//!
+//! let error = Input::new("ver.yaml", "name: a\nname: b\n")
+//!     .parse::<Config>()
+//!     .unwrap_err();
+//! assert!(error.to_string().starts_with("ver.yaml"));
+//! # Ok::<(), ctl_core::input::InputError>(())
+//! ```
 
 use std::borrow::Cow;
 use std::fmt;
@@ -81,6 +101,10 @@ const ACCEPTED: &str = "name the file *.toml, *.yaml, or *.yml";
 const ACCEPTED: &str = "name the file *.yaml or *.yml";
 
 /// A named text, ready to parse and validate.
+///
+/// The name is usually the file's path, and appears in every problem. Build
+/// one with [`Input::new`] for text in memory, or [`Input::read`] and
+/// [`Input::open`] for a file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Input {
     name: String,
@@ -92,6 +116,9 @@ pub struct Input {
 
 /// Why an input was refused: every problem found, each placed on a line when
 /// the text allows it.
+///
+/// `Display` prints one problem per line as `name:line:column: field: message`,
+/// leaving out what is not known.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InputError {
     /// The input's name, usually its path.
@@ -115,8 +142,8 @@ pub struct Problem {
 }
 
 impl Input {
-    /// A YAML input from text already in memory, whatever its name says. Set
-    /// another format with [`Input::format`].
+    /// A YAML input from text already in memory, whatever the extension of
+    /// `name`. Set another format with [`Input::format`].
     #[must_use]
     pub fn new(name: impl Into<String>, text: impl Into<String>) -> Self {
         Self {
@@ -160,23 +187,25 @@ impl Input {
         self
     }
 
-    /// The input's name.
+    /// The name given at construction, usually the file's path.
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// The input's text.
+    /// The text as read, unchanged.
     #[must_use]
     pub fn text(&self) -> &str {
         &self.text
     }
 
-    /// Split YAML frontmatter from a Markdown body: the text between a first
-    /// line of `---` and the next line of `---`. The frontmatter is YAML
-    /// whatever this input's format. Problems in the frontmatter keep the
-    /// line numbers of the whole file. `None` when the text does not start
-    /// with a `---` line, or never closes it.
+    /// Split YAML frontmatter from a Markdown body.
+    ///
+    /// The frontmatter is the text between a first line of `---` and the next
+    /// line of `---`. It is YAML whatever this input's format, and problems in
+    /// it keep the line numbers of the whole file. The second item is the body
+    /// after the closing line. Returns `None` when the text does not start with
+    /// a `---` line, or never closes it.
     #[must_use]
     pub fn frontmatter(&self) -> Option<(Self, &str)> {
         let text = self.text.strip_prefix('\u{feff}').unwrap_or(&self.text);
@@ -200,7 +229,7 @@ impl Input {
         None
     }
 
-    /// Override limits for this input alone, above every other tier: see
+    /// Override limits for this input alone, above every other tier. See
     /// [`Limits`] for the order.
     #[must_use]
     pub fn limits(mut self, limits: Limits) -> Self {
@@ -208,13 +237,17 @@ impl Input {
         self
     }
 
-    /// Parse the text's shape. In YAML only `true` and `false` are booleans,
-    /// and a duplicate key or a merge key (`<<`) is refused; in TOML a
-    /// duplicate key is refused by the format. The text must fit the limits in
-    /// force, field by field from this input, the repository's
-    /// [`REPO_FILE`], the process default, and serde-saphyr's own defaults.
-    /// TOML reads only `max_reader_input_bytes`, `max_depth`, and `max_nodes`
-    /// from them: the other fields name YAML syntax.
+    /// Parse the text into `T`, without validating it.
+    ///
+    /// In YAML only `true` and `false` are booleans, and a duplicate key or a
+    /// merge key (`<<`) is refused. In TOML the format itself refuses a
+    /// duplicate key.
+    ///
+    /// The text must fit the limits in force. They come field by field from
+    /// this input, the repository's [`REPO_FILE`], the process default, and
+    /// serde-saphyr's own defaults, in that order. TOML reads only
+    /// `max_reader_input_bytes`, `max_depth`, and `max_nodes` from them,
+    /// because the other fields name YAML syntax.
     ///
     /// # Errors
     ///
@@ -281,13 +314,15 @@ impl Input {
         })
     }
 
-    /// serde-saphyr's wording for `error`. An alias error also names where its
-    /// value is defined, counted from the file like [`Problem::line`], and a
-    /// limit error names the limit in `budget` and where to raise it.
+    /// serde-saphyr's wording for `error`.
     ///
-    /// For an alias error the wording and position are those of the error
-    /// the aliased value raised, found under any alias reached through
-    /// another alias; without a known position, the anchor's.
+    /// An alias error also names where its value is defined, counted from the
+    /// file like [`Problem::line`]. A limit error names the limit in `budget`
+    /// and where to raise it.
+    ///
+    /// For an alias error the wording and position are those of the error the
+    /// aliased value raised, found under any alias reached through another
+    /// alias. Without a known position, the anchor's position is used.
     fn message(&self, error: &Error, budget: &Budget, raise: Raise) -> String {
         if let Error::Budget { breach, .. } = error
             && let Some(exceeded) = Exceeded::breach(breach, budget, raise)
@@ -317,9 +352,10 @@ impl Input {
         format!("{text} (defined at line {line}, column {column})")
     }
 
-    /// Validate a parsed value against `context`, and place each of garde's
-    /// problems on the line of the field it names, or of its nearest written
-    /// ancestor.
+    /// Validate a parsed `value` against `context`.
+    ///
+    /// Each of garde's problems lands on the line of the field it names, or
+    /// of its nearest written ancestor.
     ///
     /// # Errors
     ///
@@ -377,7 +413,7 @@ impl Input {
         }
     }
 
-    /// Parse and validate with the default context.
+    /// Parse the text into `T`, then validate it with `T`'s default context.
     ///
     /// # Errors
     ///

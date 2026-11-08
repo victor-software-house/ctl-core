@@ -1,6 +1,6 @@
-//! The TOML half of [`Input`]: parse with the `toml` crate's span-carrying
-//! tree, hold the tree to the limits, and place each problem on the value it
-//! names.
+//! The TOML half of [`Input`]. It parses with the `toml` crate's
+//! span-carrying tree, holds the tree to the limits, and places each problem
+//! on the value it names.
 //!
 //! Every position here is a byte span in the text, turned into a 1-based line
 //! and column once, in [`position`].
