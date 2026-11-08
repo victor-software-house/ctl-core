@@ -23,8 +23,8 @@ pub enum Stream {
 /// terminal, or a terminal of some width.
 ///
 /// [`Terminal::from_probe`](crate::Terminal::from_probe) turns a probe into a
-/// decision without touching the process, so a test states the probe it
-/// wants.
+/// decision without touching the process, so a test chooses the probe to
+/// use.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Probe {
@@ -74,7 +74,7 @@ impl Probe {
         }
     }
 
-    /// Whether the stream is a terminal.
+    /// Whether the stream is a terminal, whether or not it reports a width.
     #[must_use]
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Terminal { .. })

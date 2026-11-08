@@ -17,7 +17,7 @@ use crate::terminal::Terminal;
 /// Why writing failed.
 ///
 /// A closed pipe is its own variant because it is not a failure of the
-/// program: a reader such as `head` that has read enough closes the stream,
+/// program. A reader such as `head` that has read enough closes the stream,
 /// and the caller usually exits quietly. This crate does not choose the exit
 /// code.
 #[derive(Debug)]
@@ -106,7 +106,8 @@ impl Console {
         self.stream
     }
 
-    /// What was decided for the stream.
+    /// The colour, depth, and width decided for the stream, after the Windows
+    /// virtual-terminal check.
     #[must_use]
     pub fn terminal(self) -> Terminal {
         self.terminal

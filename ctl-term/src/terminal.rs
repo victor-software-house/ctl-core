@@ -102,7 +102,7 @@ impl Default for DetectOptions {
 }
 
 /// What is known about one output stream: whether it is a terminal, whether
-/// to write colour and at what depth, and how wide the output is.
+/// to write colour, at what depth, and how wide the output is.
 ///
 /// A terminal is decided once, for the stream the output goes to, before
 /// anything renders. The decision reads an environment lookup passed by the
