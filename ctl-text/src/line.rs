@@ -37,8 +37,14 @@ impl Line {
     }
 
     /// Adds `span` at the end of the line.
+    ///
+    /// When `span` starts with characters that continue the line's last
+    /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
+    /// sequence, they join the previous span, so no cluster crosses a span
+    /// boundary and every width counts the cluster once.
     pub fn push(&mut self, span: Span) {
         self.spans.push(span);
+        self.keep_clusters_whole();
     }
 
     /// The spans, in order.
@@ -113,10 +119,39 @@ impl Line {
         }
         match self.spans.last_mut() {
             Some(last) if last.style == style => last.text.push_str(text),
-            Some(_) | None => self.spans.push(Span {
-                text: text.to_owned(),
-                style,
-            }),
+            Some(_) | None => {
+                self.spans.push(Span {
+                    text: text.to_owned(),
+                    style,
+                });
+                self.keep_clusters_whole();
+            }
+        }
+    }
+
+    /// Moves the start of the last span into the span before it when that
+    /// start continues the earlier span's last cluster. The cluster keeps the
+    /// style it started in.
+    fn keep_clusters_whole(&mut self) {
+        let [.., before, last] = self.spans.as_mut_slice() else {
+            return;
+        };
+        let Some(tail) = before.text.graphemes(true).next_back() else {
+            return;
+        };
+        let tail_len = tail.len();
+        let joined = format!("{tail}{}", last.text);
+        let Some(first) = joined.graphemes(true).next() else {
+            return;
+        };
+        let moved = first.len().saturating_sub(tail_len);
+        if moved == 0 {
+            return;
+        }
+        let carried: String = last.text.drain(..moved).collect();
+        before.text.push_str(&carried);
+        if last.text.is_empty() {
+            self.spans.pop();
         }
     }
 
@@ -160,9 +195,11 @@ impl From<Span> for Line {
 
 impl FromIterator<Span> for Line {
     fn from_iter<I: IntoIterator<Item = Span>>(spans: I) -> Self {
-        Self {
-            spans: spans.into_iter().collect(),
+        let mut line = Self::new();
+        for span in spans {
+            line.push(span);
         }
+        line
     }
 }
 

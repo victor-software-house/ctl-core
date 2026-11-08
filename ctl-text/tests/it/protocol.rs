@@ -148,3 +148,23 @@ fn overlaying_the_default_style_changes_nothing() {
     assert_eq!(overlay(base, Style::new()), base);
     assert_eq!(overlay(Style::new(), base), base);
 }
+
+#[test]
+fn a_cluster_split_across_spans_counts_once() {
+    let bold = Style::new().effects(Effects::BOLD);
+    let family: Line = [
+        Span::new("\u{1f468}", Style::new()),
+        Span::new("\u{200d}\u{1f469}", bold),
+    ]
+    .into_iter()
+    .collect();
+    assert_eq!(family.width(), 2);
+    assert_eq!(family.spans().len(), 1);
+
+    let mut accent = Line::new();
+    accent.push(Span::new("e", Style::new()));
+    accent.push(Span::new("\u{301}x", bold));
+    assert_eq!(accent.width(), 2);
+    assert_eq!(accent.spans()[0].text(), "e\u{301}");
+    assert_eq!(accent.spans()[1].text(), "x");
+}
