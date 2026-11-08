@@ -89,4 +89,4 @@ where forkctl runs `CompleteEnv`.
    Homebrew, avoids that; the rustdoc says so.
 
 [clap#3166]: https://github.com/clap-rs/clap/issues/3166
-[research]: ../../../docs/research/shell-completion.md
+[research]: ../../../../docs/research/shell-completion.md

@@ -63,5 +63,5 @@ None.
    powershell, and nushell scripts, or keeps them as its own verb.
 3. No change for a CLI that does not enable `completion`.
 
-[rendering]: ../../../docs/research/output-rendering-comparison.md
-[research]: ../../../docs/research/shell-completion.md
+[rendering]: ../../../../docs/research/output-rendering-comparison.md
+[research]: ../../../../docs/research/shell-completion.md
