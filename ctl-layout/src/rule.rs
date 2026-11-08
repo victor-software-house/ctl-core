@@ -27,13 +27,14 @@ pub struct Rule {
 }
 
 impl Rule {
-    /// A rule with no title.
+    /// A rule with no title, drawn as one line of rule characters.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// A rule with `title` at its left.
+    /// A rule with `title` at its left, between two rule characters and the
+    /// rest of the line.
     #[must_use]
     pub fn titled(title: Text) -> Self {
         Self { title: Some(title) }

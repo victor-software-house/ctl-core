@@ -22,14 +22,16 @@ impl<'a> Stack<'a> {
         Self::default()
     }
 
-    /// Leaves `lines` blank lines between consecutive children.
+    /// Leaves `lines` blank lines between consecutive children that render
+    /// something. The default is none.
     #[must_use]
     pub fn spacing(mut self, lines: u16) -> Self {
         self.spacing = lines;
         self
     }
 
-    /// Adds `child` below the others.
+    /// Adds `child` below the others. Use [`push_boxed`](Self::push_boxed)
+    /// when the child is already a `Box<dyn Renderable>`.
     #[must_use]
     pub fn push(mut self, child: impl Renderable + 'a) -> Self {
         self.children.push(Box::new(child));

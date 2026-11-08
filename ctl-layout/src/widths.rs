@@ -1,8 +1,8 @@
 //! Choosing the width of each column of a table.
 
-/// What one column can be: the width it takes with nothing wrapped, the
-/// narrowest it can be without breaking a word, and the narrowest it can be
-/// at all.
+/// What one column can be. `natural` is the width it takes with nothing
+/// wrapped, `minimum` the narrowest it can be without breaking a word, and
+/// `floor` the narrowest it can be at all.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Extent {
     pub(crate) natural: u16,

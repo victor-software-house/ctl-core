@@ -23,13 +23,15 @@ pub struct Record {
 }
 
 impl Record {
-    /// A record with no rows, with keys right-aligned and no frame.
+    /// A record with no rows, drawn in the default [`RecordStyle`]: keys
+    /// right-aligned and no frame.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Draws the record in `style`.
+    /// Sets how the record is drawn, replacing the default
+    /// [`RecordStyle::KeysRight`].
     #[must_use]
     pub fn style(self, style: RecordStyle) -> Self {
         Self {

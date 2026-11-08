@@ -19,8 +19,9 @@ const GAP: u16 = 2;
 /// 1. Each column starts at the widest cell it holds.
 /// 2. When those widths and the frame fit, the table is exactly that wide.
 /// 3. Otherwise the widest column that can still shrink gives up a cell, again
-///    and again, never below the widest word of a keep-words column or the
-///    widest cluster of a fold column. An ellipsis column can shrink to 1 cell.
+///    and again. A keep-words column never goes below its widest word, and a
+///    fold column never goes below its widest cluster. An ellipsis column can
+///    shrink to 1 cell.
 /// 4. When the narrowest widths still do not fit, an unframed table lets its
 ///    keep-words columns run past the width. A [`Frame::Grid`] table folds
 ///    those columns instead, so its frame stays aligned. When one column can
@@ -28,11 +29,13 @@ const GAP: u16 = 2;
 ///    keeps its word beside a long URL.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
-/// 6. Each column then narrows to its widest rendered line, so a column that
+/// 6. Each column then narrows to its widest rendered line. A column that
 ///    wrapped holds no blank cells down every row, and a table sized to its
-///    content draws no wider than it needs. The lines stay as rendered: text
-///    wrapped at a width wraps the same at its own widest line. An ellipsis
-///    column that cut a cell keeps its width, since the cut cell fills it.
+///    content draws no wider than it needs. An ellipsis column that cut a cell
+///    keeps its width, since the cut cell fills it.
+///
+/// Narrowing never changes the lines: text wrapped at a width wraps the same
+/// at its own widest line.
 ///
 /// A table with no rows and no header draws nothing and measures 0.
 #[derive(Clone, Debug)]
@@ -48,7 +51,8 @@ pub struct Table {
 }
 
 impl Table {
-    /// A table with `columns` and no rows, drawn as a [`Frame::Grid`].
+    /// A table with `columns` and no rows, drawn as a [`Frame::Grid`] with no
+    /// separation between rows.
     #[must_use]
     pub fn new(columns: impl IntoIterator<Item = Column>) -> Self {
         Self::from_columns(columns.into_iter().collect())
@@ -77,14 +81,16 @@ impl Table {
         }
     }
 
-    /// Draws the table with `frame`.
+    /// Sets what the table draws around and between its columns, replacing
+    /// the default [`Frame::Grid`].
     #[must_use]
     pub fn frame(mut self, frame: Frame) -> Self {
         self.frame = frame;
         self
     }
 
-    /// Separates consecutive rows with `separation`.
+    /// Sets what separates consecutive rows, replacing the default
+    /// [`RowSeparation::None`].
     #[must_use]
     pub fn row_separation(mut self, separation: RowSeparation) -> Self {
         self.separation = separation;
@@ -102,7 +108,7 @@ impl Table {
         self.push_row(cells.into_iter().map(Into::into).collect())
     }
 
-    /// Adds every row of `rows`, as [`row`](Self::row) adds one.
+    /// Adds every row of `rows` in order, as [`row`](Self::row) adds one.
     #[must_use]
     pub fn rows<C, R>(self, rows: impl IntoIterator<Item = R>) -> Self
     where
