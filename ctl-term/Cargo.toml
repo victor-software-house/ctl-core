@@ -46,3 +46,12 @@ name = "closed_pipe"
 path = "tests/closed_pipe.rs"
 harness = false
 required-features = ["detect"]
+
+# A `NO_COLOR` that is not valid UTF-8, set on a child process, because a test
+# cannot set it in its own environment without `unsafe`. The target has no
+# libtest harness: the child reports through its exit code from a plain `main`.
+[[test]]
+name = "non_utf8_no_color"
+path = "tests/non_utf8_no_color.rs"
+harness = false
+required-features = ["detect"]

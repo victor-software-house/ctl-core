@@ -55,6 +55,10 @@ This file holds what applies to this crate alone.
   It runs without libtest, because libtest prints its own banner to stdout, and `head -1` quits after the first line.
   The next libtest write would then fail before the code under test ran.
   Keep that target at `harness = false` in `Cargo.toml`.
+- `tests/non_utf8_no_color.rs`: a child process started with a `NO_COLOR` that is not valid UTF-8, which a test cannot set in its own environment without `unsafe`.
+  The child asserts that `Terminal::from_process` reports no colour, and a control child without `NO_COLOR` asserts that colour is on.
+  It needs the `detect` feature, and on a target that is not Unix it prints a skip line.
+  It keeps `harness = false` so the child is a plain `main` that reports through its exit code.
 - The `it` tests pass an explicit environment lookup and probe (`tests/it/common.rs`), so they read no process variable.
 
 ## Running them
