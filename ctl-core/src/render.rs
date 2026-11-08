@@ -49,10 +49,6 @@ pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// Default ordered environment lookup for the row separation.
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
-/// The width a document laid out at its natural width is given: wide enough
-/// that nothing wraps.
-const NATURAL_WIDTH: u16 = u16::MAX;
-
 /// The width of a rule in a document laid out at its natural width, which a
 /// rule, having no natural width of its own, would otherwise fill.
 const NATURAL_RULE_WIDTH: u16 = 40;
@@ -488,12 +484,12 @@ impl Renderer {
     /// Render one document to a newline-terminated string, as
     /// [`Document::render`] says.
     pub(crate) fn render(self, document: &Document) -> String {
-        let width = self
+        let context = self
             .options
             .width()
             .or(self.options.fallback_width())
-            .unwrap_or(NATURAL_WIDTH);
-        let lines = self.widget(document).render(&Context::new(width));
+            .map_or_else(Context::unbounded, Context::new);
+        let lines = self.widget(document).render(&context);
         let depth = (self.options.color() == ColorMode::Always).then_some(ColorDepth::TrueColor);
         Encoder::new(depth).encode(&lines)
     }
@@ -699,14 +695,15 @@ impl Renderable for Verbatim {
     }
 }
 
-/// A rule across the width, or across [`NATURAL_RULE_WIDTH`] cells in a
-/// document laid out at its natural width.
+/// A rule across the width, or across [`NATURAL_RULE_WIDTH`] cells in an
+/// unbounded context, which [`Context::is_unbounded`] reports. A rule has no
+/// natural width, so it would otherwise fill the largest width.
 #[derive(Debug)]
 struct Divider(RuleWidget);
 
 impl Divider {
     fn context(context: &Context) -> Context {
-        if context.width() == NATURAL_WIDTH {
+        if context.is_unbounded() {
             context.with_width(NATURAL_RULE_WIDTH)
         } else {
             context.clone()
