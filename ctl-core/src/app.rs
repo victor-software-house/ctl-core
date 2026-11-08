@@ -278,15 +278,21 @@ where
         let command = crate::parser::apply_defaults(C::command());
         let command = match crate::flags::env_under_flags(command, &raw) {
             Ok(command) => command,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
+            Err(error) => {
+                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
+            }
         };
         let matches = match command.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
+            Err(error) => {
+                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
+            }
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
-            Err(error) => return self.clap_error(&error, parse_error_view(&raw, raw_view), &words),
+            Err(error) => {
+                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
+            }
         };
         let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
@@ -300,7 +306,7 @@ where
     /// Report a parse error, or print the help or version Clap stopped for.
     /// Help always comes from ctl-core's renderer, so it needs none of Clap's
     /// help or color features.
-    fn clap_error(&self, error: &clap::Error, view: View, args: &[String]) -> ExitCode {
+    fn clap_error(&self, error: &clap::Error, view: &View, args: &[String]) -> ExitCode {
         use clap::error::ErrorKind;
 
         let code = exit_code(error.exit_code());
