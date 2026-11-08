@@ -145,6 +145,14 @@ input-toml = ["input", "dep:toml"]
 ## and one call per file.
 fixture = ["dep:tempfile"]
 
+## The shells a ctl CLI writes scripts for (`Shell`): bash, zsh, and fish.
+shell = ["cli"]
+
+## The `completion <SHELL>` verb and the `COMPLETE` request it registers
+## (`CompletionCommand`, `App::completion`), through `clap_complete`'s
+## dynamic engine.
+completion = ["shell", "view", "dep:clap_complete"]
+
 ## Mise Usage spec from clap (`--usage-spec`, served-task mount).
 usage = ["cli", "dep:usage-lib"]
 
@@ -158,6 +166,11 @@ clap = { version = "4.6.6", optional = true, features = [
   "string",
 ] }
 garde = { version = "0.23.0", optional = true, default-features = false }
+# The dynamic engine is behind `unstable-dynamic`, which carries no semver
+# promise, so the pin is exact and every bump is a reviewed change.
+clap_complete = { version = "=4.6.11", optional = true, default-features = false, features = [
+  "unstable-dynamic",
+] }
 comfy-table = { version = "8.0.0", optional = true, default-features = false, features = [
   "custom_styling",
   "tty",

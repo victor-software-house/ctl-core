@@ -32,7 +32,7 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
   (`raw`, `raw_args`, and `mount_line`, the block every served CLI-proxy task
   carries, so piped output stays byte for byte what the CLI wrote), and
   `App::usage_spec` enrichment, so consumers run `mise run q status` with no
-  `--`. Forkctl completion remains a composable `App::before_parse` hook.
+  `--`. Completion is its own `completion` feature, below.
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names,
   recursive commands, aliases, visibility, arguments, flags, Usage KDL, and
   optional audience notes. `surface-serde` adds serialization without a template
@@ -44,6 +44,15 @@ This repo's queue is [`tasks.yaml`](tasks.yaml) (`CTC-###`).
 - Served files (`served` feature): render a template that declares its own
   target through `{%- set -%}` exports, check the declarations once, and write
   the file with its mode.
+- Shell completion (`completion` feature): the `completion <SHELL>` verb as a
+  flattenable `CompletionCommand`, the registration script for bash, zsh, and
+  fish, and `App::completion`, which answers `COMPLETE=<shell>` before
+  parsing. `Shell` lives in its own `shell` feature, which later shell verbs
+  share. `clap_complete` is pinned exactly because its dynamic engine is
+  unstable; a bump is a reviewed change that reruns the script tests. The zsh
+  script carries three lines so it completes on the first TAB from `fpath`
+  ([research](docs/research/shell-completion.md), section 6); drop them when
+  a pinned `clap_complete` writes its own.
 - Fixture trees (`fixture` feature): a temporary directory per test suite and
   per scenario, and one call per fixture file, for consumers' integration
   tests.

@@ -181,6 +181,21 @@ impl<C> App<C> {
         self
     }
 
+    /// Answer `COMPLETE=<shell>` before parsing, so the script the
+    /// `completion` verb prints can ask this binary for candidates.
+    ///
+    /// A run without the variable, or with it empty or `0`, parses as usual.
+    /// See [`crate::completion`].
+    #[cfg(feature = "completion")]
+    #[must_use]
+    pub fn completion(self) -> Self
+    where
+        C: CommandFactory + 'static,
+    {
+        let bin = self.bin.clone();
+        self.before_parse(move |args| crate::completion::complete::<C>(&bin, args))
+    }
+
     /// Expose a mise Usage spec under a mounted task name.
     #[cfg(feature = "usage")]
     #[must_use]

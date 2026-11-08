@@ -99,6 +99,18 @@ Consumer-owned templates keep domain prose. Their tests render through
 `surface::add_fragments` on its existing MiniJinja environment so Version PRs
 render the same fragments.
 
+## Shell completion
+
+The `completion` feature gives every ctl CLI one verb,
+`<bin> completion <SHELL>`, for bash, zsh, and fish. Flatten
+`completion::CompletionCommand` into the CLI's subcommands, call
+`App::completion()`, route the verb to `completion::view(format)`, and
+return `command.script("<bin>")`. The script is `clap_complete`'s dynamic
+registration: the shell asks the binary for candidates at each TAB through
+`COMPLETE=<shell>`. Load it at shell start with
+`source <(<bin> completion zsh)`, or let Homebrew install it with
+`generate_completions_from_executable(bin/"<bin>", "completion")`.
+
 ## Contract
 
 - Domain handlers return data. They do not print, inspect terminal state,

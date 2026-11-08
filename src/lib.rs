@@ -79,6 +79,8 @@
 pub mod app;
 /// Color policy (`auto` / `always` / `never`).
 pub mod color;
+#[cfg(feature = "completion")]
+pub mod completion;
 #[cfg(feature = "document")]
 pub mod document;
 /// Output representation (`pretty` / `json`).
@@ -102,6 +104,8 @@ pub mod prelude;
 pub mod render;
 #[cfg(feature = "served")]
 pub mod served;
+#[cfg(feature = "shell")]
+pub mod shell;
 #[cfg(feature = "render")]
 mod style;
 #[cfg(feature = "surface-model")]
