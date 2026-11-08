@@ -1,0 +1,28 @@
+---
+source: tests/clap_display.rs
+expression: stderr
+---
+Usage: toy show [OPTIONS] <ID>
+
+Show one row
+
+Arguments
+┌───┬────┬───┬─────────────────┐
+│   ┆ ID ┆   ┆ The row to show │
+└───┴────┴───┴─────────────────┘
+
+Output
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:      │
+│    ┆            ┆                     ┆ pretty]                              │
+│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output color policy. JSON     │
+│    ┆            ┆                     ┆ never contains ANSI [default: auto]  │
+│    ┆ --no-color ┆                     ┆ Force colorless pretty output. Wins  │
+│    ┆            ┆                     ┆ over `--color`                       │
+│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output    │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
+
+Help
+┌────┬────────┬───┬─────────────────────────────────────┐
+│ -h ┆ --help ┆   ┆ Print help (see more with '--help') │
+└────┴────────┴───┴─────────────────────────────────────┘

@@ -1,5 +1,9 @@
 //! Help and version output when Clap stops a parse: ctl-core renders the
 //! help, so it needs none of Clap's help or color features.
+//!
+//! The help is a reviewed snapshot in `tests/snapshots`. Clap's derive drops
+//! the one trailing period of a doc comment's first paragraph, so the
+//! snapshot reads "The row to show" for the doc "The row to show.".
 #![allow(
     missing_docs,
     reason = "an integration test crate has no public API to document"
@@ -89,9 +93,8 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
         return;
     };
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("toy show"), "{stderr}");
-    assert!(stderr.contains("The row to show."), "{stderr}");
     assert!(!stderr.contains('\u{1b}'), "{stderr}");
+    insta::assert_snapshot!("missing_argument", stderr);
 }
 
 #[test]
