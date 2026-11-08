@@ -1,39 +1,50 @@
 //! Styled text for terminals: spans that are safe to print, widths counted in
 //! cells, and lines wrapped or cut to fit.
 //!
-//! Layout works on plain data. A [`Span`] is text in an [`anstyle::Style`], a
-//! [`Line`] is spans, and [`Text`] is lines. No escape sequence exists in any
-//! of them: whatever writes the lines to a terminal adds the styling after
-//! layout, so nothing here strips or repairs one.
+//! Use it to lay out text before anything is written to a terminal. It has no
+//! dependency on a terminal, a colour mode, or an output stream, so the same
+//! layout can be tested as plain strings.
+//!
+//! Layout works on plain data. A [`Span`] is text in an [`anstyle::Style`].
+//! A [`Line`] is a list of spans, and [`Text`] is a list of lines that wraps
+//! to a width. No escape sequence exists in any of them. Whatever writes the
+//! lines to a terminal adds the styling after layout, so nothing here strips
+//! or repairs one.
+//!
+//! The main types are [`Text`] for content and [`Overflow`] for what to do with
+//! a line that is too wide. [`Renderable`], [`Context`], and [`Measurement`]
+//! let a widget measure itself and draw at a width. The functions
+//! [`text_width`], [`cluster_width`], and [`prefix_len`] count cells, and
+//! [`overlay`] combines two styles.
 //!
 //! # Quick start
 //!
 //! Put text in a [`Text`], pick an [`Overflow`] policy, and render it at a
-//! width. The default policy keeps each word whole, so a long URL keeps a line
-//! of its own and runs past the width instead of breaking:
+//! width. The default policy keeps each word whole, so a long address keeps a
+//! line of its own and runs past the width instead of breaking:
 //!
-//! ```
+//! ```rust
 //! use ctl_text::anstyle::AnsiColor;
 //! use ctl_text::{Context, Renderable, Style, Text};
 //!
 //! let green = Style::new().fg_color(Some(AnsiColor::Green.into()));
-//! let text = Text::styled("see https://example.test/releases/tag/pkg@1.2.3", green);
+//! let text = Text::styled("see example.test/releases/tag/pkg@1.2.3/notes", green);
 //!
 //! let lines = text.render(&Context::new(30));
 //! assert_eq!(lines[0].to_string(), "see");
 //! assert_eq!(
 //!     lines[1].to_string(),
-//!     "https://example.test/releases/tag/pkg@1.2.3"
+//!     "example.test/releases/tag/pkg@1.2.3/notes"
 //! );
 //! ```
 //!
 //! # Safe by construction
 //!
 //! Text from outside the program, such as a commit subject, can hold an
-//! escape sequence that moves the cursor or a directional override that
-//! reorders the line. [`Span::new`] and [`Text`] remove every character that
-//! [`verbatim::is_unsafe`] refuses, so a widget built on them cannot pass one
-//! on.
+//! escape sequence that moves the cursor. It can also hold a directional
+//! override that reorders the line. [`Span::new`] and [`Text`] remove every
+//! character that [`verbatim::is_unsafe`] refuses, so a widget built on them
+//! cannot pass one on.
 //!
 //! # Widths
 //!
@@ -44,11 +55,11 @@
 //!
 //! # Writing a widget
 //!
-//! A widget implements [`Renderable`]: it says how narrow and how wide it can
-//! be, then draws itself at the width it is given. A container does the same
-//! over its children.
+//! A widget implements [`Renderable`]. It reports how narrow and how wide it
+//! can be, then draws itself at the width it is given. A container does the
+//! same over its children.
 //!
-//! ```
+//! ```rust
 //! use ctl_text::anstyle::Effects;
 //! use ctl_text::{Context, Line, Measurement, Renderable, Span, Style};
 //!
@@ -101,3 +112,8 @@ pub use span::Span;
 pub use style::overlay;
 pub use text::Text;
 pub use wrap::{ELLIPSIS, Overflow};
+
+/// The README's examples, compiled and run as doctests.
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
