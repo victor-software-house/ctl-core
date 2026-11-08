@@ -251,7 +251,7 @@ where
             let mut command = C::command();
             command.set_bin_name(&spec_bin);
             let spec = (self.render_usage)(command, &spec_bin);
-            return crate::view::write_stdout(spec.as_bytes(), ColorMode::Never)
+            return crate::view::write_stdout(spec.as_bytes())
                 .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS);
         }
 
@@ -312,7 +312,7 @@ where
         }
         let options = view.render_options();
         let written = if kind == ErrorKind::DisplayVersion {
-            crate::view::write_stdout(error.to_string().as_bytes(), ColorMode::Never)
+            crate::view::write_stdout(error.to_string().as_bytes())
         } else if kind == ErrorKind::DisplayHelp {
             crate::help::emit_selected::<C>(args, options)
         } else {

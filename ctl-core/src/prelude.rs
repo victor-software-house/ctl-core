@@ -45,6 +45,8 @@ pub use crate::render::{
 pub use crate::surface::Surface;
 #[cfg(feature = "render")]
 pub use crate::table::{grid, kv};
+#[cfg(feature = "render")]
+pub use crate::theme::Theme;
 #[cfg(feature = "usage")]
 pub use crate::usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]

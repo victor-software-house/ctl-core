@@ -66,7 +66,6 @@ use clap::{CommandFactory, ValueEnum};
 use clap_complete::CompleteEnv;
 use clap_complete::env::{Bash, EnvCompleter, Fish, Shells, Zsh};
 
-use crate::color::ColorMode;
 use crate::formatdoc;
 use crate::shell::{Script, Shell};
 
@@ -205,7 +204,7 @@ fn registration(bin: &str, requested: &OsStr) -> ExitCode {
     };
     shell
         .script(bin)
-        .and_then(|script| crate::view::write_stdout(script.text.as_bytes(), ColorMode::Never))
+        .and_then(|script| crate::view::write_stdout(script.text.as_bytes()))
         .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS)
 }
 

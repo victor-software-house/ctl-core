@@ -1,17 +1,25 @@
-//! Render semantic documents without exposing the terminal engine.
+//! Render semantic documents through the ctl-layout widgets.
+//!
+//! A [`Document`] becomes a tree of widgets: [`Fields`] a record, [`Table`] a
+//! table, a [`Section`] its heading over its body, a [`Notice`] and every
+//! paragraph styled text, a rule a rule, and verbatim text its own lines. The
+//! [`Theme`] turns each [`Role`] into a style on the way, so the widgets never
+//! see a role. The widgets lay the document out as plain lines of styled
+//! spans; escape sequences are added only when the lines are written.
 
-use std::fmt::Write as _;
+use std::fmt;
 
-use comfy_table::presets::{NOTHING, UTF8_FULL, UTF8_FULL_CONDENSED};
-use comfy_table::{
-    Cell, CellAlignment, Column, ColumnConstraint, ContentArrangement, LineStyle,
-    Table as EngineTable, TableStyle, Width,
+use ctl_layout::{
+    Column, Frame, Record, RecordStyle as RecordFrame, RowSeparation as RowRule,
+    Rule as RuleWidget, Stack, Table as TableWidget,
 };
-use unicode_width::UnicodeWidthStr;
+use ctl_text::{
+    Context, Line, Measurement, Overflow, Renderable, Span as StyledSpan, Style, Text as StyledText,
+};
 
 use crate::color::ColorMode;
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
-use crate::style::{ERROR, HEADING, ID, MUTED, OPTION, SUCCESS, VALUE, WARNING, styled};
+use crate::theme::Theme;
 
 /// Default columns reserved from an automatically detected terminal width.
 pub const DEFAULT_COLUMN_BUFFER: u16 = 2;
@@ -36,8 +44,16 @@ pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// Default ordered environment lookup for the row separation.
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
-/// A light horizontal rule that runs through column gaps.
-const RULE: LineStyle = LineStyle::none().fill('─').junction('─');
+/// The width a document laid out at its natural width is given: wide enough
+/// that nothing wraps.
+const NATURAL_WIDTH: u16 = u16::MAX;
+
+/// The width of a rule in a document laid out at its natural width, which a
+/// rule, having no natural width of its own, would otherwise fill.
+const NATURAL_RULE_WIDTH: u16 = 40;
+
+/// The sequence that ends a styled run; see [`encode`].
+const RESET: &str = "\u{1b}[0m";
 
 /// How a [`Fields`] record is framed.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -154,6 +170,7 @@ fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
     color: ColorMode,
+    theme: Theme,
     width: Option<u16>,
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: &'static [&'static str],
@@ -173,11 +190,13 @@ impl RenderOptions {
     /// as the operator override, and [`DEFAULT_FALLBACK_WIDTH`] when no
     /// width is detected. Record style, list style, and row separation read
     /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
-    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the owner sets them.
+    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the owner sets them. Roles are
+    /// drawn in [`Theme::default`].
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
         Self {
             color,
+            theme: Theme::new(),
             width: None,
             automatic_width_buffer: None,
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
@@ -190,6 +209,22 @@ impl RenderOptions {
             row_separation: None,
             row_separation_envs: DEFAULT_ROW_SEPARATION_ENVS,
         }
+    }
+
+    /// Draw each [`Role`] in the style `theme` gives it, in place of
+    /// [`Theme::default`]. Colour is still the colour mode's choice:
+    /// [`ColorMode::Never`] writes no style.
+    #[must_use]
+    pub const fn theme(mut self, theme: Theme) -> Self {
+        self.theme = theme;
+        self
+    }
+
+    /// The theme roles are drawn in: the one [`Self::theme`] set, or
+    /// [`Theme::default`].
+    #[must_use]
+    pub const fn active_theme(self) -> Theme {
+        self.theme
     }
 
     /// Frame [`Fields`] records in `style`. This beats the environment.
@@ -378,10 +413,28 @@ impl RenderOptions {
         self.minimum_automatic_width
     }
 
-    fn resolved_automatic_width_buffer(self) -> u16 {
-        self.automatic_width_buffer
-            .or_else(|| crate::layout::column_buffer(self.automatic_width_buffer_envs))
-            .unwrap_or(DEFAULT_COLUMN_BUFFER)
+    /// The width policy as ctl-term's detection options: the explicit width,
+    /// the buffer and its variables, the minimum, and the fallback.
+    #[cfg(any(feature = "view", feature = "help"))]
+    pub(crate) const fn detect_options(self) -> ctl_term::DetectOptions {
+        let mut options = ctl_term::DetectOptions::new()
+            .buffer_envs(self.automatic_width_buffer_envs)
+            .minimum(self.minimum_automatic_width)
+            .fallback_width(self.fallback_width);
+        if let Some(width) = self.width {
+            options = options.width(width);
+        }
+        if let Some(buffer) = self.automatic_width_buffer {
+            options = options.buffer(buffer);
+        }
+        options
+    }
+
+    /// A writer for `stream` that decides colour and width for that stream:
+    /// this colour mode, the process environment, and [`Self::detect_options`].
+    #[cfg(any(feature = "view", feature = "help"))]
+    pub(crate) fn console(self, stream: ctl_term::Stream) -> ctl_term::Console {
+        ctl_term::Console::from_process_with(stream, self.color.into(), self.detect_options())
     }
 }
 
@@ -399,339 +452,365 @@ impl Renderer {
     }
 
     /// Render one document to a newline-terminated string.
+    ///
+    /// The string is a pure function of the document and the options: no
+    /// terminal is asked. The document lays out to the explicit width, else
+    /// the fallback width, else its natural width. Styles are written only
+    /// under [`ColorMode::Always`], as the theme gives them, at full colour
+    /// depth; [`ColorMode::Auto`] has no stream to look at here and writes
+    /// none. A [`View`](crate::View) or help, which know their stream, decide
+    /// width and colour for it instead.
     #[must_use]
     pub fn render(self, document: &Document) -> String {
-        let mut rendered = document
+        let width = self
+            .options
+            .explicit_width()
+            .or(self.options.fallback())
+            .unwrap_or(NATURAL_WIDTH);
+        let lines = self.widget(document).render(&Context::new(width));
+        encode(&lines, self.options.color() == ColorMode::Always)
+    }
+
+    /// The document as one widget, with every role resolved through the
+    /// theme. The caller picks the width and writes the lines.
+    pub(crate) fn widget(self, document: &Document) -> Stack {
+        document
             .blocks()
             .iter()
-            .filter_map(|block| {
-                let rendered = self.render_block(block);
-                (!rendered.is_empty()).then_some(rendered)
+            .fold(Stack::new().spacing(1), |stack, block| {
+                stack.push(Visible(self.block(block)))
             })
-            .collect::<Vec<_>>()
-            .join("\n\n");
-        if !rendered.is_empty() {
-            rendered.push('\n');
-        }
-        rendered
     }
 
-    fn render_block(self, block: &Block) -> String {
+    fn block(self, block: &Block) -> Box<dyn Renderable> {
         match block {
-            Block::Heading(text) => self.wrap(&self.text_with_default(text, Role::Heading), 0),
-            Block::Paragraph(text) => self.wrap(&self.text(text), 0),
-            Block::Verbatim(value) => sanitize_verbatim(value),
-            Block::Fields(fields) => self.fields(fields),
+            Block::Heading(text) => Box::new(self.text(text, Some(Role::Heading))),
+            Block::Paragraph(text) => Box::new(self.text(text, None)),
+            Block::Verbatim(value) => Box::new(Verbatim::new(value)),
+            Block::Fields(fields) => Box::new(self.fields(fields)),
             Block::Table(table) => self.table(table),
-            Block::Section(section) => self.section(section),
-            Block::Notice(notice) => self.notice(notice),
-            Block::Rule(rule) => {
-                let width = usize::from(self.width().unwrap_or(40));
-                rule.title().map_or_else(
-                    || "─".repeat(width),
-                    |title| {
-                        let title_width = title
-                            .spans()
-                            .iter()
-                            .map(|span| UnicodeWidthStr::width(span.value()))
-                            .sum::<usize>();
-                        let title = self.text_with_default(title, Role::Heading);
-                        format!(
-                            "── {title} {}",
-                            "─".repeat(width.saturating_sub(title_width + 4))
-                        )
-                    },
-                )
-            }
+            Block::Section(section) => Box::new(self.section(section)),
+            Block::Notice(notice) => Box::new(self.notice(notice)),
+            Block::Rule(rule) => Box::new(Divider(
+                rule.title().map_or_else(RuleWidget::new, |title| {
+                    RuleWidget::titled(self.text(title, Some(Role::Heading)))
+                }),
+            )),
         }
     }
 
-    fn section(self, section: &Section) -> String {
-        let heading = self.wrap(&self.text_with_default(section.title(), Role::Heading), 0);
-        let body = self.render(section.body());
-        if body.is_empty() {
-            heading
-        } else {
-            format!("{heading}\n{}", body.trim_end())
-        }
+    /// The heading directly over the body, with no blank line between them
+    /// and no indent, so a section's tables line up with the document's.
+    fn section(self, section: &Section) -> Stack {
+        Stack::new()
+            .push(Visible(Box::new(
+                self.text(section.title(), Some(Role::Heading)),
+            )))
+            .push(Visible(Box::new(self.widget(section.body()))))
     }
 
-    fn fields(self, fields: &Fields) -> String {
-        let style = self.options.record();
-        let mut table = self.engine_table(if style == RecordStyle::Boxed {
-            UTF8_FULL_CONDENSED
-        } else {
-            NOTHING
-        });
-        for (label, value) in fields.rows() {
-            table.add_row([self.text(label), self.text(value)]);
-        }
-        if style != RecordStyle::Boxed {
-            if let Some(keys) = table.column_mut(0) {
-                keys.set_padding((0, 1));
-                if style == RecordStyle::KeysRight {
-                    keys.set_cell_alignment(CellAlignment::Right);
-                }
-            }
-            if let Some(values) = table.column_mut(1) {
-                values.set_padding((1, 0));
-            }
-        }
-        for (index, column) in [0, 1].into_iter().zip(table.column_iter_mut()) {
-            let longest = fields
-                .rows()
-                .iter()
-                .map(|row| longest_word(&self.text(if index == 0 { &row.0 } else { &row.1 })))
-                .max()
-                .unwrap_or(0);
-            keep_words_whole(column, longest);
-        }
-        trim_line_ends(&table.to_string())
+    fn fields(self, fields: &Fields) -> Record {
+        let style = match self.options.record() {
+            RecordStyle::Boxed => RecordFrame::Boxed,
+            RecordStyle::KeysRight => RecordFrame::KeysRight,
+            RecordStyle::KeysLeft => RecordFrame::KeysLeft,
+        };
+        fields
+            .rows()
+            .iter()
+            .fold(Record::new().style(style), |record, (label, value)| {
+                record.row(self.text(label, None), self.text(value, None))
+            })
     }
 
-    fn table(self, table: &Table) -> String {
-        if self.should_stack(table) {
-            return self.stacked(table);
-        }
-        let mut engine = self.list_table();
-        if !table.headers().is_empty() {
-            engine.set_header(
-                table
-                    .headers()
-                    .iter()
-                    .map(|header| Cell::new(self.text_with_default(header, Role::Heading))),
-            );
-        }
-        let blank = self.options.separation() == RowSeparation::Blank;
-        for (position, row) in table.rows().iter().enumerate() {
-            if blank && position > 0 {
-                engine.add_row(row.iter().map(|_| Cell::new("")));
-            }
-            engine.add_row(row.iter().enumerate().map(|(index, cell)| {
-                let value = if table.token_column_index() == Some(index) {
-                    self.text_with_default(cell, Role::Token)
-                } else if table.id_column_index() == Some(index) {
-                    self.text_with_default(cell, Role::Id)
-                } else {
-                    self.text(cell)
-                };
-                Cell::new(value)
+    fn table(self, table: &Table) -> Box<dyn Renderable> {
+        let count = table
+            .rows()
+            .iter()
+            .map(Vec::len)
+            .fold(table.headers().len(), usize::max);
+        let columns = (0..count)
+            .map(|index| self.column(table, index))
+            .collect::<Vec<_>>();
+        let frame = match self.options.list() {
+            ListStyle::Grid => Frame::Grid,
+            ListStyle::HeaderRule => Frame::HeaderRule,
+            ListStyle::Plain => Frame::Plain,
+        };
+        let separation = match self.options.separation() {
+            RowSeparation::None => RowRule::None,
+            RowSeparation::Rule => RowRule::Rule,
+            RowSeparation::Blank => RowRule::Blank,
+        };
+        let grid = TableWidget::new(columns.iter().cloned())
+            .frame(frame)
+            .row_separation(separation)
+            .rows(table.rows().iter().map(|row| {
+                row.iter()
+                    .enumerate()
+                    .map(|(index, cell)| self.text(cell, cell_role(table, index)))
+                    .collect::<Vec<_>>()
             }));
-        }
-        if self.options.list() != ListStyle::Grid
-            && let Some(first) = engine.column_mut(0)
-        {
-            first.set_padding((0, 1));
-        }
-        trim_line_ends(&engine.to_string())
-    }
-
-    fn list_table(self) -> EngineTable {
-        let rule = self.options.separation() == RowSeparation::Rule;
-        let style = match (self.options.list(), rule) {
-            (ListStyle::Grid, false) => UTF8_FULL_CONDENSED,
-            (ListStyle::Grid, true) => UTF8_FULL,
-            (ListStyle::HeaderRule, false) => NOTHING.header_separator(RULE),
-            (ListStyle::HeaderRule, true) => NOTHING.header_separator(RULE).row_separator(RULE),
-            (ListStyle::Plain, false) => NOTHING,
-            (ListStyle::Plain, true) => NOTHING.row_separator(RULE),
-        };
-        self.engine_table(style)
-    }
-
-    fn should_stack(self, table: &Table) -> bool {
-        let Some(stacked) = table.stacked() else {
-            return false;
-        };
-        self.width().is_some_and(|width| width < stacked.width())
-    }
-
-    fn stacked(self, table: &Table) -> String {
         let Some(policy) = table.stacked() else {
-            return String::new();
+            return Box::new(grid);
         };
-        let mut output = String::new();
-        for row in table.rows() {
-            let labels = row
-                .iter()
-                .take(policy.label_columns())
-                .filter(|value| !value.is_empty())
-                .map(|value| self.text_with_default(value, Role::Token))
-                .collect::<Vec<_>>()
-                .join(" ");
-            let description = row
-                .iter()
-                .skip(policy.label_columns())
-                .filter(|value| !value.is_empty())
-                .map(|value| self.text(value))
-                .collect::<Vec<_>>()
-                .join(" ");
-            for line in self.wrap(&labels, 2).lines() {
-                let _ = writeln!(output, "  {line}");
-            }
-            if !description.is_empty() {
-                let wrapped = self.wrap(&description, 4);
-                for line in wrapped.lines() {
-                    let _ = writeln!(output, "    {line}");
-                }
-            }
-        }
-        output.trim_end().to_owned()
-    }
-
-    fn notice(self, notice: &Notice) -> String {
-        let (label, role) = match notice.level() {
-            NoticeLevel::Success => ("success", Role::Success),
-            NoticeLevel::Warning => ("warning", Role::Warning),
-            NoticeLevel::Error => ("error", Role::Error),
-        };
-        let mut line = self.paint(role, label);
-        if let Some(code) = notice.code_value() {
-            let _ = write!(line, " · {}", self.paint(Role::Muted, code));
-        }
-        let _ = write!(line, " · {}", self.text(notice.message()));
-        self.wrap(&line, 0)
-    }
-
-    fn engine_table(self, preset: TableStyle) -> EngineTable {
-        let mut table = EngineTable::new();
-        table
-            .load_style(preset)
-            .set_content_arrangement(ContentArrangement::Dynamic);
-        if let Some(width) = self.width() {
-            table.set_width(width);
-        }
-        table
-    }
-
-    fn wrap(self, value: &str, indentation: u16) -> String {
-        let Some(width) = self.width() else {
-            return value.to_owned();
-        };
-        let mut table = EngineTable::new();
-        table
-            .load_style(NOTHING)
-            .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_width(width.saturating_sub(indentation))
-            .add_row([value]);
-        if let Some(column) = table.column_mut(0) {
-            column.set_padding((0, 0));
-            keep_words_whole(column, longest_word(value));
-        }
-        table
-            .to_string()
-            .lines()
-            .map(str::trim_end)
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-    fn width(self) -> Option<u16> {
-        self.options.explicit_width().or_else(|| {
-            crate::layout::terminal_width(
-                self.options.resolved_automatic_width_buffer(),
-                self.options.automatic_width_minimum(),
-            )
-            .or(self.options.fallback())
+        let stacked = TableWidget::new(columns)
+            .stacked_below(policy.width(), policy.label_columns())
+            .rows(table.rows().iter().map(|row| {
+                row.iter()
+                    .enumerate()
+                    .map(|(index, cell)| {
+                        let label = index < policy.label_columns();
+                        self.text(cell, label.then_some(Role::Token))
+                    })
+                    .collect::<Vec<_>>()
+            }));
+        Box::new(Stackable {
+            threshold: policy.width(),
+            grid,
+            stacked,
         })
     }
 
-    fn text(self, text: &Text) -> String {
-        text.spans()
-            .iter()
-            .map(|span| self.paint(span.role(), span.value()))
-            .collect()
-    }
-
-    fn text_with_default(self, text: &Text, default: Role) -> String {
-        text.spans()
-            .iter()
-            .map(|span| {
-                let role = if span.role() == Role::Plain {
-                    default
-                } else {
-                    span.role()
-                };
-                self.paint(role, span.value())
-            })
-            .collect()
-    }
-
-    fn paint(self, role: Role, value: &str) -> String {
-        if self.options.color() == ColorMode::Never || role == Role::Plain {
-            return value.to_owned();
-        }
-        let style = match role {
-            Role::Plain => return value.to_owned(),
-            Role::Heading => HEADING,
-            Role::Success => SUCCESS,
-            Role::Warning => WARNING,
-            Role::Error => ERROR,
-            Role::Value => VALUE,
-            Role::Muted => MUTED,
-            Role::Token => OPTION,
-            Role::Id => ID,
+    fn column(self, table: &Table, index: usize) -> Column {
+        let column = if table.headers().is_empty() {
+            Column::untitled()
+        } else {
+            Column::styled(
+                table
+                    .headers()
+                    .get(index)
+                    .map_or_else(StyledText::new, |header| {
+                        self.text(header, Some(Role::Heading))
+                    }),
+            )
         };
-        styled(style, value)
+        let column = if table.ellipsis_columns().contains(&index) {
+            column.overflow(Overflow::Ellipsis)
+        } else {
+            column
+        };
+        if table.numeric_columns().contains(&index) {
+            column.numeric()
+        } else {
+            column
+        }
+    }
+
+    fn notice(self, notice: &Notice) -> StyledText {
+        let theme = self.options.active_theme();
+        let label = match notice.level() {
+            NoticeLevel::Success => "success",
+            NoticeLevel::Warning => "warning",
+            NoticeLevel::Error => "error",
+        };
+        let mut text = StyledText::styled(label, theme.notice(notice.level()));
+        if let Some(code) = notice.code_value() {
+            text.push(" · ", Style::new());
+            text.push(code, theme.role(Role::Muted));
+        }
+        text.push(" · ", Style::new());
+        self.push_spans(&mut text, notice.message(), None);
+        text
+    }
+
+    /// `text` with each span in its role's style. A plain span takes
+    /// `default` when one is given, so a heading or a token column styles
+    /// the text a consumer left plain.
+    fn text(self, text: &Text, default: Option<Role>) -> StyledText {
+        let mut styled = StyledText::new();
+        self.push_spans(&mut styled, text, default);
+        styled
+    }
+
+    fn push_spans(self, target: &mut StyledText, text: &Text, default: Option<Role>) {
+        let theme = self.options.active_theme();
+        for span in text.spans() {
+            let role = match (span.role(), default) {
+                (Role::Plain, Some(default)) => default,
+                (role, _) => role,
+            };
+            target.push(span.value(), theme.role(role));
+        }
+    }
+}
+
+/// The role a table cell's plain spans take: a token column's, then an id
+/// column's, then none.
+fn cell_role(table: &Table, index: usize) -> Option<Role> {
+    if table.token_column_index() == Some(index) {
+        Some(Role::Token)
+    } else if table.id_column_index() == Some(index) {
+        Some(Role::Id)
+    } else {
+        None
     }
 }
 
 impl Document {
-    /// Render with explicit semantic options.
+    /// Render with explicit semantic options; see [`Renderer::render`].
     #[must_use]
     pub fn render(&self, options: RenderOptions) -> String {
         Renderer::new(options).render(self)
     }
 }
 
-/// Borderless styles leave cell padding at the line end; drop it so captured
-/// output has no trailing spaces.
-fn trim_line_ends(value: &str) -> String {
-    value
-        .lines()
-        .map(str::trim_end)
-        .collect::<Vec<_>>()
-        .join("\n")
+/// `lines` as text, each line ended by a newline, with styles written only
+/// when `color` is set.
+///
+/// This writes the bytes `ctl_term::Encoder` writes at full colour depth: a
+/// style sequence where the style changes, a reset before a change away from
+/// a style, and a reset at the end of every line that wrote a style. A
+/// [`Document::render`] string has no stream and so no depth to fit; the
+/// `render` tier stays free of the terminal crate. The parity test checks
+/// that this and the view's writer give the same bytes.
+fn encode(lines: &[Line], color: bool) -> String {
+    let mut out = String::new();
+    for line in lines {
+        let mut current = Style::new();
+        let mut wrote_style = false;
+        for span in line.spans() {
+            let style = if color { span.style() } else { Style::new() };
+            if style != current {
+                if !current.is_plain() {
+                    out.push_str(RESET);
+                }
+                if !style.is_plain() {
+                    out.push_str(&style.render().to_string());
+                    wrote_style = true;
+                }
+                current = style;
+            }
+            out.push_str(span.text());
+        }
+        if wrote_style {
+            out.push_str(RESET);
+        }
+        out.push('\n');
+    }
+    out
 }
 
-fn sanitize_verbatim(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| {
-            *character == '\n' || *character == '\t' || !crate::verbatim::is_unsafe(*character)
-        })
-        .collect::<String>()
-        .trim_end_matches('\n')
-        .to_owned()
+/// A block that draws nothing when every line it renders is empty, so an
+/// empty paragraph or an empty record leaves no blank lines in the stack.
+struct Visible(Box<dyn Renderable>);
+
+impl fmt::Debug for Visible {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.debug_struct("Visible").finish_non_exhaustive()
+    }
 }
 
-/// Width of the widest whitespace-separated word, ignoring the SGR escapes
-/// this renderer paints with.
-fn longest_word(value: &str) -> u16 {
-    let mut plain = String::with_capacity(value.len());
-    let mut escape = false;
-    for character in value.chars() {
-        match (escape, character) {
-            (false, '\u{1b}') => escape = true,
-            (false, _) => plain.push(character),
-            (true, 'm') => escape = false,
-            (true, _) => {}
+impl Renderable for Visible {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.0.measure(context)
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        let lines = self.0.render(context);
+        if lines.iter().all(Line::is_empty) {
+            Vec::new()
+        } else {
+            lines
         }
     }
-    let widest = plain
-        .split_whitespace()
-        .map(UnicodeWidthStr::width)
-        .max()
-        .unwrap_or(0);
-    u16::try_from(widest).unwrap_or(u16::MAX)
 }
 
-/// A URL or path split across lines cannot be copied back out, so a word
-/// wider than the column runs past the width instead of being broken.
-fn keep_words_whole(column: &mut Column, longest: u16) {
-    if longest > 0 {
-        let bound = longest.saturating_add(column.padding_width());
-        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(bound)));
+/// Preformatted lines, drawn as given at any width.
+///
+/// The unsafe characters go, newline aside, and so do the newlines at the
+/// end. A tab expands to the next multiple of 8 cells from the start of its
+/// line, since a span holds no tab. Trailing spaces stay.
+#[derive(Debug)]
+struct Verbatim {
+    lines: Vec<Line>,
+}
+
+impl Verbatim {
+    fn new(value: &str) -> Self {
+        let kept = value
+            .chars()
+            .filter(|character| {
+                matches!(*character, '\n' | '\t') || !ctl_text::verbatim::is_unsafe(*character)
+            })
+            .collect::<String>();
+        let kept = kept.trim_end_matches('\n');
+        let lines = if kept.is_empty() {
+            Vec::new()
+        } else {
+            kept.split('\n')
+                .map(|line| Line::from(StyledSpan::new(line, Style::new())))
+                .collect()
+        };
+        Self { lines }
+    }
+}
+
+impl Renderable for Verbatim {
+    fn measure(&self, _: &Context) -> Measurement {
+        Measurement::exact(self.lines.iter().map(Line::width).max().unwrap_or(0))
+    }
+
+    fn render(&self, _: &Context) -> Vec<Line> {
+        self.lines.clone()
+    }
+}
+
+/// A rule across the width, or across [`NATURAL_RULE_WIDTH`] cells in a
+/// document laid out at its natural width.
+#[derive(Debug)]
+struct Divider(RuleWidget);
+
+impl Divider {
+    fn context(context: Context) -> Context {
+        if context.width() == NATURAL_WIDTH {
+            context.with_width(NATURAL_RULE_WIDTH)
+        } else {
+            context
+        }
+    }
+}
+
+impl Renderable for Divider {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.0.measure(&Self::context(*context))
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        self.0.render(&Self::context(*context))
+    }
+}
+
+/// A table that stacks its rows below a width.
+///
+/// The two forms style their cells differently: a stacked row's label cells
+/// take the token style, as help's flags do, while the grid styles only its
+/// token and id columns. So each form is its own table, and the width picks
+/// one.
+#[derive(Debug)]
+struct Stackable {
+    threshold: u16,
+    grid: TableWidget,
+    stacked: TableWidget,
+}
+
+impl Stackable {
+    fn pick(&self, context: Context) -> &TableWidget {
+        if context.width() < self.threshold {
+            &self.stacked
+        } else {
+            &self.grid
+        }
+    }
+}
+
+impl Renderable for Stackable {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.pick(*context).measure(context)
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        self.pick(*context).render(context)
     }
 }
 
@@ -1042,7 +1121,7 @@ mod tests {
         let rendered = Document::new()
             .verbatim("\u{1b}]52;clipboard\u{7}\u{202e}\u{2028}\u{2029}\tvalue")
             .render(RenderOptions::new(ColorMode::Never).width(5));
-        assert_eq!(rendered, "]52;clipboard\tvalue\n");
+        assert_eq!(rendered, "]52;clipboard   value\n");
     }
 
     #[test]

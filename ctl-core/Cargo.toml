@@ -38,14 +38,10 @@ document = []
 ## Serde models and the JSON view.
 json = ["dep:serde", "dep:serde_json"]
 
-## Terminal rendering for semantic documents. Engine crates stay private.
-render = [
-  "document",
-  "verbatim",
-  "dep:anstyle",
-  "dep:comfy-table",
-  "dep:unicode-width",
-]
+## Rendering semantic documents to a `String` through `ctl-text` and
+## `ctl-layout`, with a replaceable `Theme`. No terminal crate: the width is
+## explicit or the fallback, and nothing is detected.
+render = ["document", "verbatim", "dep:ctl-layout"]
 
 ## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`),
 ## re-exported from `ctl-text`.
@@ -55,11 +51,14 @@ verbatim = ["dep:ctl-text"]
 schema = ["json", "dep:schemars"]
 
 ## Styled `-h/--help` through the shared document renderer. Adds Clap's
-## `usage` feature for the usage line.
-help = ["cli", "render", "clap/usage", "dep:anstream"]
+## `usage` feature for the usage line, and `ctl-term`, which decides colour
+## and width for the stream help goes to.
+help = ["cli", "render", "clap/usage", "dep:ctl-term"]
 
-## Pretty / JSON / colorless emitters over serializable models.
-view = ["render", "json", "dep:anstream"]
+## Pretty / JSON / colorless emitters over serializable models. Adds
+## `ctl-term`, which decides colour and width for the stream each result goes
+## to.
+view = ["render", "json", "dep:ctl-term"]
 
 ## Clap-derived operator metadata without serialization or a template engine.
 surface-model = ["cli", "usage"]
@@ -115,12 +114,9 @@ usage = ["cli", "dep:usage-lib"]
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
-anstream = { workspace = true, optional = true }
-anstyle = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 garde = { workspace = true, optional = true }
 clap_complete = { workspace = true, optional = true }
-comfy-table = { workspace = true, optional = true }
 document-features.workspace = true
 indoc.workspace = true
 minijinja = { workspace = true, optional = true }
@@ -132,8 +128,9 @@ tempfile = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 yamled = { workspace = true, optional = true }
 usage-lib = { workspace = true, optional = true }
+ctl-layout = { workspace = true, optional = true }
+ctl-term = { workspace = true, optional = true }
 ctl-text = { workspace = true, optional = true }
-unicode-width = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta.workspace = true
