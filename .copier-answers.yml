@@ -14,8 +14,7 @@ deny_licenses:
 deny_skip: []
 feature_sets: []
 github_owner: victor-software-house
-layout: crate
-library: true
+layout: workspace
 max_width: 100
 merge_queue: true
 mise_version: 2026.10.25

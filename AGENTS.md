@@ -67,6 +67,23 @@ Boolean pairs that are domain-specific (`--pr` / `--no-pr`) stay in the CLI.
 Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins
 without silence.
 
+## Workspace
+
+The repository is a virtual Cargo workspace (`layout: workspace` in the
+Copier answers). The root `Cargo.toml` holds the members, one version for
+every crate in `[workspace.package]`, `[workspace.dependencies]`, and
+`[workspace.lints]`. Each crate lives in a root folder named like its
+package, today `ctl-core/`, and inherits those tables with
+`workspace = true`. Profiles stay in the root manifest, where Cargo reads
+them. For a workspace the template drops the library-only `print_stdout` and
+`print_stderr` lints and clippy's `allow-print-in-tests`; they stay here as
+local edits, because every member is a library. `.ctl/ver.yaml` points at the
+virtual manifest, so verctl bumps `workspace.package.version` and publishes
+each member in dependency order. `check:features` passes
+`--package ctl-core`, since Cargo refuses `--features` at the root of a
+virtual workspace. The terminal-render-engine change adds `ctl-text`,
+`ctl-layout`, and `ctl-term` beside `ctl-core/`.
+
 ## Cargo features
 
 Features are tree-shaking. `document` carries no terminal engine. `render` adds
@@ -90,7 +107,7 @@ every help Clap stops for and never calls `Error::print` or `Command::color`.
 Measure a new dependency or feature with `cargo bloat` on a release build
 before adding it (`openspec/changes/narrow-clap-features/design.md`).
 
-The crate-root `//!` sections in `src/lib.rs` are the docs.rs landing page,
+The crate-root `//!` sections in `ctl-core/src/lib.rs` are the docs.rs landing page,
 and `document_features` there is authoritative for the feature graph. The
 README is the GitHub page and does not copy them. Crate-root re-exports stay
 `#[doc(hidden)]`, so the page lists modules once; the prelude documents the
@@ -234,7 +251,7 @@ files `.miserc.toml`, `.envrc`, `mise.dev.toml`, `mise.ci.toml`,
 the path-named file tasks in `mise-tasks/` (`check/repo.sh`,
 `commit-msg.sh`, `commits.sh`, `specs.sh`, `format/`, `lint/`, and
 `hooks/secrets/`), plus the settings, toolchain, and `[task_config]` blocks
-of `mise.toml` and the `[lints]` tables of `Cargo.toml`. The starters
+of `mise.toml` and the `[workspace.lints]` tables of the root `Cargo.toml`. The starters
 `mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's
 own, and so is `mise-tasks/check/features.sh`, which holds this crate's
 feature sets.
@@ -279,7 +296,7 @@ keeps no fixture wrapper of its own. `CTC-006` tracks the consumer moves.
 ## Snapshots
 
 Rendered output a reviewer should read, such as a shell script or a help
-page, is an insta file snapshot under `tests/snapshots/`, never a string
+page, is an insta file snapshot under `ctl-core/tests/snapshots/`, never a string
 literal or a `contains` check: a change to the output shows as a diff of the
 snapshot. `insta` is pinned exactly; a bump is a reviewed change. CI sets
 `INSTA_UPDATE=no` in `mise.ci.toml`, so it never writes a snapshot. Review a
@@ -288,7 +305,7 @@ change locally with `cargo insta review` (`cargo-insta` is in
 own temporary directory.
 
 A rendered shell script also passes its shell's check through
-`tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
+`ctl-core/tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
 `fish -n`. zsh, fish, and shellcheck are pinned in `mise.test.toml`, the
 `test` profile, and locked in `mise.test.lock`. `.miserc.toml` loads it
 locally after `dev`, and CI loads it only in the Build and test job

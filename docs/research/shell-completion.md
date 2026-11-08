@@ -120,7 +120,7 @@ decide the cost:
    [ubi backend][mise-ubi]). An operator who installs a ctl CLI that way
    loads the script from a startup file. Inside a repository, `mise run q`
    completes through the Usage spec ctl-core already serves
-   ([`src/usage.rs`](../../src/usage.rs)), which is a separate path this
+   ([`src/usage.rs`](../../ctl-core/src/usage.rs)), which is a separate path this
    change leaves alone.
 
 ## 5. Which shells

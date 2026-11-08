@@ -1,29 +1,67 @@
-[package]
-name = "ctl-core"
+[workspace]
+members = ["ctl-core"]
+resolver = "3"
+
+[workspace.package]
 version = "0.6.28"
 edition = "2024"
 rust-version = "1.99.1"
-description = "Shared clap chassis for the *ctl CLIs"
 license = "MIT"
 repository = "https://github.com/victor-software-house/ctl-core"
-keywords = ["clap", "cli", "help", "color"]
-categories = ["command-line-interface", "development-tools"]
 
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cap-lints", "warn"]
+[workspace.dependencies]
+anyhow = "1.0.104"
+anstream = "1.0.0"
+anstyle = "1.0.14"
+clap = { version = "4.6.6", default-features = false, features = [
+  "std",
+  "derive",
+  "env",
+  "string",
+] }
+garde = { version = "0.23.0", default-features = false }
+# The dynamic engine is behind `unstable-dynamic`, which carries no semver
+# promise, so the pin is exact and every bump is a reviewed change.
+clap_complete = { version = "=4.6.11", default-features = false, features = [
+  "unstable-dynamic",
+] }
+comfy-table = { version = "8.0.0", default-features = false, features = [
+  "custom_styling",
+  "tty",
+] }
+document-features = "0.2.12"
+indoc = "2.0.7"
+minijinja = { version = "2.24.0", features = ["serde"] }
+schemars = "1.2.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+serde-saphyr = { version = "2.0.0", default-features = false, features = [
+  "deserialize",
+  "comments",
+] }
+tempfile = "3.27.0"
+toml = { version = "1.1.8", default-features = false, features = [
+  "std",
+  "parse",
+  "serde",
+] }
+yamled = { version = "0.0.8", default-features = false }
+usage-lib = { version = "6.0.0", default-features = false, features = ["clap"] }
+unicode-bidi = { version = "0.3.18", default-features = false }
+unicode-width = "0.2.2"
+# Snapshot tests for rendered output (tests/snapshots). Pinned exactly: a new
+# insta can change how a snapshot file is read or written, so a bump is a
+# reviewed change. No colors: CI logs and review diffs stay plain.
+insta = { version = "=1.49.0", default-features = false }
 
-[package.metadata.cargo-machete]
-ignored = ["usage-lib"]
-
-[lints.rust]
+[workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"
 missing_debug_implementations = "deny"
 unreachable_pub = "deny"
 rust_2018_idioms = { level = "deny", priority = -1 }
 
-[lints.rustdoc]
+[workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"
 private_intra_doc_links = "deny"
 invalid_html_tags = "deny"
@@ -35,7 +73,7 @@ missing_crate_level_docs = "deny"
 # backtick renders the rest of the paragraph as code.
 unescaped_backticks = "deny"
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 cargo = { level = "deny", priority = -1 }
@@ -73,149 +111,6 @@ print_stderr = "deny"
 # Duplicate versions come from transitive dependencies the crate does not
 # control; cargo-deny reports them (`bans.multiple-versions`).
 multiple_crate_versions = "allow"
-
-[features]
-default = ["app"]
-
-## Complete typed CLI lifecycle over the shared help and view layers.
-app = ["cli", "view", "help", "dep:anyhow"]
-
-## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
-## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
-## and `string`. Error context, suggestions, and Clap's own help and color
-## stay the consumer's choice.
-cli = ["dep:clap"]
-
-## Semantic presentation documents without a terminal engine.
-document = []
-
-## Serde models and the JSON view.
-json = ["dep:serde", "dep:serde_json"]
-
-## Terminal rendering for semantic documents. Engine crates stay private.
-render = [
-  "document",
-  "verbatim",
-  "dep:anstyle",
-  "dep:comfy-table",
-  "dep:unicode-width",
-]
-
-## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`).
-verbatim = ["dep:unicode-bidi"]
-
-## JSON Schema for the envelope and enums (`schemars`).
-schema = ["json", "dep:schemars"]
-
-## Styled `-h/--help` through the shared document renderer. Adds Clap's
-## `usage` feature for the usage line.
-help = ["cli", "render", "clap/usage", "dep:anstream"]
-
-## Pretty / JSON / colorless emitters over serializable models.
-view = ["render", "json", "dep:anstream"]
-
-## Clap-derived operator metadata without serialization or a template engine.
-surface-model = ["cli", "usage"]
-
-## Serializable Surface metadata without a template engine.
-surface-serde = ["surface-model", "dep:serde"]
-
-## Shared MiniJinja fragments for committed operator documents.
-surface-templates = ["surface-serde", "dep:minijinja"]
-
-## Compatibility aggregate for the complete operator-document surface.
-surface = ["surface-templates"]
-
-## Files a repository serves, rendered from templates that declare their own
-## target (`served::render`, `Served::write`).
-served = [
-  "surface-templates",
-  "validate",
-  "garde/derive",
-  "minijinja/deserialization",
-]
-
-## Garde rules every declared schema shares (`validate`).
-validate = ["dep:garde"]
-
-## Declared input: read, parse with serde-saphyr, validate once with garde,
-## and place every problem on its file and line through yamled.
-input = ["validate", "dep:serde", "dep:serde-saphyr", "dep:yamled"]
-
-## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
-## crate's span-carrying tree places each problem on its line and column.
-## Enables `input`, whose `Limits` it shares.
-input-toml = ["input", "dep:toml"]
-
-## Temporary file trees for integration tests: `Suite`, its scenarios,
-## and one call per file.
-fixture = ["dep:tempfile"]
-
-## The shells a ctl CLI writes scripts for (`Shell`): bash, zsh, and fish.
-shell = ["cli"]
-
-## The `completion <SHELL>` verb and the `COMPLETE` request it registers
-## (`CompletionCommand`, `App::completion`), through `clap_complete`'s
-## dynamic engine. Enables `app`, which `App::completion` lives on.
-completion = ["shell", "view", "app", "dep:clap_complete"]
-
-## Mise Usage spec from clap (`--usage-spec`, served-task mount).
-usage = ["cli", "dep:usage-lib"]
-
-[dependencies]
-anyhow = { version = "1.0.104", optional = true }
-anstream = { version = "1.0.0", optional = true }
-anstyle = { version = "1.0.14", optional = true }
-clap = { version = "4.6.6", optional = true, default-features = false, features = [
-  "std",
-  "derive",
-  "env",
-  "string",
-] }
-garde = { version = "0.23.0", optional = true, default-features = false }
-# The dynamic engine is behind `unstable-dynamic`, which carries no semver
-# promise, so the pin is exact and every bump is a reviewed change.
-clap_complete = { version = "=4.6.11", optional = true, default-features = false, features = [
-  "unstable-dynamic",
-] }
-comfy-table = { version = "8.0.0", optional = true, default-features = false, features = [
-  "custom_styling",
-  "tty",
-] }
-document-features = "0.2.12"
-indoc = "2.0.7"
-minijinja = { version = "2.24.0", optional = true, features = ["serde"] }
-schemars = { version = "1.2.2", optional = true }
-serde = { version = "1.0.229", optional = true, features = ["derive"] }
-serde_json = { version = "1.0.151", optional = true }
-serde-saphyr = { version = "2.0.0", optional = true, default-features = false, features = [
-  "deserialize",
-  "comments",
-] }
-tempfile = { version = "3.27.0", optional = true }
-toml = { version = "1.1.8", optional = true, default-features = false, features = [
-  "std",
-  "parse",
-  "serde",
-] }
-yamled = { version = "0.0.8", optional = true, default-features = false }
-usage-lib = { version = "6.0.0", default-features = false, features = [
-  "clap",
-], optional = true }
-unicode-bidi = { version = "0.3.18", optional = true, default-features = false }
-unicode-width = { version = "0.2.2", optional = true }
-
-[dev-dependencies]
-# Snapshot tests for rendered output (tests/snapshots). Pinned exactly: a new
-# insta can change how a snapshot file is read or written, so a bump is a
-# reviewed change. No colors: CI logs and review diffs stay plain.
-insta = { version = "=1.49.0", default-features = false }
-garde = { version = "0.23.0", default-features = false, features = ["derive"] }
-indoc = "2.0.7"
-
-[[example]]
-name = "gallery"
-required-features = ["view"]
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

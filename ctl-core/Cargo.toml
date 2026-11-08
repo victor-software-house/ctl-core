@@ -1,0 +1,140 @@
+[package]
+name = "ctl-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Shared clap chassis for the *ctl CLIs"
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["clap", "cli", "help", "color"]
+categories = ["command-line-interface", "development-tools"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cap-lints", "warn"]
+
+[package.metadata.cargo-machete]
+ignored = ["usage-lib"]
+
+[lints]
+workspace = true
+
+[features]
+default = ["app"]
+
+## Complete typed CLI lifecycle over the shared help and view layers.
+app = ["cli", "view", "help", "dep:anyhow"]
+
+## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
+## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
+## and `string`. Error context, suggestions, and Clap's own help and color
+## stay the consumer's choice.
+cli = ["dep:clap"]
+
+## Semantic presentation documents without a terminal engine.
+document = []
+
+## Serde models and the JSON view.
+json = ["dep:serde", "dep:serde_json"]
+
+## Terminal rendering for semantic documents. Engine crates stay private.
+render = [
+  "document",
+  "verbatim",
+  "dep:anstyle",
+  "dep:comfy-table",
+  "dep:unicode-width",
+]
+
+## Which characters are unsafe to print verbatim (`verbatim::is_unsafe`).
+verbatim = ["dep:unicode-bidi"]
+
+## JSON Schema for the envelope and enums (`schemars`).
+schema = ["json", "dep:schemars"]
+
+## Styled `-h/--help` through the shared document renderer. Adds Clap's
+## `usage` feature for the usage line.
+help = ["cli", "render", "clap/usage", "dep:anstream"]
+
+## Pretty / JSON / colorless emitters over serializable models.
+view = ["render", "json", "dep:anstream"]
+
+## Clap-derived operator metadata without serialization or a template engine.
+surface-model = ["cli", "usage"]
+
+## Serializable Surface metadata without a template engine.
+surface-serde = ["surface-model", "dep:serde"]
+
+## Shared MiniJinja fragments for committed operator documents.
+surface-templates = ["surface-serde", "dep:minijinja"]
+
+## Compatibility aggregate for the complete operator-document surface.
+surface = ["surface-templates"]
+
+## Files a repository serves, rendered from templates that declare their own
+## target (`served::render`, `Served::write`).
+served = [
+  "surface-templates",
+  "validate",
+  "garde/derive",
+  "minijinja/deserialization",
+]
+
+## Garde rules every declared schema shares (`validate`).
+validate = ["dep:garde"]
+
+## Declared input: read, parse with serde-saphyr, validate once with garde,
+## and place every problem on its file and line through yamled.
+input = ["validate", "dep:serde", "dep:serde-saphyr", "dep:yamled"]
+
+## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
+## crate's span-carrying tree places each problem on its line and column.
+## Enables `input`, whose `Limits` it shares.
+input-toml = ["input", "dep:toml"]
+
+## Temporary file trees for integration tests: `Suite`, its scenarios,
+## and one call per file.
+fixture = ["dep:tempfile"]
+
+## The shells a ctl CLI writes scripts for (`Shell`): bash, zsh, and fish.
+shell = ["cli"]
+
+## The `completion <SHELL>` verb and the `COMPLETE` request it registers
+## (`CompletionCommand`, `App::completion`), through `clap_complete`'s
+## dynamic engine. Enables `app`, which `App::completion` lives on.
+completion = ["shell", "view", "app", "dep:clap_complete"]
+
+## Mise Usage spec from clap (`--usage-spec`, served-task mount).
+usage = ["cli", "dep:usage-lib"]
+
+[dependencies]
+anyhow = { workspace = true, optional = true }
+anstream = { workspace = true, optional = true }
+anstyle = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
+garde = { workspace = true, optional = true }
+clap_complete = { workspace = true, optional = true }
+comfy-table = { workspace = true, optional = true }
+document-features.workspace = true
+indoc.workspace = true
+minijinja = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde-saphyr = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+yamled = { workspace = true, optional = true }
+usage-lib = { workspace = true, optional = true }
+unicode-bidi = { workspace = true, optional = true }
+unicode-width = { workspace = true, optional = true }
+
+[dev-dependencies]
+insta.workspace = true
+garde = { workspace = true, features = ["derive"] }
+indoc.workspace = true
+
+[[example]]
+name = "gallery"
+required-features = ["view"]
