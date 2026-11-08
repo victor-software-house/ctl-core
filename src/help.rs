@@ -62,11 +62,7 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     if !crate::parser::wants_help::<C>(&raw) {
         return Ok(false);
     }
-    let command = help_command::<C>(args);
-    let output = document(command).render(options);
-    let mut stream = anstream::AutoStream::new(io::stdout().lock(), options.color().choice());
-    stream.write_all(output.as_bytes())?;
-    stream.flush()?;
+    emit_selected::<C>(args, options)?;
     Ok(true)
 }
 
@@ -76,9 +72,42 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 ///
 /// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    let output = document(C::command()).render(options);
-    let mut stream = anstream::AutoStream::new(io::stderr().lock(), options.color().choice());
-    stream.write_all(output.as_bytes())?;
+    write(io::stderr().lock(), &document(C::command()), options)
+}
+
+/// Help for the command `args` select, to stdout, as a help request prints it.
+pub(crate) fn emit_selected<C: CommandFactory>(
+    args: &[String],
+    options: RenderOptions,
+) -> io::Result<()> {
+    write(
+        io::stdout().lock(),
+        &document(help_command::<C>(args)),
+        options,
+    )
+}
+
+/// Help for the command `args` select, to stderr. Clap asks for it when a
+/// command that requires an argument or a subcommand gets neither.
+#[cfg(feature = "app")]
+pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
+    args: &[String],
+    options: RenderOptions,
+) -> io::Result<()> {
+    write(
+        io::stderr().lock(),
+        &document(help_command::<C>(args)),
+        options,
+    )
+}
+
+fn write(
+    stream: impl anstream::stream::RawStream + anstream::stream::AsLockedWrite,
+    help: &Document,
+    options: RenderOptions,
+) -> io::Result<()> {
+    let mut stream = anstream::AutoStream::new(stream, options.color().choice());
+    stream.write_all(help.render(options).as_bytes())?;
     stream.flush()
 }
 

@@ -7,8 +7,6 @@ use comfy_table::{
     Cell, CellAlignment, Column, ColumnConstraint, ContentArrangement, LineStyle,
     Table as EngineTable, TableStyle, Width,
 };
-use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
-use unicode_general_category::{GeneralCategory, get_general_category};
 use unicode_width::UnicodeWidthStr;
 
 use crate::color::ColorMode;
@@ -700,23 +698,11 @@ fn sanitize_verbatim(value: &str) -> String {
     value
         .chars()
         .filter(|character| {
-            *character == '\n' || *character == '\t' || !is_unsafe_verbatim(*character)
+            *character == '\n' || *character == '\t' || !crate::verbatim::is_unsafe(*character)
         })
         .collect::<String>()
         .trim_end_matches('\n')
         .to_owned()
-}
-
-fn is_unsafe_verbatim(character: char) -> bool {
-    character.is_control()
-        || matches!(
-            character,
-            ALM | FSI | LRE | LRI | LRM | LRO | PDF | PDI | RLE | RLI | RLM | RLO
-        )
-        || matches!(
-            get_general_category(character),
-            GeneralCategory::LineSeparator | GeneralCategory::ParagraphSeparator
-        )
 }
 
 /// Width of the widest whitespace-separated word, ignoring the SGR escapes
