@@ -23,22 +23,27 @@
 //!    [`PARAGRAPH_SEPARATOR`]. A terminal or a tool may break a line there that
 //!    the layout counted as one.
 //!
-//! The set follows Unicode 16.0.0: UAX #9 revision 50, which
-//! unicode-bidi 0.3.18 implements. Cc, Zl, and Zp have had the same members
-//! since Unicode 1.1.
+//! The set follows Unicode 16.0.0 and UAX #9 revision 50, which unicode-bidi
+//! 0.3.18 implements. Cc, Zl, and Zp have had the same members since
+//! Unicode 1.1.
 //!
-//! The other format characters (general category Cf) stay. They neither
-//! act on the terminal nor reorder text, and text needs them: ZWJ joins
-//! emoji, ZWNJ shapes Persian and Indic scripts, the tag characters spell
-//! subdivision flags, the soft hyphen marks a break, and the Arabic number
-//! signs render as visible marks.
+//! The other format characters (general category Cf) stay. They neither act on
+//! the terminal nor reorder text, and text needs them.
+//!
+//! - ZWJ joins emoji.
+//! - ZWNJ shapes Persian and Indic scripts.
+//! - The tag characters spell subdivision flags.
+//! - The soft hyphen marks a break.
+//! - The Arabic number signs render as visible marks.
 
 use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 
-/// U+2028, the only character in general category Zl.
+/// U+2028 LINE SEPARATOR, the only character in general category Zl.
+/// [`is_unsafe`] refuses it.
 pub const LINE_SEPARATOR: char = '\u{2028}';
 
-/// U+2029, the only character in general category Zp.
+/// U+2029 PARAGRAPH SEPARATOR, the only character in general category Zp.
+/// [`is_unsafe`] refuses it.
 pub const PARAGRAPH_SEPARATOR: char = '\u{2029}';
 
 /// Whether `character` is in the set the [module](self) defines.

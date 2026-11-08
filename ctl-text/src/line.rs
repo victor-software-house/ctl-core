@@ -20,7 +20,8 @@ pub(crate) struct Piece<'a> {
 /// A list of spans that sit on one terminal line.
 ///
 /// The text of a line is the text of its spans, joined. Its [`Display`]
-/// prints that text without styles.
+/// prints that text without styles, which suits tests and plain output.
+/// Build one with `Line::from(span)`, or collect spans into it.
 ///
 /// [`Display`]: fmt::Display
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
@@ -57,7 +58,7 @@ impl Line {
         }
     }
 
-    /// The spans, in order.
+    /// The spans, in order. Their text joined is the text of the line.
     #[must_use]
     pub fn spans(&self) -> &[Span] {
         &self.spans
@@ -80,6 +81,9 @@ impl Line {
     }
 
     /// Removes the spaces at the end of the line, and any span they empty.
+    ///
+    /// A no-break space (U+00A0, U+2007, or U+202F) is not a space here, so it
+    /// stays.
     pub fn trim_end(&mut self) {
         while let Some(last) = self.spans.last_mut() {
             let trailing = trailing_space_len(&last.text);

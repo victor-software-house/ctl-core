@@ -80,8 +80,8 @@ impl Text {
         }
     }
 
-    /// Sets what to do with a line wider than its width. The default is
-    /// [`Overflow::KeepWords`].
+    /// Sets what to do with a line wider than the width it renders at.
+    /// The default is [`Overflow::KeepWords`].
     #[must_use]
     pub fn overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;

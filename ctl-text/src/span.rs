@@ -53,7 +53,7 @@ impl Span {
         &self.text
     }
 
-    /// The style the text is drawn in.
+    /// The style the text is drawn in. Layout never changes it.
     #[must_use]
     pub fn style(&self) -> Style {
         self.style
