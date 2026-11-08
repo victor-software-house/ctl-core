@@ -5,9 +5,10 @@
   passes on the file.
   - 2026-11-08 UTC: committed as [7897e70]; `rumdl check` reported no
     issues.
-- [ ] 2. Plan: this change, and the CTC-030 row added with `qctl add`.
+- [x] 2. Plan: this change, and the CTC-030 row added with `qctl add`.
   Proof: `openspec validate completion-verb --strict` and
   `mise run q check` pass.
+  - 2026-11-08 UTC: both passed on [18b76f9].
 - [ ] 3. Add `Shell` in `src/shell.rs` behind the `shell` feature. Proof:
   the parse scenarios in `tests/completion.rs` pass in CI.
 - [ ] 4. Add `CompletionCommand`, `Shell::script`, `Script`, and `view` in
@@ -25,3 +26,4 @@
 
 [7897e70]: https://github.com/victor-software-house/ctl-core/commit/7897e70c03967ffc3c96cfaf8bb1fb04f3576c55
 [research]: ../../../docs/research/shell-completion.md
+[18b76f9]: https://github.com/victor-software-house/ctl-core/commit/18b76f94173226129cb2402a137eab32accfbbdb

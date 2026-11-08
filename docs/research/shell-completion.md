@@ -5,11 +5,10 @@ which `completion` verb ctl-core should give every ctl CLI, and how
 Homebrew and mise installs should pick it up.
 
 **Answer.** Ship one verb, `<bin> completion <SHELL>`, that prints
-`clap_complete`'s dynamic registration for bash, elvish, fish, powershell,
-and zsh. The script is a short shim; the binary answers each TAB itself
+`clap_complete`'s dynamic registration for bash, zsh, and fish. The script is a short shim; the binary answers each TAB itself
 through `CompleteEnv`. Pin `clap_complete` exactly, because the dynamic
-engine is behind its `unstable-dynamic` feature. Append one zsh line to the
-script, because the zsh registration completes nothing on the first TAB when
+engine is behind its `unstable-dynamic` feature. Append three zsh lines to
+the script, because the zsh registration completes nothing on the first TAB when
 it is installed in `fpath`, which is where Homebrew puts it (section 6).
 
 ## 1. The two kinds of script
@@ -130,8 +129,13 @@ Homebrew installs bash, zsh, and fish by default, and every surveyed CLI
 supports at least those three. `clap_complete`'s dynamic registration
 also covers elvish and powershell at no extra cost
 ([`Shells::builtins`][cc-env]). It has no dynamic nushell; forkctl reaches
-nushell today through the Usage library instead. Support the five
-`CompleteEnv` shells, and leave nushell to a consumer that needs it.
+nushell today through the Usage library instead.
+
+Support bash, zsh, and fish. The shell-integration verb shares the same
+`Shell` type, and every verb that takes a `Shell` must handle each one, so a
+shell joins only when every verb has a tested form for it. elvish and
+powershell have none for shell integration. forkctl's elvish, powershell,
+and nushell scripts stay its own decision when it adopts the shared verb.
 
 ## 6. zsh completes nothing on the first TAB from `fpath`
 
@@ -200,8 +204,8 @@ same verb in one change, instead of four copies that drift.
 1. A `completion` cargo feature in ctl-core, with `clap_complete` pinned
    exactly and `unstable-dynamic` on, because that feature carries no semver
    promise.
-2. A flattenable `completion <SHELL>` subcommand for bash, elvish, fish,
-   powershell, and zsh, printing the dynamic registration with the bare
+2. A flattenable `completion <SHELL>` subcommand for bash, zsh, and fish,
+   printing the dynamic registration with the bare
    binary name as the completer.
 3. An `App` builder that answers `COMPLETE=<shell>` before parsing.
 4. The zsh first-TAB lines from section 6, until `clap_complete` fixes its
