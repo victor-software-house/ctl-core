@@ -418,6 +418,15 @@ repository's own tasks live in `mise-tasks/`:
 `check:features` is the file task `mise-tasks/check/features.sh`. It denies
 warnings, so an item gated on more features than use it fails the set that
 compiles it unused.
+`check:tree` fails when the `app` tier's normal dependency tree holds a
+terminal crate the render engine replaced: comfy-table, crossterm, anstream,
+anstyle-parse, or console.
+`check:size` builds the `size` example at each feature tier with the release
+profile and fails when a tier's `.text` grows more than the tolerance past
+its budget in `[workspace.metadata.size]` of the root `Cargo.toml`. The
+budgets are linux-x64 numbers, so the task runs on Linux x86-64 and skips
+elsewhere. A change that grows a tier on purpose raises its budget in the
+same pull request, measured with the pinned rustc.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which
