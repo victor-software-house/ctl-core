@@ -100,6 +100,19 @@ queue:
       - Tests render each shell's script for a toy CLI, and CI passes.
     plan: openspec/changes/completion-verb/proposal.md
 
+  - id: CTC-031
+    title: Reviewed snapshots for rendered scripts and help
+    scope: ctl-core
+    outcome: >-
+      Every rendered shell script and help page ctl-core tests is a reviewed insta
+      snapshot that passes its own shell's check, and CI never writes a snapshot.
+    blocked_by: []
+    acceptance:
+      - The completion scripts and the verb help are insta file snapshots under tests/snapshots, with no expected text in string literals.
+      - Each rendered script passes bash -n and shellcheck, zsh -n, or fish -n in CI.
+      - CI runs with INSTA_UPDATE=no.
+    plan: openspec/changes/script-snapshots/proposal.md
+
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
     scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"

@@ -260,6 +260,26 @@ it; both are removed on drop. `root.file(path, body)` writes a fixture and its
 parent directories and returns the path; a path outside the root panics. A CLI
 keeps no fixture wrapper of its own. `CTC-006` tracks the consumer moves.
 
+## Snapshots
+
+Rendered output a reviewer should read, such as a shell script or a help
+page, is an insta file snapshot under `tests/snapshots/`, never a string
+literal or a `contains` check: a change to the output shows as a diff of the
+snapshot. `insta` is pinned exactly; a bump is a reviewed change. CI sets
+`INSTA_UPDATE=no` in `mise.ci.toml`, so it never writes a snapshot. Review a
+change locally with `cargo insta review` (`cargo-insta` is in
+`mise.dev.toml`). A test that writes a temporary file uses `fixture`, not its
+own temporary directory.
+
+A rendered shell script also passes its shell's check through
+`tests/support/shells.rs`: `bash -n` and `shellcheck --enable=all`, `zsh -n`,
+`fish -n`. zsh, fish, and shellcheck are tools of the `test` task in
+`mise.toml`, so only `mise run test` fetches them; this repository's
+`[tasks.test]` replaces the catalog's and keeps its run line and timeout. A
+missing tool fails the test. A script ctl-core writes passes shellcheck with no
+exclusions; only a third-party template's lines may be excluded, by code,
+with the reason beside the list.
+
 ## Release
 
 Human writes `.changeset/*.md` on the same PR that ships the behaviour. Never

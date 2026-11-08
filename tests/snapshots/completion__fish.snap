@@ -1,0 +1,5 @@
+---
+source: tests/completion.rs
+expression: text
+---
+complete --keep-order --exclusive --command toy --arguments "(COMPLETE=fish toy -- (commandline --current-process --tokenize --cut-at-cursor) (commandline --current-token))"

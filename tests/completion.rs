@@ -1,23 +1,25 @@
 //! The `completion` verb: each shell's script for a toy CLI, its help and
 //! view, and the `COMPLETE` request `App::completion` answers.
 //!
+//! Each script and the help are reviewed snapshots in `tests/snapshots`, and
+//! each script also passes its own shell's syntax check.
+//!
 //! Edition 2024 makes `set_var` unsafe, so each environment case reruns this
 //! test binary as a child with `COMPLETE` set, and the parent reads the
 //! child's stdout and stderr.
-#![allow(
-    missing_docs,
-    reason = "an integration test crate has no public API to document"
-)]
-#![cfg(all(feature = "completion", feature = "app"))]
+#![cfg(all(feature = "completion", feature = "app", feature = "fixture"))]
+
+#[path = "support/shells.rs"]
+mod shells;
 
 use std::process::{Command as Process, Output};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
 use ctl_core::completion::{self, CompletionArgs, CompletionCommand, Script};
+use ctl_core::help;
 use ctl_core::prelude::*;
 use ctl_core::shell::Shell;
-use ctl_core::{help, indoc};
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
@@ -141,55 +143,36 @@ fn the_verb_help_names_the_shells() {
         .cloned()
         .unwrap();
     let rendered = help::document(command).render(RenderOptions::new(ColorMode::Never).width(100));
-    assert!(
-        rendered.contains("Print the script that loads shell completion for this command"),
-        "{rendered}"
-    );
-    assert!(rendered.contains("[bash|zsh|fish]"), "{rendered}");
-    assert!(rendered.contains("bash, zsh, or fish"), "{rendered}");
+    insta::assert_snapshot!("help", rendered);
 }
 
-#[test]
-fn fish_registers_one_line_that_calls_the_binary_by_name() {
-    assert_eq!(
-        script(Shell::Fish, "toy"),
-        indoc! {r#"
-            complete --keep-order --exclusive --command toy --arguments "(COMPLETE=fish toy -- (commandline --current-process --tokenize --cut-at-cursor) (commandline --current-token))"
-        "#}
-    );
+/// shellcheck codes the bash script `clap_complete` 4.6.11 writes breaks, in
+/// lines ctl-core does not own: SC2207 splits the candidates on the `\013`
+/// separator the script sets in `IFS`, SC2181 reads `$?` after that
+/// assignment, and SC2250 is a brace style its template does not use.
+const CLAP_BASH: &[&str] = &["SC2207", "SC2181", "SC2250"];
+
+/// Snapshot the script `shell` registers for `bin`, then check that the
+/// shell reads it.
+fn assert_script(name: &str, shell: Shell, bin: &str, exclude: &[&str]) {
+    let text = script(shell, bin);
+    insta::assert_snapshot!(name, text);
+    shells::check(shell, &text, exclude);
 }
 
 #[test]
 fn bash_registers_a_function_that_calls_the_binary_by_name() {
-    let text = script(Shell::Bash, "toy");
-    for line in [
-        "_clap_complete_toy() {",
-        r#"COMPLETE="bash" \"#,
-        r#""toy" -- "${words[@]}" \"#,
-        "complete -o nospace -o bashdefault -o nosort -F _clap_complete_toy toy",
-    ] {
-        assert!(text.contains(line), "missing {line:?} in\n{text}");
-    }
+    assert_script("bash", Shell::Bash, "toy", CLAP_BASH);
 }
 
 #[test]
 fn zsh_completes_on_the_first_tab_from_fpath() {
-    let text = script(Shell::Zsh, "state-sync");
-    assert!(text.starts_with("#compdef state-sync\n"), "{text}");
-    assert!(text.contains(r#"COMPLETE="zsh" \"#), "{text}");
-    assert!(
-        text.contains(r#"state-sync -- "${words[@]}" 2>/dev/null \"#),
-        "{text}"
-    );
-    assert!(
-        text.ends_with(indoc! {r#"
-            compdef _clap_dynamic_completer_state_sync state-sync
-            if [[ ${funcstack[1]} == _state-sync ]]; then
-                _clap_dynamic_completer_state_sync "$@"
-            fi
-        "#}),
-        "{text}"
-    );
+    assert_script("zsh", Shell::Zsh, "state-sync", &[]);
+}
+
+#[test]
+fn fish_registers_one_line_that_calls_the_binary_by_name() {
+    assert_script("fish", Shell::Fish, "toy", &[]);
 }
 
 #[test]

@@ -2,6 +2,23 @@
 
 lockfile_version = 3
 
+[[tools.cargo-insta]]
+version = "1.49.0"
+backend = "aqua:mitsuhiko/insta"
+specifiers = ["1.49.0"]
+
+[tools.cargo-insta."platforms.linux-x64"]
+checksum = "sha256:18879f4e7280c2eb87bb1037ddb9d48af697511fb0d8113edfc39ab8bade4d4e"
+checksum_source = "mise-versions"
+url = "https://github.com/mitsuhiko/insta/releases/download/1.49.0/cargo-insta-x86_64-unknown-linux-gnu.tar.xz"
+url_api = "https://api.github.com/repos/mitsuhiko/insta/releases/assets/606860016"
+
+[tools.cargo-insta."platforms.macos-arm64"]
+checksum = "sha256:e596702d36313dbbc2f168ca9db447a9e259e666cd9cae9ab94eb712ca1d89e5"
+checksum_source = "mise-versions"
+url = "https://github.com/mitsuhiko/insta/releases/download/1.49.0/cargo-insta-aarch64-apple-darwin.tar.xz"
+url_api = "https://api.github.com/repos/mitsuhiko/insta/releases/assets/606859971"
+
 [[tools."github:crate-ci/committed"]]
 version = "1.1.11"
 backend = "github:crate-ci/committed"
