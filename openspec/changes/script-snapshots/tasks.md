@@ -10,14 +10,17 @@
   Proof: `Cargo.lock` adds only `insta` and `similar`.
   - 2026-11-08 UTC: `cargo metadata` locked `insta` 1.49.0 and `similar`
     2.7.0, and nothing else.
-- [ ] 3. Pin zsh, fish, and shellcheck as `test` task tools and lock them for
-  linux-x64 and macos-arm64.
+- [ ] 3. Pin zsh, fish, and shellcheck as lazy tools in `mise.toml` and
+  lock them for linux-x64 and macos-arm64.
   Proof: `mise lock --dry-run --json` prints `[]`, and `mise run test`
-  installs the tools in CI.
+  installs the tools cold in CI.
   - 2026-11-08 UTC: locked for both platforms, first as `[tools]`, then
     moved to `[tasks.test]` on review; the dry run printed `[]` after the
-    move. On macos-arm64 the locked versions installed and ran. The
-    linux-x64 install through the task is not yet proven; CI runs it.
+    move. On macos-arm64 the locked versions installed and ran.
+  - 2026-11-08 UTC: a cold CI run failed on the task tools
+    ([run 42433739166][run-cold]): mise reads a task tool's conda
+    dependencies from no lockfile (design decision 4). The tools moved to
+    lazy `[tools]` entries; the `MISE_ENV=dev` dry run prints `[]`.
 - [ ] 4. Add `tests/support/shells.rs`, and move the completion script and
   help tests to snapshots that pass their shell's check.
   Proof: the completion tests pass with `INSTA_UPDATE=no`, locally and in
@@ -33,3 +36,5 @@
 - [ ] 6. Open the PR ready, wait for CI and Kody, and answer each thread
   in the top PR before the stack merges.
   Proof: CI green on the last push.
+
+[run-cold]: https://github.com/victor-software-house/ctl-core/actions/runs/42433739166

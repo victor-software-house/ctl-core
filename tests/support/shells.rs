@@ -2,9 +2,10 @@
 //! bash script through shellcheck too, so a snapshot that the shell cannot
 //! read fails its test.
 //!
-//! The shells and shellcheck are tools of the `test` task in `mise.toml`. A
-//! test that cannot start one fails and names the tool: a check that skips
-//! itself when a tool is missing would pass without checking anything.
+//! The shells and shellcheck are lazy tools in `mise.toml`, installed the
+//! first time `mise run test` starts one. A test that cannot start one fails
+//! and names the tool: a check that skips itself when a tool is missing would
+//! pass without checking anything.
 
 use std::path::Path;
 use std::process::Command;
@@ -48,7 +49,9 @@ fn run(program: &str, args: &[&str], path: &Path) {
         .arg(path)
         .output()
         .unwrap_or_else(|error| {
-            panic!("start {program}, a tool of the `mise run test` task: {error}")
+            panic!(
+                "start {program}, a lazy tool in mise.toml that `mise run test` installs: {error}"
+            )
         });
     assert!(
         output.status.success(),
