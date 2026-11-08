@@ -3,9 +3,10 @@
 use std::io::{self, Write};
 
 use clap::{Command, CommandFactory};
+use ctl_term::Stream;
 
 use crate::document::{Document, Role, Section, Table, Text};
-use crate::render::RenderOptions;
+use crate::render::{RenderOptions, Renderer};
 
 const NARROW_HELP_WIDTH: u16 = 64;
 
@@ -68,11 +69,20 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 
 /// Render root help to stderr with rendering options supplied by the owner.
 ///
+/// Colour and width are decided for stderr, not stdout, so help printed after
+/// a usage error fits the terminal stderr writes to even when stdout is a
+/// pipe.
+///
 /// # Errors
 ///
 /// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    write(io::stderr().lock(), &document(C::command()), options)
+    write(
+        Stream::Stderr,
+        &mut io::stderr().lock(),
+        &document(C::command()),
+        options,
+    )
 }
 
 /// Help for the command `args` select, to stdout, as a help request prints it.
@@ -81,7 +91,8 @@ pub(crate) fn emit_selected<C: CommandFactory>(
     options: RenderOptions,
 ) -> io::Result<()> {
     write(
-        io::stdout().lock(),
+        Stream::Stdout,
+        &mut io::stdout().lock(),
         &document(help_command::<C>(args)),
         options,
     )
@@ -95,20 +106,26 @@ pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
     options: RenderOptions,
 ) -> io::Result<()> {
     write(
-        io::stderr().lock(),
+        Stream::Stderr,
+        &mut io::stderr().lock(),
         &document(help_command::<C>(args)),
         options,
     )
 }
 
+/// Writes `help` to `writer`, the handle of `stream`, in the colour and at
+/// the width decided for that stream.
 fn write(
-    stream: impl anstream::stream::RawStream + anstream::stream::AsLockedWrite,
+    stream: Stream,
+    writer: &mut dyn Write,
     help: &Document,
     options: RenderOptions,
 ) -> io::Result<()> {
-    let mut stream = anstream::AutoStream::new(stream, options.color().choice());
-    stream.write_all(help.render(options).as_bytes())?;
-    stream.flush()
+    let text = options
+        .console(stream)
+        .render(&Renderer::new(options).widget(help));
+    writer.write_all(text.as_bytes())?;
+    writer.flush()
 }
 
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {

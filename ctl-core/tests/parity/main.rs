@@ -1,11 +1,13 @@
 //! Parity corpus: the documents verctl, qctl, forkctl, and rawr render,
-//! through ctl-core's public API, at four widths with and without colour,
-//! compared byte for byte with committed baselines.
+//! through ctl-core's public API, at four widths with and without colour.
 //!
-//! The baselines in `baseline/` come from the comfy-table renderer and stay
-//! frozen as the 0.6.x reference. The render-engine change adds its own
-//! outputs beside them, so each change in output shows as a diff. Write
-//! missing or changed baselines with `PARITY_UPDATE=1`.
+//! Each render is compared byte for byte with its file in `engine/`, and
+//! every engine file has a file of the same name in `baseline/`. The
+//! baselines come from the comfy-table renderer and stay frozen as the 0.6.x
+//! reference, so a diff of the two directories shows every change the
+//! render engine made; `DIFFERENCES.md` gives the reason for each kind.
+//! `PARITY_UPDATE=1` writes missing or changed engine files and never
+//! touches a baseline.
 //!
 //! A file holds the render with every ESC byte written as the six characters
 //! `\u{1b}`, so a diff shows where a style starts and ends.
@@ -15,8 +17,8 @@
 )]
 #![cfg(feature = "help")]
 
-mod baseline;
 mod corpus;
+mod engine;
 
 use ctl_core::prelude::{ColorMode, ListStyle, RecordStyle, RenderOptions, RowSeparation};
 
@@ -35,7 +37,7 @@ fn options(color: ColorMode, width: u16) -> RenderOptions {
 }
 
 #[test]
-fn every_case_matches_its_baseline() {
+fn every_case_matches_its_engine_file() {
     let mut reports = Vec::new();
     for (case, build) in corpus::CASES {
         let document = build();
@@ -44,14 +46,65 @@ fn every_case_matches_its_baseline() {
                 let rendered = document.render(options(color, width));
                 let name = format!("{case}-w{width}-{label}.txt");
                 let encoded = rendered.replace('\u{1b}', "\\u{1b}");
-                reports.extend(baseline::check(&name, &encoded));
+                reports.extend(engine::check(&name, &encoded));
             }
         }
     }
     assert!(
         reports.is_empty(),
-        "{} baseline file(s) do not match\n\n{}",
+        "{} engine file(s) do not match\n\n{}",
         reports.len(),
         reports.join("\n")
     );
+}
+
+#[test]
+fn every_engine_file_has_a_baseline() {
+    let reports = engine::without_baseline();
+    assert!(reports.is_empty(), "{}", reports.join("\n"));
+}
+
+/// `Document::render` writes its own escapes, since the `render` tier has no
+/// terminal crate. A view writes through ctl-term. Both must give the same
+/// bytes for the same document, width, and colour decision. The default
+/// theme uses only the 16 named colours, so no colour depth changes them.
+#[cfg(feature = "view")]
+#[test]
+fn a_view_writes_what_render_writes() {
+    use ctl_core::prelude::{Document, OutputFormat, Present, View};
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct Case {
+        #[serde(skip)]
+        document: Document,
+    }
+
+    impl Present for Case {
+        fn present(&self) -> Document {
+            self.document.clone()
+        }
+    }
+
+    for (case, build) in corpus::CASES {
+        let document = build();
+        for width in WIDTHS {
+            for (color, label) in MODES {
+                let rendered = document.render(options(color, width));
+                let view = View::new(OutputFormat::Pretty, color)
+                    .width(width)
+                    .styles(options(color, width));
+                let captured = view
+                    .capture(&Case {
+                        document: document.clone(),
+                    })
+                    .unwrap_or_else(|error| panic!("{case}: {error}"));
+                assert_eq!(
+                    captured.text(),
+                    rendered,
+                    "{case} at width {width}, {label}"
+                );
+            }
+        }
+    }
 }

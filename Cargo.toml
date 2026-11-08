@@ -11,7 +11,6 @@ repository = "https://github.com/victor-software-house/ctl-core"
 
 [workspace.dependencies]
 anyhow = "1.0.104"
-anstream = "1.0.0"
 anstyle = "1.0.14"
 # Enables ANSI escapes in the Windows console (ctl-term, Windows only).
 anstyle-query = "1.1.5"
@@ -26,10 +25,6 @@ garde = { version = "0.23.0", default-features = false }
 # promise, so the pin is exact and every bump is a reviewed change.
 clap_complete = { version = "=4.6.11", default-features = false, features = [
   "unstable-dynamic",
-] }
-comfy-table = { version = "8.0.0", default-features = false, features = [
-  "custom_styling",
-  "tty",
 ] }
 document-features = "0.2.12"
 indoc = "2.0.7"
@@ -50,6 +45,8 @@ toml = { version = "1.1.8", default-features = false, features = [
   "serde",
 ] }
 yamled = { version = "0.0.8", default-features = false }
+ctl-layout = { path = "ctl-layout", version = "=0.6.28" }
+ctl-term = { path = "ctl-term", version = "=0.6.28" }
 ctl-text = { path = "ctl-text", version = "=0.6.28" }
 usage-lib = { version = "6.0.0", default-features = false, features = ["clap"] }
 unicode-bidi = { version = "0.3.18", default-features = false }

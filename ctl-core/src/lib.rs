@@ -63,14 +63,35 @@
 //!   pretty and colorless output.
 //! - JSON always goes to stdout and never contains ANSI. Human failures go to
 //!   stderr.
-//! - The terminal engines, Comfy Table, Anstyle, and Anstream, stay private.
 //!
 //! [`prelude`] is the one import a `*ctl` binary needs.
 //!
+//! ## The rendering engine
+//!
+//! A [`Document`] renders through three crates of this workspace, which a
+//! CLI can also use directly through the re-exports [`text`], [`layout`], and
+//! [`term`]:
+//!
+//! - `ctl-text`: styled spans, lines, and text, with widths counted in terminal
+//!   cells, wrapping, and truncation. Text from outside the program loses its
+//!   control characters when a span is built.
+//! - `ctl-layout`: the widgets a document becomes, such as tables, records, and
+//!   rules. They lay out plain lines of styled spans and never see an escape
+//!   sequence.
+//! - `ctl-term`: whether to write colour and how wide to lay out, decided for
+//!   the stream being written, and the one place an escape sequence is written.
+//!
+//! A [`Theme`] maps each [`Role`] to a style on the way from the document to
+//! the widgets. `ctl_core::Text` holds roles and `ctl_core::text::Text` holds
+//! styles; the second is reached only through the [`text`] module.
+//!
 //! ## Cargo features
 //!
-//! Features are additive. Unused ones do not compile `clap`, `comfy-table`,
-//! or `schemars`.
+//! Features are additive. Unused ones do not compile `clap`, `schemars`, or
+//! the rendering crates. `document` builds documents with no engine;
+//! `render` adds `ctl-text` and `ctl-layout` and renders to a `String`
+//! without any terminal crate; `help` and `view` add `ctl-term`, which asks
+//! the stream for its width and decides colour for it.
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
@@ -95,8 +116,6 @@ pub mod flags;
 pub mod help;
 #[cfg(feature = "input")]
 pub mod input;
-#[cfg(feature = "render")]
-mod layout;
 #[cfg(feature = "cli")]
 pub mod parser;
 pub mod prelude;
@@ -108,16 +127,22 @@ pub mod served;
 pub mod shell;
 #[cfg(feature = "shell-init")]
 pub mod shell_init;
-#[cfg(feature = "render")]
-mod style;
 #[cfg(feature = "surface-model")]
 pub mod surface;
 #[cfg(feature = "render")]
 pub mod table;
+#[cfg(feature = "render")]
+mod theme;
 #[cfg(feature = "usage")]
 pub mod usage;
 #[cfg(feature = "validate")]
 pub mod validate;
+#[cfg(feature = "render")]
+pub use ctl_layout as layout;
+#[cfg(any(feature = "view", feature = "help"))]
+pub use ctl_term as term;
+#[cfg(feature = "render")]
+pub use ctl_text as text;
 #[cfg(feature = "verbatim")]
 pub use ctl_text::verbatim;
 #[cfg(feature = "view")]
@@ -162,6 +187,8 @@ pub use surface::{Surface, SurfaceArgument, SurfaceCommand, SurfaceRequirement, 
 #[cfg(feature = "render")]
 #[doc(hidden)]
 pub use table::{grid, kv};
+#[cfg(feature = "render")]
+pub use theme::Theme;
 #[cfg(feature = "usage")]
 #[doc(hidden)]
 pub use usage::{mount_directives, mount_line, spec, spec_bin, take};

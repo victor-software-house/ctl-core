@@ -1,0 +1,10 @@
+ledger  tasks.yaml
+
+┌──────────┐
+│ archived │
+╞══════════╡
+│ TSK-003  │
+│ TSK-009  │
+└──────────┘
+
+error · commit the updated ledger and push again; the hook does not amend

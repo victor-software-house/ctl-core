@@ -1,0 +1,22 @@
+┌───────────┬──────────┬───────┬───────┐
+│ \u{1b}[1m\u{1b}[36mname\u{1b}[0m      ┆ \u{1b}[1m\u{1b}[36mfrom\u{1b}[0m     ┆ \u{1b}[1m\u{1b}[36mto\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[36mbump\u{1b}[0m  │\u{1b}[0m
+╞═══════════╪══════════╪═══════╪═══════╡
+│ \u{1b}[1mdemo-core\u{1b}[0m ┆ 0.4.2    ┆ 0.5.0 ┆ minor │\u{1b}[0m
+│ \u{1b}[1mdemo-cli\u{1b}[0m  ┆ 1.8.0    ┆ 1.8.1 ┆ patch │\u{1b}[0m
+│ \u{1b}[1mdemo-docs\u{1b}[0m ┆ 2.0.0-rc ┆ 2.0.0 ┆ major │\u{1b}[0m
+│ \u{1b}[1m-site\u{1b}[0m     ┆ .1       ┆       ┆       │\u{1b}[0m
+└───────────┴──────────┴───────┴───────┘
+
+## demo-core 0.5.0
+
+- Add the quiet flag to every report
+command.
+- Fix a stale lock file after a failed
+publish.
+
+\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/quiet-lions-sing.md\u{1b}[0m
+\u{1b}[1m\u{1b}[32mconsume\u{1b}[0m  .changeset/tidy-owls-wave.md\u{1b}[0m
+    \u{1b}[1m\u{1b}[32mpin\u{1b}[0m  ci/release.yml\u{1b}[0m
+     \u{1b}[1m\u{1b}[32mpr\u{1b}[0m  https://example.test/acme/demo-repository/pull/42\u{1b}[0m
+   \u{1b}[1m\u{1b}[32mnext\u{1b}[0m  mise run ver publish\u{1b}[0m
+\u{1b}[1m\u{1b}[32mdry-run\u{1b}[0m  nothing written\u{1b}[0m

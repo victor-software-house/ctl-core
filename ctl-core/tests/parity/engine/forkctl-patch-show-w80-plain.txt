@@ -1,0 +1,13 @@
+forkctl · patch show
+
+          patch  tidy-config
+           kind  change
+        purpose  Read the config file once at start-up instead of once per
+                 command.
+upstream status  proposed, not yet reviewed
+      drop when  upstream reads the config file once
+          scope  src/config.rs, src/lib.rs, tests/config.rs
+         commit  4f9c2ab
+  changed paths  src/config.rs, src/lib.rs
+         export  exports/tidy-config.patch
+         active  true

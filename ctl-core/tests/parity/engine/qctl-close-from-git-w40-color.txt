@@ -1,0 +1,11 @@
+\u{1b}[1m\u{1b}[32mledger\u{1b}[0m  tasks.yaml\u{1b}[0m
+
+┌──────────┐
+│ \u{1b}[1m\u{1b}[36marchived\u{1b}[0m │\u{1b}[0m
+╞══════════╡
+│ \u{1b}[1mTSK-003\u{1b}[0m  │\u{1b}[0m
+│ \u{1b}[1mTSK-009\u{1b}[0m  │\u{1b}[0m
+└──────────┘
+
+\u{1b}[1m\u{1b}[31merror\u{1b}[0m · commit the updated ledger and\u{1b}[0m
+push again; the hook does not amend

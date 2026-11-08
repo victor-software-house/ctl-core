@@ -332,6 +332,8 @@ pub struct Table {
     rows: Vec<Vec<Text>>,
     token_column: Option<usize>,
     id_column: Option<usize>,
+    ellipsis_columns: Vec<usize>,
+    numeric_columns: Vec<usize>,
     stacked_below: Option<Stacked>,
 }
 
@@ -362,6 +364,28 @@ impl Table {
     #[must_use]
     pub const fn id_column(mut self, index: usize) -> Self {
         self.id_column = Some(index);
+        self
+    }
+
+    /// Mark one column as text that may be cut short.
+    ///
+    /// A cell too wide for its column keeps one line and ends in `…`, and
+    /// the column gives up its width before a column of whole words does.
+    /// Use it for a title or a summary, never for a value a reader copies
+    /// out, such as a URL or a path. Call it once per column.
+    #[must_use]
+    pub fn ellipsis_column(mut self, index: usize) -> Self {
+        self.ellipsis_columns.push(index);
+        self
+    }
+
+    /// Mark one column as numbers.
+    ///
+    /// Every cell of the column, header included, aligns right, so numbers
+    /// line up on their last digit. Call it once per column.
+    #[must_use]
+    pub fn numeric_column(mut self, index: usize) -> Self {
+        self.numeric_columns.push(index);
         self
     }
 
@@ -407,6 +431,18 @@ impl Table {
     #[must_use]
     pub const fn id_column_index(&self) -> Option<usize> {
         self.id_column
+    }
+
+    /// Columns marked with [`Self::ellipsis_column`], in the order marked.
+    #[must_use]
+    pub fn ellipsis_columns(&self) -> &[usize] {
+        &self.ellipsis_columns
+    }
+
+    /// Columns marked with [`Self::numeric_column`], in the order marked.
+    #[must_use]
+    pub fn numeric_columns(&self) -> &[usize] {
+        &self.numeric_columns
     }
 
     /// Narrow-layout policy.
@@ -563,5 +599,15 @@ mod tests {
         let token = Text::new().token("--force").then(" writes");
         assert_eq!(token.spans()[0].role(), Role::Token);
         assert_eq!(token.spans()[1].role(), Role::Plain);
+    }
+
+    #[test]
+    fn column_marks_accumulate() {
+        let table = Table::new(["id", "title", "age", "size"])
+            .ellipsis_column(1)
+            .numeric_column(2)
+            .numeric_column(3);
+        assert_eq!(table.ellipsis_columns(), [1]);
+        assert_eq!(table.numeric_columns(), [2, 3]);
     }
 }

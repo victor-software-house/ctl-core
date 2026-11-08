@@ -1,0 +1,22 @@
+┌───────────┬──────────┬───────┬───────┐
+│ name      ┆ from     ┆ to    ┆ bump  │
+╞═══════════╪══════════╪═══════╪═══════╡
+│ demo-core ┆ 0.4.2    ┆ 0.5.0 ┆ minor │
+│ demo-cli  ┆ 1.8.0    ┆ 1.8.1 ┆ patch │
+│ demo-docs ┆ 2.0.0-rc ┆ 2.0.0 ┆ major │
+│ -site     ┆ .1       ┆       ┆       │
+└───────────┴──────────┴───────┴───────┘
+
+## demo-core 0.5.0
+
+- Add the quiet flag to every report
+command.
+- Fix a stale lock file after a failed
+publish.
+
+consume  .changeset/quiet-lions-sing.md
+consume  .changeset/tidy-owls-wave.md
+    pin  ci/release.yml
+     pr  https://example.test/acme/demo-repository/pull/42
+   next  mise run ver publish
+dry-run  nothing written

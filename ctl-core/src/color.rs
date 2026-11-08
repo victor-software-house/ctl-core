@@ -27,15 +27,15 @@ mod data {
 
 pub use data::ColorMode;
 
-impl ColorMode {
-    /// Map to `anstream`'s color choice.
-    #[cfg(any(feature = "view", feature = "help"))]
-    #[must_use]
-    pub(crate) fn choice(self) -> anstream::ColorChoice {
-        match self {
-            Self::Auto => anstream::ColorChoice::Auto,
-            Self::Always => anstream::ColorChoice::Always,
-            Self::Never => anstream::ColorChoice::Never,
+/// The same policy in ctl-term's terms, so a CLI that writes a widget through
+/// [`crate::term::Console`] passes the colour mode its flags parsed.
+#[cfg(any(feature = "view", feature = "help"))]
+impl From<ColorMode> for ctl_term::ColorMode {
+    fn from(mode: ColorMode) -> Self {
+        match mode {
+            ColorMode::Auto => Self::Auto,
+            ColorMode::Always => Self::Always,
+            ColorMode::Never => Self::Never,
         }
     }
 }

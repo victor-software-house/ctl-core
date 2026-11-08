@@ -1,0 +1,37 @@
+forkctl · status
+
+repository  demo-repository
+  manifest  .ctl/fork.yaml
+    branch  main (declared main)
+   publish  proposal
+downstream  origin 4f9c2ab
+      base  upstream/main 81d3e07
+    active  tidy-config
+    staged  none
+  unstaged  src/config.rs, src/lib.rs
+ untracked  none
+     check  passed
+
+┌───────┬───────┬───────┬───────┬──────┐
+│ state ┆ patch ┆ kind  ┆ commi ┆ acti │
+│       ┆       ┆       ┆ t     ┆ ve   │
+╞═══════╪═══════╪═══════╪═══════╪══════╡
+│ appli ┆ tidy- ┆ chang ┆ 4f9c2 ┆ yes  │
+│ ed    ┆ confi ┆ e     ┆ ab    ┆      │
+│       ┆ g     ┆       ┆       ┆      │
+│ appli ┆ pin-r ┆ chang ┆ b71e9 ┆      │
+│ ed    ┆ untim ┆ e     ┆ 0d    ┆      │
+│       ┆ e     ┆       ┆       ┆      │
+│ draft ┆ drop- ┆ fix   ┆ draft ┆      │
+│       ┆ legac ┆       ┆       ┆      │
+│       ┆ y-fla ┆       ┆       ┆      │
+│       ┆ g     ┆       ┆       ┆      │
+└───────┴───────┴───────┴───────┴──────┘
+
+operation
+      id  op-20261101-1
+    kind  rebase
+   phase  replaying
+recovery  recovery/op-20261101-1
+    next  forkctl operation continue,
+          forkctl operation abort

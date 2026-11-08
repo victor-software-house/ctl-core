@@ -1,0 +1,10 @@
+┌─────────────────────┬────────────────┬───────┐
+│ file                ┆ package        ┆ bump  │
+╞═════════════════════╪════════════════╪═══════╡
+│ quiet-lions-sing.md ┆ demo-core      ┆ minor │
+│ quiet-lions-sing.md ┆ demo-cli       ┆ patch │
+│ tidy-owls-wave.md   ┆ demo-docs-site ┆ major │
+└─────────────────────┴────────────────┴───────┘
+
+pending  2
+    max  major

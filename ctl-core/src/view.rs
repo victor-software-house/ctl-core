@@ -3,7 +3,6 @@
 use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
 
-use anstream::AutoStream;
 use serde::Serialize;
 
 use crate::color::ColorMode;
@@ -12,8 +11,9 @@ use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
 use crate::render::{
     DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, EnvChoice,
-    RenderOptions, env_choice, process_env,
+    RenderOptions, Renderer, env_choice, process_env,
 };
+use crate::theme::Theme;
 
 /// Default environment variable for the operator's JSON layout.
 pub const DEFAULT_JSON_LAYOUT_ENV: &str = "CTL_CORE_JSON_LAYOUT";
@@ -134,6 +134,12 @@ impl JsonLayout {
 }
 
 /// How to present a model. JSON never contains ANSI.
+///
+/// Pretty output decides colour and width for the stream it goes to: a
+/// success for stdout, a failure for stderr. So a failure printed to a
+/// terminal is coloured while a success piped to a file is not, and
+/// [`Self::capture`] under [`ColorMode::Auto`] holds no escape sequence when
+/// that stream is not a terminal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct View {
     /// Pretty or JSON.
@@ -213,11 +219,22 @@ impl View {
         warnings
     }
 
-    /// Take record style, list style, and row separation from `styles`.
-    /// Its color and width settings are ignored; the view owns those.
+    /// Take record style, list style, row separation, and the theme from
+    /// `styles`. Its color and width settings are ignored; the view owns
+    /// those.
     #[must_use]
     pub const fn styles(mut self, styles: RenderOptions) -> Self {
         self.styles = styles;
+        self
+    }
+
+    /// Draw each role in the style `theme` gives it, in place of
+    /// [`Theme::default`]. Colour is still [`Self::color`]'s choice:
+    /// [`ColorMode::Never`] writes no style. A later [`Self::styles`]
+    /// replaces this theme with its own.
+    #[must_use]
+    pub const fn theme(mut self, theme: Theme) -> Self {
+        self.styles = self.styles.theme(theme);
         self
     }
 
@@ -287,6 +304,7 @@ impl View {
             .automatic_width_buffer_envs(self.automatic_width_buffer_envs)
             .minimum_automatic_width(self.minimum_automatic_width)
             .fallback_width(self.fallback_width)
+            .theme(self.styles.active_theme())
             .record_style(self.styles.record())
             .list_style(self.styles.list())
             .row_separation(self.styles.separation());
@@ -311,7 +329,20 @@ impl View {
         Ok(content)
     }
 
+    /// `document` in the colour and at the width decided for `stream`.
+    fn pretty(self, stream: ctl_term::Stream, document: &Document) -> String {
+        let options = self.render_options();
+        options
+            .console(stream)
+            .render(&Renderer::new(options).widget(document))
+    }
+
     /// Render without writing. Tests and alternate transports use this path.
+    ///
+    /// Pretty output is rendered as [`Self::show`] would write it: colour and
+    /// width are decided for the stream [`Captured::stream`] names, from the
+    /// colour mode, the process environment, and whether that stream is a
+    /// terminal.
     ///
     /// # Errors
     ///
@@ -333,13 +364,13 @@ impl View {
                 exit_code,
             });
         }
-        let content = value.present().render(self.render_options());
+        let (stream, target) = match kind {
+            MessageKind::Success => (Stream::Stdout, ctl_term::Stream::Stdout),
+            MessageKind::Error => (Stream::Stderr, ctl_term::Stream::Stderr),
+        };
         Ok(Captured {
-            stream: match kind {
-                MessageKind::Success => Stream::Stdout,
-                MessageKind::Error => Stream::Stderr,
-            },
-            content,
+            stream,
+            content: self.pretty(target, &value.present()),
             exit_code,
         })
     }
@@ -354,8 +385,8 @@ impl View {
         let captured = self.capture(value)?;
         match captured.stream() {
             Stream::None => {}
-            Stream::Stdout => write_stdout(captured.bytes(), self.color)?,
-            Stream::Stderr => write_stderr(captured.bytes(), self.color)?,
+            Stream::Stdout => write_stdout(captured.bytes())?,
+            Stream::Stderr => write_stderr(captured.bytes())?,
         }
         Ok(captured.exit_code())
     }
@@ -368,29 +399,27 @@ impl View {
     pub fn emit_err(self, bin: &str, message: &str) -> io::Result<ExitCode> {
         if self.format.is_json() {
             let envelope = Envelope::<()>::err(ErrorBody::new(bin, message));
-            write_stdout(self.json(&envelope)?.as_bytes(), ColorMode::Never)?;
+            write_stdout(self.json(&envelope)?.as_bytes())?;
             return Ok(ExitCode::FAILURE);
         }
         let document =
             Document::new().paragraph(Text::new().error(bin).then(": ").then(message.to_owned()));
-        write_stderr(
-            document.render(self.render_options()).as_bytes(),
-            self.color,
-        )?;
+        write_stderr(self.pretty(ctl_term::Stream::Stderr, &document).as_bytes())?;
         Ok(ExitCode::FAILURE)
     }
 }
 
-/// Write raw bytes to stdout with `color`.
-pub(crate) fn write_stdout(bytes: &[u8], color: ColorMode) -> io::Result<()> {
-    let mut stream = AutoStream::new(io::stdout().lock(), color.choice());
+/// Write bytes to stdout as they are. Pretty output already holds exactly
+/// the escapes decided for its stream, and JSON and protocol text hold none.
+pub(crate) fn write_stdout(bytes: &[u8]) -> io::Result<()> {
+    let mut stream = io::stdout().lock();
     stream.write_all(bytes)?;
     stream.flush()
 }
 
-/// Write raw bytes to stderr with `color`.
-pub(crate) fn write_stderr(bytes: &[u8], color: ColorMode) -> io::Result<()> {
-    let mut stream = AutoStream::new(io::stderr().lock(), color.choice());
+/// Write bytes to stderr as they are; see [`write_stdout`].
+pub(crate) fn write_stderr(bytes: &[u8]) -> io::Result<()> {
+    let mut stream = io::stderr().lock();
     stream.write_all(bytes)?;
     stream.flush()
 }

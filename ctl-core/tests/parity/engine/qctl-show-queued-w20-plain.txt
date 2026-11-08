@@ -1,0 +1,14 @@
+TSK-014  Add a
+format flag to the
+report command
+
+  scope  src/report.rs,
+         src/flags.rs
+outcome  The report
+         command
+         accepts a
+         format flag
+         and prints the
+         same rows as
+         JSON.
+  patch  report-format
