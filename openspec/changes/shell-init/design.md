@@ -37,10 +37,13 @@ function and a per-shell quoting API have no consumer and are left out.
    - Alternative: rewrite a string `PROMPT_COMMAND` as an array. That
      breaks bash below 5.1, which runs only element zero.
 4. **Guards run at the first prompt, not at load.**
-   The command runs only when the variable is non-empty and
-   `command -v <bin>` finds the binary.
+   The command runs only when the variable is non-empty and a lookup on
+   `PATH` alone finds the binary: `type -P` in bash, `whence -p` in zsh, and
+   `command -q` in fish.
    Checking at the prompt lets a startup file set the variable after the
    line that loads the script, and keeps a missing binary silent.
+   - Alternative: `command -v`. It also matches an alias or a function
+     named `<bin>`, and `command <bin>` then prints "command not found".
 5. **A second load installs nothing.**
    bash checks `PROMPT_COMMAND` for its function first, zsh checks
    `precmd_functions[(I)…]`, and a second fish definition replaces the

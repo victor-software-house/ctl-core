@@ -119,6 +119,9 @@ enum Setup {
     NoVariable,
     /// The binary missing from `PATH`.
     NoBinary,
+    /// The binary missing from `PATH`, and a shell function named after it,
+    /// which a lookup that also finds functions would take for the binary.
+    FunctionOnly,
 }
 
 /// bash's prompt command as a string, or as the array bash 5.1 accepts.
@@ -141,10 +144,19 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
     let bin = root.path().join("bin");
     match setup {
         Setup::Ready | Setup::NoVariable => fake_binary(&root),
-        Setup::NoBinary => {
+        Setup::NoBinary | Setup::FunctionOnly => {
             root.file("bin/.keep", "");
         }
     }
+    let function = match (setup, shell) {
+        (Setup::Ready | Setup::NoVariable | Setup::NoBinary, _) => String::new(),
+        (Setup::FunctionOnly, Shell::Bash | Shell::Zsh) => {
+            format!(r#"{BIN}() {{ echo function >> "$TOY_LOG"; }}"#)
+        }
+        (Setup::FunctionOnly, Shell::Fish) => {
+            format!("function {BIN}; echo function >> $TOY_LOG; end")
+        }
+    };
     let script = root.file("init", hook().script(shell).text);
     let script = script.display();
     let command = match shell {
@@ -163,6 +175,7 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
                 indoc::formatdoc! {"
                     {prompt_command}
                     PS1='[${{seen-}}] {PROMPT}'
+                    {function}
                     source '{script}'
                     source '{script}'
                     "},
@@ -179,6 +192,7 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
                 ".zshrc",
                 indoc::formatdoc! {"
                     PROMPT='[%?] {PROMPT}'
+                    {function}
                     source '{script}'
                     source '{script}'
                     "},
@@ -196,6 +210,7 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
             .arg("--init-command")
             .arg(indoc::formatdoc! {"
                 function fish_prompt; printf '[%s] {PROMPT}' $status; end
+                {function}
                 source '{script}'
                 source '{script}'"})
             .env("fish_features", "no-query-term"),
@@ -208,7 +223,9 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
         .env("TERM", "xterm")
         .env("TOY_LOG", &log);
     match setup {
-        Setup::Ready | Setup::NoBinary => command = command.env(VARIABLE, "block-1"),
+        Setup::Ready | Setup::NoBinary | Setup::FunctionOnly => {
+            command = command.env(VARIABLE, "block-1");
+        }
         Setup::NoVariable => {}
     }
     let mut terminal = Terminal::start(command);
@@ -278,5 +295,12 @@ fn no_shell_runs_the_hook_without_its_variable() {
 fn no_shell_runs_the_hook_without_the_binary() {
     for shell in [Shell::Bash, Shell::Zsh, Shell::Fish] {
         assert_skipped(shell, Setup::NoBinary);
+    }
+}
+
+#[test]
+fn no_shell_takes_a_function_for_the_binary() {
+    for shell in [Shell::Bash, Shell::Zsh, Shell::Fish] {
+        assert_skipped(shell, Setup::FunctionOnly);
     }
 }

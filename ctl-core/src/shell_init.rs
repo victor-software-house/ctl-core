@@ -153,7 +153,7 @@ impl Hook {
                 else
                     printf -v PROMPT_COMMAND %s "${{PROMPT_COMMAND//{function};/}}"
                 fi
-                if [[ -n ${{{variable}-}} ]] && command -v {bin} >/dev/null; then
+                if [[ -n ${{{variable}-}} ]] && type -P {bin} >/dev/null; then
                     command {bin} {subcommand}
                 fi
                 return "${{status}}"
@@ -181,7 +181,7 @@ impl Hook {
             # Load in ~/.zshrc: eval "$({bin} init zsh)"
             {function}() {{
                 precmd_functions=(${{precmd_functions:#{function}}})
-                if [[ -n ${{{variable}-}} ]] && command -v {bin} >/dev/null; then
+                if [[ -n ${{{variable}-}} ]] && whence -p {bin} >/dev/null; then
                     command {bin} {subcommand}
                 fi
             }}

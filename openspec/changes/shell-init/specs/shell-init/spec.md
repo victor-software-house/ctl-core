@@ -81,3 +81,8 @@ empty, or when `bin` is not on `PATH`.
 
 - **WHEN** a shell loads the script with `TOY_BLOCK` set and no `toy-cli` on `PATH`
 - **THEN** nothing runs, and the terminal shows no "not found" or "Unknown command" error
+
+#### Scenario: A function has the binary's name
+
+- **WHEN** a shell loads the script with `TOY_BLOCK` set, no `toy-cli` on `PATH`, and a shell function named `toy-cli`
+- **THEN** nothing runs, and the terminal shows no "not found" error

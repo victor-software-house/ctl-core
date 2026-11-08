@@ -15,7 +15,7 @@ __toy_cli_first_prompt() {
     else
         printf -v PROMPT_COMMAND %s "${PROMPT_COMMAND//__toy_cli_first_prompt;/}"
     fi
-    if [[ -n ${TOY_BLOCK-} ]] && command -v toy-cli >/dev/null; then
+    if [[ -n ${TOY_BLOCK-} ]] && type -P toy-cli >/dev/null; then
         command toy-cli pick
     fi
     return "${status}"
