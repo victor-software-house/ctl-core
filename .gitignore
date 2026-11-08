@@ -1,2 +1,4 @@
 /target
 **/*.rs.bk
+# Fetched by `vale sync` from the Packages URL in .vale.ini.
+/.vale/
