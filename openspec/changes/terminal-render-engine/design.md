@@ -321,11 +321,26 @@ For a table laid out to width `W`, with frame and gaps taking `F` cells:
    folds instead, to keep its borders whole, as today.
 5. Render each cell at its width. An `Ellipsis` cell ends in `…`; a numeric
    column aligns right.
+6. Narrow each column to its widest rendered line, as comfy-table does. A
+   column that wrapped otherwise keeps blank cells down every row that do
+   nothing for the reader. The lines stay as rendered, since text wrapped at
+   one width wraps the same at its own widest line. A width never grows, so
+   a keep-words word that runs past still does, and an `Ellipsis` column that
+   cut a cell keeps its width because the cut cell fills it.
 
 This fixes two flaws found in rich ([rich survey, 9.2][rich-flaws], flaw 10):
 its collapse ignores minimum widths, and its last step can shrink fixed and
 no-wrap columns. Step 3 keeps the prototype's useful rule that a column whose
 content fits its share takes its content width.
+
+Step 6 was added after the parity corpus showed the solved width left on a
+wrapped column: `qctl status` at width 80 drew 80 columns where comfy-table
+drew 72. A table sized to its content reads as finished, and the snapshot
+tests of verctl, qctl, forkctl, and rawr change less when they take the
+release.
+
+Alternative: **keep the width step 3 gave a wrapped column.** It lost for the
+reasons step 6 gives.
 
 Alternative: **port comfy-table's dynamic arrangement.** It lost because it
 measures strings with escapes in them, and the result cannot be described in
