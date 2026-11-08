@@ -333,8 +333,8 @@ fn help_names_each_variable() {
         .find_subcommand("prepare")
         .cloned()
         .expect("prepare");
-    let text =
-        ctl_core::help::document(prepare).render(RenderOptions::new(ColorMode::Never).width(200));
+    let text = ctl_core::help::document(prepare)
+        .render(RenderOptions::new(ColorMode::Never).with_width(200));
     assert!(text.contains("[env: ENVTOY_CONFIG]"), "{text}");
     assert!(text.contains("[env: ENVTOY_DRY_RUN]"), "{text}");
 }

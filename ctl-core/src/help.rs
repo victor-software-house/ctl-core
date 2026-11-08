@@ -1,12 +1,12 @@
 //! Styled help extracted from Clap and rendered as a semantic document.
 
-use std::io::{self, Write};
+use std::io;
 
 use clap::{Command, CommandFactory};
 use ctl_term::Stream;
 
 use crate::document::{Document, Role, Section, Table, Text};
-use crate::render::{RenderOptions, Renderer};
+use crate::render::RenderOptions;
 
 const NARROW_HELP_WIDTH: u16 = 64;
 
@@ -77,12 +77,7 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 ///
 /// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    write(
-        Stream::Stderr,
-        &mut io::stderr().lock(),
-        &document(C::command()),
-        options,
-    )
+    options.print_for(Stream::Stderr, &document(C::command()))
 }
 
 /// Help for the command `args` select, to stdout, as a help request prints it.
@@ -90,12 +85,7 @@ pub(crate) fn emit_selected<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<()> {
-    write(
-        Stream::Stdout,
-        &mut io::stdout().lock(),
-        &document(help_command::<C>(args)),
-        options,
-    )
+    options.print_for(Stream::Stdout, &document(help_command::<C>(args)))
 }
 
 /// Help for the command `args` select, to stderr. Clap asks for it when a
@@ -105,27 +95,7 @@ pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<()> {
-    write(
-        Stream::Stderr,
-        &mut io::stderr().lock(),
-        &document(help_command::<C>(args)),
-        options,
-    )
-}
-
-/// Writes `help` to `writer`, the handle of `stream`, in the colour and at
-/// the width decided for that stream.
-fn write(
-    stream: Stream,
-    writer: &mut dyn Write,
-    help: &Document,
-    options: RenderOptions,
-) -> io::Result<()> {
-    let text = options
-        .console(stream)
-        .render(&Renderer::new(options).widget(help));
-    writer.write_all(text.as_bytes())?;
-    writer.flush()
+    options.print_for(Stream::Stderr, &document(help_command::<C>(args)))
 }
 
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {
@@ -373,7 +343,8 @@ mod tests {
 
     #[test]
     fn document_lists_commands_and_flags() {
-        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
+        let text =
+            document(Toy::command()).render(RenderOptions::new(ColorMode::Never).with_width(80));
         assert!(text.contains("Commands"));
         assert!(text.contains("status"));
         assert!(text.contains("--dry-run"));
@@ -383,7 +354,8 @@ mod tests {
 
     #[test]
     fn colorless_help_has_no_ansi() {
-        let text = document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80));
+        let text =
+            document(Toy::command()).render(RenderOptions::new(ColorMode::Never).with_width(80));
         assert!(!text.contains('\u{1b}'));
     }
 
@@ -397,7 +369,7 @@ mod tests {
                     .action(clap::ArgAction::SetTrue),
             )
             .arg(clap::Arg::new("name").value_name("NAME"));
-        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(40));
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).with_width(40));
         assert!(text.lines().all(|line| line.chars().count() <= 40));
         assert_eq!(
             text.lines().take(2).collect::<Vec<_>>(),
@@ -415,7 +387,7 @@ mod tests {
                     .env("TOY_TOKEN")
                     .hide_env(true),
             );
-        let text = document(command).render(RenderOptions::new(ColorMode::Never).width(80));
+        let text = document(command).render(RenderOptions::new(ColorMode::Never).with_width(80));
         assert!(text.contains("[env: TOY_CONFIG]"), "{text}");
         assert!(!text.contains("TOY_TOKEN"), "{text}");
     }

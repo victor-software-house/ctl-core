@@ -17,7 +17,7 @@ patterns:
     occurrences: once
     whole_line: true
   ctl-term-requirement:
-    match: 'ctl-term = { path = "ctl-term", version = "={version}" }'
+    match: 'ctl-term = { path = "ctl-term", version = "={version}", default-features = false }'
     occurrences: once
     whole_line: true
   ctl-text-requirement:

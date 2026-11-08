@@ -29,11 +29,28 @@ Breaking changes:
   - A command that succeeded exits 0.
     A failed command or a parse error keeps its own code, so a closed pipe never turns a failure into success.
   - `App::broken_pipe(BrokenPipe::Fail)` makes every closed pipe a failure: success becomes exit 1, and a failure keeps its own code.
+- `ListStyle` is `Frame`, and `RecordStyle`, `Frame`, and `RowSeparation` are the types of `ctl-layout`, so each is `#[non_exhaustive]` and `Hash`.
+  `JsonLayout` is `#[non_exhaustive]` too.
+  `RenderOptions::list_style` is `with_frame`; the variable `CTL_CORE_LIST_STYLE` keeps its name.
+- Every setter on `RenderOptions` and `View` is `with_<setting>`: `with_width`, `with_record_style`, `with_quiet`, and so on.
+  The method of the same name without the prefix reads the setting back, and a method that reads the environment starts with `resolved_`.
+  - `record()`, `list()`, and `separation()` are `resolved_record_style()`, `resolved_frame()`, and `resolved_row_separation()`, and `View::layout()` is `resolved_json_layout()`.
+  - `active_theme` is `theme`, `fallback` is `fallback_width`, and `explicit_width` is `width`.
+  - `explicit_automatic_width_buffer`, `automatic_width_buffer_env_names`, and `automatic_width_minimum` are `automatic_width_buffer`, `automatic_width_buffer_envs`, and `minimum_automatic_width`.
+  - `View` holds one `RenderOptions` and returns it from `render_options()`, so it has no copies of those getters.
+    `View::color` is a method, not a public field.
+  - `App` keeps its setter names.
+- `Stream` in the view module is `Destination`, so it no longer shares a name with `ctl_term::Stream`.
+- `Renderer` is crate-private. `Document::render` renders to a string.
+- `Document::render` and the view write through the `ctl-term` encoder, so a line ends with a reset only when a style is still open.
+- The buffer and minimum settings, `with_automatic_width_buffer` and the like with their `DEFAULT_COLUMN_BUFFER*` and `DEFAULT_MINIMUM_AUTOMATIC_WIDTH` constants, exist only with `view` or `help`.
+  Without a stream, nothing reads them.
+- `parser::assert_help_enabled` is crate-private.
 
 Added:
 
-- `Theme` maps each role and notice label to an `anstyle::Style`.
-  `RenderOptions::theme`, `View::theme`, and `App::theme` replace the default.
+- `Theme` maps each role and notice label to an `anstyle::Style`: `style(role)` reads one and `with_style(role, style)` sets one.
+  `RenderOptions::with_theme`, `View::with_theme`, and `App::theme` replace the default.
 - `Table::ellipsis_column` marks a title or summary column.
   A cell too wide for it keeps one line and ends in `…`, and the column gives up width before a column of whole words does.
 - `Table::numeric_column` aligns a column, header included, to the right.

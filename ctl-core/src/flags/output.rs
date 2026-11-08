@@ -50,7 +50,7 @@ impl OutputArgs {
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self) -> crate::view::View {
-        crate::view::View::new(self.format, self.color()).quiet(self.quiet)
+        crate::view::View::new(self.format, self.color()).with_quiet(self.quiet)
     }
 }
 
@@ -78,7 +78,7 @@ impl FormatArgs {
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> crate::view::View {
-        crate::view::View::new(self.format, color).quiet(self.quiet)
+        crate::view::View::new(self.format, color).with_quiet(self.quiet)
     }
 }
 
@@ -106,6 +106,6 @@ impl FormatLong {
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> crate::view::View {
-        crate::view::View::new(self.format, color).quiet(self.quiet)
+        crate::view::View::new(self.format, color).with_quiet(self.quiet)
     }
 }

@@ -20,7 +20,7 @@
 mod corpus;
 mod engine;
 
-use ctl_core::prelude::{ColorMode, ListStyle, RecordStyle, RenderOptions, RowSeparation};
+use ctl_core::prelude::{ColorMode, Frame, RecordStyle, RenderOptions, RowSeparation};
 
 const WIDTHS: [u16; 4] = [20, 40, 80, 120];
 
@@ -30,10 +30,10 @@ const MODES: [(ColorMode, &str); 2] = [(ColorMode::Never, "plain"), (ColorMode::
 /// (`COLUMNS`, `CTL_CORE_RECORD_STYLE`, and the like) changes a render.
 fn options(color: ColorMode, width: u16) -> RenderOptions {
     RenderOptions::new(color)
-        .width(width)
-        .record_style(RecordStyle::KeysRight)
-        .list_style(ListStyle::Grid)
-        .row_separation(RowSeparation::None)
+        .with_width(width)
+        .with_record_style(RecordStyle::KeysRight)
+        .with_frame(Frame::Grid)
+        .with_row_separation(RowSeparation::None)
 }
 
 #[test]
@@ -64,10 +64,11 @@ fn every_engine_file_has_a_baseline() {
     assert!(reports.is_empty(), "{}", reports.join("\n"));
 }
 
-/// `Document::render` writes its own escapes, since the `render` tier has no
-/// terminal crate. A view writes through ctl-term. Both must give the same
-/// bytes for the same document, width, and colour decision. The default
-/// theme uses only the 16 named colours, so no colour depth changes them.
+/// `Document::render` encodes at full colour depth with ctl-term's encoder,
+/// and a view encodes at the depth its stream's environment gives. Both must
+/// give the same bytes for the same document, width, and colour decision. The
+/// default theme uses only the 16 named colours, so no colour depth changes
+/// them.
 #[cfg(feature = "view")]
 #[test]
 fn a_view_writes_what_render_writes() {
@@ -92,8 +93,8 @@ fn a_view_writes_what_render_writes() {
             for (color, label) in MODES {
                 let rendered = document.render(options(color, width));
                 let view = View::new(OutputFormat::Pretty, color)
-                    .width(width)
-                    .styles(options(color, width));
+                    .with_width(width)
+                    .with_styles(options(color, width));
                 let captured = view
                     .capture(&Case {
                         document: document.clone(),

@@ -142,7 +142,8 @@ fn the_verb_help_names_the_shells() {
         .find_subcommand("completion")
         .cloned()
         .unwrap();
-    let rendered = help::document(command).render(RenderOptions::new(ColorMode::Never).width(100));
+    let rendered =
+        help::document(command).render(RenderOptions::new(ColorMode::Never).with_width(100));
     insta::assert_snapshot!("help", rendered);
 }
 

@@ -100,10 +100,12 @@ pub fn verify<C: clap::CommandFactory>() {
     assert_help_enabled(&C::command());
 }
 
+/// The help-flag contract for one command.
+///
 /// # Panics
 ///
 /// Panics if `disable_help_flag` or `disable_version_flag` is set.
-pub fn assert_help_enabled(command: &Command) {
+pub(crate) fn assert_help_enabled(command: &Command) {
     assert!(
         !command.is_disable_help_flag_set(),
         "disable_help_flag is forbidden; ctl-core owns -h/--help"

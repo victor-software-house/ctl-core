@@ -182,7 +182,7 @@ fn an_explicit_width_is_exact() {
     const TEST: &str = "an_explicit_width_is_exact";
     if is_child(TEST) {
         let code = run(&["show"], |app| {
-            app.view(|cli| cli.output.view().width(100))
+            app.view(|cli| cli.output.view().with_width(100))
         });
         assert_eq!(code, ExitCode::SUCCESS);
         return;
