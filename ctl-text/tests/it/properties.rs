@@ -1,5 +1,9 @@
 //! Properties of wrapping, folding, and truncating, over random text with
 //! wide, combining, emoji, and control characters, and widths from 1 to 200.
+#![expect(
+    clippy::disallowed_macros,
+    reason = "proptest! and prop_assert! expand to concat!, which the repository bans in its own code"
+)]
 
 use ctl_text::verbatim::is_unsafe;
 use ctl_text::{Context, Line, Overflow, Renderable, Span, Style, Text};

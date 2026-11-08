@@ -54,7 +54,7 @@ fn ellipsis_measures_one_cell_for_text_and_none_for_nothing() {
 fn empty_text_measures_and_renders_nothing() {
     let text = Text::new();
     assert_eq!(text.measure(&Context::new(30)), Measurement::exact(0));
-    assert!(text.render(&Context::new(30)).is_empty());
+    assert_eq!(text.render(&Context::new(30)), Vec::<Line>::new());
 }
 
 #[test]
