@@ -163,10 +163,22 @@ and in CI, as each task says.
 
 ## 7. Size
 
-- [ ] 7.1 Add `check:size`: build the toy CLI at each tier in CI and compare
+- [x] 7.1 Add `check:size`: build the toy CLI at each tier in CI and compare
   `.text` with the `[workspace.metadata.size]` budgets in the root
-  `Cargo.toml`. Proof: the task passes on the
-  pushed commit and fails on a commit that adds 5% to a tier.
+  `Cargo.toml`. Proof: the task passes on the pushed commit and fails when
+  a tier's budget is lowered by 5%.
+  - Amended 2026-11-08 UTC. The proof first asked for a commit that adds 5%
+    to a tier. A budget lowered by 5% makes the same comparison, `.text`
+    against its limit, without changing the code the toy builds.
+  - 2026-11-08 UTC: [#217] added the task and the budgets, and [#218] made a
+    tier with no `.text` fail. CI [run 42460793731][run-217] passed on
+    [bbb006b] and measured cli 343,888, help 443,676, view 409,362 and app
+    469,842 bytes, the budgets. CI [run 42461005097][run-218] passed on
+    [4035f78], and the merge queue's [run 42461303294][q-219] on
+    [b7c1680]. On a linux-x64 host with rustc 1.99.1 and GNU size 2.46,
+    with `MISE_ENV=ci`, the task passed with those budgets and failed on all
+    four tiers with each budget lowered by 5%: cli measured 343,888 bytes
+    against a limit of 333,226.
 - [ ] 7.2 Measure each tier and each public consumer at the commit CI verified,
   on darwin-arm64 with the release profile, and record file, `__text` and
   package counts against ctl-core 0.6.x in this change's design. Proof: the
@@ -236,3 +248,11 @@ and in CI, as each task says.
 [run-216]: https://github.com/victor-software-house/ctl-core/actions/runs/42460354659
 [q-213]: https://github.com/victor-software-house/ctl-core/actions/runs/42460567403
 [differences]: https://github.com/victor-software-house/ctl-core/blob/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c/ctl-core/tests/parity/DIFFERENCES.md
+[#217]: https://github.com/victor-software-house/ctl-core/pull/217
+[#218]: https://github.com/victor-software-house/ctl-core/pull/218
+[bbb006b]: https://github.com/victor-software-house/ctl-core/commit/bbb006baf5611aefac85d34aeb5a276af109f78c
+[4035f78]: https://github.com/victor-software-house/ctl-core/commit/4035f783456e71ae2b8099a47da5459f1e854786
+[b7c1680]: https://github.com/victor-software-house/ctl-core/commit/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c
+[run-217]: https://github.com/victor-software-house/ctl-core/actions/runs/42460793731
+[run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
+[q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294
