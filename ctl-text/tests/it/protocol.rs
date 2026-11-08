@@ -89,6 +89,18 @@ fn a_context_derives_a_child_context() {
 }
 
 #[test]
+fn an_unbounded_context_stays_unbounded_through_every_with_method() {
+    let tab = NonZeroU16::new(4).expect("4 is not zero");
+    let context = Context::unbounded();
+    assert_eq!((context.width(), context.is_unbounded()), (u16::MAX, true));
+    assert!(!Context::new(u16::MAX).is_unbounded());
+    assert!(context.with_width(20).is_unbounded());
+    assert!(context.with_tab_width(tab).is_unbounded());
+    assert!(context.with_box_chars(BoxChars::Ascii).is_unbounded());
+    assert!(!Context::new(80).with_width(20).is_unbounded());
+}
+
+#[test]
 fn a_context_defaults_to_tab_stops_of_eight_and_unicode_boxes() {
     let context = Context::new(80);
     assert_eq!(

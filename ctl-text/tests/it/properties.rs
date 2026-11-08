@@ -287,7 +287,7 @@ proptest! {
     ) {
         let text = text(&parts, overflow);
         let measurement = text.measure(&Context::new(80));
-        let widest = text.render(&Context::new(u16::MAX)).iter().map(Line::width).max().unwrap_or(0);
+        let widest = text.render(&Context::unbounded()).iter().map(Line::width).max().unwrap_or(0);
         prop_assert!(measurement.minimum() <= measurement.maximum());
         prop_assert_eq!(measurement.maximum(), widest);
     }

@@ -73,6 +73,7 @@ pub enum BoxChars {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Context {
     width: u16,
+    unbounded: bool,
     tab_width: NonZeroU16,
     box_chars: BoxChars,
 }
@@ -84,8 +85,23 @@ impl Context {
     pub fn new(width: u16) -> Self {
         Self {
             width,
+            unbounded: false,
             tab_width: TAB_WIDTH,
             box_chars: BoxChars::default(),
+        }
+    }
+
+    /// A context with no width limit, so a widget takes its natural width.
+    ///
+    /// [`width`](Self::width) reports `u16::MAX`, so layout arithmetic needs
+    /// no special case, and [`is_unbounded`](Self::is_unbounded) tells a
+    /// caller that the width is no limit and not a real one. Every `with_`
+    /// method keeps the flag, including [`with_width`](Self::with_width).
+    #[must_use]
+    pub fn unbounded() -> Self {
+        Self {
+            unbounded: true,
+            ..Self::new(u16::MAX)
         }
     }
 
@@ -120,6 +136,13 @@ impl Context {
     #[must_use]
     pub fn width(&self) -> u16 {
         self.width
+    }
+
+    /// Whether this context was made by [`unbounded`](Self::unbounded), so
+    /// [`width`](Self::width) is no limit.
+    #[must_use]
+    pub fn is_unbounded(&self) -> bool {
+        self.unbounded
     }
 
     /// The spacing of tab stops, in cells.

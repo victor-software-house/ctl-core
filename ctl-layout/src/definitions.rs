@@ -69,8 +69,9 @@ impl Definitions {
         self
     }
 
-    /// Every entry laid out at `width`.
-    fn lines(&self, width: u16, tab_width: NonZeroU16) -> Vec<Line> {
+    /// Every entry laid out in `context`.
+    fn lines(&self, context: &Context) -> Vec<Line> {
+        let (width, tab_width) = (context.width(), context.tab_width());
         let mut lines = Vec::new();
         for entry in &self.entries {
             let labels = join_cells(&entry.labels, tab_width);
@@ -104,17 +105,18 @@ fn join_cells(cells: &[Text], tab_width: NonZeroU16) -> Line {
 
 impl Renderable for Definitions {
     fn measure(&self, context: &Context) -> Measurement {
-        let widest = |width| {
-            self.lines(width, context.tab_width())
+        let widest = |context: &Context| {
+            self.lines(context)
                 .iter()
                 .map(Line::width)
                 .max()
                 .unwrap_or(0)
         };
-        Measurement::new(widest(1), widest(u16::MAX))
+        let unbounded = Context::unbounded().with_tab_width(context.tab_width());
+        Measurement::new(widest(&context.with_width(1)), widest(&unbounded))
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        self.lines(context.width(), context.tab_width())
+        self.lines(context)
     }
 }

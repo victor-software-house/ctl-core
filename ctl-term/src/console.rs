@@ -63,7 +63,8 @@ impl From<io::Error> for Error {
 /// A console renders a [`Renderable`] at the stream's width, encodes the lines
 /// with [`Encoder`], and writes them. With colour off it writes the plain text
 /// of the lines. A stream with no width, because the fallback is off, renders
-/// at `u16::MAX` cells, so a widget takes its natural width.
+/// in an [unbounded](Context::unbounded) context, so a widget takes its
+/// natural width.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Console {
     stream: Stream,
@@ -100,8 +101,11 @@ impl Console {
     /// The text `print` writes for `renderable`, without writing it.
     #[must_use]
     pub fn render(self, renderable: &dyn Renderable) -> String {
-        let width = self.terminal.width().unwrap_or(u16::MAX);
-        let lines = renderable.render(&Context::new(width));
+        let context = self
+            .terminal
+            .width()
+            .map_or_else(Context::unbounded, Context::new);
+        let lines = renderable.render(&context);
         Encoder::new(self.terminal.color()).encode(&lines)
     }
 
