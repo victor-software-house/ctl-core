@@ -4,10 +4,13 @@ use crate::color::ColorMode;
 use crate::flags::resolve_color;
 use crate::format::OutputFormat;
 
-/// Global pretty/JSON output, color, quiet. Flatten onto the root parser.
+/// Output flags for the root parser: format, colour, and quiet. Flatten it with
+/// `#[command(flatten)]`.
 ///
-/// `-c/--color` matches forkctl. A consumer that already owns `-c`
-/// should flatten [`super::ColorLong`] plus [`FormatArgs`] instead.
+/// The flags are global, so a subcommand accepts them too. [`Self::view`]
+/// builds the [`View`](crate::view::View) for the parsed flags. A consumer
+/// that already owns `-c` flattens [`super::ColorLong`] plus [`FormatArgs`]
+/// instead.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct OutputArgs {
@@ -40,13 +43,15 @@ pub struct OutputArgs {
 }
 
 impl OutputArgs {
-    /// Effective color after `--no-color`.
+    /// The colour mode in force: [`ColorMode::Never`] when `--no-color` is
+    /// set, otherwise the `--color` value.
     #[must_use]
     pub fn color(&self) -> ColorMode {
         resolve_color(self.color, self.no_color)
     }
 
-    /// Build a [`View`](crate::view::View) from these flags.
+    /// Build the [`View`](crate::view::View) for these flags: the format, the
+    /// quiet setting, and the colour mode in force.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self) -> crate::view::View {
@@ -54,7 +59,10 @@ impl OutputArgs {
     }
 }
 
-/// `-f/--format` and `-q/--quiet` without `-c`.
+/// `-f/--format` and `-q/--quiet`, with no colour flags.
+///
+/// Pair it with [`ColorLong`](super::ColorLong) when the CLI owns `-c`, and
+/// pass the colour mode to [`Self::view`].
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct FormatArgs {
@@ -74,7 +82,8 @@ pub struct FormatArgs {
 }
 
 impl FormatArgs {
-    /// Build a [`View`](crate::view::View) with an explicit color policy.
+    /// Build the [`View`](crate::view::View) for these flags, with `color` as
+    /// the colour mode and the parsed format and quiet setting.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> crate::view::View {
@@ -82,8 +91,8 @@ impl FormatArgs {
     }
 }
 
-/// `--format` and `-q`/`--quiet` without `-f`, for CLIs that already use
-/// `-f` for a domain flag such as `--file`.
+/// `--format` and `-q`/`--quiet` without the `-f` short flag, for CLIs that
+/// already use `-f` for a domain flag such as `--file`.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct FormatLong {
@@ -102,7 +111,8 @@ pub struct FormatLong {
 }
 
 impl FormatLong {
-    /// Build a [`View`](crate::view::View) with an explicit color policy.
+    /// Build the [`View`](crate::view::View) for these flags, with `color` as
+    /// the colour mode and the parsed format and quiet setting.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> crate::view::View {

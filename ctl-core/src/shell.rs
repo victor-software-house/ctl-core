@@ -1,5 +1,9 @@
 //! The shells a ctl CLI writes scripts for, and the script a shell verb
 //! prints.
+//!
+//! [`Shell`] needs the `shell` feature. [`Script`] and [`view`] also need
+//! `view`. The `completion` and `shell-init` features build the verbs that
+//! return a [`Script`].
 
 #[cfg(feature = "view")]
 use serde::Serialize;
@@ -16,12 +20,14 @@ use crate::view::{Present, View};
 /// A shell a ctl CLI prints a script for: the set Homebrew installs
 /// completion for by default.
 ///
-/// Every verb that takes a `Shell` supports every variant, so a shell joins
-/// the set only when each of those verbs has a tested form for it.
+/// Every verb that takes a `Shell` supports every variant. A shell joins the
+/// set only when each of those verbs has a tested form for it.
 ///
-/// The set is closed, and the enum is deliberately not `#[non_exhaustive]`:
-/// a consumer matches on every variant, so the compiler shows each place a
+/// The set is closed, and the enum is deliberately not `#[non_exhaustive]`.
+/// A consumer matches on every variant, so the compiler shows each place a
 /// new shell needs a script. Adding a shell is therefore a breaking release.
+///
+/// The command-line value is the lowercase name: `bash`, `zsh`, or `fish`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
 #[cfg_attr(feature = "json", derive(serde::Serialize))]
 #[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]
@@ -55,11 +61,11 @@ impl Present for Script {
     }
 }
 
-/// The view a shell verb prints its [`Script`] through: `format`, no color,
+/// The view a shell verb prints its [`Script`] through: `format`, no colour,
 /// and never quiet.
 ///
-/// The script is the verb's whole result, and `source <(toy completion zsh)`
-/// or `eval "$(toy init zsh)"` would load nothing if `--quiet` or a quiet
+/// The script is the verb's whole result. `source <(toy completion zsh)` or
+/// `eval "$(toy init zsh)"` would load nothing if `--quiet` or a quiet
 /// variable hid it. Route the verb here from
 /// [`App::view`](crate::app::App::view).
 #[cfg(feature = "view")]

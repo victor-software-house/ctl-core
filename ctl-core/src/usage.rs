@@ -1,12 +1,13 @@
 //! Mise Usage spec from a clap [`Command`].
 //!
-//! One hidden flag, one mount line, one operator form. A consumer writes
-//! `--usage-spec[=BIN]` (hidden, `require_equals`). The served mise task
-//! carries [`mount_directives`], which ends with [`mount_line`]. Operators then
-//! run `mise run q status` — no `--`.
-//! The `--` in the mount is only the completion bootstrap, as mise documents.
+//! One hidden flag, one mount line, one operator form. A consumer declares
+//! `--usage-spec[=BIN]` as a hidden flag with `require_equals`. The served
+//! mise task carries [`mount_directives`], which ends with [`mount_line`].
+//! Operators then run `mise run q status` with no `--`. The `--` in the mount
+//! is only the completion bootstrap, as mise documents.
 //!
-//! Lefthook calls the same task: `mise run q close-from-git`.
+//! [`App::mounted_as`](crate::App::mounted_as) answers the request for an
+//! [`App`](crate::App), and [`take`] does the same for a binary without one.
 
 use std::io::Write as _;
 use std::process::ExitCode;
@@ -16,7 +17,10 @@ use clap::Command;
 
 use crate::formatdoc;
 
-/// Render a Usage KDL spec for a mise-mounted task named `bin`.
+/// Render the Usage KDL spec of `command` as a mise task named `bin`.
+///
+/// Both the spec's `name` and `bin` are set to `bin`, so mise shows the
+/// mounted task name and not the real binary name.
 #[must_use]
 pub fn spec(mut command: Command, bin: &str) -> String {
     command.set_bin_name(bin);
@@ -26,19 +30,28 @@ pub fn spec(mut command: Command, bin: &str) -> String {
     spec.to_string()
 }
 
-/// The `#USAGE mount` line a served mise file task carries.
+/// The `#USAGE mount` line a served mise file task carries for the task named
+/// `task`.
+///
+/// The line runs `mise run --quiet <task> -- --usage-spec=<task>`. That
+/// requests the task's own spec.
 #[must_use]
 pub fn mount_line(task: &str) -> String {
     formatdoc! {r#"#USAGE mount "mise run --quiet {task} -- --usage-spec={task}""#}
 }
 
-/// The mise directives a served CLI-proxy task carries, ending with
-/// [`mount_line`]. `raw_args` passes argv through untouched. `raw` connects
-/// the CLI to the caller's stdin and stdout: without it mise relays each
-/// output line itself and, whenever its own colour is on (as under
-/// `CLICOLOR_FORCE=1`, even into a pipe), appends an SGR reset to every line,
-/// so `--format json` piped to `jq` carries an ESC byte the CLI never wrote.
-/// A raw task also gets no line prefix, and mise runs raw tasks one at a time.
+/// The mise directives a served CLI-proxy task carries for the task named
+/// `task`, ending with [`mount_line`].
+///
+/// - `raw_args` passes argv through untouched.
+/// - `raw` connects the CLI to the caller's stdin and stdout. Without it mise
+///   relays each output line itself. Whenever mise's own colour is on, as under
+///   `CLICOLOR_FORCE=1` even into a pipe, it appends an SGR reset to every
+///   line. Then `--format json` piped to `jq` would carry an ESC byte the CLI
+///   never wrote.
+///
+/// A raw task also gets no line prefix, and mise runs raw tasks one at a
+/// time.
 #[must_use]
 pub fn mount_directives(task: &str) -> String {
     formatdoc! {"
@@ -49,8 +62,12 @@ pub fn mount_directives(task: &str) -> String {
     }
 }
 
-/// If argv contains `--usage-spec[=BIN]`, print the spec for `C` and return
-/// [`ExitCode::SUCCESS`].
+/// If the process argv asks for `--usage-spec[=BIN]`, print the spec of `C` to
+/// stdout and return the exit code to end with.
+///
+/// `default_bin` names the task when the flag has no `=BIN`. The result is
+/// [`ExitCode::SUCCESS`] when the write worked and [`ExitCode::FAILURE`]
+/// otherwise, and `None` when argv has no such flag.
 #[must_use]
 pub fn take<C: clap::CommandFactory>(default_bin: &str) -> Option<ExitCode> {
     let bin = spec_bin(std::env::args().skip(1), default_bin)?;
@@ -62,8 +79,12 @@ pub fn take<C: clap::CommandFactory>(default_bin: &str) -> Option<ExitCode> {
     })
 }
 
-/// Parse `--usage-spec` / `--usage-spec=BIN` from argv (after the program
-/// name).
+/// Read `--usage-spec` or `--usage-spec=BIN` from `args`, which exclude the
+/// program name.
+///
+/// Returns the mounted binary name: `BIN`, or `default_bin` for a bare flag or
+/// an empty `BIN`. Scanning stops at `--`, so an argument after it never
+/// counts.
 #[must_use]
 pub fn spec_bin(
     args: impl IntoIterator<Item = impl AsRef<str>>,

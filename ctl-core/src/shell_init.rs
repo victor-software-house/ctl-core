@@ -1,14 +1,15 @@
 //! Shell integration: one `init <SHELL>` verb that hooks a ctl CLI into the
 //! operator's shell.
 //!
-//! The verb prints a script that runs one command of the CLI, in the
-//! foreground, before the shell draws its first prompt, and never again in
-//! that shell. The CLI declares the command once as a [`Hook`]; ctl-core
+//! The verb prints a script that runs one command of the CLI in the
+//! foreground, before the shell draws its first prompt. It never runs again in
+//! that shell. The CLI declares the command once as a [`Hook`], and ctl-core
 //! writes every line of shell syntax from it.
 //!
 //! The hook runs only when its variable is set to a non-empty value and the
-//! binary is on `PATH`, so a startup file that loads the script stays safe on
-//! a machine without the CLI or outside the context the variable marks.
+//! binary is on `PATH`. A startup file that loads the script therefore stays
+//! safe on a machine without the CLI, or outside the context the variable
+//! marks.
 //! Loading the script twice installs the hook once.
 //!
 //! A consumer flattens [`InitCommand`] into its subcommands, routes the verb
@@ -72,10 +73,11 @@ use crate::shell::{Script, Shell};
 ///
 /// It runs as `<bin> <subcommand>`, and only when the environment variable
 /// `variable` is set to a non-empty value and `bin` is on `PATH`. Each shell
-/// removes the hook before running the command, so a later prompt never
-/// runs it again. bash's hook also sets a variable it checks first, because
-/// another tool, such as bash-preexec, can rewrite `PROMPT_COMMAND` so the
-/// removal misses.
+/// removes the hook before running the command, so a later prompt never runs
+/// it again.
+///
+/// bash's hook also sets a variable it checks first. Another tool, such as
+/// bash-preexec, can rewrite `PROMPT_COMMAND` so that the removal misses.
 ///
 /// Every part is one word the shell reads without quoting, which
 /// [`Hook::new`] checks once.
@@ -91,10 +93,12 @@ impl Hook {
     ///
     /// # Errors
     ///
-    /// Returns a [`HookError`] naming the first part that is not a plain
-    /// word: `bin` and `subcommand` take letters, digits, `-`, and `_`, and
-    /// start with a letter or digit; `variable` takes letters, digits, and
-    /// `_`, and does not start with a digit.
+    /// Returns a [`HookError`] naming the first part that is not a plain word.
+    ///
+    /// - `bin` and `subcommand` take letters, digits, `-`, and `_`, and start
+    ///   with a letter or digit.
+    /// - `variable` takes letters, digits, and `_`, and does not start with a
+    ///   digit.
     pub fn new(bin: &str, subcommand: &str, variable: &str) -> Result<Self, HookError> {
         if !is_command_word(bin) {
             return Err(HookError::Bin(bin.to_owned()));
@@ -115,9 +119,10 @@ impl Hook {
     /// The script that installs this hook in `shell`.
     ///
     /// bash runs it from `PROMPT_COMMAND`, as a string or, from bash 5.1, an
-    /// array; zsh from `precmd_functions`; fish on the `fish_prompt` event.
-    /// The bash hook returns the exit status it found, so a prompt command
-    /// after it still reads the status of the operator's last command.
+    /// array. zsh runs it from `precmd_functions`, and fish on the
+    /// `fish_prompt` event. The bash hook returns the exit status it found, so
+    /// a prompt command after it still reads the status of the operator's last
+    /// command.
     #[must_use]
     pub fn script(&self, shell: Shell) -> Script {
         let text = match shell {
@@ -236,11 +241,12 @@ fn is_variable_name(name: &str) -> bool {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum HookError {
-    /// The binary name.
+    /// The binary name is not a plain word. Holds the rejected value.
     Bin(String),
-    /// The subcommand.
+    /// The subcommand is not a plain word. Holds the rejected value.
     Subcommand(String),
-    /// The environment variable.
+    /// The environment variable name is not a plain word. Holds the rejected
+    /// value.
     Variable(String),
 }
 

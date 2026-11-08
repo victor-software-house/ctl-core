@@ -3,7 +3,10 @@ use clap::Args;
 use crate::color::ColorMode;
 use crate::flags::resolve_color;
 
-/// `--color` without `-c`, for CLIs that already use `-c` for config.
+/// `--color` and `--no-color` without the `-c` short flag, for CLIs that
+/// already use `-c` for config.
+///
+/// [`Self::color`] gives the colour mode in force.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct ColorLong {
@@ -22,7 +25,8 @@ pub struct ColorLong {
 }
 
 impl ColorLong {
-    /// Effective color after `--no-color`.
+    /// The colour mode in force: [`ColorMode::Never`] when `--no-color` is
+    /// set, otherwise the `--color` value.
     #[must_use]
     pub fn color(&self) -> ColorMode {
         resolve_color(self.color, self.no_color)

@@ -5,7 +5,8 @@ use std::io::Write as _;
 
 use crate::{formatdoc, writedoc};
 
-/// How two (or more) flags fight.
+/// The type of clash between flags that a [`FlagWarning`] reports. The last
+/// value still wins in every case.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WarningKind {
     /// Same flag twice (`--format json --format pretty`).
@@ -16,17 +17,19 @@ pub enum WarningKind {
     Redundant,
 }
 
-/// One warning. Display is the stderr line after `{bin}: warning: `.
+/// One flag clash. Its `Display` text is the sentence a warning line holds
+/// after the `{bin}: warning: ` prefix.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FlagWarning {
-    /// Kind of clash.
+    /// The type of clash.
     pub kind: WarningKind,
-    /// Tokens as written (`--color`, `--no-color`).
+    /// The flags involved, spelled as in a warning (`--color`, `--no-color`).
     pub names: Vec<String>,
 }
 
 impl FlagWarning {
-    /// `{bin}: warning: …` for stderr.
+    /// The full warning line for stderr, `{bin}: warning: …`, without a
+    /// trailing newline.
     #[must_use]
     pub fn line(&self, bin: &str) -> String {
         formatdoc!("{bin}: warning: {self}")
@@ -53,7 +56,11 @@ impl fmt::Display for FlagWarning {
     }
 }
 
-/// Chassis flags known to ctl-core.
+/// Find clashes among the shared chassis flags in `args`.
+///
+/// `args` excludes the program name. Scanning stops at `--`. The result lists
+/// a repeated `--color`, `--format`, `--quiet`, or `--no-color`, a `--color`
+/// with `--no-color`, and a repeated or aliased `--dry-run`.
 #[must_use]
 pub fn chassis_warnings<'a, I>(args: I) -> Vec<FlagWarning>
 where
@@ -75,7 +82,13 @@ where
     out
 }
 
-/// `--foo` / `--no-foo` both present.
+/// Find a `--foo` / `--no-foo` pair given together in `args`.
+///
+/// `yes` and `no` list the spellings of each side. The result holds one
+/// [`WarningKind::Contradictory`] warning, naming the first spelling of each
+/// side, or is empty. Scanning stops at `--`. Pair it with Clap's
+/// `overrides_with` on both sides, so the last flag wins and the clash is not
+/// silent.
 #[must_use]
 pub fn warn_opposites<'a, I>(args: I, yes: &[&str], no: &[&str]) -> Vec<FlagWarning>
 where
@@ -104,7 +117,7 @@ where
     }
 }
 
-/// Print `{bin}: warning: …` for each finding.
+/// Print each warning to stderr as `{bin}: warning: …`, one per line.
 pub fn emit_warnings<'a, I>(bin: &str, warnings: I)
 where
     I: IntoIterator<Item = &'a FlagWarning>,
