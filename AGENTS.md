@@ -121,8 +121,9 @@ It depends on `ctl-text`, `anstyle`, and `terminal_size`, and on `anstyle-query`
 on Windows, and never on `ctl-layout`. Nothing in this repository depends on
 it yet: ctl-core moves onto it in its own change. A rule about colour
 detection, depth, or width changes there. The detection tables and the
-encoder goldens in `ctl-term/tests/it/` are the evidence; the closed-pipe test
-runs the test binary as a child piped to `head -1`.
+encoder goldens in `ctl-term/tests/it/` are the evidence. The closed-pipe test is
+`ctl-term/tests/closed_pipe.rs`, a target with no libtest harness, which runs its
+own binary as a child piped to `head -1`.
 
 ## Cargo features
 
