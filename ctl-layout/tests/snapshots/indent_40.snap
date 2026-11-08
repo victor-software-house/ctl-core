@@ -1,10 +1,10 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-    id        title                  age
-    QCTL-014  Let a ledger declare     3
+    id        title                 age
+    QCTL-014  Let a ledger declare    3
               row separation
-    QCTL-015  Write a ledger         120
+    QCTL-015  Write a ledger        120
               atomically
-    QCTL-016  Name the next           45
+    QCTL-016  Name the next          45
               startable row

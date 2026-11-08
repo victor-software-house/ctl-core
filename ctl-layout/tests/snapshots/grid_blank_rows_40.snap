@@ -1,16 +1,16 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-┌──────────┬─────────────────────┬─────┐
-│ id       ┆ title               ┆ age │
-╞══════════╪═════════════════════╪═════╡
-│ QCTL-014 ┆ Let a ledger        ┆   3 │
-│          ┆ declare row         ┆     │
-│          ┆ separation          ┆     │
-│          ┆                     ┆     │
-│ QCTL-015 ┆ Write a ledger      ┆ 120 │
-│          ┆ atomically          ┆     │
-│          ┆                     ┆     │
-│ QCTL-016 ┆ Name the next       ┆  45 │
-│          ┆ startable row       ┆     │
-└──────────┴─────────────────────┴─────┘
+┌──────────┬────────────────┬─────┐
+│ id       ┆ title          ┆ age │
+╞══════════╪════════════════╪═════╡
+│ QCTL-014 ┆ Let a ledger   ┆   3 │
+│          ┆ declare row    ┆     │
+│          ┆ separation     ┆     │
+│          ┆                ┆     │
+│ QCTL-015 ┆ Write a ledger ┆ 120 │
+│          ┆ atomically     ┆     │
+│          ┆                ┆     │
+│ QCTL-016 ┆ Name the next  ┆  45 │
+│          ┆ startable row  ┆     │
+└──────────┴────────────────┴─────┘

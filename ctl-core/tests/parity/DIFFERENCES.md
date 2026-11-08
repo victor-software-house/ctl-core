@@ -3,7 +3,7 @@
 Every way a file in `engine/` differs from its file of the same name in `baseline/`, grouped by kind.
 `baseline/` is the comfy-table renderer of 0.6.x and stays frozen;
 `engine/` is the ctl-layout renderer.
-94 of the 208 files differ.
+92 of the 208 files differ.
 Each kind names one example as case, width, and mode, and the design decision of the `terminal-render-engine` change that produces it.
 No kind is an unfixable regression.
 
@@ -16,7 +16,7 @@ Example: `forkctl-no-patches-w80-color`.
 
 Reason: decision 5, item 2.
 The encoder resets at the end of every line that wrote a style, so each line stands alone in `head`, `less -R`, and a log.
-80 of the 84 coloured files that differ show it.
+78 of the 84 coloured files that differ show it.
 
 ## 2. A run of one style is written once
 
@@ -48,16 +48,20 @@ Reason: decision 9, step 1.
 A column's width is the widest of its cells plus padding, and an empty cell is 0 cells wide;
 comfy-table kept a minimum content width of 1.
 
-## 5. A column that wraps keeps the width it was given
+## 5. A wrapped column can be wider when one of its lines fills the width it was given
 
-Example: `qctl-status-w80-plain`.
-The title column wraps `Document the retry rules…` at the same word as before, but the table now spans all 80 columns, where the baseline shrank the column to its widest wrapped line and drew a 72-column table.
-`qctl-check-problems-w40-plain`, `help-root-w80-plain`, and `help-subcommand-w80-plain` show the same;
-in `help-subcommand-w80-plain` the wider column also lets `[env:` join the first line.
+Example: `help-subcommand-w80-plain`.
+The options table is 80 columns wide, where the baseline drew 76.
+The description column was given 37 cells, and its first line, `Limit the output to one section [env:`, fills all 37;
+comfy-table wrapped the same column at 32 cells, before `[env:`.
+This table, in the plain and the coloured render, is the only one in the corpus wider than its baseline.
 
-Reason: decision 9, steps 3 and 5.
-The table shrinks a column only until the table fits, then renders each cell at the width the column was given;
-it does not narrow the column again after wrapping.
+Reason: decision 9, steps 3 and 6.
+Step 3 shrinks the widest columns only until the table fits, and the empty column of kind 4 leaves one more cell for the description.
+Step 6 then narrows each column to its widest rendered line, so a wrapped column holds no blank cells down every row;
+here the widest line already fills the column, so nothing narrows.
+Where a column's lines stop short of its width, step 6 gives the baseline's width back:
+`qctl-status-w80-plain` and `qctl-check-problems-w40-plain` now match their baselines byte for byte.
 
 ## 6. Columns shrink widest first
 

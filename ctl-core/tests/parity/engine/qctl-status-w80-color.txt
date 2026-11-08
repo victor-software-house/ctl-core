@@ -2,14 +2,14 @@
 \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  \u{1b}[1mTSK-012\u{1b}[0m
 
 \u{1b}[1m\u{1b}[36mqueue\u{1b}[0m
-┌──────────┬─────────┬─────────────────────────────────────────────────────────┐
-│ \u{1b}[1m\u{1b}[36mpriority\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mid\u{1b}[0m      ┆ \u{1b}[1m\u{1b}[36mtitle\u{1b}[0m                                                   │\u{1b}[0m
-╞══════════╪═════════╪═════════════════════════════════════════════════════════╡
-│ 1*       ┆ \u{1b}[1mTSK-012\u{1b}[0m ┆ Move the parser onto the shared input loader            │\u{1b}[0m
-│ 2        ┆ \u{1b}[1mTSK-014\u{1b}[0m ┆ Add a format flag to the report command                 │\u{1b}[0m
-│ 3        ┆ \u{1b}[1mTSK-019\u{1b}[0m ┆ Document the retry rules for the publish step,          │\u{1b}[0m
-│          ┆         ┆ including the long wait after a rate limit              │
-└──────────┴─────────┴─────────────────────────────────────────────────────────┘
+┌──────────┬─────────┬────────────────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[36mpriority\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mid\u{1b}[0m      ┆ \u{1b}[1m\u{1b}[36mtitle\u{1b}[0m                                          │\u{1b}[0m
+╞══════════╪═════════╪════════════════════════════════════════════════╡
+│ 1*       ┆ \u{1b}[1mTSK-012\u{1b}[0m ┆ Move the parser onto the shared input loader   │\u{1b}[0m
+│ 2        ┆ \u{1b}[1mTSK-014\u{1b}[0m ┆ Add a format flag to the report command        │\u{1b}[0m
+│ 3        ┆ \u{1b}[1mTSK-019\u{1b}[0m ┆ Document the retry rules for the publish step, │\u{1b}[0m
+│          ┆         ┆ including the long wait after a rate limit     │
+└──────────┴─────────┴────────────────────────────────────────────────┘
 
 \u{1b}[1m\u{1b}[36mhorizon\u{1b}[0m
 ┌─────────┬────────────┬────────────────────────────────────────────┐

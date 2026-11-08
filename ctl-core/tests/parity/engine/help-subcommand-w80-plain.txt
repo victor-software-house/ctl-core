@@ -16,17 +16,17 @@ Options
 └──┴───────────┴───────────────────────┴───────────────────────────────────────┘
 
 Output
-┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
-│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:      │
-│    ┆            ┆                     ┆ pretty] [env: LEDGERCTL_FORMAT]      │
-│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output color policy. JSON     │
-│    ┆            ┆                     ┆ never contains ANSI [default: auto]  │
-│    ┆            ┆                     ┆ [env: LEDGERCTL_COLOR]               │
-│    ┆ --no-color ┆                     ┆ Force colorless pretty output. Wins  │
-│    ┆            ┆                     ┆ over `--color`                       │
-│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output    │
-│    ┆            ┆                     ┆ [env: LEDGERCTL_QUIET]               │
-└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
+┌────┬────────────┬─────────────────────┬─────────────────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:     │
+│    ┆            ┆                     ┆ pretty] [env: LEDGERCTL_FORMAT]     │
+│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output color policy. JSON    │
+│    ┆            ┆                     ┆ never contains ANSI [default: auto] │
+│    ┆            ┆                     ┆ [env: LEDGERCTL_COLOR]              │
+│    ┆ --no-color ┆                     ┆ Force colorless pretty output. Wins │
+│    ┆            ┆                     ┆ over `--color`                      │
+│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output   │
+│    ┆            ┆                     ┆ [env: LEDGERCTL_QUIET]              │
+└────┴────────────┴─────────────────────┴─────────────────────────────────────┘
 
 Help
 ┌────┬────────┬──┬─────────────────────────────────────┐
