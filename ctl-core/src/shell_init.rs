@@ -73,7 +73,9 @@ use crate::shell::{Script, Shell};
 /// It runs as `<bin> <subcommand>`, and only when the environment variable
 /// `variable` is set to a non-empty value and `bin` is on `PATH`. Each shell
 /// removes the hook before running the command, so a later prompt never
-/// runs it again.
+/// runs it again. bash's hook also sets a variable it checks first, because
+/// another tool, such as bash-preexec, can rewrite `PROMPT_COMMAND` so the
+/// removal misses.
 ///
 /// Every part is one word the shell reads without quoting, which
 /// [`Hook::new`] checks once.
@@ -143,6 +145,10 @@ impl Hook {
             # Load in ~/.bashrc: eval "$({bin} init bash)"
             {function}() {{
                 local status=$? kind
+                if [[ -n ${{{function}_ran-}} ]]; then
+                    return "${{status}}"
+                fi
+                {function}_ran=1
                 kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
                 if [[ ${{kind}} == "declare -a"* ]]; then
                     local hooks=() hook

@@ -58,6 +58,11 @@ non-empty and `bin` is on `PATH`, and SHALL NOT run it at a later prompt.
 - **WHEN** bash, zsh, or fish starts on a terminal with a startup file that loads the script twice, with `TOY_BLOCK` set and `toy-cli` on `PATH`, and two lines are typed before `exit`
 - **THEN** `toy-cli` ran exactly once, with the argument `pick`
 
+#### Scenario: Another tool rewrites PROMPT_COMMAND
+
+- **WHEN** bash loads the script, then appends to `PROMPT_COMMAND` as bash-preexec 0.7.0 does when it loads, and two lines are typed before `exit`
+- **THEN** `toy-cli` ran exactly once
+
 ### Requirement: The hook keeps the last exit status
 
 The hook SHALL leave the exit status the next prompt reads unchanged.

@@ -32,6 +32,20 @@ function and a per-shell quoting API have no consumer and are left out.
    the next prompt.
    Removing it first means a command that fails, or that the operator
    interrupts, does not run again at the next prompt.
+   bash's hook also sets `<function>_ran` and returns at once when it is
+   already set, because another tool can rewrite `PROMPT_COMMAND` so the
+   removal no longer finds the hook.
+   bash-preexec 0.7.0 does this when it loads
+   ([`__bp_install_after_session_init`][bp-install]): on bash 5.1 and later
+   it appends its install command as an array element, which turns a string
+   `PROMPT_COMMAND` into element zero, `<function>;…`, and on older bash it
+   strips a trailing `;`.
+   zsh and fish need no guard: zsh removes the function's name from
+   `precmd_functions`, whose elements are names that a rewrite keeps whole,
+   and fish erases the handler function itself.
+   - Alternative: match more of the forms a rewrite leaves.
+     Each tool rewrites differently, and the guard holds whatever the
+     rewrite; the removal stays as cleanup.
    - Alternative: `add-zsh-hook`. It is autoloaded, and `zsh -f` does not
      load it; `precmd_functions` is the array it edits.
    - Alternative: rewrite a string `PROMPT_COMMAND` as an array. That
@@ -86,5 +100,6 @@ function and a per-shell quoting API have no consumer and are left out.
    The pin is exact for the same reason as insta's: a bump is a reviewed
    change.
 
+[bp-install]: https://github.com/rcaloras/bash-preexec/blob/d866eeefdb8dfce075cbd4e37dc73c4deb4b0bd2/bash-preexec.sh#L538-L561
 [pty-process]: https://github.com/doy/pty-process/tree/v0.5.4/src/blocking
 [research]: ../../../docs/research/shell-init.md

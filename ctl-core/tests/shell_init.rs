@@ -129,6 +129,12 @@ enum Setup {
 enum PromptCommand {
     String,
     Array,
+    /// The string, rewritten after the script loads the way bash-preexec
+    /// 0.7.0's `__bp_install_after_session_init` does: bash 5.1 and later
+    /// append its install command as an array element, which turns the whole
+    /// string into element zero, and older bash strips the trailing `;` and
+    /// appends it after a newline.
+    Preexec,
 }
 
 /// Start `shell` on a terminal with a startup file that sets a prompt
@@ -161,8 +167,8 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
     let script = script.display();
     let command = match shell {
         Shell::Bash => {
-            let prompt_command = match prompt_command {
-                PromptCommand::String => "PROMPT_COMMAND='seen=$?'",
+            let initial = match prompt_command {
+                PromptCommand::String | PromptCommand::Preexec => "PROMPT_COMMAND='seen=$?'",
                 PromptCommand::Array => indoc::indoc! {"
                     if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
                         PROMPT_COMMAND=('seen=$?')
@@ -170,14 +176,24 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
                         PROMPT_COMMAND='seen=$?'
                     fi"},
             };
+            let rewrite = match prompt_command {
+                PromptCommand::String | PromptCommand::Array => "",
+                PromptCommand::Preexec => indoc::indoc! {r#"
+                    if (( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 501 )); then
+                        PROMPT_COMMAND+=(':')
+                    else
+                        PROMPT_COMMAND="${PROMPT_COMMAND%;}"$'\n'':'
+                    fi"#},
+            };
             let rc = root.file(
                 "bashrc",
                 indoc::formatdoc! {"
-                    {prompt_command}
+                    {initial}
                     PS1='[${{seen-}}] {PROMPT}'
                     {function}
                     source '{script}'
                     source '{script}'
+                    {rewrite}
                     "},
             );
             Command::new("bash")
@@ -272,6 +288,11 @@ fn bash_runs_the_hook_once_from_a_string() {
 #[test]
 fn bash_runs_the_hook_once_from_an_array() {
     assert_ran_once(Shell::Bash, PromptCommand::Array);
+}
+
+#[test]
+fn bash_runs_the_hook_once_after_bash_preexec_rewrites_the_prompt_command() {
+    assert_ran_once(Shell::Bash, PromptCommand::Preexec);
 }
 
 #[test]

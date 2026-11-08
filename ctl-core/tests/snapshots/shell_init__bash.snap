@@ -5,6 +5,10 @@ expression: text
 # Load in ~/.bashrc: eval "$(toy-cli init bash)"
 __toy_cli_first_prompt() {
     local status=$? kind
+    if [[ -n ${__toy_cli_first_prompt_ran-} ]]; then
+        return "${status}"
+    fi
+    __toy_cli_first_prompt_ran=1
     kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
     if [[ ${kind} == "declare -a"* ]]; then
         local hooks=() hook
