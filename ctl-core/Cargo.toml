@@ -112,7 +112,8 @@ completion = ["shell", "view", "app", "dep:clap_complete"]
 shell-init = ["shell", "view"]
 
 ## Mise Usage spec from clap (`--usage-spec` and the `#USAGE mount` line).
-usage = ["cli", "dep:usage-lib"]
+## Adds Clap's `usage` feature, which renders the spec's usage line.
+usage = ["cli", "clap/usage", "dep:usage-lib"]
 
 [dependencies]
 anyhow = { workspace = true, optional = true }

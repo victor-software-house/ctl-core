@@ -153,8 +153,23 @@ It is not reported upstream: a report needs the maintainer's approval.
   identifier.
 
 7.3.0 strips terminal escape sequences and DEL from help text before
-writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that.
-Default values are not stripped, so they need the escapes.
+writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that,
+by its own code. Default values are not stripped, so they need the
+escapes.
+
+Two clap features decide those bytes, and only usage-lib turns them on,
+through clap's defaults:
+
+1. clap's `Display` strips help only with clap's `color` feature on. The
+   writer strips help itself, by the rules of anstream 1.0.0's
+   `strip_str`, which clap calls with `color` on. Text clap already
+   stripped comes through unchanged. So the spec holds the same bytes
+   whether or not another crate turns `color` on.
+2. clap's `render_usage` returns an empty string without clap's `usage`
+   feature. ctl-core's `usage` feature turns `clap/usage` on itself.
+
+`test:usage` runs the spec tests with only the `usage` feature, so the
+plain tier is held to the same snapshots.
 
 Alternative considered: reproduce 7.3.0 exactly, invalid cases included.
 It lost because mise refuses a spec that does not parse. And a spec that
@@ -236,8 +251,9 @@ Alternatives considered:
 The writer maps every clap getter 7.3.0's bridge reads:
 
 1. command metadata, and the settings 7.3.0 writes as properties;
-2. flags, with their aliases, values, actions, defaults, environment
-   variables, and visibility;
+2. flags, with their aliases, values, actions, defaults, and visibility.
+   Environment variables are not read, as in 7.3.0. Writing `env=` would
+   be a separate decision;
 3. positional arguments, possible values, value hints, and groups.
 
 The corpus includes the every-attribute command from the probe, so each

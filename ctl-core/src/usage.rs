@@ -12,6 +12,7 @@
 
 mod kdl;
 mod nodes;
+mod plain;
 
 use std::io::Write as _;
 use std::process::ExitCode;
@@ -33,7 +34,7 @@ use crate::formatdoc;
 #[must_use]
 pub fn spec(mut command: Command, bin: &str) -> String {
     command.set_bin_name(bin);
-    nodes::document(&command, bin).to_string()
+    nodes::document(command, bin).to_string()
 }
 
 /// The `#USAGE mount` line a mise file task carries for the task named

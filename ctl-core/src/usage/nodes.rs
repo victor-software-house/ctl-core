@@ -10,18 +10,22 @@ use clap::builder::PossibleValue;
 use clap::{Arg, ArgAction, Command, ValueHint};
 
 use super::kdl::{Document, Node, Value};
+use super::plain::plain;
 
 /// The order clap gives a subcommand that sets none.
 const DEFAULT_ORDER: usize = 999;
 
 /// The spec of `command`, named `bin`.
 ///
+/// The usage line is rendered last: clap adds its help and version flags
+/// while it renders, and every other part reads the command as declared.
+///
 /// # Panics
 ///
 /// Panics when an argument conflicts with an id that is neither an argument
 /// nor a group of its command, as [`Command::get_arg_conflicts_with`] does.
-pub(crate) fn document(command: &Command, bin: &str) -> Document {
-    let body = Body::new(command);
+pub(crate) fn document(mut command: Command, bin: &str) -> Document {
+    let body = Body::new(&command);
     let mut nodes = Vec::new();
     let mut line = |name: &str, value: Value| {
         let mut node = Node::new(name);
@@ -36,11 +40,8 @@ pub(crate) fn document(command: &Command, bin: &str) -> Document {
             "long_version",
             command.get_long_version().map(str::to_owned),
         ),
-        ("about", command.get_about().map(ToString::to_string)),
-        (
-            "long_about",
-            command.get_long_about().map(ToString::to_string),
-        ),
+        ("about", command.get_about().map(plain)),
+        ("long_about", command.get_long_about().map(plain)),
     ];
     for (name, value) in metadata {
         if let Some(value) = value {
@@ -51,9 +52,9 @@ pub(crate) fn document(command: &Command, bin: &str) -> Document {
     if command.is_multicall_set() {
         line("multicall", Value::Bool(true));
     }
-    let settings = parsing_settings(command)
+    let settings = parsing_settings(&command)
         .into_iter()
-        .chain(layout_settings(command, Scope::Root));
+        .chain(layout_settings(&command, Scope::Root));
     for setting in settings {
         match setting {
             Setting::True(name) => line(name, Value::Bool(true)),
@@ -61,7 +62,7 @@ pub(crate) fn document(command: &Command, bin: &str) -> Document {
             Setting::Text(name, text) => line(name, Value::Text(text)),
         }
     }
-    let usage = command.clone().render_usage().to_string();
+    let usage = plain(&command.render_usage());
     if !usage.is_empty() {
         line("usage", Value::Text(usage));
     }
@@ -197,6 +198,9 @@ struct Body {
 }
 
 impl Body {
+    /// # Panics
+    ///
+    /// As [`write_conflicts`].
     fn new(command: &Command) -> Self {
         let (positionals, flags): (Vec<&Arg>, Vec<&Arg>) =
             command.get_arguments().partition(|arg| arg.is_positional());
@@ -268,6 +272,9 @@ impl Order {
     }
 }
 
+/// # Panics
+///
+/// As [`write_conflicts`].
 fn command_node(command: &Command, order: Order) -> Node {
     let body = Body::new(command);
     let mut node = Node::new("cmd");
@@ -319,10 +326,10 @@ fn command_node(command: &Command, order: Order) -> Node {
     ];
     for (short_key, long_name, short, long) in texts {
         if let Some(short) = short {
-            node.prop(short_key, Value::Text(short.to_string()));
+            node.prop(short_key, Value::Text(plain(short)));
         }
         if let Some(long) = long {
-            node.child(text_line(long_name, long.to_string()));
+            node.child(text_line(long_name, plain(long)));
         }
     }
     node.prop("unknown_flags", Value::Text(body.unknown_flags.to_owned()));
@@ -349,8 +356,8 @@ enum Action {
 }
 
 impl Action {
-    // clap marks `ArgAction` non-exhaustive; an action added later is read as
-    // a switch, which takes no value.
+    /// clap marks `ArgAction` non-exhaustive. An action added later takes one
+    /// value when clap says it takes values, and is a switch otherwise.
     #[expect(
         clippy::match_same_arms,
         reason = "SetTrue and an action clap adds later both read as a plain switch"
@@ -366,6 +373,7 @@ impl Action {
             ArgAction::HelpShort => Self::Builtin("help_short"),
             ArgAction::HelpLong => Self::Builtin("help_long"),
             ArgAction::Version => Self::Builtin("version"),
+            action if action.takes_values() => Self::Value { collects: false },
             _ => Self::Switch { negates: false },
         }
     }
@@ -495,6 +503,9 @@ impl Spellings {
     }
 }
 
+/// # Panics
+///
+/// As [`write_conflicts`].
 fn flag_node(command: &Command, arg: &Arg, order: Order) -> Node {
     let action = Action::of(arg);
     let mut spellings = Spellings::of(arg);
@@ -506,13 +517,13 @@ fn flag_node(command: &Command, arg: &Arg, order: Order) -> Node {
     let mut node = Node::new("flag");
     node.arg(Value::Word(spellings.declaration(&name)));
     if let Some(help) = arg.get_help() {
-        node.prop("help", Value::Text(help.to_string()));
+        node.prop("help", Value::Text(plain(help)));
     }
     if let Some(aliases) = spellings.hidden_node() {
         node.child(aliases);
     }
     if let Some(long_help) = arg.get_long_help() {
-        node.child(text_line("long_help", long_help.to_string()));
+        node.child(text_line("long_help", plain(long_help)));
     }
     node.enable([
         ("required", arg.is_required_set()),
@@ -566,6 +577,9 @@ fn flag_node(command: &Command, arg: &Arg, order: Order) -> Node {
     node
 }
 
+/// # Panics
+///
+/// As [`write_conflicts`].
 fn positional_node(command: &Command, arg: &Arg, order: Order) -> Node {
     let value = ArgValue::of_positional(command, arg);
     let label = value.label();
@@ -573,10 +587,10 @@ fn positional_node(command: &Command, arg: &Arg, order: Order) -> Node {
     let mut node = Node::new("arg");
     node.arg(Value::Word(label));
     if let Some(help) = arg.get_help() {
-        node.prop("help", Value::Text(help.to_string()));
+        node.prop("help", Value::Text(plain(help)));
     }
     if let Some(long_help) = arg.get_long_help() {
-        node.prop("help_long", Value::Text(long_help.to_string()));
+        node.prop("help_long", Value::Text(plain(long_help)));
     }
     if !value.required {
         node.prop("required", Value::Bool(false));
@@ -840,14 +854,17 @@ impl Misreading {
     }
 }
 
-/// Whether mise reads `label` as several placeholders: two words or more,
-/// each enclosed in `<…>` or in `[…]`.
+/// Whether mise reads `label` as several placeholders: a label holding ASCII
+/// whitespace that splits into two words or more, each enclosed in `<…>` or
+/// in `[…]`.
 fn splits_into_placeholders(label: &str) -> bool {
     let enclosed = |word: &str| {
         (word.starts_with('<') && word.ends_with('>'))
             || (word.starts_with('[') && word.ends_with(']'))
     };
-    label.split_whitespace().count() > 1 && label.split_whitespace().all(enclosed)
+    label.bytes().any(|byte| byte.is_ascii_whitespace())
+        && label.split_whitespace().count() > 1
+        && label.split_whitespace().all(enclosed)
 }
 
 /// The value count clap reads per occurrence, when it can be more than one.
@@ -997,14 +1014,15 @@ fn choices_node(arg: &Arg) -> Option<Node> {
     Some(node)
 }
 
+/// One possible value. clap never shows a possible value's alias in help, so
+/// each alias is hidden.
 fn choice_node(value: &PossibleValue) -> Node {
     let mut node = Node::new("choice");
     node.arg(Value::Text(value.get_name().to_owned()));
     if let Some(help) = value.get_help() {
-        node.prop("help", Value::Text(help.to_string()));
+        node.prop("help", Value::Text(plain(help)));
     }
     node.enable([("hide", value.is_hide_set())]);
-    // clap never shows a possible value's alias in help.
     for alias in value.get_name_and_aliases().skip(1) {
         let mut alias_node = text_line("alias", alias.to_owned());
         alias_node.enable([("hide", true)]);
@@ -1129,7 +1147,15 @@ mod tests {
         for split in ["<<A> <B>>", "[[A] [B]]", "<A> <B>", "<A> [B]"] {
             assert!(splits_into_placeholders(split), "{split:?} should split");
         }
-        for whole in ["<X>", "[<A> <B>]", "<[A] [B]>", "<A B>", "<-- X>", "<x...>"] {
+        for whole in [
+            "<X>",
+            "[<A> <B>]",
+            "<[A] [B]>",
+            "<A B>",
+            "<-- X>",
+            "<x...>",
+            "<A>\u{a0}<B>",
+        ] {
             assert!(
                 !splits_into_placeholders(whole),
                 "{whole:?} should not split"

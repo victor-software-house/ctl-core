@@ -54,6 +54,7 @@ depends = [
   "check:tree",
   "check:size",
   "test",
+  "test:usage",
   "test:doc",
   "doc",
   "check:docs",

@@ -27,3 +27,9 @@ They are output that was not valid KDL v2 or read back as other text, and value 
 - A positional whose value name starts with `--` and a space gets `double_dash=optional`.
   mise offered it only after `--`.
 - A flag's value named `[x]` is written `<[x]>`, a required value, as clap reads it.
+
+The spec no longer depends on Clap features that only usage-lib turned on:
+
+- ctl-core strips terminal control sequences and DEL from help text itself, as Clap does with its `color` feature on.
+  The spec holds the same bytes whether or not another crate turns `color` on.
+- The `usage` feature turns on Clap's `usage` feature, so the spec keeps its usage line without the `help` feature.
