@@ -10,10 +10,10 @@
 //! - a quoted string otherwise.
 //!
 //! A single-line string may not hold a Newline or a disallowed literal code
-//! point ([KDL v2], sections 3.13 and 3.19). A quoted string writes each of
-//! them as `\u{…}`.
+//! point. The Newline and Disallowed Literal Code Points tables of
+//! [KDL 2.0.0] list them. A quoted string writes each of them as `\u{…}`.
 //!
-//! [KDL v2]: https://kdl.dev/spec/
+//! [KDL 2.0.0]: https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md
 
 use std::fmt::{self, Display, Formatter, Write as _};
 
@@ -166,10 +166,12 @@ fn write_word(f: &mut Formatter<'_>, word: &str) -> fmt::Result {
     }
 }
 
-// The escaped form keeps what a raw string would change or could not hold: a
-// control character, a forbidden character, or a whitespace-only line.
-// A multi-line string reads such a line back empty. An argument that starts
-// with `-` is quoted so a reader never takes it for a flag.
+/// Write prose in the form that reads back as `text`.
+///
+/// The escaped form keeps what a raw string would change or could not hold: a
+/// control character, a forbidden character, or a whitespace-only line. A
+/// multi-line string reads such a line back empty. An argument that starts
+/// with `-` is quoted, so a reader never takes it for a flag.
 fn write_text(f: &mut Formatter<'_>, text: &str, place: Place) -> fmt::Result {
     let dashed = place == Place::Argument && text.starts_with('-');
     let multiline = text.contains('\n');
@@ -274,7 +276,8 @@ fn is_blank(line: &str) -> bool {
 }
 
 /// A character KDL v2 forbids literally in a single-line string: a Newline or
-/// a disallowed literal code point, U+007F included.
+/// a disallowed literal code point, U+007F included. KDL 2.0.0's Newline and
+/// Disallowed Literal Code Points tables list them.
 fn is_forbidden(c: char) -> bool {
     matches!(
         c,
@@ -295,7 +298,7 @@ fn is_forbidden(c: char) -> bool {
     )
 }
 
-/// A KDL v2 `unicode-space`.
+/// A KDL v2 `unicode-space`: a code point in KDL 2.0.0's Whitespace table.
 fn is_space(c: char) -> bool {
     matches!(
         c,
@@ -307,11 +310,99 @@ fn is_space(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
+    use kdl::{KdlDocument, KdlValue};
 
     use super::{Document, Node, Value, is_identifier, raw_hashes};
 
+    /// KDL 2.0.0's Whitespace table, as inclusive ranges.
+    const WHITESPACE: &[(char, char)] = &[
+        ('\t', '\t'),
+        (' ', ' '),
+        ('\u{a0}', '\u{a0}'),
+        ('\u{1680}', '\u{1680}'),
+        ('\u{2000}', '\u{200a}'),
+        ('\u{202f}', '\u{202f}'),
+        ('\u{205f}', '\u{205f}'),
+        ('\u{3000}', '\u{3000}'),
+    ];
+
+    /// LF, the one Newline a raw multi-line string holds literally.
+    const LINE_FEED: &[(char, char)] = &[('\n', '\n')];
+
+    /// KDL 2.0.0's Newline table but LF, which breaks lines and is the one
+    /// Newline a raw multi-line string holds.
+    const NEWLINE: &[(char, char)] = &[
+        ('\r', '\r'),
+        ('\u{85}', '\u{85}'),
+        ('\u{b}', '\u{c}'),
+        ('\u{2028}', '\u{2029}'),
+    ];
+
+    /// KDL 2.0.0's Disallowed Literal Code Points table, as inclusive ranges.
+    /// A `char` is never a surrogate, so the surrogate range is left out.
+    const DISALLOWED: &[(char, char)] = &[
+        ('\0', '\u{8}'),
+        ('\u{e}', '\u{1f}'),
+        ('\u{7f}', '\u{7f}'),
+        ('\u{200e}', '\u{200f}'),
+        ('\u{202a}', '\u{202e}'),
+        ('\u{2066}', '\u{2069}'),
+        ('\u{feff}', '\u{feff}'),
+    ];
+
     fn render(node: Node) -> String {
         Document(vec![node]).to_string()
+    }
+
+    /// Every member of `ranges`, and the code point on each side of each
+    /// range.
+    fn members_and_neighbours(ranges: &[(char, char)]) -> Vec<char> {
+        ranges
+            .iter()
+            .flat_map(|&(first, last)| {
+                let before = u32::from(first).checked_sub(1).and_then(char::from_u32);
+                let after = char::from_u32(u32::from(last) + 1);
+                before.into_iter().chain(first..=last).chain(after)
+            })
+            .collect()
+    }
+
+    fn is_listed(ranges: &[(char, char)], c: char) -> bool {
+        ranges
+            .iter()
+            .any(|&(first, last)| (first..=last).contains(&c))
+    }
+
+    /// A Newline but LF, or a disallowed literal code point.
+    fn is_forbidden_literal(c: char) -> bool {
+        is_listed(NEWLINE, c) || is_listed(DISALLOWED, c)
+    }
+
+    #[test]
+    fn every_listed_code_point_and_its_neighbours_read_back() {
+        let tables = [WHITESPACE, LINE_FEED, NEWLINE, DISALLOWED];
+        for c in tables.into_iter().flat_map(members_and_neighbours) {
+            let text = format!("a{c}b");
+            let mut node = Node::new("n");
+            node.arg(Value::Text(text.clone()));
+            node.prop("word", Value::Word(text.clone()));
+            node.prop("text", Value::Text(text.clone()));
+            let spec = render(node);
+            let code = u32::from(c);
+            assert!(
+                !spec.chars().any(is_forbidden_literal),
+                "U+{code:04X} is written literally: {spec:?}"
+            );
+            let document = KdlDocument::parse_v2(&spec)
+                .unwrap_or_else(|error| panic!("U+{code:04X}: {error:?} in {spec:?}"));
+            let node = document.get("n").expect("the node reads back");
+            for key in ["word", "text"] {
+                let read = node.get(key).and_then(KdlValue::as_string);
+                assert_eq!(read, Some(text.as_str()), "U+{code:04X} {key}: {spec:?}");
+            }
+            let read = node.get(0).and_then(KdlValue::as_string);
+            assert_eq!(read, Some(text.as_str()), "U+{code:04X} argument: {spec:?}");
+        }
     }
 
     #[test]
