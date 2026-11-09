@@ -151,13 +151,13 @@ impl Hook {
         formatdoc! {r#"
             # Load in ~/.bashrc: eval "$({bin} init bash)"
             {function}() {{
-                local status=$? kind
+                local status=$? declaration
                 if [[ -n ${{{function}_ran-}} ]]; then
                     return "${{status}}"
                 fi
                 {function}_ran=1
-                kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
-                if [[ ${{kind}} == "declare -a"* ]]; then
+                declaration=$(declare -p PROMPT_COMMAND 2>/dev/null)
+                if [[ ${{declaration}} == "declare -a"* ]]; then
                     local hooks=() hook
                     for hook in "${{PROMPT_COMMAND[@]}}"; do
                         [[ ${{hook}} == {function} ]] || hooks+=("${{hook}}")
@@ -171,15 +171,15 @@ impl Hook {
                 fi
                 return "${{status}}"
             }}
-            {function}_kind=$(declare -p PROMPT_COMMAND 2>/dev/null)
-            if [[ ${{{function}_kind}} == "declare -a"* ]]; then
+            {function}_declaration=$(declare -p PROMPT_COMMAND 2>/dev/null)
+            if [[ ${{{function}_declaration}} == "declare -a"* ]]; then
                 if [[ " ${{PROMPT_COMMAND[*]}} " != *" {function} "* ]]; then
                     PROMPT_COMMAND=({function} "${{PROMPT_COMMAND[@]}}")
                 fi
             elif [[ ${{PROMPT_COMMAND-}} != *{function}\;* ]]; then
                 printf -v PROMPT_COMMAND %s "{function};${{PROMPT_COMMAND-}}"
             fi
-            unset {function}_kind
+            unset {function}_declaration
             "#}
     }
 
