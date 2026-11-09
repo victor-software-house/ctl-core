@@ -12,20 +12,7 @@
 //! The crate re-exports [`ctl_text`] and the four types every widget uses:
 //! [`Context`], [`Overflow`], [`Renderable`], and [`Text`].
 //!
-//! # Widgets
-//!
-//! - [`Table`]: rows under column headers. A [`Column`] sets the header, the
-//!   overflow policy, and how its cells are aligned ([`Align`]). A [`Frame`]
-//!   and a [`RowSeparation`] set the rules between them.
-//! - [`Record`]: labelled values, drawn in a [`RecordStyle`].
-//! - [`Definitions`]: entries as a line of labels over indented description
-//!   lines, the narrow form of a table.
-//! - [`Breakpoint`]: one widget below a width and another from it up.
-//! - [`Rule`]: a horizontal line with an optional title.
-//! - [`Stack`]: widgets one above the other.
-//! - [`Indent`]: a widget moved right.
-//!
-//! # Quick start
+//! ## Quick start
 //!
 //! A [`Table`] gives each column the widest cell it holds, and shrinks the
 //! widest columns first when the width runs short. A column sets what
@@ -139,7 +126,20 @@
 //! [`Line`](ctl_text::Line) types come through
 //! [`ctl_layout::ctl_text`](ctl_text).
 //!
-//! # Features
+//! ## Widgets
+//!
+//! - [`Table`]: rows under column headers. A [`Column`] sets the header, the
+//!   overflow policy, and how its cells are aligned ([`Align`]). A [`Frame`]
+//!   and a [`RowSeparation`] set the rules between them.
+//! - [`Record`]: labelled values, drawn in a [`RecordStyle`].
+//! - [`Definitions`]: entries as a line of labels over indented description
+//!   lines, the narrow form of a table.
+//! - [`Breakpoint`]: one widget below a width and another from it up.
+//! - [`Rule`]: a horizontal line with an optional title.
+//! - [`Stack`]: widgets one above the other.
+//! - [`Indent`]: a widget moved right.
+//!
+//! ## Cargo features
 //!
 //! This crate has no optional features.
 

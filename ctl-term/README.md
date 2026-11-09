@@ -34,11 +34,9 @@ let terminal = Terminal::from_probe(
 let console = Console::new(Stream::Stdout, terminal);
 
 let red = Style::new().fg_color(Some(AnsiColor::Red.into()));
-let mut out = Vec::new();
-console.write_to(&mut out, &Text::styled("failed", red))?;
+let text = Text::styled("failed", red);
 
-assert_eq!(out, b"\x1b[31mfailed\x1b[0m\n");
-# Ok::<(), ctl_term::Error>(())
+assert_eq!(console.render(&text), "\x1b[31mfailed\x1b[0m\n");
 ```
 
 ## Features
