@@ -34,7 +34,7 @@ No escape byte exists before that last step, so JSON output and text from outsid
 
 [`AGENTS.md`](AGENTS.md) holds the workspace rules and links each crate's own guide.
 [`docs/presentation.md`](docs/presentation.md) describes how output is presented.
-Changes are planned in [`openspec/`](openspec/) and released from [Changesets](.changeset/) fragments.
+Changes are planned in [`openspec/`](openspec/) and released by [verctl](https://github.com/victor-software-house/verctl) from the fragments in `.changeset/`.
 
 ## License
 
