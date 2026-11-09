@@ -72,6 +72,7 @@ queue:
       - Module summaries live once, in each module's //! docs.
     notes:
       - Prototype from the docs.rs standard review on 2026-10-15; the standard is the rust-projects skill's Crate docs on docs.rs section.
+      - 2026-11-09, in 0.7.0, operator decision.
 
   - id: CTC-025
     title: Read TOML input without the YAML and garde crates
@@ -86,6 +87,8 @@ queue:
     notes:
       - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
       - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
+      - 2026-11-09, in 0.7.0, operator decision.
+      - serde-saphyr is our fork, vsh-serde-saphyr, so a change that Limits or Budget needs can go into the fork.
 
   - id: CTC-034
     title: A terminal rendering engine of our own in place of comfy-table
@@ -115,6 +118,36 @@ queue:
       - '2026-11-09, in rawr the copy cost 1,644 bytes of .text: Command::subcommands over copy_for_help, 1,229, and Vec<Command>::from_iter, 415.'
       - A loop that pushes each copy, with no generic iterator, may cost less. Nobody has measured it.
       - Design decision 16 of terminal-render-engine holds the attribution.
+
+  - id: CTC-043
+    title: >-
+      Take every command's input as JSON or YAML, from a file or stdin, as output
+      takes --format
+    scope: src/input.rs, the App chassis
+    outcome: >-
+      Any ctl CLI accepts a command's arguments as one structured document, with the same choice of formats its output offers.
+    blocked_by: []
+    acceptance:
+      - A command built on ctl-core reads its arguments from --input FILE or --input -, in JSON or YAML chosen by --input-format or the file extension, validated by the same rules as its flags.
+      - Flags and an input document combine by one stated precedence, and an unknown field fails naming it, as the output side reports errors.
+      - qctl, verctl and forkctl each accept it for at least one command, with a golden test.
+    notes:
+      - "2026-11-07, operator, while adding rows to a private repository's queue with long qctl flag lists: qctl should take nicer input formats, such as JSON or from files; that is partly or even mostly a ctl-core thing; we need to support JSON inputs and from files, the same way as multiple output formats are."
+      - CTC-008 owns the declared-input layer for config files; this row extends input to command arguments.
+      - 2026-11-09, it ships as a patch after 0.7.0 (operator).
+
+  - id: CTC-044
+    title: Rename the public names that say kind
+    scope: "ctl-core: flags/warn.rs, view.rs, prelude"
+    outcome: Every public ctl-core name says what its value is, and none of them uses kind.
+    blocked_by: []
+    acceptance:
+      - WarningKind is FlagClash, and FlagWarning holds it in a field named clash.
+      - MessageKind is Outcome, and Present::message_kind is Present::outcome.
+      - rg finds none of WarningKind, MessageKind, or message_kind in ctl-core's code, tests, specs, or current docs; dated records keep the names of their time.
+      - 'A changeset marked ctl-core: patch names each old and new name, and CI passes with every snapshot unchanged or accepted through insta.'
+    notes:
+      - "2026-11-09, operator decision: 0.7.0 is ctl-core's one minor, so its public names stop using kind in it."
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
