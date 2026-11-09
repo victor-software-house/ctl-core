@@ -29,10 +29,9 @@ pub struct UnicodeVersion {
 ///
 /// A cluster's boundaries come from `unicode-segmentation` and its width from
 /// `unicode-width`. The two crates ship their own tables, so they can sit on
-/// different Unicode versions, and an emoji one knows and the other does not
-/// is counted wrongly. `tests/it/unicode_version.rs` pins both, so a
-/// dependency upgrade that moves either one fails until the pin is read and
-/// updated.
+/// different Unicode versions. An emoji that one knows and the other does not
+/// is counted wrongly. This crate's tests pin both versions, so a dependency
+/// upgrade that moves either one fails until the pin is read and updated.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct UnicodeVersions {
@@ -88,8 +87,9 @@ pub fn text_width(text: &str) -> u16 {
 /// The byte offset where the longest prefix of whole clusters that fits in
 /// `width` cells ends.
 ///
+/// Slice with it to cut `text` safely: `&text[..prefix_len(text, width)]`.
 /// A cluster that would cross `width` stays out whole, so the prefix can be
-/// narrower than `width`.
+/// narrower than `width`. When all of `text` fits, the offset is `text.len()`.
 #[must_use]
 pub fn prefix_len(text: &str, width: u16) -> usize {
     let mut used: u16 = 0;
@@ -102,9 +102,9 @@ pub fn prefix_len(text: &str, width: u16) -> usize {
     text.len()
 }
 
-/// Whether `character` may end a word: whitespace that is not a no-break
-/// space (U+00A0, U+2007, U+202F), or the zero width space (U+200B), which
-/// marks a place to break and shows nothing.
+/// Whether `character` may end a word. That is whitespace other than a
+/// no-break space (U+00A0, U+2007, U+202F), or the zero width space (U+200B).
+/// The zero width space marks a place to break and shows nothing.
 pub(crate) fn is_break_space(character: char) -> bool {
     (character.is_whitespace() && !matches!(character, '\u{a0}' | '\u{2007}' | '\u{202f}'))
         || character == '\u{200b}'

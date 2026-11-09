@@ -1,11 +1,15 @@
 //! Render semantic documents through the ctl-layout widgets.
 //!
-//! A [`Document`] becomes a tree of widgets: [`Fields`] a record, [`Table`] a
-//! table, a [`Section`] its heading over its body, a [`Notice`] and every
-//! paragraph styled text, a rule a rule, and verbatim text its own lines. The
-//! [`Theme`] turns each [`Role`] into a style on the way, so the widgets never
-//! see a role. The widgets lay the document out as plain lines of styled
-//! spans; escape sequences are added only when ctl-term's encoder writes the
+//! A [`Document`] becomes a tree of widgets, one per block:
+//!
+//! - [`Fields`] becomes a record, and [`Table`] a table.
+//! - A [`Section`] becomes its heading over its body.
+//! - A [`Notice`] and every paragraph become styled text.
+//! - A rule stays a rule, and verbatim text keeps its own lines.
+//!
+//! The [`Theme`] turns each [`Role`] into a style on the way, so the widgets
+//! never see a role. The widgets lay the document out as plain lines of styled
+//! spans. Escape sequences are added only when ctl-term's encoder writes the
 //! lines.
 
 use ctl_layout::{
@@ -49,8 +53,8 @@ pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// Default ordered environment lookup for the row separation.
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
-/// The width of a rule in a document laid out at its natural width, which a
-/// rule, having no natural width of its own, would otherwise fill.
+/// The width of a rule in a document laid out at its natural width. A rule has
+/// no natural width of its own, so it would otherwise fill that width.
 const NATURAL_RULE_WIDTH: u16 = 40;
 
 /// A style an operator can name in an environment variable.
@@ -263,7 +267,7 @@ impl RenderOptions {
         self
     }
 
-    /// Replace the ordered environment names used to configure the buffer.
+    /// Replace the ordered environment names that set the buffer.
     /// Pass aliases in precedence order or an empty slice to disable lookup.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
@@ -470,7 +474,7 @@ impl Renderer {
         }
     }
 
-    /// The heading directly over the body, with no blank line between them
+    /// The heading directly over the body. There is no blank line between them
     /// and no indent, so a section's tables line up with the document's.
     fn section(self, section: &Section) -> Stack<'static> {
         Stack::new()
@@ -597,11 +601,12 @@ impl Document {
     ///
     /// The string is a pure function of the document and the options: no
     /// terminal is asked. The document lays out to the explicit width, else
-    /// the fallback width, else its natural width. Styles are written only
-    /// under [`ColorMode::Always`], as the theme gives them, at full colour
-    /// depth; [`ColorMode::Auto`] has no stream to look at here and writes
-    /// none. A [`View`](crate::View) or help, which know their stream, decide
-    /// width and colour for it instead.
+    /// the fallback width, else its natural width.
+    ///
+    /// Styles are written only under [`ColorMode::Always`], as the theme gives
+    /// them, at full colour depth. [`ColorMode::Auto`] has no stream to look
+    /// at here and writes none. A [`View`](crate::View) and help write to a
+    /// stream, so they decide width and colour for it instead.
     #[must_use]
     pub fn render(&self, options: RenderOptions) -> String {
         Renderer::new(options).render(self)
@@ -736,9 +741,9 @@ mod tests {
 
     fn queue() -> Table {
         Table::new(["id", "title"])
-            .row(["QCTL-014", "Let a ledger declare row separation"])
-            .row(["QCTL-015", "Write a ledger atomically"])
-            .row(["QCTL-016", "Name the next startable row"])
+            .row(["task-014", "Let a ledger declare row separation"])
+            .row(["task-015", "Write a ledger atomically"])
+            .row(["task-016", "Name the next startable row"])
     }
 
     #[test]
@@ -747,7 +752,7 @@ mod tests {
             .fields(
                 Fields::new()
                     .row("ledger", Text::plain("tasks.yaml"))
-                    .row("active", Text::plain("QCTL-014")),
+                    .row("active", Text::plain("task-014")),
             )
             .render(
                 RenderOptions::new(ColorMode::Never)
@@ -756,7 +761,7 @@ mod tests {
             );
         let expected = indoc! {"
             ledger  tasks.yaml
-            active  QCTL-014
+            active  task-014
         "};
         assert_eq!(rendered, expected);
     }
@@ -766,7 +771,7 @@ mod tests {
         let rendered = Document::new()
             .fields(
                 Fields::new()
-                    .row("id", Text::plain("QCTL-014"))
+                    .row("id", Text::plain("task-014"))
                     .row("outcome", Text::plain("done")),
             )
             .render(
@@ -775,7 +780,7 @@ mod tests {
                     .record_style(RecordStyle::KeysLeft),
             );
         let expected = indoc! {"
-            id       QCTL-014
+            id       task-014
             outcome  done
         "};
         assert_eq!(rendered, expected);
@@ -926,17 +931,17 @@ mod tests {
     fn ids_are_bold_without_a_colour() {
         let table = Table::new(["id", "title"])
             .id_column(0)
-            .row(["QCTL-014", "Title"]);
+            .row(["task-014", "Title"]);
         let rendered = Document::new()
             .table(table)
-            .paragraph(Text::new().id("QCTL-015"))
+            .paragraph(Text::new().id("task-015"))
             .render(RenderOptions::new(ColorMode::Always).width(60));
         assert!(
-            rendered.contains("\u{1b}[1mQCTL-014\u{1b}[0m"),
+            rendered.contains("\u{1b}[1mtask-014\u{1b}[0m"),
             "{rendered}"
         );
         assert!(
-            rendered.contains("\u{1b}[1mQCTL-015\u{1b}[0m"),
+            rendered.contains("\u{1b}[1mtask-015\u{1b}[0m"),
             "{rendered}"
         );
     }
@@ -944,7 +949,7 @@ mod tests {
     #[test]
     fn headings_wrap_to_the_width() {
         let rendered = Document::new()
-            .heading("QCTL-001  a title that runs past the line")
+            .heading("task-001  a title that runs past the line")
             .section(Section::new(
                 "a section title that also runs long",
                 Document::new(),

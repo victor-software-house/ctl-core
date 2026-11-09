@@ -22,7 +22,8 @@ impl<'a> Stack<'a> {
         Self::default()
     }
 
-    /// Leaves `lines` blank lines between consecutive children.
+    /// Leaves `lines` blank lines between consecutive children that render
+    /// something. The default is none.
     #[must_use]
     pub fn spacing(mut self, lines: u16) -> Self {
         self.spacing = lines;

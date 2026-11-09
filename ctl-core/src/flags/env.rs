@@ -1,4 +1,9 @@
 //! Bind every long option to an environment variable.
+//!
+//! [`EnvPrefix`] binds a command's options to `<PREFIX>_<LONG>`, and
+//! [`env_under_flags`] makes a flag on the command line win over its variable.
+//! A CLI uses the first through `#[command(env_prefix = "...")]` and gets the
+//! second from [`App`](crate::App).
 
 use std::ffi::OsString;
 
@@ -10,18 +15,24 @@ use clap::{Arg, ArgAction, ArgMatches, Command, Id};
 /// `<PREFIX>_<LONG>`, so the environment can set any flag a CLI declares.
 ///
 /// Put it on the root parser as a derive attribute, with the trait in scope
-/// (the prelude exports it): `#[command(env_prefix = "VERCTL")]`. Clap's
-/// derive applies a root attribute after it has added every argument and
-/// subcommand, so `C::command()` returns the bound graph to help, the Usage
-/// spec, the pre-parse view, and the parse alike.
+/// (the prelude exports it): `#[command(env_prefix = "VERCTL")]`.
+///
+/// Clap's derive applies a root attribute after it has added every argument
+/// and subcommand. So `C::command()` returns the bound graph to help, the
+/// Usage spec, the pre-parse view, and the parse alike.
 ///
 /// A command-line flag wins over its variable, which wins over the default,
 /// once [`env_under_flags`] has run before the parse. A CLI that also reads a
 /// config file applies a file value only where neither was given.
 ///
-/// An option is left unbound when it already declares its own `env` (the
-/// override), has no long name, is hidden, is the `--no-*` side of a pair,
-/// or is help or version. Not calling `env_prefix` disables the binding.
+/// An option is left unbound when any of these holds:
+///
+/// - it already declares its own `env`, which is the override;
+/// - it has no long name, or is hidden;
+/// - it is the `--no-*` side of a pair;
+/// - it is help or version.
+///
+/// Not calling `env_prefix` disables the binding.
 pub trait EnvPrefix {
     /// Bind every eligible long option under `prefix`.
     #[must_use]
@@ -66,25 +77,25 @@ fn bind(arg: Arg, prefix: &str) -> Arg {
 /// Removes each variable that the command line overrules, so the command line
 /// wins, and refuses two variables that conflict.
 ///
-/// Clap treats a variable as given by the user: a variable that conflicts
-/// with a flag on the command line, or with its `--no-*` side, fails the
-/// parse ([clap#5591](https://github.com/clap-rs/clap/issues/5591)). This
-/// parses `raw` once leniently to learn which options the command line set
-/// at each subcommand level, then unbinds each variable that:
+/// Clap treats a variable as given by the user. A variable that conflicts
+/// with a flag on the command line, or with its `--no-*` side, fails the parse
+/// ([clap#5591](https://github.com/clap-rs/clap/issues/5591)). This function
+/// parses `raw` once leniently to learn which options the command line set at
+/// each subcommand level. It then unbinds each variable that:
 ///
 /// 1. belongs to an option the command line set;
 /// 2. belongs to the other side of a `--x`/`--no-x` pair the command line set;
-/// 3. belongs to an option that conflicts, either way, with one the command
-///    line set: a `conflicts_with` on either side, a single-choice group they
-///    share, or either side being `exclusive`;
+/// 3. belongs to an option that conflicts with one the command line set. The
+///    conflict may be a `conflicts_with` on either side, a single-choice group
+///    they share, or an `exclusive` option on either side;
 /// 4. is empty, as a composite action sets an input it was not given;
 /// 5. reads as a boolean flag's default, `false` for a flag that sets `true`,
 ///    so it changes nothing and cannot conflict.
 ///
-/// Clap keeps `overrides_with` and a group's own `conflicts_with` private, so
-/// this sees overrides only between `--x`/`--no-x` pairs, and no conflict
-/// that a group declares. Call this on the command just before the parse,
-/// and parse the command it returns; `App` does.
+/// Clap keeps `overrides_with` and a group's own `conflicts_with` private. So
+/// this function sees overrides only between `--x`/`--no-x` pairs, and no
+/// conflict that a group declares. Call it on the command just before the
+/// parse, and parse the command it returns. `App` does both.
 ///
 /// # Errors
 ///
@@ -169,9 +180,9 @@ struct Placed<'a> {
 /// Every option on the path once. A global option appears at the level that
 /// declares it, not at the levels clap copies it into.
 ///
-/// Conflicts are read through a non-global copy of each option: for a global,
-/// clap's lookup resolves only argument ids and panics on a group id, while
-/// the declaring level holds every id its conflicts may name.
+/// Conflicts are read through a non-global copy of each option. For a global,
+/// clap's lookup resolves only argument ids and panics on a group id. The
+/// declaring level holds every id its conflicts may name.
 fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
     let mut options = Vec::new();
     for (depth, (level, matches)) in levels.iter().enumerate() {

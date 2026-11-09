@@ -70,7 +70,7 @@ Change the decision there before changing the code that follows it.
   Every widget measures, then renders](../openspec/changes/terminal-render-engine/design.md#8-every-widget-measures-then-renders): a widget returns a `Measurement` and lines no wider than the width, except a word kept whole.
   The trait is dyn compatible, and a container holds `Box<dyn Renderable + 'a>`, so it can borrow its children.
 - [9.
-  The table chooses column widths in five steps](../openspec/changes/terminal-render-engine/design.md#9-the-table-chooses-column-widths-in-five-steps): the column algorithm, including the final narrowing of each column to its widest rendered line.
+  The table chooses column widths in six steps](../openspec/changes/terminal-render-engine/design.md#9-the-table-chooses-column-widths-in-six-steps): the column algorithm, including the final narrowing of each column to its widest rendered line.
   `src/widths.rs` solves the widths, and `Table` documents the steps.
 - [5.
   Escape sequences are written once, by the sink](../openspec/changes/terminal-render-engine/design.md#5-escape-sequences-are-written-once-by-the-sink): no escape byte exists before `ctl-term`'s encoder.

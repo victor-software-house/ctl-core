@@ -1,4 +1,18 @@
-//! Parser defaults. `-h` / `--help` and `-V` / `--version` stay on.
+//! The parser contract every ctl CLI keeps: `-h` / `--help` and `-V` /
+//! `--version` stay on, and a repeated flag takes its last value.
+//!
+//! [`apply_defaults`] sets that contract on a Clap command, and [`verify`] is
+//! the test a CLI runs over its own parser.
+//!
+//! ```
+//! use clap::Parser;
+//!
+//! #[derive(Parser)]
+//! #[command(version, about = "toy")]
+//! struct Cli {}
+//!
+//! ctl_core::parser::verify::<Cli>();
+//! ```
 
 #[cfg(feature = "help")]
 use std::ffi::OsString;
@@ -76,11 +90,17 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
     command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
 }
 
-/// Apply the *ctl parser contract to a clap command.
+/// Apply the `*ctl` parser contract to a Clap command and return it.
 ///
-/// `-h/--help` and `-V/--version` stay on. `disable_help_flag` is forbidden.
-/// Repeated flags last-win (`args_override_self`);
-/// [`crate::flags::chassis_warnings`] still reports the clash.
+/// `-h/--help` and `-V/--version` stay on. Repeated flags take the last value
+/// (`args_override_self`), and [`crate::flags::chassis_warnings`] still
+/// reports the clash. [`App`](crate::App) applies it to every run, so a CLI
+/// calls it only to parse a command itself.
+///
+/// # Panics
+///
+/// Panics if `command` disabled the help or version flag. ctl-core owns
+/// `-h`/`--help` and `-V`/`--version`, so a consumer never turns them off.
 #[must_use]
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
@@ -90,7 +110,11 @@ pub fn apply_defaults(command: Command) -> Command {
         .disable_version_flag(false)
 }
 
-/// clap's recommended `Command::debug_assert` plus the help-flag contract.
+/// Check a CLI's parser: Clap's recommended `Command::debug_assert` plus the
+/// help-flag contract.
+///
+/// Call it from a unit test, so a mistake in the Clap types fails the test
+/// suite and not a user's first run.
 ///
 /// # Panics
 ///

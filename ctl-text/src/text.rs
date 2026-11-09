@@ -20,14 +20,16 @@ struct Segment {
 ///
 /// Text from outside the program is safe to put here. Every character that
 /// [`is_unsafe`](crate::unsafe_chars::is_unsafe) refuses is removed, except
-/// newline and tab. Every other line break (carriage return, vertical tab,
-/// form feed, next line, and the line and paragraph separators) becomes a
-/// newline, and a carriage return before a line feed is one break with it. A
-/// newline starts a new line, and a tab expands to the next tab stop of the
-/// [`Context`] it is rendered in, counted from the start of its line.
+/// newline and tab.
 ///
-/// Two texts are equal when their content, styles, and [`Overflow`] are:
-/// empty pieces are dropped and neighbours in one style are joined, however
+/// Every other line break becomes a newline: carriage return, vertical tab,
+/// form feed, next line, and the line and paragraph separators. A carriage
+/// return before a line feed is one break with it. A newline starts a new
+/// line. A tab expands to the next tab stop of the [`Context`] it is rendered
+/// in, counted from the start of its line.
+///
+/// Two texts are equal when their content, styles, and [`Overflow`] are.
+/// Empty pieces are dropped and neighbours in one style are joined, however
 /// the text was pushed.
 ///
 /// `Text` is [`Renderable`]: [`Overflow`] decides how it fits a width.
@@ -80,8 +82,8 @@ impl Text {
         }
     }
 
-    /// Sets what to do with a line wider than its width. The default is
-    /// [`Overflow::KeepWords`].
+    /// Sets what to do with a line wider than the width it renders at.
+    /// The default is [`Overflow::KeepWords`].
     #[must_use]
     pub fn overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
@@ -121,10 +123,10 @@ impl Text {
 
 /// Adds `part`, which holds no newline, to `line`, with each tab expanded.
 ///
-/// The text before the first tab goes in first, so the width a tab counts
-/// from is the line's own: a cluster that the new text continues from the
-/// line's last span, such as a variation selector after a heart, widens the
-/// line before the tab is measured.
+/// The text before the first tab goes in first, so a tab counts from the
+/// line's own width. That text can continue the line's last cluster, as a
+/// variation selector after a heart does. It then widens the line before the
+/// tab is measured.
 fn append_expanded(line: &mut Line, part: &str, style: Style, tab_width: NonZeroU16) {
     let (head, tabbed) = part.split_at(part.find('\t').unwrap_or(part.len()));
     line.append(head, style);

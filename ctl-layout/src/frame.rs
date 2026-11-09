@@ -3,6 +3,11 @@
 use crate::widths::Framing;
 
 /// What a table draws around and between its columns.
+///
+/// Rules are drawn with box characters, or with ASCII for
+/// [`BoxChars::Ascii`](ctl_text::BoxChars::Ascii). The frame decides how a
+/// table treats a word wider than its column: [`Grid`](Self::Grid) folds it,
+/// and the other two let it run past the width.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Frame {
@@ -10,9 +15,11 @@ pub enum Frame {
     /// wider than its column folds, so the frame stays aligned.
     #[default]
     Grid,
-    /// One rule under the header and nothing else.
+    /// One rule under the header and nothing else. A table with no header
+    /// draws no rule.
     HeaderRule,
-    /// No rules at all. Columns are separated by two spaces.
+    /// No rules at all. Columns are separated by two spaces, and no line
+    /// ends in a space.
     Plain,
 }
 
@@ -28,19 +35,23 @@ impl Frame {
 }
 
 /// What separates consecutive rows of a table.
+///
+/// The separator goes between rows only. It is never drawn above the first
+/// row, below the last, or between the header and the first row.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum RowSeparation {
     /// Rows print on consecutive lines.
     #[default]
     None,
-    /// A horizontal rule between each pair of rows.
+    /// A horizontal rule between each pair of rows, as wide as the table.
     Rule,
-    /// A blank row between each pair of rows.
+    /// A blank row between each pair of rows. In a grid it keeps the column
+    /// rules.
     Blank,
 }
 
-/// How a record of key and value rows is drawn.
+/// How a [`Record`](crate::Record) of key and value rows is drawn.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum RecordStyle {

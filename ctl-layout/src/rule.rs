@@ -17,23 +17,25 @@ const TITLE_MARGIN: u16 = 4;
 /// ```
 ///
 /// A rule fills any width it is given. It measures 1 cell wide without a
-/// title. With one it measures the 4-cell margin plus the title: one cell of
-/// title at the narrowest, since a title that does not fit ends in `…`, and
-/// the title's widest line at the widest. Only the first non-empty line of a
-/// multi-line title is drawn.
+/// title. With one it measures the 4-cell margin plus the title.
+///
+/// The title counts as one cell at the narrowest, since a title that does not
+/// fit ends in `…`. At the widest it counts as its widest line. Only the first
+/// non-empty line of a multi-line title is drawn.
 #[derive(Clone, Debug, Default)]
 pub struct Rule {
     title: Option<Text>,
 }
 
 impl Rule {
-    /// A rule with no title.
+    /// A rule with no title, drawn as one line of rule characters.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// A rule with `title` at its left.
+    /// A rule with `title` at its left, between two rule characters and the
+    /// rest of the line.
     #[must_use]
     pub fn titled(title: Text) -> Self {
         Self { title: Some(title) }

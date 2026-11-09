@@ -24,10 +24,14 @@ pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
 /// and the minimum apply only to the window and `COLUMNS`. The width that
 /// results is at least 1.
 ///
-/// Each default has an override and a way to turn it off: an explicit width
-/// bypasses detection, a column buffer of 0 reserves nothing, a minimum of 0
-/// sets no floor, and a fallback of `None` leaves the width undecided. The
-/// column buffer reads no variable until
+/// Each default has an override and a way to turn it off:
+///
+/// - An explicit width bypasses detection.
+/// - A column buffer of 0 reserves nothing.
+/// - A minimum of 0 sets no floor.
+/// - A fallback of `None` leaves the width undecided.
+///
+/// The column buffer reads no variable until
 /// [`column_buffer_envs`](Self::column_buffer_envs) names some.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DetectOptions {
@@ -102,7 +106,7 @@ impl Default for DetectOptions {
 }
 
 /// What is known about one output stream: whether it is a terminal, whether
-/// to write colour and at what depth, and how wide the output is.
+/// to write colour, at what depth, and how wide the output is.
 ///
 /// A terminal is decided once, for the stream the output goes to, before
 /// anything renders. The decision reads an environment lookup passed by the

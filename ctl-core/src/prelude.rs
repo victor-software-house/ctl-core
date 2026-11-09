@@ -1,10 +1,39 @@
-//! Import once in a *ctl `main.rs`.
+//! One import for a `*ctl` binary's `main.rs`.
 //!
-//! ```ignore
+//! The prelude re-exports the flat surface a binary needs:
+//!
+//! - [`App`] and the [`Present`] trait;
+//! - the document builders and the shared flags;
+//! - the render and view options, and the `indoc` macros;
+//! - Clap's `Parser`, `Args`, and `Subcommand`, and [`ExitCode`].
+//!
+//! Each group needs the feature that builds it, so a narrow feature set gets a
+//! smaller prelude.
+//!
+//! ```no_run
 //! use ctl_core::prelude::*;
+//! use serde::Serialize;
+//!
+//! #[derive(Parser)]
+//! #[command(version, about = "toy")]
+//! struct Cli {
+//!     #[command(flatten)]
+//!     output: OutputArgs,
+//! }
+//!
+//! #[derive(Serialize)]
+//! struct Done;
+//!
+//! impl Present for Done {
+//!     fn present(&self) -> Document {
+//!         Document::new().paragraph("done")
+//!     }
+//! }
 //!
 //! fn main() -> ExitCode {
-//!     App::<Cli>::new("toy").run(execute)
+//!     App::<Cli>::new("toy")
+//!         .view(|cli| cli.output.view())
+//!         .run(|_| Ok(Done))
 //! }
 //! ```
 

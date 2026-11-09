@@ -2,9 +2,9 @@
 
 use ctl_text::{BoxChars, Line, Span, Style};
 
-/// The four characters of one horizontal line of a grid: its left end, the
-/// character repeated across a column, the junction under a column rule, and
-/// its right end.
+/// The four characters of one horizontal line of a grid. They are its left
+/// end, the character repeated across a column, the junction under a column
+/// rule, and its right end.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Border {
     left: char,

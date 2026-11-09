@@ -1,3 +1,17 @@
+//! The output representation: `pretty` for people, or `json` for machines.
+//!
+//! [`OutputFormat`] parses from those two lowercase names, and `Display`
+//! prints them back. With the `cli` feature it is a Clap value enum, so
+//! `OutputArgs` parses `--format` into it.
+//!
+//! ```
+//! use ctl_core::format::OutputFormat;
+//!
+//! assert_eq!("json".parse::<OutputFormat>(), Ok(OutputFormat::Json));
+//! assert!(OutputFormat::Json.is_json());
+//! assert_eq!(OutputFormat::default(), OutputFormat::Pretty);
+//! ```
+
 use std::fmt;
 use std::str::FromStr;
 
@@ -27,7 +41,7 @@ pub use data::OutputFormat;
 
 impl OutputFormat {
     #[must_use]
-    /// `true` when this view is JSON.
+    /// Whether this is [`Self::Json`], so the output is for machines.
     pub fn is_json(self) -> bool {
         self == Self::Json
     }
@@ -55,7 +69,8 @@ impl fmt::Display for OutputFormat {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-/// Unknown format token.
+/// The error [`OutputFormat`]'s `FromStr` returns for text that is not
+/// `pretty` or `json`. `Display` prints `expected pretty or json`.
 pub struct ParseFormatError;
 
 impl fmt::Display for ParseFormatError {

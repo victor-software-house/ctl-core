@@ -1,10 +1,10 @@
 //! Shell completion: one `completion <SHELL>` verb for every ctl CLI.
 //!
 //! The verb prints a short registration script. The script does not hold the
-//! command grammar: at each TAB the shell runs the CLI again with [`VAR`]
-//! set to the shell's name, and [`App::completion`] prints the candidates
-//! before Clap parses anything. Candidates therefore come from the binary
-//! that is installed, including values a CLI computes at run time through
+//! command grammar. At each TAB the shell runs the CLI again with [`VAR`] set
+//! to the shell's name, and [`App::completion`] prints the candidates before
+//! Clap parses anything. Candidates therefore come from the binary that is
+//! installed, including values a CLI computes at run time through
 //! `clap_complete`'s `ArgValueCompleter`.
 //!
 //! A consumer flattens [`CompletionCommand`] into its subcommands, turns the
@@ -85,8 +85,8 @@ impl Shell {
     /// The registration script for `bin`, which the shell finds on `PATH`
     /// at each TAB.
     ///
-    /// The script calls `bin` by name, never by the path that produced it,
-    /// so a script Homebrew writes from a versioned directory keeps working
+    /// The script calls `bin` by name, never by the path that produced it.
+    /// A script Homebrew writes from a versioned directory then keeps working
     /// after the next upgrade.
     ///
     /// # Errors

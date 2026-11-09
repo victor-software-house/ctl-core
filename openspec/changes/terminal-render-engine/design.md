@@ -247,10 +247,10 @@ Alternatives:
    never share a type: a width is `u16`, an offset is `usize`.
 5. A cut that falls inside a 2-cell cluster replaces the cluster with a space
    on each side, as rich does, so every line keeps its exact width.
-6. `ctl_text::UNICODE_VERSION` states both crates' Unicode versions, and a
+6. `ctl_text::UNICODE_VERSIONS` states both crates' Unicode versions, and a
    test pins them, so an upgrade that moves one forces a recheck (the
-   complete-sets rule). Today segmentation is Unicode 17 and width is 18
-   ([layout survey, 7.2][layout-width]).
+   complete-sets rule). Today both are Unicode 17.0.0, with `unicode-width`
+   locked at 0.2.2; 0.2.3 is on Unicode 18 ([layout survey, 7.2][layout-width]).
 
 Alternatives:
 
@@ -300,7 +300,7 @@ pub trait Renderable {
 3. A container measures its children, decides their widths, and renders each
    child at its width. Its result is a rectangle of lines, so borders,
    padding and side-by-side columns are line concatenation.
-4. The trait is object-safe. Containers hold `Box<dyn Renderable>`, so no
+4. The trait is dyn compatible. Containers hold `Box<dyn Renderable>`, so no
    generic code crosses from `ctl-layout` into its callers.
 
 Alternatives: **ratatui's constraint solver.** It lost: it solves user
@@ -309,7 +309,7 @@ constraints for nested UI regions and never measures content
 covers tables only. rich's split covers any nesting and is what the ports
 copy.
 
-### 9. The table chooses column widths in five steps
+### 9. The table chooses column widths in six steps
 
 For a table laid out to width `W`, with frame and gaps taking `F` cells:
 
@@ -687,7 +687,7 @@ Alternatives:
 1. [Output differs from comfy-table in column widths] → the parity test
    (decision 17) lists every difference, and each consumer reviews its
    snapshot diff in the pull request that moves its pin.
-2. [We now own a table algorithm] → it is specified in five steps and checked
+2. [We now own a table algorithm] → it is specified in six steps and checked
    by properties, and its cases are a subset of rich's, whose behaviour is on
    record.
 3. [`ctl_core::Text` (roles) and `ctl_text::Text` (styles) share a name] →

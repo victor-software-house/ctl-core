@@ -27,7 +27,7 @@ ctl-core owns:
 - `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `OutputFormat`, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and unwrapped verbatim blocks that remove terminal controls, bidi controls, and Unicode line separators while preserving other Unicode formatting;
 - semantic roles and the one visual theme;
-- width detection, wrapping (including Usage lines), table layout, ANSI policy, stdout, and stderr;
+- width detection, wrapping (including Usage lines), table layout, ANSI policy, stdout, and stderr, through the workspace's `ctl-text`, `ctl-layout`, and `ctl-term`;
 - JSON emission and generic error envelopes.
 
 A consumer owns:

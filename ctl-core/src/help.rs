@@ -1,4 +1,22 @@
 //! Styled help extracted from Clap and rendered as a semantic document.
+//!
+//! [`App`](crate::App) prints help for you. These functions serve a CLI that
+//! drives its own lifecycle. [`document`] turns a Clap command into a
+//! [`Document`], and the `try_emit` functions print it when the arguments
+//! ask for help. Help uses the same renderer, theme, and width policy as
+//! command output.
+//!
+//! ```
+//! use clap::Parser;
+//! use ctl_core::help::document;
+//!
+//! #[derive(Parser)]
+//! #[command(name = "toy", about = "A toy")]
+//! struct Cli {}
+//!
+//! let help = document(<Cli as clap::CommandFactory>::command());
+//! assert!(!help.is_empty());
+//! ```
 
 use std::io;
 
@@ -10,7 +28,11 @@ use crate::render::RenderOptions;
 
 const NARROW_HELP_WIDTH: u16 = 64;
 
-/// Styled `-h` / `--help`. Returns `true` when help ran.
+/// Print styled help to stdout when the process argv asks for it, and return
+/// `true`. Return `false` and print nothing otherwise.
+///
+/// Colour comes from the `--color` and `--no-color` flags in argv. Use
+/// [`try_emit_with_options`] to control the width and style policy.
 ///
 /// # Errors
 ///
@@ -21,7 +43,7 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     try_emit_with_options::<C>(RenderOptions::new(color))
 }
 
-/// Styled help with rendering options supplied by the library owner.
+/// Like [`try_emit`], rendering with `options` in place of the defaults.
 ///
 /// # Errors
 ///
@@ -33,7 +55,8 @@ pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::R
     try_emit_from_with_options::<C>(&args, options)
 }
 
-/// Same as [`try_emit`] with explicit argv.
+/// Like [`try_emit`], reading `args` in place of the process argv. The first
+/// item is the binary name.
 ///
 /// # Errors
 ///
@@ -47,7 +70,7 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     try_emit_from_with_options::<C>(args, RenderOptions::new(color))
 }
 
-/// Explicit-argv help with rendering options supplied by the owning library.
+/// Like [`try_emit`], reading `args` and rendering with `options`.
 ///
 /// # Errors
 ///
@@ -67,10 +90,11 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     Ok(true)
 }
 
-/// Render root help to stderr with rendering options supplied by the owner.
+/// Print the root command's help to stderr, as shown for a bare invocation of
+/// a command that requires input.
 ///
-/// Colour and width are decided for stderr, not stdout, so help printed after
-/// a usage error fits the terminal stderr writes to even when stdout is a
+/// Colour and width are decided for stderr, not stdout. Help printed after a
+/// usage error then fits the terminal stderr writes to, even when stdout is a
 /// pipe.
 ///
 /// # Errors
@@ -135,7 +159,13 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
     command
 }
 
-/// Extract one semantic help document from a Clap command.
+/// Build the help document of a Clap command.
+///
+/// The document holds the usage line, the about text, a `Commands` section,
+/// an `Arguments` section, and one section per option help heading
+/// (`Options` when an option names none). The command is built first, so
+/// derived values such as the version flag are present. Hidden subcommands,
+/// arguments, and options are left out.
 #[must_use]
 pub fn document(mut command: Command) -> Document {
     command.build();

@@ -1,4 +1,43 @@
-//! Pretty, colorless, and JSON emission from one typed model.
+//! Pretty, colorless, and JSON output from one typed model.
+//!
+//! A command result implements [`Present`]: it serializes for JSON and builds
+//! a [`Document`] for people. A [`View`] holds the output format, the colour
+//! mode, and the layout policy, and writes the result with [`View::show`] or
+//! returns it unwritten with [`View::capture`].
+//!
+//! Success goes to stdout and failure to stderr, except JSON, which always
+//! goes to stdout. JSON never contains ANSI whatever the colour mode says.
+//!
+//! ```
+//! use ctl_core::document::{Document, Fields};
+//! use ctl_core::view::{Destination, JsonLayout, Present, View};
+//! use ctl_core::{ColorMode, OutputFormat};
+//! use serde::Serialize;
+//!
+//! #[derive(Serialize)]
+//! struct Status {
+//!     pending: usize,
+//! }
+//!
+//! impl Present for Status {
+//!     fn present(&self) -> Document {
+//!         Document::new().fields(Fields::new().row("pending", self.pending.to_string()))
+//!     }
+//! }
+//!
+//! let status = Status { pending: 2 };
+//! let json = View::new(OutputFormat::Json, ColorMode::Never)
+//!     .json_layout(JsonLayout::Pretty)
+//!     .capture(&status)?;
+//! assert_eq!(json.stream(), Destination::Stdout);
+//! assert!(json.text().contains("\"pending\": 2"));
+//!
+//! let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+//!     .width(40)
+//!     .capture(&status)?;
+//! assert!(pretty.text().contains("pending"));
+//! # Ok::<(), std::io::Error>(())
+//! ```
 
 use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
@@ -12,40 +51,59 @@ use crate::model::{Envelope, ErrorBody};
 use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
 use crate::theme::Theme;
 
-/// Default environment variable for the operator's JSON layout.
+/// The environment variable that sets the JSON layout when the library owner
+/// has not: `CTL_CORE_JSON_LAYOUT`. Its values are the [`JsonLayout`] names
+/// `pretty`, `compact`, and `pretty-on-terminal`.
 pub const DEFAULT_JSON_LAYOUT_ENV: &str = "CTL_CORE_JSON_LAYOUT";
-/// Default ordered environment lookup for the JSON layout.
+/// The ordered list of variables [`View::resolved_json_layout`] reads,
+/// holding only [`DEFAULT_JSON_LAYOUT_ENV`]. [`View::json_layout_envs`]
+/// replaces it.
 pub const DEFAULT_JSON_LAYOUT_ENVS: &[&str] = &[DEFAULT_JSON_LAYOUT_ENV];
 
-/// A serializable domain model with one semantic human presentation.
+/// A command result that serializes for machines and presents itself to people.
+///
+/// JSON output is `self` serialized as is. Pretty and colorless output is the
+/// [`Document`] that [`Self::present`] builds. The two share one value, so they
+/// cannot drift apart.
 pub trait Present: Serialize {
-    /// Build the human document. JSON serializes `self` directly.
+    /// Build the human document. JSON output serializes `self` and ignores
+    /// this.
     fn present(&self) -> Document;
 
-    /// Whether this value represents success or failure.
+    /// Whether the result is a success or a failure. It picks the stream of
+    /// pretty output (stdout or stderr) and the default exit code. The default
+    /// is [`MessageKind::Success`].
     fn message_kind(&self) -> MessageKind {
         MessageKind::Success
     }
 
-    /// Process exit code. Typed protocols can distinguish usage errors from
-    /// operational failures without changing their presentation stream.
+    /// The process exit code. The default is `0` for a success and `1` for an
+    /// error ([`MessageKind::default_exit_code`]).
+    ///
+    /// Override it to give a failure its own code, such as a usage error
+    /// distinct from an operational failure. The stream still follows
+    /// [`Self::message_kind`].
     fn exit_code(&self) -> u8 {
         self.message_kind().default_exit_code()
     }
 }
 
-/// Human stream and exit semantics for a presented model.
+/// Whether a [`Present`] result succeeded. It picks the stream pretty output
+/// goes to and the default exit code.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum MessageKind {
-    /// Successful command result.
+    /// The command succeeded. Pretty output goes to stdout, and the exit code
+    /// is `0`.
     #[default]
     Success,
-    /// Failed command result.
+    /// The command failed. Pretty output goes to stderr, and the exit code is
+    /// `1`.
     Error,
 }
 
 impl MessageKind {
-    /// Default process exit code.
+    /// The exit code for a result of this variant, unless the result
+    /// overrides [`Present::exit_code`]: `0` for a success, `1` for an error.
     #[must_use]
     pub const fn default_exit_code(self) -> u8 {
         match self {
@@ -70,7 +128,11 @@ pub enum Destination {
     Stderr,
 }
 
-/// Rendered bytes plus their destination and exit semantics.
+/// A rendered result that has not been written: its text, the stream it
+/// belongs on, and its exit code.
+///
+/// [`View::capture`] returns one. [`View::show`] writes it. Tests and
+/// alternate transports read it directly.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Captured {
     stream: Destination,
@@ -79,41 +141,46 @@ pub struct Captured {
 }
 
 impl Captured {
-    /// Destination stream.
+    /// The stream the text belongs on.
     #[must_use]
     pub const fn stream(&self) -> Destination {
         self.stream
     }
 
-    /// Rendered bytes.
+    /// The rendered text as UTF-8 bytes. It is empty when the stream is
+    /// [`Destination::None`].
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         self.content.as_bytes()
     }
 
-    /// UTF-8 rendered content.
+    /// The rendered text. It ends with a newline unless it is empty.
     #[must_use]
     pub fn text(&self) -> &str {
         &self.content
     }
 
-    /// Process exit code.
+    /// The exit code to return from `main`.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn exit_code(&self) -> ExitCode {
         ExitCode::from(self.exit_code)
     }
 }
 
-/// Line layout of JSON output. No layout adds ANSI.
+/// How JSON output is broken into lines. No layout adds ANSI.
+///
+/// The layout changes only whitespace, so every layout parses to the same
+/// value.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum JsonLayout {
-    /// One line per document.
+    /// The whole document on one line.
     Compact,
-    /// Two-space indentation.
+    /// One value per line, indented by two spaces.
     #[default]
     Pretty,
-    /// Two-space indentation when stdout is a terminal, one line otherwise.
+    /// [`Self::Pretty`] when stdout is a terminal, and [`Self::Compact`]
+    /// otherwise.
     PrettyOnTerminal,
 }
 
@@ -135,11 +202,12 @@ impl JsonLayout {
     }
 }
 
-/// How to present a model. JSON never contains ANSI.
+/// How to present a [`Present`] result: the format, the colour mode, and the
+/// layout policy. JSON never contains ANSI.
 ///
 /// Pretty output decides colour and width for the stream it goes to: a
 /// success for stdout, a failure for stderr. So a failure printed to a
-/// terminal is coloured while a success piped to a file is not, and
+/// terminal is coloured while a success piped to a file is not.
 /// [`Self::capture`] under [`ColorMode::Auto`] holds no escape sequence when
 /// that stream is not a terminal.
 ///
@@ -148,7 +216,7 @@ impl JsonLayout {
 /// and returns the view changed, as on `RenderOptions`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct View {
-    /// Pretty or JSON.
+    /// Pretty or JSON output.
     pub format: OutputFormat,
     /// Suppress successful pretty output.
     pub quiet: bool,
@@ -158,7 +226,8 @@ pub struct View {
 }
 
 impl View {
-    /// Build a view that prints successes.
+    /// Build a view in `format` and `color` that prints successes. Width,
+    /// buffer, minimum, fallback, styles, and JSON layout take their defaults.
     #[must_use]
     pub const fn new(format: OutputFormat, color: ColorMode) -> Self {
         Self {
@@ -239,43 +308,48 @@ impl View {
         self
     }
 
-    /// Suppress successful pretty output when `quiet` is set.
+    /// Suppress a successful pretty result when `quiet` is true. Errors and
+    /// JSON are still written.
     #[must_use]
     pub const fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = quiet;
         self
     }
 
-    /// Force an explicit presentation width.
+    /// Lay out pretty output to exactly `width` terminal cells, skipping
+    /// detection, the buffer, and the minimum.
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.options = self.options.width(width);
         self
     }
 
-    /// Override the buffer subtracted from automatically detected widths.
-    /// Zero disables buffering. Explicit [`Self::width`] remains exact.
+    /// Override the number of columns subtracted from an automatically
+    /// detected width. Zero disables the subtraction. An explicit
+    /// [`Self::width`] stays exact.
     #[must_use]
     pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
         self.options = self.options.automatic_width_buffer(columns);
         self
     }
 
-    /// Replace the ordered environment names used for the automatic buffer.
+    /// Replace the ordered environment names that set the buffer. An empty
+    /// slice disables lookup.
     #[must_use]
     pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
         self.options = self.options.automatic_width_buffer_envs(names);
         self
     }
 
-    /// Set the floor for automatically detected effective widths.
+    /// Set the floor, in columns, for an automatically detected width.
     #[must_use]
     pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
         self.options = self.options.minimum_automatic_width(columns);
         self
     }
 
-    /// Lay out to `width` when no width is detected; `None` disables it.
+    /// Lay out to `width` columns when no width is detected. `None` turns the
+    /// fallback off, so tables render at their natural width.
     #[must_use]
     pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
         self.options = self.options.fallback_width(width);
@@ -290,8 +364,8 @@ impl View {
         self.options
     }
 
-    /// One JSON document in this view's layout, newline-terminated. Successes
-    /// and error envelopes share it, so both follow the same layout.
+    /// One JSON document in this view's layout, ending in a newline. A success
+    /// and an error envelope share it, so both follow the same layout.
     fn json(self, value: &impl Serialize) -> io::Result<String> {
         let mut content = if self.resolved_json_layout().pretty() {
             serde_json::to_string_pretty(value)?
@@ -307,12 +381,14 @@ impl View {
         self.options.render_for(stream, document)
     }
 
-    /// Render without writing. Tests and alternate transports use this path.
+    /// Render `value` without writing it. Tests and alternate transports use
+    /// this path.
     ///
-    /// Pretty output is rendered as [`Self::show`] would write it: colour and
-    /// width are decided for the stream [`Captured::stream`] names, from the
-    /// colour mode, the process environment, and whether that stream is a
-    /// terminal.
+    /// JSON output is `value` serialized in the layout
+    /// [`Self::resolved_json_layout`] returns, for stdout. Pretty output is
+    /// rendered as [`Self::show`] would write it. Colour and width are decided
+    /// for the stream [`Captured::stream`] names, from the colour mode, the
+    /// process environment, and whether that stream is a terminal.
     ///
     /// # Errors
     ///
@@ -345,7 +421,8 @@ impl View {
         })
     }
 
-    /// Render and write one typed model. Returns its process exit semantics.
+    /// Render `value` and write it to the stream [`Self::capture`] picks.
+    /// Returns the exit code for `main` to return.
     ///
     /// # Errors
     ///
@@ -361,7 +438,11 @@ impl View {
         Ok(captured.exit_code())
     }
 
-    /// Emit `{bin}: {message}` or a JSON error envelope.
+    /// Write a failure that has no [`Present`] model, such as a parse error.
+    ///
+    /// Pretty output is `{bin}: {message}` on stderr. JSON output is an
+    /// [`Envelope`] with an [`ErrorBody`] on stdout, in this view's layout.
+    /// The exit code is [`ExitCode::FAILURE`] in both.
     ///
     /// # Errors
     ///

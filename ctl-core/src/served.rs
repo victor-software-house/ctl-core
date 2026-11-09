@@ -50,6 +50,9 @@ struct Declared {
 }
 
 /// A rendered template and the file it serves, checked and not yet written.
+///
+/// [`render`] builds one. Read it with [`Self::target`], [`Self::body`], and
+/// [`Self::executable`], or write it with [`Self::write`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Served {
     target: PathBuf,
@@ -57,12 +60,15 @@ pub struct Served {
     executable: bool,
 }
 
-/// Why a template could not be served, naming the template.
+/// Why a template could not be rendered or written, naming the template.
+///
+/// `Display` prints `template: message`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServeError {
-    /// The template, as the caller named it.
+    /// The template, as the caller named it. A write error names the target
+    /// path instead.
     pub template: String,
-    /// What went wrong.
+    /// What went wrong, in words an operator can act on.
     pub message: String,
 }
 
@@ -77,14 +83,16 @@ impl std::error::Error for ServeError {}
 /// Render one template with `context` and read the file it declares.
 ///
 /// `template` names the template, usually its path relative to the
-/// repository; its file name minus `suffix` is the default target name.
+/// repository. Its file name minus `suffix` is the default target name.
 ///
 /// # Errors
 ///
-/// When the file name does not end in `suffix`, the template does not parse
-/// or render, or its declarations do not fit the schema: a `path` outside the
-/// repository, a `name` that is not one file name, or a value of the wrong
-/// type.
+/// Returns a [`ServeError`] in any of these cases:
+///
+/// - the file name does not end in `suffix`;
+/// - the template does not parse or render;
+/// - its declarations do not fit the schema, such as a `path` outside the
+///   repository, a `name` that is not one file name, or a wrongly typed value.
 pub fn render(
     template: &Path,
     source: &str,
@@ -161,10 +169,12 @@ impl Served {
     ///
     /// # Errors
     ///
-    /// When the target or any directory above it is a symlink, which could
-    /// point outside the repository, when the created directory does not
-    /// resolve inside `root`, or when the file or its directories cannot be
-    /// written.
+    /// Returns a [`ServeError`] in any of these cases:
+    ///
+    /// - the target or a directory above it is a symlink, which could point
+    ///   outside the repository;
+    /// - the created directory does not resolve inside `root`;
+    /// - the file or its directories cannot be written.
     pub fn write(&self, root: &Path) -> Result<PathBuf, ServeError> {
         let failed = |message: String| ServeError {
             template: self.target.display().to_string(),

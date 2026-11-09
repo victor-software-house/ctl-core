@@ -20,7 +20,8 @@ pub(crate) struct Piece<'a> {
 /// A list of spans that sit on one terminal line.
 ///
 /// The text of a line is the text of its spans, joined. Its [`Display`]
-/// prints that text without styles.
+/// prints that text without styles, which suits tests and plain output.
+/// Build one with `Line::from(span)`, or collect spans into it.
 ///
 /// [`Display`]: fmt::Display
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
@@ -37,16 +38,18 @@ impl Line {
 
     /// Adds `span` at the end of the line.
     ///
-    /// A span in the style of the line's last span joins it, so two lines
-    /// with the same text and styles are equal however their spans were
+    /// A span in the style of the line's last span joins it. So two lines
+    /// with the same text and styles are equal, however their spans were
     /// pushed.
     ///
-    /// When `span` starts with characters that continue the line's last
-    /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
-    /// sequence, they join the previous span and take its style, since a
-    /// terminal cannot style part of a cluster. So no cluster crosses a span
-    /// boundary and every width counts the cluster once. An empty span adds
-    /// nothing, so none can sit between a cluster's parts.
+    /// The start of `span` can continue the line's last grapheme cluster, as
+    /// a combining mark or the rest of a ZWJ emoji sequence does. Those
+    /// characters join the previous span and take its style, because a
+    /// terminal cannot style part of a cluster.
+    ///
+    /// So no cluster crosses a span boundary, and every width counts the
+    /// cluster once. An empty span adds nothing, so none can sit between a
+    /// cluster's parts.
     pub fn push(&mut self, span: Span) {
         if span.text.is_empty() {
             return;
@@ -57,7 +60,7 @@ impl Line {
         }
     }
 
-    /// The spans, in order.
+    /// The spans, in order. Their text joined is the text of the line.
     #[must_use]
     pub fn spans(&self) -> &[Span] {
         &self.spans
@@ -80,6 +83,9 @@ impl Line {
     }
 
     /// Removes the spaces at the end of the line, and any span they empty.
+    ///
+    /// A no-break space (U+00A0, U+2007, or U+202F) is not a space here, so it
+    /// stays.
     pub fn trim_end(&mut self) {
         while let Some(last) = self.spans.last_mut() {
             let trailing = trailing_space_len(&last.text);

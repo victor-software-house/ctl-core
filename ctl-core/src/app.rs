@@ -1,4 +1,18 @@
-//! Fluent typed CLI lifecycle.
+//! The typed CLI lifecycle: [`App`] parses argv, runs a handler, and writes the
+//! result through a [`View`].
+//!
+//! [`App::run`] reads the process argv and returns the [`ExitCode`] for `main`.
+//! [`App::run_from`] takes explicit argv, which tests use. In order, a run:
+//!
+//! 1. answers a mounted `--usage-spec` request, then every
+//!    [`App::before_parse`] hook;
+//! 2. warns on stderr about an unusable style or layout variable;
+//! 3. prints help, or the bare-command help, when the arguments ask for it;
+//! 4. parses the arguments, with environment variables yielding to flags;
+//! 5. calls the handler and writes its result, or its error, through the view.
+//!
+//! A handler returns a [`Present`] value and prints nothing. Help, errors, and
+//! results share one renderer, one theme, and one width policy.
 
 use std::ffi::OsString;
 use std::fmt;
@@ -31,12 +45,12 @@ struct Fallback(Option<u16>);
 ///
 /// A closed pipe never turns a failure into success, and never hides a more
 /// specific code. A command that failed, or a parse error, keeps its own exit
-/// code under either policy, so a script never reads a failed run as a
-/// passing one because its reader went away, and a check such as
-/// `$? -eq 2` behaves the same under both.
+/// code under either policy. A script never reads a failed run as a passing
+/// one because its reader went away. A check such as `$? -eq 2` behaves the
+/// same under both.
 ///
-/// A ctl CLI ignores SIGPIPE, as every Rust program does by default, so a
-/// closed pipe reaches it as a failed write, not as a signal.
+/// A ctl CLI ignores SIGPIPE, as every Rust program does by default. A closed
+/// pipe then reaches it as a failed write, not as a signal.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BrokenPipe {
     /// Exit with the code the command would have exited with had every byte
@@ -52,6 +66,10 @@ pub enum BrokenPipe {
 }
 
 /// One ctl process: short-circuits, help, parsing, execution, and presentation.
+///
+/// `C` is the consumer's Clap parser. Build an `App` with [`Self::new`],
+/// configure it with the builder methods, and finish with [`Self::run`].
+/// Every builder takes `self`, so a setting set later replaces an earlier one.
 pub struct App<C> {
     bin: String,
     before_parse: Vec<BeforeParse>,
@@ -83,7 +101,10 @@ impl<C> fmt::Debug for App<C> {
 }
 
 impl<C> App<C> {
-    /// Build a CLI with pretty automatic-color output.
+    /// Build a CLI named `bin` with pretty output and automatic colour.
+    ///
+    /// `bin` prefixes error lines (`bin: message`) and names the binary in
+    /// JSON error envelopes. [`Self::view`] replaces the default view.
     #[must_use]
     pub fn new(bin: impl Into<String>) -> Self {
         Self {
@@ -107,45 +128,54 @@ impl<C> App<C> {
         }
     }
 
-    /// Select output, color, and quiet policy from the parsed CLI.
+    /// Pick the [`View`] for a run from the parsed CLI, usually from
+    /// [`OutputArgs`](crate::OutputArgs).
+    ///
+    /// The `select` closure runs after a successful parse. Help and parse
+    /// errors come before it, so they read the format and colour from the raw
+    /// arguments instead. The width, style, and layout settings of this `App`
+    /// are applied on top of the view `select` returns.
     #[must_use]
     pub fn view(mut self, select: impl Fn(&C) -> View + 'static) -> Self {
         self.select_view = Box::new(select);
         self
     }
 
-    /// Override the automatic-width buffer for help, errors, and command
-    /// output. Zero disables buffering; explicit view widths remain exact.
+    /// Override the number of columns subtracted from an automatically
+    /// detected width, for help, errors, and command output. Zero disables the
+    /// subtraction. An explicit view width stays exact.
     #[must_use]
     pub fn automatic_width_buffer(mut self, columns: u16) -> Self {
         self.automatic_width_buffer = Some(columns);
         self
     }
 
-    /// Replace the ordered environment names for every automatic-width render.
-    /// An empty slice disables environment lookup.
+    /// Replace the ordered environment names that set the buffer, for every
+    /// automatic-width render. An empty slice disables environment lookup.
     #[must_use]
     pub fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
         self.automatic_width_buffer_envs = Some(names);
         self
     }
 
-    /// Set the floor for automatically detected effective widths.
+    /// Set the floor, in columns, for an automatically detected width.
     #[must_use]
     pub fn minimum_automatic_width(mut self, columns: u16) -> Self {
         self.minimum_automatic_width = Some(columns);
         self
     }
 
-    /// Lay out to `width` when no width is detected; `None` disables it.
+    /// Lay out to `width` columns when no width is detected. `None` turns the
+    /// fallback off, so tables render at their natural width.
     #[must_use]
     pub fn fallback_width(mut self, width: Option<u16>) -> Self {
         self.fallback_width = Some(Fallback(width));
         self
     }
 
-    /// Set the process-wide input limits when called. A repository's
-    /// `.ctl/input.yaml` and a single call's limits both beat them.
+    /// Set the process-wide default input limits as soon as it is called, not
+    /// when the `App` runs. A repository's `.ctl/input.yaml` and the limits of
+    /// a single call both win over them.
     #[cfg(feature = "input")]
     #[must_use]
     pub fn input_limits(self, limits: crate::input::Limits) -> Self {
@@ -161,7 +191,7 @@ impl<C> App<C> {
         self
     }
 
-    /// Lay out JSON output as `layout`.
+    /// Lay out JSON output as `layout`. This beats the environment.
     #[must_use]
     pub fn json_layout(mut self, layout: JsonLayout) -> Self {
         self.json_layout = Some(layout);
@@ -195,12 +225,14 @@ impl<C> App<C> {
         self
     }
 
-    /// The exit code once output meant to end with `code` was written, with
-    /// `written` the result of the write: `code` when it went through, and a
-    /// failure when it did not. When the reader closed the stream,
-    /// [`BrokenPipe::Ignore`] keeps `code`, and [`BrokenPipe::Fail`] keeps a
-    /// failing `code` and turns success into a failure. Nothing is reported
-    /// on stderr, which may be the stream that closed.
+    /// The exit code once output meant to end with `code` was written.
+    /// `written` is the result of the write.
+    ///
+    /// `code` is the answer when the write went through, and a failure when it
+    /// did not. When the reader closed the stream, [`BrokenPipe::Ignore`]
+    /// keeps `code`. [`BrokenPipe::Fail`] keeps a failing `code` and turns
+    /// success into a failure. Nothing is reported on stderr, which may be the
+    /// stream that closed.
     fn written(&self, written: io::Result<()>, code: ExitCode) -> ExitCode {
         match written {
             Ok(()) => code,
@@ -240,7 +272,11 @@ impl<C> App<C> {
         view
     }
 
-    /// Add an ordered pre-parse short-circuit, such as dynamic completion.
+    /// Add a hook that runs before parsing and may end the run.
+    ///
+    /// A hook gets the raw argv, program name first. Returning `Some(code)`
+    /// stops the run with that code. Hooks run in the order added, after a
+    /// mounted usage-spec request and before help and parsing.
     #[must_use]
     pub fn before_parse(
         mut self,
@@ -265,7 +301,10 @@ impl<C> App<C> {
         self.before_parse(move |args| crate::completion::complete::<C>(&bin, args))
     }
 
-    /// Expose a mise Usage spec under a mounted task name.
+    /// Answer a mounted `--usage-spec` request for the task named `task`.
+    ///
+    /// When argv matches, the run prints the Usage spec to stdout and exits 0
+    /// without parsing. See [`crate::usage`] for the argv shape.
     #[cfg(feature = "usage")]
     #[must_use]
     pub fn mounted_as(mut self, task: impl Into<String>) -> Self {
@@ -273,9 +312,10 @@ impl<C> App<C> {
         self
     }
 
-    /// Customize the mounted Usage document while keeping App's short-circuit
-    /// and stream ownership. The callback receives the declared Clap graph and
-    /// the requested mounted binary name.
+    /// Replace how the mounted Usage document is rendered, keeping the
+    /// short-circuit and the stdout write. The `render` callback receives the
+    /// declared Clap command and the requested mounted binary name, and
+    /// returns the document text.
     #[cfg(feature = "usage")]
     #[must_use]
     pub fn usage_spec(mut self, render: impl Fn(Command, &str) -> String + 'static) -> Self {
@@ -288,7 +328,11 @@ impl<C> App<C>
 where
     C: Parser + CommandFactory,
 {
-    /// Run against process argv.
+    /// Run against the process argv and return the exit code for `main`.
+    ///
+    /// The handler `execute` gets the parsed CLI. An `Err` from it is written
+    /// as an error (`bin: message`, or a JSON envelope) with exit code 1. Its
+    /// message includes the whole `anyhow` chain.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run<T>(self, execute: impl FnOnce(C) -> Result<T>) -> ExitCode
     where
@@ -298,6 +342,9 @@ where
     }
 
     /// Run against explicit argv. The first item is the binary name.
+    ///
+    /// The result is the same as [`Self::run`]. Use it in tests with a fixed
+    /// argv.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run_from<T>(
         self,
@@ -412,17 +459,22 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
     View::new(parsed.format, parsed.color)
 }
 
-/// The view for a parse error. Clap's lenient read stops at the bad argument,
-/// so a `--format json` after it goes unseen, and the error would print as
-/// text, coloured when `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller
-/// that asked for JSON and pipes it to `jq`. A long `--format json` or
-/// `--format=json` before `--` makes the error JSON, which never carries
-/// ANSI. The last `--format` value Clap accepts wins in either direction, as
-/// it does in a full parse, so a later `--format pretty` undoes an earlier
-/// JSON choice. The short `-f`
-/// is left out: a consumer may bind it to another flag. The scan is lexical,
-/// so a domain option whose value happens to be `--format=json` also gets a
-/// JSON error; that only changes how a failed parse is reported.
+/// The view for a parse error.
+///
+/// Clap's lenient read stops at the bad argument. A `--format json` after it
+/// goes unseen. The error would then print as text, coloured when
+/// `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller that asked for JSON
+/// and pipes it to `jq`.
+///
+/// So a long `--format json` or `--format=json` before `--` makes the error
+/// JSON, which never carries ANSI. The last `--format` value Clap accepts
+/// wins in either direction, as it does in a full parse, so a later
+/// `--format pretty` undoes an earlier JSON choice.
+///
+/// The short `-f` is left out, because a consumer may bind it to another
+/// flag. The scan is lexical, so a domain option whose value happens to be
+/// `--format=json` also gets a JSON error. That only changes how a failed
+/// parse is reported.
 fn parse_error_view(raw: &[OsString], mut view: View) -> View {
     let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
     let mut last = None;

@@ -1,9 +1,9 @@
 //! The styles a [`Document`](crate::Document) is drawn in.
 //!
-//! A document says what each span means through its [`Role`]; the theme says
+//! A document says what each span means through its [`Role`]. The theme says
 //! what that meaning looks like. The renderer applies the theme when a
-//! document becomes widgets, so the layout crates never see a role, and the
-//! writer decides afterwards whether to write the styles at all.
+//! document becomes widgets, so the layout crates never see a role. The writer
+//! decides afterwards whether to write the styles at all.
 
 use ctl_text::Style;
 use ctl_text::anstyle::{AnsiColor, Color};
@@ -37,8 +37,9 @@ const fn bold(color: AnsiColor) -> Style {
 /// [`Theme::notice_style`] replaces it.
 ///
 /// Equality compares the choices a theme holds, including which notice labels
-/// were given their own style, not the output they draw: a label set to its
-/// role's style draws the same as an unset one, yet the two themes differ.
+/// were given their own style. It does not compare the output they draw. A
+/// label set to its role's style draws the same as an unset one, yet the two
+/// themes differ.
 ///
 /// A theme replaces the default through [`RenderOptions::theme`],
 /// [`View::theme`], and [`App::theme`]. It only says how a role looks:

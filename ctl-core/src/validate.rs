@@ -1,18 +1,28 @@
-//! Garde rules every declared schema shares, so a repository's config and a
-//! template's own exports are held to the same rules and complain the same
-//! way.
+//! Garde rules every declared schema shares. A repository's config and a
+//! template's own exports are held to the same rules and report the same
+//! messages.
 //!
-//! Each one is a `#[garde(custom(…))]` rule: it runs at the boundary, on a
-//! fully parsed value, and garde names the field that failed. They are generic
-//! over the context, so the same rule works in a schema validated against
-//! nothing and in one validated against the whole document.
+//! Each one is a `#[garde(custom(…))]` rule. It runs at the boundary, on a
+//! fully parsed value, and garde names the field that failed. The rules are
+//! generic over the context. The same rule works in a schema validated
+//! against nothing and in one validated against the whole document.
+//!
+//! ```
+//! use ctl_core::validate::{at_least_one, one_file_name};
+//!
+//! assert!(one_file_name::<()>("notes.md", &()).is_ok());
+//! assert!(one_file_name::<()>("docs/notes.md", &()).is_err());
+//! assert!(at_least_one::<String, ()>("label")(&[], &()).is_err());
+//! ```
 
 use std::path::{Component, Path};
 
-/// Somewhere a repository may write: relative, and never upward out of the
-/// tree. A rooted path without a drive (`\x` on Windows) or a drive-relative
-/// one (`C:x`) is not absolute, yet joining it replaces the repository root,
-/// so any root or prefix component is refused too.
+/// A path a repository may write to: relative, and never upward out of the
+/// tree.
+///
+/// A rooted path without a drive (`\x` on Windows) and a drive-relative one
+/// (`C:x`) are not absolute, yet joining either replaces the repository root.
+/// So any root or prefix component is refused too.
 ///
 /// # Errors
 ///
@@ -32,8 +42,13 @@ pub fn inside_the_repo<C>(path: &Path, _: &C) -> garde::Result {
     Ok(())
 }
 
-/// A list a schema needs something in, complaining in the repository's own
-/// words: `at_least_one("label")` says "must declare at least one label".
+/// A rule for a list that must not be empty. The `noun` names what the list
+/// holds, in the message: `at_least_one("label")` reports "must declare at
+/// least one label".
+///
+/// # Errors
+///
+/// The returned rule fails with that message when the list is empty.
 pub fn at_least_one<T, C>(noun: &'static str) -> impl Fn(&[T], &C) -> garde::Result {
     move |items, _| {
         if items.is_empty() {
@@ -45,8 +60,14 @@ pub fn at_least_one<T, C>(noun: &'static str) -> impl Fn(&[T], &C) -> garde::Res
     }
 }
 
-/// A value a schema cannot do without, told what it is for, so the complaint
-/// reads like a sentence: "cannot be empty — it is what marks a template".
+/// A rule for a string that must not be empty. The `because` text gives the
+/// reason, so the message explains itself.
+///
+/// The message is "cannot be empty", a dash, and `because`.
+///
+/// # Errors
+///
+/// The returned rule fails with that message when the string is empty.
 pub fn cannot_be_empty<C>(because: &'static str) -> impl Fn(&str, &C) -> garde::Result {
     move |value, _| {
         if value.is_empty() {

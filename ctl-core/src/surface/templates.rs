@@ -5,12 +5,15 @@ use serde::Serialize;
 
 use super::Surface;
 
-/// Shared fragment that renders a skill frontmatter version line.
+/// Template source for `ctl/version.md.jinja`: the macro
+/// `version_line(version)` renders a skill's frontmatter version line.
 pub const VERSION_FRAGMENT: &str = r"{% macro version_line(version) -%}
 version: {{ version }}
 {%- endmacro %}";
 
-/// Shared fragment that renders mounted invocations and the no-`--` rule.
+/// Template source for `ctl/invocation.md.jinja`: the macro
+/// `mounted_invocation(surface, examples)` renders the mounted invocations and
+/// the no-`--` rule.
 pub const INVOCATION_FRAGMENT: &str = r"{% macro mounted_invocation(surface, examples) -%}
 ## Invocation
 
@@ -24,7 +27,9 @@ Never `mise run {{ surface.mount }} --`. The `--` in `#USAGE mount` is mise's
 completion bootstrap.
 {%- endmacro %}";
 
-/// Shared fragment that renders the visible top-level Clap commands.
+/// Template source for `ctl/commands.md.jinja`: the macro
+/// `command_inventory(surface)` renders a table of the visible top-level
+/// commands, with their visible aliases and descriptions.
 pub const COMMANDS_FRAGMENT: &str = r#"{% macro command_inventory(surface) -%}
 ## Commands
 
@@ -42,7 +47,9 @@ const FRAGMENTS: [(&str, &str); 3] = [
     ("ctl/commands.md.jinja", COMMANDS_FRAGMENT),
 ];
 
-/// Add ctl-core's shared operator fragments to an existing environment.
+/// Add ctl-core's shared operator fragments to `environment`, under the names
+/// `ctl/version.md.jinja`, `ctl/invocation.md.jinja`, and
+/// `ctl/commands.md.jinja`. A template imports them from there.
 ///
 /// # Errors
 ///
@@ -55,7 +62,10 @@ pub fn add_fragments(environment: &mut Environment<'static>) -> Result<(), Error
     Ok(())
 }
 
-/// Create a strict [`Environment`] containing the shared fragments.
+/// Create an [`Environment`] that holds the shared fragments.
+///
+/// It is strict: an undefined variable is an error, not an empty string. It
+/// keeps the trailing newline of a template.
 ///
 /// # Errors
 ///
@@ -68,7 +78,11 @@ pub fn environment() -> Result<Environment<'static>, Error> {
     Ok(environment)
 }
 
-/// Render one operator template with a [`Surface`] and consumer-owned context.
+/// Render the operator template `source`, named `name`, in a fresh
+/// [`environment`].
+///
+/// The template sees two variables: `surface`, the [`Surface`], and `content`,
+/// the consumer's own serializable context.
 ///
 /// # Errors
 ///

@@ -2,7 +2,13 @@
 //!
 //! Clap remains the command grammar. [`Surface`] extracts the stable operator
 //! view used by committed skills, installed instructions, and contract tests.
-//! Rendering with `minijinja` is separately gated behind `surface-templates`.
+//! The view holds the binary and mounted names, every command and alias,
+//! every argument, the Usage KDL, and the mount line.
+//!
+//! The `surface-model` feature builds a [`Surface`]. `surface-serde` adds
+//! serialization. `surface-templates` adds the shared `minijinja` fragments
+//! and the [`render`] function. A skill or instruction file is then a render
+//! of the consumer's own Clap types.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -18,6 +24,10 @@ pub use templates::{
 };
 
 /// Operator-facing projection of one Clap command graph.
+///
+/// Build it with [`Surface::new`] or [`Surface::from_command`]. It is plain
+/// data: a test compares a render of it with a committed file, and a template
+/// reads its fields.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 pub struct Surface {
@@ -104,7 +114,8 @@ pub struct SurfaceArgument {
     pub takes_values: bool,
 }
 
-/// Whether Clap requires an argument.
+/// Whether Clap requires an argument, as [`SurfaceArgument::requirement`]
+/// reports.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]
@@ -115,7 +126,8 @@ pub enum SurfaceRequirement {
     Required,
 }
 
-/// How far Clap propagates an argument.
+/// How far Clap propagates an argument, as [`SurfaceArgument::scope`]
+/// reports.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]
@@ -127,14 +139,20 @@ pub enum SurfaceScope {
 }
 
 impl Surface {
-    /// Extract an operator surface from a Clap
-    /// [`CommandFactory`](clap::CommandFactory).
+    /// Extract an operator surface from the Clap parser type `C`.
+    ///
+    /// `mount` is the mise task name that mounts the CLI, such as `q` in
+    /// `mise run q status`. See [`Self::from_command`].
     #[must_use]
     pub fn new<C: clap::CommandFactory>(mount: impl Into<String>) -> Self {
         Self::from_command(C::command(), mount)
     }
 
     /// Extract an operator surface from a Clap command graph.
+    ///
+    /// `mount` is the mise task name that mounts the CLI. The Usage KDL and the
+    /// mount line use it. Hidden commands are listed with `hidden` set. Clap's
+    /// generated `help` subcommand is not.
     #[must_use]
     pub fn from_command(mut command: Command, mount: impl Into<String>) -> Self {
         let mut declared_arguments = BTreeMap::new();
@@ -174,7 +192,9 @@ impl Surface {
         }
     }
 
-    /// Add consumer-owned prose for a template audience or section.
+    /// Add consumer-owned prose under `name`, for a template audience or
+    /// section. A template reads it as `surface.notes.<name>`. A later note of
+    /// the same name replaces an earlier one.
     #[must_use]
     pub fn note(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.notes.insert(name.into(), value.into());

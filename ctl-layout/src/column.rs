@@ -24,7 +24,8 @@ impl Column {
     }
 
     /// A column with no header. A table draws a header row only when at least
-    /// one of its columns has a header.
+    /// one of its columns has a header. Then this column's header cell is
+    /// empty.
     #[must_use]
     pub fn untitled() -> Self {
         Self::headed(None)
@@ -38,7 +39,8 @@ impl Column {
         }
     }
 
-    /// What the column does with a cell wider than it gets. The default is
+    /// Sets what the column does with a cell wider than it gets: keep words
+    /// whole, fold them, or cut the line with an ellipsis. The default is
     /// [`Overflow::KeepWords`].
     #[must_use]
     pub fn overflow(mut self, overflow: Overflow) -> Self {
@@ -47,13 +49,15 @@ impl Column {
     }
 
     /// Aligns every cell of the column to the right, header included, so
-    /// numbers line up on their last digit.
+    /// numbers line up on their last digit. This is [`align`](Self::align)
+    /// with [`Align::Right`].
     #[must_use]
     pub fn numeric(self) -> Self {
         self.align(Align::Right)
     }
 
-    /// Aligns every cell of the column, header included, against `align`.
+    /// Aligns every cell of the column, header included, against the edge
+    /// that `align` selects. The default is [`Align::Left`].
     #[must_use]
     pub fn align(mut self, align: Align) -> Self {
         self.align = align;

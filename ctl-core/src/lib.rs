@@ -6,6 +6,21 @@
 //! JSON emission. One serializable result feeds pretty, colorless, and JSON
 //! output.
 //!
+//! ## Where to start
+//!
+//! - [`App`] runs a CLI: it parses argv, calls your handler, and writes the
+//!   result or the error. [`prelude`] is the one import a binary needs.
+//! - [`Present`] maps a serializable result to a [`Document`]. [`View`] writes
+//!   it as pretty text, colorless text, or JSON.
+//! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
+//!   [`Table`]s, [`Section`]s, and [`Notice`]s. It has no layout in it.
+//! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
+//!   the environment binding. [`ColorMode`] and [`OutputFormat`] are the values
+//!   the flags parse to.
+//! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
+//!   policy, the record and table framing, and the style of each role.
+//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
+//!
 //! ## Quick start
 //!
 //! ```no_run
@@ -64,7 +79,7 @@
 //! - JSON always goes to stdout and never contains ANSI. Human failures go to
 //!   stderr.
 //! - A reader that closes stdout early, such as `head -1`, does not change the
-//!   exit code: a command that succeeded exits 0, and a failure keeps its code.
+//!   exit code. A command that succeeded exits 0, and a failure keeps its code.
 //!   [`App::broken_pipe`] can make every closed pipe a failure.
 //!
 //! [`prelude`] is the one import a `*ctl` binary needs.
@@ -82,8 +97,8 @@
 //!   rules. They lay out plain lines of styled spans and never see an escape
 //!   sequence.
 //! - `ctl-term`: whether to write colour and how wide to lay out, decided for
-//!   the stream being written, and the one place an escape sequence is written,
-//!   its `Encoder`.
+//!   the stream being written. Its `Encoder` is the one place an escape
+//!   sequence is written.
 //!
 //! A [`Theme`] maps each [`Role`] to a style on the way from the document to
 //! the widgets. `ctl_core::Text` holds roles and `ctl_core::text::Text` holds
@@ -92,23 +107,21 @@
 //! ## Cargo features
 //!
 //! Features are additive. Unused ones do not compile `clap`, `schemars`, or
-//! the rendering crates. `document` builds documents with no engine;
-//! `render` adds `ctl-text`, `ctl-layout`, and `ctl-term`'s encoder and
-//! renders to a `String` without asking any terminal; `help` and `view` turn
-//! on `ctl-term`'s `detect` feature, which asks the stream for its width and
+//! the rendering crates. `document` builds documents with no engine.
+//! `render` adds `ctl-text`, `ctl-layout`, and `ctl-term`'s encoder, and
+//! renders to a `String` without reading any terminal. `help` and `view` turn
+//! on `ctl-term`'s `detect` feature, which reads the stream's width and
 //! decides colour for it.
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "app")]
 pub mod app;
-/// Color policy (`auto` / `always` / `never`).
 pub mod color;
 #[cfg(feature = "completion")]
 pub mod completion;
 #[cfg(feature = "document")]
 pub mod document;
-/// Output representation (`pretty` / `json`).
 pub mod format;
 pub mod model;
 

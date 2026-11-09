@@ -1,13 +1,15 @@
 //! Which characters are unsafe to print to a terminal as they are, and the
 //! function that removes them.
 //!
-//! Text from outside the program, such as a title, a commit subject, or a
-//! file's contents, can carry characters that act on the terminal or on the
-//! layout instead of showing. A CLI that prints such text drops what
-//! [`is_unsafe`] refuses, with [`strip_unsafe`]. `Document::verbatim` in
-//! ctl-core applies the same rule. [`Span::new`](crate::Span::new) and
-//! [`Text`](crate::Text) apply it too, but turn a line break into a space or
-//! a newline instead of removing it, so the words around it stay apart.
+//! Text from outside the program can carry characters that act on the
+//! terminal or on the layout instead of showing. A title, a commit subject,
+//! or a file's contents can all hold them.
+//!
+//! A CLI that prints such text drops what [`is_unsafe`] refuses, with
+//! [`strip_unsafe`]. `Document::verbatim` in ctl-core applies the same rule.
+//! [`Span::new`](crate::Span::new) and [`Text`](crate::Text) apply it too,
+//! but keep a line break as a space or a newline. The words around it then
+//! stay apart.
 //!
 //! The set is three whole sets, each taken by its definition:
 //!
@@ -23,22 +25,27 @@
 //!    [`PARAGRAPH_SEPARATOR`]. A terminal or a tool may break a line there that
 //!    the layout counted as one.
 //!
-//! The set follows Unicode 16.0.0: UAX #9 revision 50, which
-//! unicode-bidi 0.3.18 implements. Cc, Zl, and Zp have had the same members
-//! since Unicode 1.1.
+//! The set follows Unicode 16.0.0 and UAX #9 revision 50, which unicode-bidi
+//! 0.3.18 implements. Cc, Zl, and Zp have had the same members since
+//! Unicode 1.1.
 //!
-//! The other format characters (general category Cf) stay. They neither
-//! act on the terminal nor reorder text, and text needs them: ZWJ joins
-//! emoji, ZWNJ shapes Persian and Indic scripts, the tag characters spell
-//! subdivision flags, the soft hyphen marks a break, and the Arabic number
-//! signs render as visible marks.
+//! The other format characters (general category Cf) stay. They neither act on
+//! the terminal nor reorder text, and text needs them.
+//!
+//! - ZWJ joins emoji.
+//! - ZWNJ shapes Persian and Indic scripts.
+//! - The tag characters spell subdivision flags.
+//! - The soft hyphen marks a break.
+//! - The Arabic number signs render as visible marks.
 
 use unicode_bidi::format_chars::{ALM, FSI, LRE, LRI, LRM, LRO, PDF, PDI, RLE, RLI, RLM, RLO};
 
-/// U+2028, the only character in general category Zl.
+/// U+2028 LINE SEPARATOR, the only character in general category Zl.
+/// [`is_unsafe`] refuses it.
 pub const LINE_SEPARATOR: char = '\u{2028}';
 
-/// U+2029, the only character in general category Zp.
+/// U+2029 PARAGRAPH SEPARATOR, the only character in general category Zp.
+/// [`is_unsafe`] refuses it.
 pub const PARAGRAPH_SEPARATOR: char = '\u{2029}';
 
 /// Whether `character` is in the set the [module](self) defines.

@@ -1,3 +1,18 @@
+//! The colour policy for pretty output: `auto`, `always`, or `never`.
+//!
+//! [`ColorMode`] parses from those three lowercase names, and `Display` prints
+//! them back. With the `cli` feature it is a Clap value enum, so
+//! `OutputArgs` parses `--color` into it. JSON
+//! output ignores it and never contains ANSI.
+//!
+//! ```
+//! use ctl_core::color::ColorMode;
+//!
+//! assert_eq!("always".parse::<ColorMode>(), Ok(ColorMode::Always));
+//! assert_eq!(ColorMode::default(), ColorMode::Auto);
+//! assert!("rainbow".parse::<ColorMode>().is_err());
+//! ```
+
 use std::fmt;
 use std::str::FromStr;
 
@@ -64,7 +79,8 @@ impl fmt::Display for ColorMode {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-/// Unknown color token.
+/// The error [`ColorMode`]'s `FromStr` returns for text that is not `auto`,
+/// `always`, or `never`. `Display` prints `expected auto, always, or never`.
 pub struct ParseColorError;
 
 impl fmt::Display for ParseColorError {
