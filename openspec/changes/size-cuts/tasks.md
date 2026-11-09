@@ -234,6 +234,15 @@
   Verify: CI's `test:cli` passes with `-h`, `--help`, `-V`, and
   `help <command>`, no snapshot or parity file changes, and `check:size`
   reports each tier within its budget.
+- [ ] 4.7 Give `Surface::from_command` the same `-h`/`--help` flag and
+  `help` subcommand, so its Usage KDL holds them as it did with Clap's
+  `help` feature, and turns help off only where the CLI declared that.
+  Verify: a unit test fails without the change and passes in CI with it.
+
+  On 2026-11-09 (-03:00), `usage_kdl_keeps_the_declared_help` failed at
+  [e7861c6] with no help flag and no `help` command line, and with
+  `disable_help_flag` on every declared command. With the change it
+  passed. CI's run is still to come.
 
 ## 5. annotate-snippets
 
@@ -280,3 +289,4 @@
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
+[e7861c6]: https://github.com/victor-software-house/ctl-core/commit/e7861c6c3dfb8760f6007bcdd657b30d64158eb8

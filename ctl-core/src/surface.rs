@@ -153,12 +153,18 @@ impl Surface {
     ///
     /// `mount` is the mise task name that runs the CLI. The Usage KDL and the
     /// `#USAGE mount` line use it. Hidden commands are listed with `hidden`
-    /// set. Clap's generated `help` subcommand is not.
+    /// set. The Usage KDL holds the `-h/--help` flag and `help` subcommand
+    /// ctl-core declares on every command, as
+    /// [`apply_defaults`](crate::parser::apply_defaults) does for parsing. The
+    /// lists of arguments and commands leave them out.
     #[must_use]
-    pub fn from_command(mut command: Command, mount: impl Into<String>) -> Self {
+    pub fn from_command(command: Command, mount: impl Into<String>) -> Self {
         let mut declared_arguments = BTreeMap::new();
-        collect_declarations(&command, "", &mut declared_arguments);
+        let mut help_settings = BTreeMap::new();
+        collect_declarations(&command, "", &mut declared_arguments, &mut help_settings);
+        let mut command = crate::parser::with_help(command);
         command.build();
+        let command = restore_help_settings(command, "", &help_settings);
         let mount = mount.into();
         let binary = command.get_name().to_owned();
         let about = command
@@ -352,6 +358,7 @@ fn collect_declarations(
     command: &Command,
     path: &str,
     declared_arguments: &mut BTreeMap<String, BTreeSet<String>>,
+    help_settings: &mut BTreeMap<String, HelpSettings>,
 ) {
     declared_arguments.insert(
         path.to_owned(),
@@ -360,14 +367,57 @@ fn collect_declarations(
             .map(|argument| argument.get_id().to_string())
             .collect(),
     );
+    help_settings.insert(
+        path.to_owned(),
+        HelpSettings {
+            flag_off: command.is_disable_help_flag_set(),
+            subcommand_off: command.is_disable_help_subcommand_set(),
+        },
+    );
     for child in command.get_subcommands() {
-        let child_path = if path.is_empty() {
-            child.get_name().to_owned()
-        } else {
-            format!("{path} {}", child.get_name())
-        };
-        collect_declarations(child, &child_path, declared_arguments);
+        let child_path = child_path(path, child.get_name());
+        collect_declarations(child, &child_path, declared_arguments, help_settings);
     }
+}
+
+fn child_path(path: &str, name: &str) -> String {
+    if path.is_empty() {
+        name.to_owned()
+    } else {
+        format!("{path} {name}")
+    }
+}
+
+/// Whether a command turned off its help flag and its `help` subcommand.
+///
+/// Clap's build turns both off on every command when its `help` feature is
+/// off. ctl-core turns them off where it declares its own. Only the command
+/// as declared holds what the CLI turned off.
+#[derive(Clone, Copy, Debug)]
+struct HelpSettings {
+    flag_off: bool,
+    subcommand_off: bool,
+}
+
+/// `command` after its build, with the help settings each declared command
+/// had put back, so the Usage KDL records only what the CLI turned off. The
+/// `help` subcommands ctl-core generates were not declared, and keep the
+/// settings that turn help off, as Clap's own do.
+fn restore_help_settings(
+    command: Command,
+    path: &str,
+    help_settings: &BTreeMap<String, HelpSettings>,
+) -> Command {
+    let command = match help_settings.get(path) {
+        Some(declared) => command
+            .disable_help_flag(declared.flag_off)
+            .disable_help_subcommand(declared.subcommand_off),
+        None => command,
+    };
+    command.mut_subcommands(|child| {
+        let child_path = child_path(path, child.get_name());
+        restore_help_settings(child, &child_path, help_settings)
+    })
 }
 
 fn declared_argument(
@@ -427,7 +477,7 @@ fn argument(argument: &Arg) -> SurfaceArgument {
 
 #[cfg(test)]
 mod tests {
-    use clap::{ArgAction, Parser, Subcommand};
+    use clap::{ArgAction, CommandFactory, Parser, Subcommand};
     #[cfg(feature = "surface-templates")]
     use indoc::indoc;
     #[cfg(feature = "surface-templates")]
@@ -531,6 +581,47 @@ mod tests {
         );
         let noted = surface.note("skill", "Prefer the mounted task.");
         assert_eq!(noted.notes["skill"], "Prefer the mounted task.");
+    }
+
+    /// The `-h/--help` flags and `help` command lines in a Usage KDL.
+    fn help_lines(usage: &str) -> (usize, usize) {
+        let lines = usage.lines().map(str::trim_start);
+        let flags = lines
+            .clone()
+            .filter(|line| line.starts_with(r#"flag "-h --help""#) && line.contains("action=help"))
+            .count();
+        let commands = lines.filter(|line| line.starts_with("cmd help ")).count();
+        (flags, commands)
+    }
+
+    /// Clap's `help` feature stays off in every ctl-core build. The Usage KDL
+    /// holds the `-h/--help` flag and `help` subcommand ctl-core declares, as
+    /// a build with that feature holds Clap's own. Only the `help`
+    /// subcommands and their copies turn help off, as in that build.
+    #[test]
+    fn usage_kdl_keeps_the_declared_help() {
+        let usage = Surface::new::<Cli>("t").usage_kdl;
+        assert_eq!(help_lines(&usage), (5, 4), "{usage}");
+        assert!(
+            !usage.lines().any(|line| line.starts_with("disable_help")),
+            "{usage}"
+        );
+        for declared in ["cmd status ", "cmd item ", "cmd add ", "cmd internal "] {
+            assert!(
+                usage
+                    .lines()
+                    .map(str::trim_start)
+                    .any(|line| { line.starts_with(declared) && !line.contains("disable_help") }),
+                "{declared}in {usage}"
+            );
+        }
+        let applied = Surface::from_command(crate::parser::apply_defaults(Cli::command()), "t");
+        assert_eq!(
+            help_lines(&applied.usage_kdl),
+            (5, 4),
+            "{}",
+            applied.usage_kdl
+        );
     }
 
     #[cfg(feature = "surface-templates")]
