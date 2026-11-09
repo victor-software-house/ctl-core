@@ -11,10 +11,6 @@
 //!
 //! Everything but the toy runs with the `usage` feature alone, so the plain
 //! tier is held to the same bytes. The toy needs `app`.
-#![allow(
-    missing_docs,
-    reason = "an integration test crate has no public API to document"
-)]
 #![cfg(feature = "usage")]
 
 use std::fmt::Write as _;

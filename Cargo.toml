@@ -72,7 +72,7 @@ pty-process = "=0.5.4"
 kdl = { version = "=6.7.1", default-features = false }
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 missing_docs = "deny"
 missing_debug_implementations = "deny"
 unreachable_pub = "deny"
