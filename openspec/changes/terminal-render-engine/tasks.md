@@ -195,10 +195,20 @@ and in CI, as each task says.
     with `MISE_ENV=ci`, the task passed with those budgets and failed on all
     four tiers with each budget lowered by 5%: cli measured 343,888 bytes
     against a limit of 333,226.
-- [ ] 7.2 Measure each tier and each public consumer at the commit CI verified,
+- [x] 7.2 Measure each tier and each public consumer at the commit CI verified,
   on darwin-arm64 with the release profile, and record file, `__text` and
   package counts against ctl-core 0.6.x in this change's design. Proof: the
   table is in the design with the commit and the strip check.
+  - 2026-11-08 UTC: measured at [2f23725], which CI verified in
+    [run 42542525587][ci-2f23725], on an Apple M4 Pro with rustc 1.99.1, in a
+    scratch clone deleted afterwards; nothing was committed to a consumer.
+    Design decision 16 holds the tier and consumer tables, the strip check
+    (no Rust symbol in `nm -U` on any of the 20 binaries), and a cargo-bloat
+    attribution of qctl and rawr. The toy's `__text` fell by 62,016 to
+    101,224 bytes per tier. The consumers moved by -7,232 (verctl), -9,472
+    (qctl), -7,104 (forkctl) and +2,644 (rawr). Not verified: the split of
+    the toy's change between clap and the engine on `main`, which reuses
+    Matrix B's clap figures.
 
 ## Release prerequisites
 
@@ -305,3 +315,5 @@ and in CI, as each task says.
 [run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
 [q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294
 [trusted publishing]: https://crates.io/docs/trusted-publishing
+[2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
+[ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587
