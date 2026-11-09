@@ -358,10 +358,6 @@ enum Action {
 impl Action {
     /// clap marks `ArgAction` non-exhaustive. An action added later takes one
     /// value when clap says it takes values, and is a switch otherwise.
-    #[expect(
-        clippy::match_same_arms,
-        reason = "SetTrue and an action clap adds later both read as a plain switch"
-    )]
     fn of(arg: &Arg) -> Self {
         match arg.get_action() {
             ArgAction::Set => Self::Value { collects: false },
