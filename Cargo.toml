@@ -157,8 +157,10 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde.
-input = { features = "app,input", text = 1141709 }
+# app plus input: serde-saphyr, yamled, and garde. 100,840 below the last
+# budget, 1141709: the snippet renderer left with vsh-serde-saphyr 0.0.2
+# (size-cuts task 5.3).
+input = { features = "app,input", text = 1040869 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
