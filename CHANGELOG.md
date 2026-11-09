@@ -1,5 +1,282 @@
 # Changelog
 
+## ctl-core 0.7.0
+
+### Added
+
+- Add a shared shell completion verb.
+  The new `completion` feature gives a ctl CLI `<bin> completion <SHELL>` for bash, zsh, and fish ([#180](https://github.com/victor-software-house/ctl-core/pull/180)).
+
+  To use it:
+
+  - flatten `completion::CompletionCommand` into the CLI's subcommands;
+  - call `App::completion()`, so the binary answers `COMPLETE=<shell>` at each TAB;
+  - route the verb to `shell::view(format)` and return `command.script("<bin>")`.
+
+  The zsh script completes on the first TAB when Homebrew installs it in `fpath`.
+  The `completion` feature enables `app`, which `App::completion` needs.
+  The new `shell` feature holds the `Shell` value the verb takes.
+- New crate on crates.io: `ctl-layout`, terminal widgets built on `ctl-text` ([#197](https://github.com/victor-software-house/ctl-core/pull/197)).
+
+  - A `Table` takes `Column`s with an `Overflow` and an `Align` each, a `Frame` (`Grid`, `HeaderRule`, or `Plain`), and a `RowSeparation` (`None`, `Rule`, or `Blank`).
+  - Each column gets its widest cell.
+    When the width runs short, the widest column shrinks first, never below the widest word of a keep-words column.
+    A framed table folds instead of running past the width.
+  - A numeric column aligns right, headers included.
+  - `Definitions` draws each entry as a line of labels over indented description lines.
+    `Breakpoint` draws one widget below a width and another from it up, so a table gives way to definitions on a narrow terminal.
+  - `Record`, `Rule`, `Stack`, and `Indent` complete the set.
+    A `Stack` and an `Indent` take a widget by value or by reference.
+    Every widget implements `ctl_text::Renderable`, so it measures before it renders.
+  - ctl-layout re-exports `ctl_text`, `Context`, `Overflow`, `Renderable`, and `Text`.
+- New crate on crates.io: `ctl-term`, terminal facts and the escape encoder ([#199](https://github.com/victor-software-house/ctl-core/pull/199)).
+
+  - `Terminal::detect` decides, for one stream and one environment lookup, whether to write colour.
+    It reads `NO_COLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, `CLICOLOR` and `TERM=dumb`, then whether the stream is a terminal.
+  - It picks the colour depth from `COLORTERM`, `TERM` and `FORCE_COLOR`.
+    It picks the width from an explicit width, then the stream's window, then `COLUMNS`, then a fallback of 80.
+  - `DetectOptions` and `Terminal::at_depth` override each default and can turn it off.
+  - `Encoder` turns `ctl_text::Line`s into bytes.
+    It writes a style sequence only where the style changes, and leaves no style open at the end of a line.
+    Each colour becomes the nearest one the depth can show.
+    With colour off it writes the plain text byte for byte.
+  - `Console` renders any `Renderable` at the width of its stream and writes it.
+    It reports a closed pipe as `Error::BrokenPipe`.
+    `Error` converts into `std::io::Error` without boxing. `Io` gives back the error it holds. `BrokenPipe` always gives an error of kind `io::ErrorKind::BrokenPipe`, keeping the OS error when it has one.
+  - The `detect` feature, on by default, holds what asks the operating system.
+    Without it the crate holds only the encoder, the colour conversion, and `Terminal::from_probe`.
+  - The crate supports and tests Unix only; Windows is to come with a Windows CI job.
+- New crate on crates.io: `ctl-text`, styled text for terminals over `anstyle::Style` ([#193](https://github.com/victor-software-house/ctl-core/pull/193)).
+
+  - A `Span` removes every character `unsafe_chars::is_unsafe` refuses.
+    A `Line` is a row of spans, and `Text` splits at each newline and expands tabs to the next tab stop.
+  - Widths count terminal cells per grapheme cluster (`cluster_width`, `text_width`, `prefix_len`).
+    `UNICODE_VERSIONS` names the Unicode version of the width and segmentation data.
+  - `Overflow` fits a line to a width: `KeepWords` breaks at spaces only, `Fold` breaks a long word between clusters, and `Ellipsis` cuts the line with `…`.
+    No rendered line ends in a space.
+  - Widgets implement `Renderable` with `Measurement` and `Context`, and `overlay` combines two styles.
+
+  With the `unsafe-chars` feature, `ctl_core::unsafe_chars` re-exports `ctl_text::unsafe_chars`.
+- Add a shared shell integration verb.
+  The new `shell-init` feature gives a ctl CLI `<bin> init <SHELL>` for bash, zsh, and fish ([#191](https://github.com/victor-software-house/ctl-core/pull/191)).
+
+  To use it:
+
+  - declare `shell_init::Hook::new("<bin>", "<subcommand>", "<VARIABLE>")`;
+  - flatten `shell_init::InitCommand` into the CLI's subcommands;
+  - route the verb to `shell::view(format)` and return `command.script(&hook)`.
+
+  The script runs `<bin> <subcommand>` once, in the foreground, before the shell's first prompt.
+  It runs only when the variable is non-empty and the binary is on `PATH`, then removes itself.
+  Loading it twice installs it once, and bash keeps the `$?` its prompt shows.
+  The completion and init verbs share `shell::Script` and `shell::view`.
+
+### Changed
+
+- The docs.rs pages for `ctl-core`, `ctl-text`, `ctl-layout`, and `ctl-term` now open on a landing page that starts with a quick start and ends with the Cargo features ([#256](https://github.com/victor-software-house/ctl-core/pull/256)).
+
+  `ctl-core`'s page lists its modules and the prelude, so each type appears once.
+  It names where to start with declared input, which feature reads each format, and the renamed `FlagClash` and `Outcome`.
+
+  The `ctl-term` README example now renders to a string, so it shows no hidden line on GitHub.
+  No API changes.
+- The help text of the shared colour flags changes wording.
+  A CLI that compares its help with a snapshot or a committed file updates that file when it takes this release ([#229](https://github.com/victor-software-house/ctl-core/pull/229)).
+
+  - `--color` reads "Pretty-output colour policy".
+  - `--no-color` reads "Force colourless pretty output".
+  - The `pretty` format reads "Human text, optionally coloured".
+  - The description of the `auto` colour value, which shell completion shows, names what it checks: whether the stream is a terminal and the environment allows colour.
+- Ask Clap only for the features ctl-core calls.
+  `clap` is now declared with `default-features = false`: `cli` turns on `std`, `derive`, `env`, and `string`, and `help` adds `usage` ([#183](https://github.com/victor-software-house/ctl-core/pull/183)).
+
+  - In 0.6 usage-lib turned Clap's default features on for every consumer, and nothing in ctl-core turns them on now.
+    A consumer whose own `clap` entry keeps the default features sees no change.
+  - A consumer that wants Clap's error context or suggestions turns them on in its own `clap` entry: `clap = { version = "4", default-features = false, features = ["std", "derive", "error-context", "suggestions"] }`.
+  - When a command misses a required argument or subcommand, `App` renders the help Clap stops for.
+    It writes that help on stderr with exit code 2, in place of Clap's own.
+  - The new `unsafe-chars` feature exports `unsafe_chars::is_unsafe` and `unsafe_chars::strip_unsafe`, which `Document::verbatim` filters with.
+    A CLI can drop the same terminal, bidi, and separator characters from text it prints.
+  - `unicode-general-category` is no longer a dependency.
+- Rename the two public types whose names held "kind", and the field and method that use them ([#250](https://github.com/victor-software-house/ctl-core/pull/250)).
+
+  This breaks every caller that names them:
+
+  - `WarningKind` is now `FlagClash`, and `FlagWarning`'s `kind` field is now `clash`.
+    A match on `warning.kind` becomes a match on `warning.clash`.
+  - `MessageKind` is now `Outcome`, and `Present::message_kind` is now `Present::outcome`.
+    A result that overrode `message_kind` overrides `outcome`, with the same `Success` and `Error` variants.
+
+  Each variant and `Outcome::default_exit_code` keep their names, and no output changes.
+- Lock the public API so that later releases can add variants, fields, and trait methods without breaking a consumer ([#262](https://github.com/victor-software-house/ctl-core/pull/262)).
+
+  Each break and its migration:
+
+  - `document::Block`, `format::OutputFormat`, and `document::NoticeLevel` are `#[non_exhaustive]`.
+    A match on one of them outside ctl-core ends with a `_` arm.
+  - `model::ErrorBody` and both `Envelope` variants are `#[non_exhaustive]`.
+    Build them with `ErrorBody::new`, `Envelope::ok`, and `Envelope::err`, and end a pattern on a variant with `..`.
+  - `flags::FlagWarning`, `Surface`, `SurfaceCommand`, and `SurfaceArgument` are `#[non_exhaustive]`.
+    Read their fields as before. A struct literal of one of them no longer compiles.
+  - `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `DryRunArgs`, `CompletionArgs`, and `InitArgs` are `#[non_exhaustive]`.
+    Get them from the parse, and end a pattern on `CompletionArgs` or `InitArgs` with `..`.
+    `CompletionCommand` and `InitCommand` are unchanged.
+  - `OutputArgs` and `ColorLong` no longer expose `color` and `no_color`.
+    Call `color()`, which applies `--no-color`.
+  - `View`'s `format` and `quiet` fields are private.
+    Read them with `View::format()` and `View::is_quiet()`. The `quiet(bool)` setter is unchanged.
+  - `InputError` and `ServeError` are `#[non_exhaustive]`.
+    Their public fields stay, and `io_failure()` returns the `io::ErrorKind` when a file could not be read or written.
+  - `EnvPrefix` is sealed. `#[command(env_prefix = "...")]` works as before, and no type outside ctl-core can implement the trait.
+
+  `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, `FlagClash`, and `Shell` stay exhaustive.
+  Each one's rustdoc holds one sentence on why its set is closed.
+- Render every document through the workspace's own engine in place of comfy-table and anstream.
+  The engine is three new crates on crates.io, `ctl-text`, `ctl-layout`, and `ctl-term`, published at the workspace version.
+  `ctl_core::{text, layout, term}` re-export them for a CLI that needs a widget directly.
+  comfy-table, anstream, and unicode-width are no longer dependencies ([#212](https://github.com/victor-software-house/ctl-core/pull/212)).
+
+  Breaking changes:
+
+  - `kv`, `grid`, and the `ctl_core::table` module are removed.
+    Compose `Fields` or `Table` inside a `Document` instead.
+  - `Document::render` no longer asks a terminal for its width or colour.
+    It lays out to the explicit width, then the fallback width, then the natural width.
+    It writes colour only under `ColorMode::Always`.
+    `View`, help, and errors still decide colour and width for the stream they write.
+  - A tab in a verbatim block expands to the next 8-cell stop.
+  - Table layout changes in a few places, so snapshot tests of command output may change:
+    - an empty column is 2 cells wide, where it was 3;
+    - columns shrink widest first, and a framed table folds only a word wider than its column;
+    - two words never run past the width;
+    - colour no longer changes the layout, and every line that writes a style ends with a reset.
+
+    A wrapped column still narrows to its widest line, as before.
+  - A reader can close stdout or stderr early, as `head -1` does.
+    `App` then exits with the code the command would have had and writes nothing to stderr.
+    In 0.6 it exited 1.
+    - A command that succeeded exits 0.
+      A failed command or a parse error keeps its own code, so a closed pipe never turns a failure into success.
+    - `App::broken_pipe(BrokenPipe::Fail)` makes every closed pipe a failure: success becomes exit 1, and a failure keeps its own code.
+  - `ListStyle` is `Frame`, and `RecordStyle`, `Frame`, and `RowSeparation` are the types of `ctl-layout`, so each is `#[non_exhaustive]` and `Hash`.
+    `JsonLayout` is `#[non_exhaustive]` too.
+    `RenderOptions::list_style` is `frame`; the variable `CTL_CORE_LIST_STYLE` keeps its name.
+  - Every setter on `RenderOptions` and `View` takes the name of its setting: `width`, `record_style`, `quiet`, and so on.
+    `RenderOptions` has no getter, because a getter would need the same name.
+    `View` reads its format and quiet setting through `format()` and `is_quiet()`.
+    A method that reads the environment starts with `resolved_`.
+    - `record()`, `list()`, and `separation()` are `resolved_record_style()`, `resolved_frame()`, and `resolved_row_separation()`, and `View::layout()` is `resolved_json_layout()`.
+    - The getters `active_theme`, `fallback`, `explicit_width`, `explicit_automatic_width_buffer`, `automatic_width_buffer_env_names`, and `automatic_width_minimum` are gone.
+      Their settings are the setters `theme`, `fallback_width`, `width`, `automatic_width_buffer`, `automatic_width_buffer_envs`, and `minimum_automatic_width`.
+    - `View` holds one `RenderOptions` and returns it from `render_options()`.
+      `View::color(mode)` sets the colour, and the colour is not a public field.
+    - `App` keeps its setter names.
+  - `Stream` in the view module is `Destination`, so it no longer shares a name with `ctl_term::Stream`.
+  - `Renderer` is crate-private. `Document::render` renders to a string.
+  - `Document::render` and the view write through the `ctl-term` encoder, so a line ends with a reset only when a style is still open.
+  - The buffer and minimum settings, `automatic_width_buffer` and the like with their `DEFAULT_COLUMN_BUFFER*` and `DEFAULT_MINIMUM_AUTOMATIC_WIDTH` constants, exist only with `view` or `help`.
+    Without a stream, nothing reads them.
+  - `parser::assert_help_enabled` is crate-private.
+
+  Added:
+
+  - `Theme` maps each role and notice label to an `anstyle::Style`: `role_style(role)` reads one and `style(role, style)` sets one.
+    `RenderOptions::theme`, `View::theme`, and `App::theme` replace the default.
+  - `Table::ellipsis_column` marks a title or summary column.
+    A cell too wide for it keeps one line and ends in `…`, and the column gives up width before a column of whole words does.
+  - `Table::numeric_column` aligns a column, header included, to the right.
+- The `input` feature reads YAML through vsh-serde-saphyr 0.0.3 and yamled 0.0.12.
+  In 0.6 it used serde-saphyr 2.0.0 and yamled 0.0.8 ([#244](https://github.com/victor-software-house/ctl-core/pull/244)).
+
+  vsh-serde-saphyr keeps the library name `serde_saphyr`.
+  It is serde-saphyr 2.1.1, the latest release, with two patches.
+  It carries a `NOTICE` file and the fork's copyright line in `LICENSE-MIT`.
+
+  - serde-saphyr 2.1.1 reports the same problems in the same words, and allocates less while it parses.
+    The lock moves granit-parser, its YAML parser, from 2.0.0 to 2.1.0.
+  - Upstream serde-saphyr formats an error's whole report while it deserializes, snippet renderer included.
+    So every binary that loaded input carried annotate-snippets.
+    The patched release reads the error's kind instead, and builds an alias error's message from the plain text.
+  - ctl-core builds each problem's text from serde-saphyr's message formatter, and the reports keep their wording.
+    The toy CLI's input tier drops 100,840 bytes of `.text` on linux-x64.
+  - yamled 0.0.12 gives the location index, with its default features still off, and takes serde-saphyr from the same release.
+
+  A consumer whose own yamled reads values takes yamled 0.0.12 too, so it links one yamled and one serde-saphyr.
+  With an older yamled it links both serde-saphyr crates.
+- Each declared-input format is now its own feature, so a TOML-only consumer links no YAML crate and no garde.
+  With default features off and only `input-toml` on, ctl-core links none of serde-saphyr, yamled, or garde.
+  `input` keeps its meaning, YAML with garde validation, so a manifest that enables it builds unchanged ([#253](https://github.com/victor-software-house/ctl-core/pull/253)).
+
+  These break callers:
+
+  - `input-toml` no longer enables `input`.
+    A consumer that read YAML or validated through `input-toml` alone adds `input`, or `input-yaml` and `validate`.
+  - `Input::check`, `Input::load`, and the `ctl_core::validate` module need the `validate` feature.
+  - With `input-toml` alone, `Format::Toml` is the only variant, so its discriminant is 0, where it was 1.
+  - `Format::Yaml`, `Input::new`, `Input::read`, `Input::frontmatter`, `REPO_FILE`, `use_repo_limits`, and `Loosened` need the new `input-yaml` feature.
+  - `Limits` is ctl-core's own type.
+    Its 17 YAML-only fields need `input-yaml`, and a caller builds it with `..Limits::NONE`.
+    `Limits::budget` is no longer public.
+
+  These are new:
+
+  - `input-yaml`: YAML input with no garde.
+  - `Input::new_with_format(name, text, format)`: text in memory in a named format.
+  - `Limits::DEFAULT_MAX_READER_INPUT_BYTES`, `DEFAULT_MAX_DEPTH`, and `DEFAULT_MAX_NODES`: the defaults every format shares, equal to serde-saphyr's.
+
+  A TOML text is held to its byte, depth, and node limits under the call and process tiers whatever the build enables.
+  Without `input-yaml`, a limit message ends "the tool sets this limit", and `Input::open` on a `.yaml` or `.yml` file names the feature it needs.
+- usage-lib is no longer a dependency.
+  ctl-core writes the Usage KDL itself, so the `usage` feature drops usage-lib and the 19 crates it alone pulled in ([#238](https://github.com/victor-software-house/ctl-core/pull/238)).
+
+  - The spec keeps every byte: ctl-core already turns on Clap's `usage` feature and strips help itself.
+  - ctl-core declares `-h`/`--help` and the `help` subcommand itself, so they work without Clap's `help` feature.
+    A CLI that parses through `parser::apply_defaults` itself calls `help::try_emit` first, since the derive does not know the `help` subcommand.
+    A plain `Cli::parse()` gets Clap's minimal output and no `help` subcommand.
+  - `Surface`'s Usage KDL keeps the `-h`/`--help` flag and the `help` subcommand on every command, as it did with Clap's `help` feature.
+    It records a setting that turns help off only where the CLI declared one.
+- `--usage-spec` writes the Usage KDL with ctl-core's own writer, built from the clap `Command` ([#236](https://github.com/victor-software-house/ctl-core/pull/236)).
+
+  It keeps usage-lib 7.3.0's bytes except in the cases below, each now a fix.
+  They are output that was not valid KDL v2 or read back as other text, and value names that mise read as usage syntax:
+
+  - Help text or a default value that holds U+2028, U+2029, or U+0085 is written with `\u{…}` escapes.
+    KDL v2 counts these characters as newlines, so mise could not read the spec, or read U+2028 back as a line feed.
+  - Bidi controls and the byte order mark in help text or a default value are written with `\u{…}` escapes.
+    They are U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069, and U+FEFF.
+    So is ESC in a default value.
+    KDL v2 forbids these characters literally.
+  - A default value that holds U+007F (DEL) is quoted and escaped.
+    It was written bare, which KDL v2 forbids, and parsed only because the parsers miss that rule.
+  - Help text with a line of only whitespace is written as a quoted string.
+    A raw multi-line string read that line back empty.
+  - A default value or possible value `-.5` or `+.5` is quoted.
+    Written bare, it starts like a number, and KDL v2 refuses it.
+  - A flag whose value name splits into placeholders, such as `<A> <B>`, is written as one value with a `value_names` child.
+    The old spec repeated the name and set two values, and mise rejected the whole spec, so completion offered nothing.
+  - A value name that ends in `...` or `…` keeps its name and gains `var=#false`.
+    mise read a flag's value as variadic, and a positional as taking any number of values.
+  - A positional whose value name splits into placeholders gets `var=#false` and a `value_names` child.
+    mise read it as that many values.
+  - A positional whose value name starts with `--` and a space gets `double_dash=optional`.
+    mise offered it only after `--`.
+  - A flag's value named `[x]` is written `<[x]>`, a required value, as clap reads it.
+
+  The spec no longer depends on Clap features that only usage-lib turned on:
+
+  - ctl-core strips terminal control sequences and DEL from help text itself, as Clap does with its `color` feature on.
+    The spec holds the same bytes whether or not another crate turns `color` on.
+  - The `usage` feature turns on Clap's `usage` feature, so the spec keeps its usage line without the `help` feature.
+
+### Fixed
+
+- Fix `--usage-spec` for help text that holds four quotes and a hash, `""""#`.
+  The spec wrote such text as a raw string opened with one hash.
+  The `"""#` inside it closed the string early, so mise could not read the spec.
+  The string now opens with one hash more than any closing sequence the text holds ([#235](https://github.com/victor-software-house/ctl-core/pull/235)).
+
+  Every other spec ctl-core writes keeps its bytes.
+
 ## ctl-core 0.6.28
 
 - The shared `check:versions` passes with nothing to compare in a repository without `.ctl/ver.yaml` (or the file `VERCTL_CONFIG` names), so a repository that declares no releases needs neither verctl's `ver` task nor verctl ([#151](https://github.com/victor-software-house/ctl-core/pull/151)).
