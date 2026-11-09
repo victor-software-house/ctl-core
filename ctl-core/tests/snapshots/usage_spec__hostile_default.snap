@@ -128,7 +128,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --line-sep default="a<U+2028>b" {
+flag --line-sep default="a\u{2028}b" {
     arg <V>
 }
 
@@ -138,7 +138,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --line-sep-multi default="a<U+2028>b\nc" {
+flag --line-sep-multi default="a\u{2028}b\nc" {
     arg <V>
 }
 
@@ -148,7 +148,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --para-sep default="a<U+2029>b" {
+flag --para-sep default="a\u{2029}b" {
     arg <V>
 }
 
@@ -158,7 +158,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bidi default="a<U+200E>b<U+202E>c<U+2066>d" {
+flag --bidi default="a\u{200e}b\u{202e}c\u{2066}d" {
     arg <V>
 }
 
@@ -168,7 +168,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bidi-multi default="a<U+202E>b\nc" {
+flag --bidi-multi default="a\u{202e}b\nc" {
     arg <V>
 }
 
@@ -178,7 +178,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bom default="a<U+FEFF>b" {
+flag --bom default="a\u{feff}b" {
     arg <V>
 }
 
@@ -188,7 +188,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --esc default="a<U+001B>[1mb" {
+flag --esc default="a\u{1b}[1mb" {
     arg <V>
 }
 
@@ -208,7 +208,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --del default=a<U+007F>b {
+flag --del default="a\u{7f}b" {
     arg <V>
 }
 
@@ -218,7 +218,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --nel default="a<U+0085>b" {
+flag --nel default="a\u{85}b" {
     arg <V>
 }
 

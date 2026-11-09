@@ -56,9 +56,9 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --v default=-.5 {
+flag --v default="-.5" {
     arg <v> {
-        choices -.5
+        choices "-.5"
     }
 }
 
@@ -68,9 +68,9 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --v default=+.5 {
+flag --v default="+.5" {
     arg <v> {
-        choices +.5
+        choices "+.5"
     }
 }
 

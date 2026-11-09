@@ -98,11 +98,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --ws-only-line help=#"""
-a
-   
-b
-"""#
+flag --ws-only-line help="a\n   \nb"
 
 // trailing-nl
 name h
@@ -132,7 +128,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --line-sep help="a<U+2028>b"
+flag --line-sep help="a\u{2028}b"
 
 // line-sep-multi
 name h
@@ -140,10 +136,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --line-sep-multi help=#"""
-a<U+2028>b
-c
-"""#
+flag --line-sep-multi help="a\u{2028}b\nc"
 
 // para-sep
 name h
@@ -151,7 +144,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --para-sep help="a<U+2029>b"
+flag --para-sep help="a\u{2029}b"
 
 // bidi
 name h
@@ -159,7 +152,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bidi help="a<U+200E>b<U+202E>c<U+2066>d"
+flag --bidi help="a\u{200e}b\u{202e}c\u{2066}d"
 
 // bidi-multi
 name h
@@ -167,10 +160,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bidi-multi help=#"""
-a<U+202E>b
-c
-"""#
+flag --bidi-multi help="a\u{202e}b\nc"
 
 // bom
 name h
@@ -178,7 +168,7 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --bom help="a<U+FEFF>b"
+flag --bom help="a\u{feff}b"
 
 // esc
 name h
