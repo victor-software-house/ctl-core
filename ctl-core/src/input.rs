@@ -13,7 +13,7 @@
 //! use ctl_core::input::Input;
 //! use serde::Deserialize;
 //!
-//! #[derive(Deserialize)]
+//! #[derive(Debug, Deserialize)]
 //! struct Config {
 //!     name: String,
 //! }
