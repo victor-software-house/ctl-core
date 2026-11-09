@@ -246,16 +246,50 @@
 
 ## 5. annotate-snippets
 
-- [ ] 5.1 List annotate-snippets symbols in a qctl release build with the
+- [x] 5.1 List annotate-snippets symbols in a qctl release build with the
   branch patched in. Verify: the note names the call path that keeps
   them.
-- [ ] 5.2 Capture real-run problem reports from the input tests and from
+
+  2026-11-09 (-03:00), on a macOS arm64 host, by decision 16's method:
+  1. [qctl][qctl-7d4e2ed] was built with its release profile,
+     unstripped, against [4eaa0fa][4eaa0fa]. The binary holds 95
+     `annotate_snippets` symbols.
+  2. The path that keeps them runs through serde-saphyr itself.
+     `deserialize_str` calls `to_string` on a visitor's error to look
+     for "expected a borrowed string"
+     ([deserializer.rs, 2.0.0][saphyr-deserializer], lines 1149 and
+     1196). That `Display` runs the renderer and its snippet code.
+  3. In the disassembly, each caller of that `to_string` is serde-saphyr's
+     `deserialize_recorded_key`, once per field visitor. The visitors
+     are qctl's ledger and row types, and serde_json's key classifier.
+     Any struct with string keys reaches it inside `deserialize`.
+- [x] 5.2 Capture real-run problem reports from the input tests and from
   qctl on malformed ledgers, before the change. Verify: the captures are
   committed as snapshots, accepted with insta, none written by hand.
+
+  `problem_reports_keep_their_wording` in `ctl-core/tests/input.rs`
+  snapshots nine reports. Three of them are the reports qctl printed for
+  malformed ledgers: a duplicate key, a stray `-`, and an unclosed `[`.
+  On 2026-11-09 (-03:00), insta accepted the snapshot at
+  [4eaa0fa][4eaa0fa] with the test added. qctl's own output was compared
+  on the host and is not committed here: qctl's tests own it.
 - [ ] 5.3 Build messages without the snippet renderer, as decision 7
   describes. Verify: every input test and snapshot passes unchanged, and
   qctl's release build has no annotate-snippets symbol. If either fails,
   stop and report instead of changing a message.
+
+  Failed on 2026-11-09 (-03:00), so the work stopped and the change was
+  dropped:
+  1. Messages built from `MessageFormatter::format_message` left the
+     snapshot and the input tests unchanged. qctl printed the same
+     reports in pretty and JSON output.
+  2. qctl's release build still held 95 `annotate_snippets` symbols.
+     Its `__text` grew from 3,232,292 to 3,232,484 bytes.
+  3. The renderer stays reachable through serde-saphyr's
+     `deserialize_str`, as task 5.1 records. ctl-core cannot avoid it.
+
+  Asking serde-saphyr to stop calling `Display` there is for the
+  operator to decide.
 
 ## 6. Gates and docs
 
@@ -290,3 +324,6 @@
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
 [e7861c6]: https://github.com/victor-software-house/ctl-core/commit/e7861c6c3dfb8760f6007bcdd657b30d64158eb8
+[4eaa0fa]: https://github.com/victor-software-house/ctl-core/commit/4eaa0faf6ff60aba20f99adaefdb1258f72aa6d0
+[qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
+[saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
