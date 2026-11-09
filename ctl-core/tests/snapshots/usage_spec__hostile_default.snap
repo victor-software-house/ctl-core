@@ -192,6 +192,26 @@ flag --esc default="a\u{1b}[1mb" {
     arg <V>
 }
 
+// osc-link
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --osc-link default="\u{1b}]8;;https://example.com\u{1b}\\link\u{1b}]8;;\u{1b}\\" {
+    arg <V>
+}
+
+// csi-newline
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --csi-newline default="a\u{1b}[1\nb" {
+    arg <V>
+}
+
 // cr
 name h
 bin h

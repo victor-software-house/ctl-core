@@ -7,10 +7,11 @@ name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [X]"
+usage "Usage: h [OPTIONS] <X> [X]"
 flag --f {
     arg <X>
 }
+arg <X>
 arg "[X]" required=#false
 
 // double-dash
@@ -18,10 +19,11 @@ name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [-- X]"
+usage "Usage: h [OPTIONS] <-- X> [-- X]"
 flag --f {
     arg "<-- X>"
 }
+arg "<-- X>" double_dash=optional
 arg "[-- X]" required=#false double_dash=optional
 
 // placeholders
@@ -29,11 +31,14 @@ name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [<A> <B>]"
+usage "Usage: h [OPTIONS] <<A> <B>> [<A> <B>]"
 flag --f {
     arg "<<A> <B>>" var=#false {
         value_names "<A> <B>"
     }
+}
+arg "<<A> <B>>" var=#false {
+    value_names "<A> <B>"
 }
 arg "[<A> <B>]" required=#false
 
@@ -42,21 +47,37 @@ name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [[x]]"
+usage "Usage: h [OPTIONS] <[x]> [[x]]"
 flag --f {
     arg "<[x]>"
 }
+arg "<[x]>"
 arg "[[x]]" required=#false
+
+// bracket-pair
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] <[A] [B]> [[A] [B]]"
+flag --f {
+    arg "<[A] [B]>"
+}
+arg "<[A] [B]>"
+arg "[[A] [B]]" required=#false var=#false {
+    value_names "[A] [B]"
+}
 
 // dots
 name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [x...]"
+usage "Usage: h [OPTIONS] <x...> [x...]"
 flag --f {
     arg <x...> var=#false
 }
+arg <x...> var=#false
 arg "[x...]" required=#false var=#false
 
 // ellipsis
@@ -64,8 +85,9 @@ name h
 bin h
 unknown_flags error
 args_override_self #false
-usage "Usage: h [OPTIONS] [x…]"
+usage "Usage: h [OPTIONS] <x…> [x…]"
 flag --f {
     arg <x…> var=#false
 }
+arg <x…> var=#false
 arg "[x…]" required=#false var=#false

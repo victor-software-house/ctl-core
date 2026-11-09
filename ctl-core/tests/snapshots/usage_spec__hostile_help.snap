@@ -178,6 +178,25 @@ args_override_self #false
 usage "Usage: h [OPTIONS]"
 flag --esc help=ab
 
+// osc-link
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --osc-link help=link
+
+// csi-newline
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --csi-newline help=#"""
+a
+b
+"""#
+
 // cr
 name h
 bin h
