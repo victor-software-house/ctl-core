@@ -220,8 +220,12 @@ fn a_closed_pipe_is_its_own_error() {
 fn an_error_becomes_an_io_error_of_the_same_kind() {
     use std::io::{self, ErrorKind};
 
-    let closed = io::Error::from(Error::BrokenPipe(io::Error::from(ErrorKind::BrokenPipe)));
+    const EPIPE: i32 = 32;
+    let closed = io::Error::from(Error::from(io::Error::from_raw_os_error(EPIPE)));
     assert_eq!(closed.kind(), ErrorKind::BrokenPipe);
+    assert_eq!(closed.raw_os_error(), Some(EPIPE));
+    let built = io::Error::from(Error::BrokenPipe(io::Error::other("not a pipe")));
+    assert_eq!(built.kind(), ErrorKind::BrokenPipe);
     let full = io::Error::from(Error::Io(io::Error::other("disk full")));
     assert_eq!(full.kind(), ErrorKind::Other);
     assert_eq!(full.to_string(), "disk full");

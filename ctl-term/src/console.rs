@@ -58,13 +58,18 @@ impl From<io::Error> for Error {
 }
 
 impl From<Error> for io::Error {
-    /// [`Error::Io`] gives back the error it holds, with its kind and message.
-    /// [`Error::BrokenPipe`] becomes a new error of kind
-    /// [`io::ErrorKind::BrokenPipe`]. Nothing is boxed, so a caller that
-    /// returns [`io::Result`] keeps a closed pipe apart without carrying this
-    /// type's formatting code.
+    /// [`Error::Io`] gives back the error it holds, with its message.
+    /// [`Error::BrokenPipe`] always converts to an error of
+    /// [`io::ErrorKind::BrokenPipe`]. When the error it holds already reports
+    /// `BrokenPipe`, as every one [`From<io::Error>`] builds does, it gives
+    /// that error back, so the OS error code survives. Otherwise it gives a new
+    /// `BrokenPipe` error.
+    ///
+    /// Nothing is boxed, so a caller that returns [`io::Result`] keeps a closed
+    /// pipe apart without carrying this type's formatting code.
     fn from(error: Error) -> Self {
         match error {
+            Error::BrokenPipe(error) if error.kind() == io::ErrorKind::BrokenPipe => error,
             Error::BrokenPipe(_) => io::ErrorKind::BrokenPipe.into(),
             Error::Io(error) => error,
         }

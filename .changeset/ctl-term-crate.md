@@ -15,7 +15,7 @@ New crate on crates.io: `ctl-term`, terminal facts and the escape encoder.
   With colour off it writes the plain text byte for byte.
 - `Console` renders any `Renderable` at the width of its stream and writes it.
   It reports a closed pipe as `Error::BrokenPipe`.
-  `Error` converts into `std::io::Error` with the same kind: `Io` gives back the error it holds, and `BrokenPipe` becomes `io::ErrorKind::BrokenPipe`.
+  `Error` converts into `std::io::Error` without boxing. `Io` gives back the error it holds. `BrokenPipe` always gives an error of kind `io::ErrorKind::BrokenPipe`, keeping the OS error when it has one.
 - The `detect` feature, on by default, holds what asks the operating system.
   Without it the crate holds only the encoder, the colour conversion, and `Terminal::from_probe`.
 - The crate supports and tests Unix only; Windows is to come with a Windows CI job.
