@@ -5,54 +5,54 @@
 )]
 #![cfg(feature = "cli")]
 
-use ctl_core::{WarningKind, chassis_warnings, warn_opposites};
+use ctl_core::{FlagClash, chassis_warnings, warn_opposites};
 
-fn kinds(args: &[&str]) -> Vec<WarningKind> {
+fn clashes(args: &[&str]) -> Vec<FlagClash> {
     chassis_warnings(args.iter().copied())
         .into_iter()
-        .map(|warning| warning.kind)
+        .map(|warning| warning.clash)
         .collect()
 }
 
 #[test]
 fn silent_when_flags_are_clean() {
     assert_eq!(
-        kinds(&["status", "--format", "json", "--color", "never"]),
-        Vec::<WarningKind>::new()
+        clashes(&["status", "--format", "json", "--color", "never"]),
+        Vec::<FlagClash>::new()
     );
 }
 
 #[test]
 fn repeated_format_warns() {
     assert_eq!(
-        kinds(&["--format", "json", "--format", "pretty", "status"]),
-        [WarningKind::Repeated]
+        clashes(&["--format", "json", "--format", "pretty", "status"]),
+        [FlagClash::Repeated]
     );
 }
 
 #[test]
 fn color_and_no_color_are_contradictory() {
-    let hits = kinds(&["--color", "always", "--no-color", "status"]);
-    assert!(hits.contains(&WarningKind::Contradictory));
+    let hits = clashes(&["--color", "always", "--no-color", "status"]);
+    assert!(hits.contains(&FlagClash::Contradictory));
 }
 
 #[test]
 fn dry_run_and_preview_are_redundant() {
     assert_eq!(
-        kinds(&["--dry-run", "--preview", "status"]),
-        [WarningKind::Redundant]
+        clashes(&["--dry-run", "--preview", "status"]),
+        [FlagClash::Redundant]
     );
 }
 
 #[test]
 fn short_and_long_quiet_is_repeated() {
-    assert_eq!(kinds(&["-q", "--quiet", "status"]), [WarningKind::Repeated]);
+    assert_eq!(clashes(&["-q", "--quiet", "status"]), [FlagClash::Repeated]);
 }
 
 #[test]
 fn opposite_pair_helper() {
     let hits = warn_opposites(["--pr", "--no-pr", "prepare"], &["--pr"], &["--no-pr"]);
-    assert_eq!(hits[0].kind, WarningKind::Contradictory);
+    assert_eq!(hits[0].clash, FlagClash::Contradictory);
     assert_eq!(
         warn_opposites(["--pr", "prepare"], &["--pr"], &["--no-pr"]),
         Vec::<ctl_core::FlagWarning>::new()
@@ -63,7 +63,7 @@ fn opposite_pair_helper() {
 fn warning_line_is_gnu_shaped() {
     let warning = chassis_warnings(["--color", "always", "--no-color"])
         .into_iter()
-        .find(|warning| warning.kind == WarningKind::Contradictory);
+        .find(|warning| warning.clash == FlagClash::Contradictory);
     let Some(warning) = warning else {
         panic!("expected contradictory --color/--no-color");
     };
@@ -77,7 +77,7 @@ fn warning_line_is_gnu_shaped() {
 #[test]
 fn mixed_clashes_are_all_reported() {
     #[rustfmt::skip]
-    let hits = kinds(&[
+    let hits = clashes(&[
         "--format", "json",
         "--format", "pretty",
         "--color", "always",
@@ -86,7 +86,7 @@ fn mixed_clashes_are_all_reported() {
         "--preview",
         "status",
     ]);
-    assert!(hits.contains(&WarningKind::Repeated));
-    assert!(hits.contains(&WarningKind::Contradictory));
-    assert!(hits.contains(&WarningKind::Redundant));
+    assert!(hits.contains(&FlagClash::Repeated));
+    assert!(hits.contains(&FlagClash::Contradictory));
+    assert!(hits.contains(&FlagClash::Redundant));
 }

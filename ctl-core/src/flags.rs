@@ -36,7 +36,7 @@ pub use color::ColorLong;
 pub use dry_run::DryRunArgs;
 pub use env::{EnvPrefix, env_under_flags};
 pub use output::{FormatArgs, FormatLong, OutputArgs};
-pub use warn::{FlagWarning, WarningKind, chassis_warnings, emit_warnings, warn_opposites};
+pub use warn::{FlagClash, FlagWarning, chassis_warnings, emit_warnings, warn_opposites};
 
 use crate::color::ColorMode;
 

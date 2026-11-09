@@ -86,6 +86,6 @@ pub use crate::theme::Theme;
 pub use crate::usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
 pub use crate::view::{
-    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, Destination, JsonLayout,
-    MessageKind, Present, View,
+    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, Destination, JsonLayout, Outcome,
+    Present, View,
 };
