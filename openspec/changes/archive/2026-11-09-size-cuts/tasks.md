@@ -60,7 +60,7 @@
 
   2026-11-08 (-03:00), on the measurement host with rustc 1.99.1, at
   [a1e2d43][a1e2d43] with usage-lib 6.0.0:
-  1. [`ctl-core/tests/usage_spec.rs`](../../../ctl-core/tests/usage_spec.rs)
+  1. [`ctl-core/tests/usage_spec.rs`](../../../../ctl-core/tests/usage_spec.rs)
      renders four snapshots: `every`, `toy`, `hostile_help`, and
      `hostile_default`. The toy goes through `App::mounted_as("toy")` and
      `--usage-spec=toy`.
@@ -110,8 +110,8 @@
   except for the values decision 3 lists.
 
   2026-11-09 (-03:00), on the measurement host with rustc 1.99.1:
-  [`usage/kdl.rs`](../../../ctl-core/src/usage/kdl.rs) writes nodes and
-  strings, and [`usage/nodes.rs`](../../../ctl-core/src/usage/nodes.rs)
+  [`usage/kdl.rs`](../../../../ctl-core/src/usage/kdl.rs) writes nodes and
+  strings, and [`usage/nodes.rs`](../../../../ctl-core/src/usage/nodes.rs)
   maps the `Command`. `usage::spec` calls neither usage-lib nor its types.
   `INSTA_UPDATE=always`, then `INSTA_UPDATE=no`, on `--test usage_spec`
   passed 10 of 10. `every` and `toy` kept their bytes. The changed entries
@@ -432,7 +432,7 @@
   - dated records:
     - the pending changesets `usage-lib-removed.md` and
       `usage-spec-writer.md`;
-    - this change and its [ledger row](../../../tasks.yaml);
+    - this change and its [ledger row](../../../../tasks.yaml);
     - two archived changes and a research note under `docs/research/`;
     - decision 16's measurements in the terminal-render-engine change.
 - [x] 6.5 Verify: Vale reports zero problems, no lint exception lacks a
@@ -500,7 +500,7 @@
 [saphyr-budget-211]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
-[d16-after]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[d16-after]: ../../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
 [d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
 [d987bf4]: https://github.com/victor-software-house/ctl-core/commit/d987bf4a37da36a342b43cb1786ccc69ab16b439
