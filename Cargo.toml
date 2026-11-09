@@ -158,9 +158,9 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde. 18 below the last budget,
+# app plus input: serde-saphyr, yamled, and garde. 91 below the last budget,
 # 1040869: yamled 0.0.11's location index, the one crate that changed.
-input = { features = "app,input", text = 1040851 }
+input = { features = "app,input", text = 1040778 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
