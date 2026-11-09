@@ -1,0 +1,91 @@
+---
+source: ctl-core/tests/usage_spec.rs
+expression: "visible(&usage::spec(every(), \"every\"))"
+---
+name every
+bin every
+version "1.2.3"
+long_version "1.2.3 (abc)"
+about "Every attribute."
+long_about #"""
+Every attribute.
+
+A second paragraph.
+"""#
+unknown_flags value
+arg_required_else_help #true
+disable_help_subcommand #true
+args_override_self #false
+subcommand_negates_reqs #true
+args_conflicts_with_subcommands #true
+subcommand_required #true
+subcommand_help_heading Verbs
+subcommand_value_name VERB
+next_line_help #true
+flatten_help #true
+usage #"""
+Usage: every [OPTIONS] <target> [-- <rest>...]
+       every status [OPTIONS] [name]
+       every run [OPTIONS] [cmd]...
+       every ext [OPTIONS] [COMMAND]
+       every multi [OPTIONS] --x <x>
+"""#
+flag "-v --verbose" help="More output" var=#true global=#true count=#true display_order=0 {
+    long_help #"""
+More output.
+Repeat it.
+"""#
+}
+flag --fast conflicts=--slow help_heading=Speed display_order=3
+flag --slow hide=#true display_order=2
+flag "--no-pager --nopager" display_order=3 {
+    alias "--np" hide=#true
+}
+flag --short-only hide_short_help=#true exclusive=#true display_order=4
+flag "-c --color" require_equals=#true value_optional=#true display_order=5 default=auto {
+    arg <WHEN> {
+        choices ignore_case=#true {
+            choice auto help=Detect
+            choice always {
+                alias yes hide=#true
+            }
+            choice never hide=#true
+        }
+    }
+}
+flag "-t -T --tag" var=#true display_order=6 {
+    arg <tag>… var=#true delimiter=,
+}
+flag --path hide_default_value=#true hide_env=#true display_order=7 default=. {
+    arg <path>
+}
+flag --secret hide_env_values=#true hide_long_help=#true display_order=8 {
+    arg <secret>
+}
+flag --pair display_order=9 {
+    arg "<KEY> <VALUE>" var=#true var_min=2 var_max=2
+}
+flag --neg allow_hyphen_values=#true allow_negative_numbers=#true display_order=10 {
+    arg <neg> allow_negative_numbers=#true
+}
+arg <target> help="The target"
+arg "[-- rest]…" required=#false var=#true var_min=1 value_terminator=";"
+group mode "--fast" "--slow"
+complete path type=dir
+complete target type=path
+cmd status display_order=1 args_override_self=#false help="Show status" unknown_flags=error {
+    alias st
+    alias stat hide=#true
+    flag "-a --all"
+    arg "[name]" help="Name to show" required=#false
+}
+cmd hidden hide=#true display_order=12 args_override_self=#false unknown_flags=error
+cmd run display_order=13 args_override_self=#false unknown_flags=value {
+    arg "[cmd]…" required=#false double_dash=automatic var=#true var_min=1
+}
+cmd ext display_order=14 external_subcommand=#true disable_help_flag=#true dont_delimit_trailing_values=#true subcommand_precedence_over_arg=#true allow_missing_positional=#true unknown_flags=error
+cmd multi display_order=15 args_override_self=#false unknown_flags=error {
+    flag --x required=#true {
+        arg <x>
+    }
+}
