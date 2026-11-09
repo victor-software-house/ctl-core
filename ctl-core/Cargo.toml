@@ -28,8 +28,8 @@ app = ["cli", "view", "help", "dep:anyhow"]
 
 ## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
 ## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
-## and `string`. Error context, suggestions, and Clap's own help and color
-## stay the consumer's choice.
+## and `string`. Clap's own `error-context`, `suggestions`, `help`, and
+## `color` features stay the CLI's choice.
 cli = ["dep:clap"]
 
 ## Semantic presentation documents without a terminal engine.
@@ -56,7 +56,7 @@ schema = ["json", "dep:schemars"]
 ## which decides colour and width for the stream help goes to.
 help = ["cli", "render", "clap/usage", "ctl-term/detect"]
 
-## Pretty / JSON / colorless emitters over serializable models. Adds
+## Pretty, colourless, and JSON output from serializable results. Adds
 ## `ctl-term`'s `detect` feature, which decides colour and width for the
 ## stream each result goes to.
 view = ["render", "json", "ctl-term/detect"]
@@ -74,8 +74,8 @@ surface-templates = ["surface-serde", "dep:minijinja"]
 ## The same as `surface-templates`.
 surface = ["surface-templates"]
 
-## Files a repository serves, rendered from templates that declare their own
-## target (`served::render`, `Served::write`).
+## Files a CLI generates into a repository from templates, each template
+## declaring its own target path and mode (`served::render`, `Served::write`).
 served = [
   "surface-templates",
   "validate",
@@ -111,7 +111,7 @@ completion = ["shell", "view", "app", "dep:clap_complete"]
 ## before the shell's first prompt (`InitCommand`, `Hook`).
 shell-init = ["shell", "view"]
 
-## Mise Usage spec from clap (`--usage-spec`, served-task mount).
+## Mise Usage spec from clap (`--usage-spec` and the `#USAGE mount` line).
 usage = ["cli", "dep:usage-lib"]
 
 [dependencies]

@@ -22,10 +22,11 @@ const DESCRIPTION_INDENT: u16 = 4;
 ///
 /// It is the form of a table of flags or commands for a narrow width, where
 /// the columns no longer fit side by side. Put it in a
-/// [`Breakpoint`](crate::Breakpoint) beside the table. The labels of an entry
-/// share one line, separated by a space, and its description lines share the
-/// lines below, wrapped at spaces to the width that is left. An entry whose
-/// labels or description are empty skips that part.
+/// [`Breakpoint`](crate::Breakpoint) beside the table.
+///
+/// The labels of an entry share one line, separated by a space. Its
+/// description lines go below, wrapped at spaces to the width that is left.
+/// An entry whose labels or description are empty skips that part.
 #[derive(Clone, Debug, Default)]
 pub struct Definitions {
     entries: Vec<Entry>,
@@ -45,8 +46,8 @@ impl Definitions {
     }
 
     /// Adds an entry: its `labels` on a line indented by 2, and its
-    /// `description` below them, indented by 4. Each cell converts to a
-    /// [`Text`], and a cell with no text adds nothing.
+    /// `description` below them, indented by 4. Each label and description
+    /// line converts to a [`Text`], and one with no text adds nothing.
     #[must_use]
     pub fn entry<L, D>(
         self,

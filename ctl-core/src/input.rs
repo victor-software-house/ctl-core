@@ -18,13 +18,13 @@
 //!     name: String,
 //! }
 //!
-//! let config: Config = Input::new("ver.yaml", "name: release\n").parse()?;
+//! let config: Config = Input::new("toy.yaml", "name: release\n").parse()?;
 //! assert_eq!(config.name, "release");
 //!
-//! let error = Input::new("ver.yaml", "name: a\nname: b\n")
+//! let error = Input::new("toy.yaml", "name: a\nname: b\n")
 //!     .parse::<Config>()
 //!     .unwrap_err();
-//! assert!(error.to_string().starts_with("ver.yaml"));
+//! assert!(error.to_string().starts_with("toy.yaml"));
 //! # Ok::<(), ctl_core::input::InputError>(())
 //! ```
 

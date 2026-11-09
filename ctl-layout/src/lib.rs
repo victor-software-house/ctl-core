@@ -160,7 +160,9 @@ mod widths;
 pub use align::Align;
 pub use breakpoint::Breakpoint;
 pub use column::Column;
-pub use ctl_text::{self, Context, Overflow, Renderable, Text};
+#[doc(no_inline)]
+pub use ctl_text;
+pub use ctl_text::{Context, Overflow, Renderable, Text};
 pub use definitions::Definitions;
 pub use frame::{Frame, RecordStyle, RowSeparation};
 pub use indent::Indent;

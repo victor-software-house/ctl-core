@@ -29,10 +29,12 @@ use crate::theme::Theme;
 /// Default cells reserved from an automatically detected terminal width.
 #[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER: u16 = ctl_term::DEFAULT_COLUMN_BUFFER;
-/// Default environment variable for overriding the automatic-width buffer.
+/// The environment variable that sets the automatic-width buffer, in cells,
+/// when the CLI has not: `CTL_CORE_COLUMN_BUFFER`.
 #[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER_ENV: &str = "CTL_CORE_COLUMN_BUFFER";
-/// Default ordered environment lookup for the automatic-width buffer.
+/// The ordered list of variables read for the automatic-width buffer, holding
+/// only [`DEFAULT_COLUMN_BUFFER_ENV`].
 #[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 /// Default floor for an automatically detected effective width.
@@ -168,13 +170,13 @@ pub struct RenderOptions {
 
 impl RenderOptions {
     /// Build options with [`DEFAULT_FALLBACK_WIDTH`] when no width is
-    /// detected. Record style, list frame, and row separation read
+    /// detected. Record style, table frame, and row separation read
     /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
     /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the CLI sets them. Roles are
     /// drawn in [`Theme::default`].
     ///
     /// With `view` or `help`, the width is detected for the stream written,
-    /// with a `DEFAULT_COLUMN_BUFFER`-column buffer and
+    /// with a buffer of `DEFAULT_COLUMN_BUFFER` cells and
     /// `DEFAULT_COLUMN_BUFFER_ENV` as the user's override.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
@@ -222,7 +224,8 @@ impl RenderOptions {
         self
     }
 
-    /// Frame [`Table`] lists with `frame`. This beats the environment.
+    /// Set the table frame of [`Table`] lists to `frame`. This beats the
+    /// environment.
     #[must_use]
     pub const fn frame(mut self, frame: Frame) -> Self {
         self.frame = Some(frame);
@@ -244,7 +247,7 @@ impl RenderOptions {
         self
     }
 
-    /// Replace the ordered environment names read for the list frame.
+    /// Replace the ordered environment names read for the table frame.
     /// An empty slice disables lookup.
     #[must_use]
     pub const fn frame_envs(mut self, names: &'static [&'static str]) -> Self {
@@ -260,7 +263,8 @@ impl RenderOptions {
         self
     }
 
-    /// Force an explicit width. Tests and redirected renderers should use this.
+    /// Force an explicit width. Use it in tests and wherever no terminal
+    /// decides the width.
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
@@ -271,8 +275,8 @@ impl RenderOptions {
     /// Explicit [`Self::width`] remains exact regardless of this value.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.automatic_width_buffer = Some(columns);
+    pub const fn automatic_width_buffer(mut self, cells: u16) -> Self {
+        self.automatic_width_buffer = Some(cells);
         self
     }
 
@@ -288,8 +292,8 @@ impl RenderOptions {
     /// Set the floor for automatically detected effective widths.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
-    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.minimum_automatic_width = columns;
+    pub const fn minimum_automatic_width(mut self, cells: u16) -> Self {
+        self.minimum_automatic_width = cells;
         self
     }
 
@@ -303,7 +307,7 @@ impl RenderOptions {
         self
     }
 
-    /// Take the theme, record style, list frame, row separation, and the
+    /// Take the theme, record style, table frame, row separation, and the
     /// variables they read from `styles`. Colour and width stay as they are.
     #[cfg(feature = "view")]
     #[must_use]

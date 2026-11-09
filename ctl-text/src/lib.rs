@@ -44,20 +44,23 @@
 //! escape sequence that moves the cursor. It can also hold a directional
 //! override that reorders the line. [`Span::new`] and [`Text`] remove every
 //! character that [`unsafe_chars::is_unsafe`] refuses, so a widget built on
-//! them cannot pass one on. A line break, such as a carriage return, becomes
-//! a space inside a span, since a span is one line. Inside a text it becomes a
-//! newline. Either way the words around it stay apart.
-//! [`unsafe_chars::strip_unsafe`] applies the same rule to a string that goes
-//! to a terminal as it is.
+//! them cannot pass one on.
+//!
+//! A line break, such as a carriage return, becomes a space inside a span,
+//! since a span is one line. Inside a text it becomes a newline. Either way
+//! the words around it stay apart. [`unsafe_chars::strip_unsafe`] applies the
+//! same rule to a string that goes to a terminal as it is.
 //!
 //! # Widths
 //!
 //! [`text_width`] counts terminal cells per extended grapheme cluster, so a
 //! family emoji is 2 cells and `日本` is 4. The cluster boundaries and the
 //! widths come from two Unicode data sets, whose versions
-//! [`UNICODE_VERSIONS`] states. The width of a string is that sum, not the
-//! width one data set gives the whole string, so two letters that a font
-//! joins into one glyph still count 1 cell each.
+//! [`UNICODE_VERSIONS`] states.
+//!
+//! The width of a string is that sum, not the width one data set gives the
+//! whole string. So two letters that a font joins into one glyph still count
+//! 1 cell each.
 //!
 //! # Writing a widget
 //!

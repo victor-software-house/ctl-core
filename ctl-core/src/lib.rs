@@ -10,7 +10,8 @@
 //! ## Where to start
 //!
 //! - [`App`] runs a CLI: it parses argv, calls your handler, and writes the
-//!   result or the error. [`prelude`] is the one import a binary needs.
+//!   result or the error. [`prelude`] is the one ctl-core import a binary
+//!   needs.
 //! - [`Present`] maps a serializable result to a [`Document`]. [`View`] writes
 //!   it as pretty text, colourless text, or JSON.
 //! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
@@ -92,7 +93,7 @@
 //!   exit code. A command that succeeded exits 0, and a failure keeps its code.
 //!   [`App::broken_pipe`] can make every closed pipe a failure.
 //!
-//! [`prelude`] is the one import a program's `main.rs` needs.
+//! [`prelude`] is the one ctl-core import a program's `main.rs` needs.
 //!
 //! ## The rendering engine
 //!

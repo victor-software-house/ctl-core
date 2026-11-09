@@ -18,10 +18,10 @@ const GAP: u16 = 2;
 ///
 /// 1. Each column starts at the widest cell it holds.
 /// 2. When those widths and the frame fit, the table is exactly that wide.
-/// 3. Otherwise the widest column that can still shrink gives up a cell, again
-///    and again. A keep-words column never goes below its widest word, and a
-///    fold column never goes below its widest cluster. An ellipsis column can
-///    shrink to 1 cell.
+/// 3. Otherwise the widest column that can still shrink narrows by 1 cell of
+///    width, again and again. A keep-words column never goes below its widest
+///    word, and a fold column never goes below its widest cluster. An ellipsis
+///    column can shrink to a width of 1 cell.
 /// 4. When the narrowest widths still do not fit, an unframed table lets its
 ///    keep-words columns run past the width. A [`Frame::Grid`] table folds
 ///    those columns instead, so its frame stays aligned. It folds only the
@@ -29,10 +29,11 @@ const GAP: u16 = 2;
 ///    beside a long URL.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
-/// 6. Each column then narrows to its widest rendered line. A column that
-///    wrapped holds no blank cells down every row, and a table sized to its
-///    content draws no wider than it needs. An ellipsis column that cut a cell
-///    keeps its width, since the cut cell fills it.
+/// 6. Each column then narrows to its widest rendered line. After a column
+///    wraps, its widest line fills its width, so no blank strip runs down the
+///    whole column. A table sized to its content draws no wider than it needs.
+///    An ellipsis column that cut a cell keeps its width, since the cut cell
+///    fills it.
 ///
 /// Narrowing never changes the lines: text wrapped at a width wraps the same
 /// at its own widest line.
