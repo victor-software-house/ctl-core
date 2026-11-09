@@ -536,33 +536,115 @@ ctl-core's features turn on leaves:
 | `help`, `view` | turn on `ctl-term`'s `detect` | detection and the writer |
 | `app` | as today | unchanged |
 
-Measured on a toy CLI at each tier, ctl-core 0.6.28 against the unpublished
-prototype engine, with opt-level `"s"`, fat LTO, one codegen unit, abort and
-strip on darwin-arm64 ([measurements, Matrix B][m-b]). The prototype also
-narrows clap's features, so a third build isolates that change; the engine
-column is what this change owns:
+Measured on darwin-arm64 at [2f23725], the `main` commit CI verified in
+[run 42542525587][ci-2f23725], against ctl-core 0.6.x (task 7.2,
+2026-11-08 UTC). The host was an Apple M4 Pro with macOS 26.7.1 and rustc
+1.99.1. A strip check passed on every binary: `nm -U` lists no Rust symbol.
+File size is `stat -f %z`, `__text` is the `Section __text` line of
+`size -m`, and built packages are the lines of
+`cargo tree -e normal,build --target aarch64-apple-darwin`.
 
-| Tier | `__text`, 0.6.28 | `__text`, prototype | of which clap features | of which engine | Built packages |
-|:--|--:|--:|--:|--:|--:|
-| `cli` | 361,288 | 299,272 | -62,016 | 0 | 22 → 15 |
-| `help` | 476,592 | 370,596 | -48,560 | -57,436 | 46 → 27 |
-| `view` | 462,376 | 345,112 | -60,212 | -57,052 | 52 → 34 |
-| `app` | 499,076 | 393,452 | -48,244 | -57,380 | 53 → 35 |
+The toy is `ctl-core/examples/size.rs` in a crate of its own, with clap's
+`std` and `derive` only, opt-level `"s"`, fat LTO, one codegen unit, abort
+and strip, built against v0.6.28 and against [2f23725]:
+
+| Tier | File, 0.6.28 | File, main | `__text`, 0.6.28 | `__text`, main | Change | Built packages |
+|:--|--:|--:|--:|--:|--:|--:|
+| `cli` | 468,624 | 402,256 | 361,096 | 299,080 | -62,016 | 23 → 16 |
+| `help` | 685,760 | 534,784 | 476,784 | 387,724 | -89,060 | 47 → 27 |
+| `view` | 669,232 | 501,712 | 462,376 | 361,152 | -101,224 | 53 → 34 |
+| `app` | 718,864 | 551,376 | 499,464 | 410,544 | -88,920 | 54 → 35 |
+
+The toy's lock went from 65 packages, 63 from the registry, to 38 and 33.
+The `cli` tier renders nothing, so its change is the narrowing of clap's
+features alone, the figure [Matrix B][m-b] measured for it. If the narrowing
+costs the other tiers what Matrix B measured, the engine's share is about
+-40,500 (`help`), -41,000 (`view`) and -40,700 (`app`), against -57,000 for
+the prototype; that split was not measured again on `main`. The same
+example built inside this repository, with its own profile and lock, is
+within 1,000 bytes of the toy at each tier.
 
 The leaves' own dependencies cost little over a plain `println!` baseline:
 anstyle 1,620 bytes, unicode-width with unicode-segmentation 10,232,
 terminal_size 788 and anstyle-query 596 (since removed, decision 19).
-comfy-table as ctl-core sets it today costs 80,288, crossterm's
-`terminal::size` alone 23,396 ([measurements, Matrix A][m-a]). `cargo bloat` on the 0.6.28 `app` tier puts
-comfy-table and the crates it brings at about 55 KiB, which agrees with the
-engine column.
+comfy-table as ctl-core 0.6.28 sets it costs 80,288, crossterm's
+`terminal::size` alone 23,396 ([measurements, Matrix A][m-a]).
 
-Per consumer, the prototype cut `__text` by 44,096 (verctl), 45,632 (qctl),
-44,544 (forkctl) and 28,524 (rawr) with each one's own release profile
-([measurements, Matrix C][m-c]). rawr keeps crossterm and
-unicode-segmentation through ratatui. The private consumers were not
-measured. Clean release builds used 16% to 35% less CPU time; wall time
-moved by less than the noise of the shared host.
+Each public consumer was built at its `main` head with its own release
+profile, as committed and with an uncommitted `[patch.crates-io]` to
+[2f23725], whose version was rewritten to the consumer's pin:
+
+| Consumer | Pin | File, as committed | File, patched | `__text`, as committed | `__text`, patched | Change | Lock packages | Built packages |
+|:--|:--|--:|--:|--:|--:|--:|--:|--:|
+| [verctl][verctl-head] | 0.6.23 | 15,727,712 | 15,662,704 | 12,293,148 | 12,285,916 | -7,232 | 408 → 397 | 315 → 309 |
+| [qctl][qctl-head] | 0.6.24 | 6,863,728 | 6,798,608 | 5,533,776 | 5,524,304 | -9,472 | 219 → 212 | 167 → 162 |
+| [forkctl][forkctl-head] | 0.6.23 | 5,536,656 | 5,471,184 | 4,523,776 | 4,516,672 | -7,104 | 138 → 126 | 119 → 110 |
+| [rawr][rawr-head] | 0.6.28 | 1,233,216 | 1,183,712 | 950,920 | 953,564 | +2,644 | 121 → 115 | 94 → 89 |
+
+The as-committed numbers equal [Matrix C][m-c] to the byte. Every patched
+consumer drops ansi-str, ansitok, arrayvec, comfy-table, console,
+minimal-lexical, nom and vte, and gains ctl-text, ctl-layout, ctl-term and
+terminal_size. All but rawr also drop crossterm, all but qctl drop
+unicode-general-category, and forkctl drops parking_lot and the three
+crates it brings. The prototype had cut 28,524 to 45,632 bytes per consumer;
+the engine that shipped is larger, and the attribution below shows where the
+difference went. The private consumers were not measured.
+
+`cargo bloat` 0.12.1 attributed `__text` to crates in qctl, the largest
+cut, and rawr, which grows, with each one's release profile left unstripped
+and without debug info. Four builds of each: A as committed, B patched to
+v0.6.28, C patched to [2f23725], and D as C with the consumer's own clap
+dependency set to `default-features = false` (`std`, `derive`, and `env` for
+qctl). Unstripped `__text`, in bytes:
+
+| Step | qctl | rawr | What moved |
+|:--|--:|--:|:--|
+| A → B, ctl-core changes from the pin to 0.6.28 | -64 | +128 | nothing; rawr already pins 0.6.28, so its +128 is the noise floor |
+| B → C, the engine and every other change to `main` | -8,256 | +2,580 | see below |
+| C → D, the consumer's clap without default features | 0 | -60,808 | clap_builder -48,808, std -8,112, heck -5,984, strsim -1,864 |
+
+In B → C, the engine crates come to 53,608 bytes in qctl (ctl-text 21,644,
+ctl-layout 24,296, ctl-term 7,668) and 52,872 in rawr, plus 6,368 and 2,516
+of unicode-segmentation's grapheme tables. They replace comfy-table and the
+crates it brought, 51,016 bytes in qctl and 45,396 in rawr, with comfy-table
+itself 32,252 and 32,044. With the smaller crates, the swap nets +9,288 in
+qctl and +10,192 in rawr. The
+generic std code the removed crates instantiated shrinks by 11,228 in qctl
+and 2,620 in rawr, which turns qctl's total negative. ctl-core's own code,
+the other changes since 0.6.28 included, moves by -780 in qctl and +784 in
+rawr. In rawr, 20,084 bytes leave ctl-core's crate and about as many reach
+rawr's, likely ctl-core code inlined into rawr; that was not checked. clap moves by -720 and -5,352. cargo-bloat
+attributes generic code by symbol name, so the rest, spread under 2 KB a
+crate, is not assigned to a cause.
+
+qctl's C → D is zero because usage-lib turns clap's default features back
+on: its `clap` dependency, in 6.1.1 and in 6.12.1, the latest, leaves
+`default-features` on ([usage-lib Cargo.toml][usage-lib-toml]). Every
+consumer of ctl-core's `usage` feature (verctl, qctl and forkctl) carries
+clap's `color`, `help`, `suggestions`, `error-context` and `usage` whatever
+it asks for.
+
+What ctl-core could cut, measured and not changed:
+
+1. **usage-lib's clap defaults.** rawr shows their cost: 60,808 bytes, 6.4%
+   of its `__text`. For a consumer with `usage`, the cut needs usage-lib to
+   take clap with `default-features = false`, or ctl-core to build its spec
+   without usage-lib's `clap` feature. A consumer's own clap needs the same
+   setting, as the crate's quick start says.
+2. **The `usage` feature itself.** In qctl, kdl (117,572), usage-lib
+   (108,540) and winnow (43,436) come to 269,548 bytes, 4.9% of its
+   `__text`, to print one Usage spec for mise. Writing the KDL text straight
+   from the clap command would drop all three.
+3. **annotate-snippets** (103,692 in qctl) comes with serde-saphyr's
+   `deserialize` feature ([serde-saphyr Cargo.toml][serde-saphyr-toml]),
+   which ctl-core's `input` needs. ctl-core places its errors through
+   yamled, but LTO keeps annotate-snippets, so some path still reaches it;
+   which path was not checked.
+4. **The largest ctl-core symbol**, the closure in `Renderer::widget`, takes
+   9,328 bytes in qctl.
+
+The engine itself stays: its three crates cost what the crates they replaced
+cost, and its grapheme tables are the price of cluster-correct widths.
 
 A budget task, `check:size`, builds the toy at each tier in CI on linux-x64
 and fails when `.text` grows more than 2% over that tier's budget. The
@@ -749,6 +831,14 @@ compatibility path for comfy-table.
 [m-b]: ../../../docs/research/terminal-rendering/measurements.md#matrix-b-ctl-core-tiers
 [m-c]: ../../../docs/research/terminal-rendering/measurements.md#matrix-c-consumers
 [pr-101]: https://github.com/victor-software-house/ctl-core/pull/101
+[2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
+[ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587
+[verctl-head]: https://github.com/victor-software-house/verctl/tree/d087741fd60190757141761eb8410a1a73875c53
+[qctl-head]: https://github.com/victor-software-house/qctl/tree/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
+[forkctl-head]: https://github.com/victor-software-house/forkctl/tree/7b987070f9069842c2e9afdd17fca28353b81bc5
+[rawr-head]: https://github.com/victor-software-house/rawr/tree/40abc93a3ef4bb293540bfce6320a69d4ebbc5d9
+[usage-lib-toml]: https://docs.rs/crate/usage-lib/6.12.1/source/Cargo.toml
+[serde-saphyr-toml]: https://docs.rs/crate/serde-saphyr/2.1.1/source/Cargo.toml
 [bencher-size]: https://bencher.dev/docs/how-to/track-file-size/
 [sizewatcher]: https://github.com/adobe/sizewatcher
 [cargo-size]: https://crates.io/crates/cargo-size
