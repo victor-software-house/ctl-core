@@ -30,7 +30,11 @@ minijinja = { version = "2.24.0", features = ["serde"] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-serde-saphyr = { version = "2.1.1", default-features = false, features = [
+# serde-saphyr 2.1.1 with one patch: deserialize_str tells a borrowed-string
+# mismatch by its variant, not its Display text, so the snippet renderer
+# stays out of every binary that loads input (size-cuts task 5.3). Drop the
+# fork when upstream stops calling Display there.
+serde-saphyr = { package = "vsh-serde-saphyr", version = "=0.0.2", default-features = false, features = [
   "deserialize",
   "comments",
 ] }
@@ -153,9 +157,10 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde, and the snippet renderer
-# serde-saphyr's deserialize_str keeps (size-cuts task 5.3).
-input = { features = "app,input", text = 1141709 }
+# app plus input: serde-saphyr, yamled, and garde. 100,840 below the last
+# budget, 1141709: the snippet renderer left with vsh-serde-saphyr 0.0.2
+# (size-cuts task 5.3).
+input = { features = "app,input", text = 1040869 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

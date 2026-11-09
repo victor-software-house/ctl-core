@@ -35,7 +35,8 @@ use std::path::Path;
 use garde::Validate;
 use serde::de::DeserializeOwned;
 use serde_saphyr::{
-    Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
+    Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
+    MergeKeyPolicy, MessageFormatter,
 };
 
 mod limits;
@@ -336,7 +337,7 @@ impl Input {
             ..
         } = error
         else {
-            return error.render_with_formatter(&formatter);
+            return plain(&formatter, error);
         };
         let mut failing = inner.as_ref();
         while let Error::AliasError { error, .. } | Error::WithSnippet { error, .. } = failing {
@@ -348,7 +349,7 @@ impl Input {
             .unwrap_or(locations.defined_location);
         let line = usize::try_from(at.line()).unwrap_or_default() + self.lines_before;
         let column = at.column();
-        let text = failing.render_with_formatter(&formatter);
+        let text = plain(&formatter, failing);
         format!("{text} (defined at line {line}, column {column})")
     }
 
@@ -427,6 +428,32 @@ impl Input {
         self.check(&value, &T::Context::default())?;
         Ok(value)
     }
+}
+
+/// serde-saphyr's wording for `error`, with each control character escaped
+/// as serde-saphyr's renderer escapes it.
+///
+/// It takes the text from [`MessageFormatter::format_message`] and never calls
+/// the renderer, whose snippet code would otherwise stay in every binary that
+/// loads input. The loader turns snippets off, so the renderer writes the same
+/// line ([vsh-serde-saphyr 0.0.1][plain]).
+///
+/// [plain]: https://docs.rs/crate/vsh-serde-saphyr/0.0.2/source/src/de/error.rs#1970
+fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
+    while let Error::AliasError { error: inner, .. } | Error::WithSnippet { error: inner, .. } =
+        error
+    {
+        error = inner;
+    }
+    let mut text = String::new();
+    for character in formatter.format_message(error).chars() {
+        if character.is_control() || matches!(character, '\u{2028}' | '\u{2029}') {
+            text.extend(character.escape_debug());
+        } else {
+            text.push(character);
+        }
+    }
+    text
 }
 
 /// serde-saphyr's wording without the position it appends. That position

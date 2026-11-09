@@ -302,10 +302,11 @@
   On 2026-11-09 (-03:00), insta accepted the snapshot at
   [4eaa0fa][4eaa0fa] with the test added. qctl's own output was compared
   on the host and is not committed here: qctl's tests own it.
-- [ ] 5.3 Build messages without the snippet renderer, as decision 7
+- [x] 5.3 Build messages without the snippet renderer, as decision 7
   describes. Verify: every input test and snapshot passes unchanged, and
-  qctl's release build has no annotate-snippets symbol. If either fails,
-  stop and report instead of changing a message.
+  qctl's release build, with its yamled on the same fork, keeps no
+  annotate-snippets function. If either fails, stop and report instead of
+  changing a message.
 
   Failed on 2026-11-09 (-03:00), so the work stopped and the change was
   dropped:
@@ -319,6 +320,39 @@
 
   Asking serde-saphyr to stop calling `Display` there is for the
   operator to decide.
+
+  Resumed on 2026-11-09 (-03:00) on [vsh-serde-saphyr 0.0.2][vsh-002],
+  the operator's fork, with the message builder from item 1. Measured on
+  linux-x64 by decision 16's method, against `main` at [d2fd6c8]:
+
+  | Build | `.text` | annotate-snippets symbols |
+  |:--|--:|--:|
+  | The toy's input tier, `main` | 1,141,709 | 105 |
+  | The toy's input tier, this change | 1,040,869 | 2 |
+  | qctl, `main` | 3,712,598 | 103 |
+  | qctl, this change, its yamled 0.0.8 unchanged | 3,962,886 | 104 |
+  | qctl, this change and a yamled on the fork | 3,614,454 | 6 |
+
+  1. The toy's `.text` is stripped, as `check:size` builds it; the symbol
+     counts come from the same build unstripped.
+  2. qctl is at [7d4e2ed][qctl-7d4e2ed], built unstripped with its pin
+     patched to this change.
+  3. The symbols left carry annotate-snippets only as the crate that
+     instantiated a core or alloc generic, such as `String::join` or
+     `Display` for `&usize`. No function of annotate-snippets remains.
+  4. qctl's own yamled has the `serde` feature, which depends on
+     upstream serde-saphyr. Unchanged, qctl links both crates. The last
+     row moves qctl and ctl-core to one yamled, built from a branch that
+     takes the fork. Both then share one serde-saphyr, and qctl drops
+     98,144 bytes.
+  5. CI passed on [d987bf4] in [run 42589624008][run-42589624008]. The
+     input tests passed, `problem_reports_keep_their_wording` passed with
+     its snapshot unchanged, and `check:size` measured the toy's input
+     tier at 1,040,869 bytes, the number above. The input budget now
+     equals it.
+  6. The verify clause first asked for no annotate-snippets symbol at all.
+     It now asks for no annotate-snippets function, because the generics
+     item 3 names keep the crate's name without its code.
 
 ## 6. Gates and docs
 
@@ -449,3 +483,7 @@
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
 [d16-after]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
+[d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
+[d987bf4]: https://github.com/victor-software-house/ctl-core/commit/d987bf4a37da36a342b43cb1786ccc69ab16b439
+[run-42589624008]: https://github.com/victor-software-house/ctl-core/actions/runs/42589624008
