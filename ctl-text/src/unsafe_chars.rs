@@ -1,13 +1,15 @@
 //! Which characters are unsafe to print to a terminal as they are, and the
 //! function that removes them.
 //!
-//! Text from outside the program, such as a title, a commit subject, or a
-//! file's contents, can carry characters that act on the terminal or on the
-//! layout instead of showing. A CLI that prints such text drops what
-//! [`is_unsafe`] refuses, with [`strip_unsafe`]. `Document::verbatim` in
-//! ctl-core applies the same rule. [`Span::new`](crate::Span::new) and
-//! [`Text`](crate::Text) apply it too, but turn a line break into a space or
-//! a newline instead of removing it, so the words around it stay apart.
+//! Text from outside the program can carry characters that act on the
+//! terminal or on the layout instead of showing. A title, a commit subject,
+//! or a file's contents can all hold them.
+//!
+//! A CLI that prints such text drops what [`is_unsafe`] refuses, with
+//! [`strip_unsafe`]. `Document::verbatim` in ctl-core applies the same rule.
+//! [`Span::new`](crate::Span::new) and [`Text`](crate::Text) apply it too,
+//! but keep a line break as a space or a newline. The words around it then
+//! stay apart.
 //!
 //! The set is three whole sets, each taken by its definition:
 //!

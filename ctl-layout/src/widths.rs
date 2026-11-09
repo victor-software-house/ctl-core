@@ -25,11 +25,10 @@ pub(crate) enum Framing {
 ///    columns come down toward the next widest. A column never goes below its
 ///    minimum. A tie gives up the rightmost first, so equal columns stay within
 ///    one cell of each other.
-/// 4. If the minimums still do not fit, an unframed table stops: its keep-words
-///    columns run past the width. A framed table goes on to the floors, because
-///    a frame cannot run past the width and stay aligned. When a column can
-///    fold alone to make the table fit, only such columns fold, so a short word
-///    beside a long URL stays whole.
+/// 4. If the minimums still do not fit, an unframed table stops, and its
+///    keep-words columns run past the width. A framed table goes on to the
+///    floors, folding only the columns that can fold alone to make it fit. So a
+///    short word beside a long URL stays whole.
 ///
 /// These are the widths cells render at. The table then narrows each column
 /// to its widest rendered line, step 6 of [`Table`](crate::Table).
@@ -88,8 +87,8 @@ fn excess(widths: &[u16], available: u16) -> u64 {
 /// Takes cells from the widest columns until `widths` fit in `available` or
 /// no column is above its limit.
 ///
-/// The widest group, the columns tied at the widest width, comes down to the
-/// next width in one step: the next widest column's, or a member's limit.
+/// The widest group is the columns tied at the widest width. It comes down to
+/// the next width in one step: the next widest column's, or a member's limit.
 /// When fewer cells are missing than that step takes, the group gives up the
 /// same share each, and the rightmost members one more.
 fn shrink(widths: &mut [u16], limits: &[u16], available: u16) {

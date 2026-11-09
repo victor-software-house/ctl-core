@@ -1,11 +1,15 @@
 //! Render semantic documents through the ctl-layout widgets.
 //!
-//! A [`Document`] becomes a tree of widgets: [`Fields`] a record, [`Table`] a
-//! table, a [`Section`] its heading over its body, a [`Notice`] and every
-//! paragraph styled text, a rule a rule, and verbatim text its own lines. The
-//! [`Theme`] turns each [`Role`] into a style on the way, so the widgets never
-//! see a role. The widgets lay the document out as plain lines of styled
-//! spans; escape sequences are added only when ctl-term's encoder writes the
+//! A [`Document`] becomes a tree of widgets, one per block:
+//!
+//! - [`Fields`] becomes a record, and [`Table`] a table.
+//! - A [`Section`] becomes its heading over its body.
+//! - A [`Notice`] and every paragraph become styled text.
+//! - A rule stays a rule, and verbatim text keeps its own lines.
+//!
+//! The [`Theme`] turns each [`Role`] into a style on the way, so the widgets
+//! never see a role. The widgets lay the document out as plain lines of styled
+//! spans. Escape sequences are added only when ctl-term's encoder writes the
 //! lines.
 
 use ctl_layout::{
@@ -49,8 +53,8 @@ pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// Default ordered environment lookup for the row separation.
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
-/// The width of a rule in a document laid out at its natural width, which a
-/// rule, having no natural width of its own, would otherwise fill.
+/// The width of a rule in a document laid out at its natural width. A rule has
+/// no natural width of its own, so it would otherwise fill that width.
 const NATURAL_RULE_WIDTH: u16 = 40;
 
 /// A style an operator can name in an environment variable.

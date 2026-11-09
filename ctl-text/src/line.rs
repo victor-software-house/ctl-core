@@ -38,8 +38,8 @@ impl Line {
 
     /// Adds `span` at the end of the line.
     ///
-    /// A span in the style of the line's last span joins it, so two lines
-    /// with the same text and styles are equal however their spans were
+    /// A span in the style of the line's last span joins it. So two lines
+    /// with the same text and styles are equal, however their spans were
     /// pushed.
     ///
     /// The start of `span` can continue the line's last grapheme cluster, as

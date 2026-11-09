@@ -25,14 +25,17 @@ impl Span {
     /// A span of `text` in `style`.
     ///
     /// Tabs expand to the next multiple of [`TAB_WIDTH`](crate::TAB_WIDTH)
-    /// cells, counted from the start of the span, which is right for a span
-    /// that starts its line. A span is one line, so every line break (newline,
-    /// carriage return, vertical tab, form feed, next line, and the line and
-    /// paragraph separators) becomes a space, and the words around it stay
-    /// apart. Every other unsafe character is removed.
+    /// cells, counted from the start of the span. That is right for a span
+    /// that starts its line.
+    ///
+    /// A span is one line, so every line break becomes a space, and the words
+    /// around it stay apart. The line breaks are newline, carriage return,
+    /// vertical tab, form feed, next line, and the line and paragraph
+    /// separators. Every other unsafe character is removed.
+    ///
     /// Build text that spans lines, or follows other spans on a line, with
-    /// [`Text`](crate::Text), which splits at each newline and counts tab
-    /// stops from the line start.
+    /// [`Text`](crate::Text). It splits at each newline and counts tab stops
+    /// from the line start.
     ///
     /// To keep an owned `String` as the span's text when it needs no change,
     /// use `Span::from(string)`.

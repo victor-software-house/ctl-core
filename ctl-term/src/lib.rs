@@ -60,10 +60,11 @@
 //! When colour is on, the depth is 24-bit when `COLORTERM` is `truecolor` or
 //! `24bit` or `FORCE_COLOR=3`. It is 256 colours when `TERM` contains
 //! `256color` or `FORCE_COLOR=2`, and 16 colours otherwise.
-//! [`Terminal::at_depth`] overrides it. The [`Encoder`] converts every
-//! colour to the nearest colour at that depth. A 24-bit colour on a
-//! 16-colour terminal prints as the nearest named colour, and an underline
-//! colour is dropped at 16 colours.
+//! [`Terminal::at_depth`] overrides it.
+//!
+//! The [`Encoder`] converts every colour to the nearest colour at that depth.
+//! A 24-bit colour on a 16-colour terminal prints as the nearest named
+//! colour, and an underline colour is dropped at 16 colours.
 //!
 //! # Width
 //!
@@ -76,17 +77,19 @@
 //!
 //! A detected width loses a column buffer of [`DEFAULT_COLUMN_BUFFER`], 2
 //! columns, and never drops below [`DEFAULT_MINIMUM_WIDTH`], 20, unless the
-//! window itself is narrower. The buffer reads no variable until
-//! [`DetectOptions::column_buffer_envs`] names some. [`DetectOptions`]
-//! overrides each of these and can turn each off. A width is at least 1.
+//! window itself is narrower. A width is at least 1.
+//!
+//! The buffer reads no variable until [`DetectOptions::column_buffer_envs`]
+//! names some. [`DetectOptions`] overrides each of these and can turn each
+//! off.
 //!
 //! # A closed pipe
 //!
 //! When the reader closes the stream, as `head` does, a write fails with
 //! [`Error::BrokenPipe`], which is a variant of its own. This crate reports
 //! it and leaves the exit code to the caller. A caller that returns
-//! [`std::io::Result`] converts [`Error`] with `From`, and a closed pipe keeps
-//! the kind [`std::io::ErrorKind::BrokenPipe`].
+//! [`std::io::Result`] converts [`Error`] with `From`, and a closed pipe stays
+//! [`std::io::ErrorKind::BrokenPipe`].
 //!
 //! # Platforms
 //!

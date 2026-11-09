@@ -1,5 +1,5 @@
 //! The typed CLI lifecycle: [`App`] parses argv, runs a handler, and writes the
-//! result through a [`View`](crate::view::View).
+//! result through a [`View`].
 //!
 //! [`App::run`] reads the process argv and returns the [`ExitCode`] for `main`.
 //! [`App::run_from`] takes explicit argv, which tests use. In order, a run:

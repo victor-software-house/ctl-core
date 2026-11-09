@@ -24,9 +24,9 @@ const GAP: u16 = 2;
 ///    shrink to 1 cell.
 /// 4. When the narrowest widths still do not fit, an unframed table lets its
 ///    keep-words columns run past the width. A [`Frame::Grid`] table folds
-///    those columns instead, so its frame stays aligned. When one column can
-///    fold alone to make the grid fit, only such columns fold, so a short id
-///    keeps its word beside a long URL.
+///    those columns instead, so its frame stays aligned. It folds only the
+///    columns that can fold alone to make it fit, so a short id keeps its word
+///    beside a long URL.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
 /// 6. Each column then narrows to its widest rendered line. A column that

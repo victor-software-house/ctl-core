@@ -102,9 +102,9 @@ pub fn prefix_len(text: &str, width: u16) -> usize {
     text.len()
 }
 
-/// Whether `character` may end a word: whitespace that is not a no-break
-/// space (U+00A0, U+2007, U+202F), or the zero width space (U+200B), which
-/// marks a place to break and shows nothing.
+/// Whether `character` may end a word. That is whitespace other than a
+/// no-break space (U+00A0, U+2007, U+202F), or the zero width space (U+200B).
+/// The zero width space marks a place to break and shows nothing.
 pub(crate) fn is_break_space(character: char) -> bool {
     (character.is_whitespace() && !matches!(character, '\u{a0}' | '\u{2007}' | '\u{202f}'))
         || character == '\u{200b}'

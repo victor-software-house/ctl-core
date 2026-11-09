@@ -99,8 +99,8 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
 ///
 /// # Panics
 ///
-/// Panics if `command` disabled the help or version flag; see
-/// [`assert_help_enabled`].
+/// Panics if `command` disabled the help or version flag. ctl-core owns
+/// `-h`/`--help` and `-V`/`--version`, so a consumer never turns them off.
 #[must_use]
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);

@@ -207,7 +207,7 @@ impl JsonLayout {
 ///
 /// Pretty output decides colour and width for the stream it goes to: a
 /// success for stdout, a failure for stderr. So a failure printed to a
-/// terminal is coloured while a success piped to a file is not, and
+/// terminal is coloured while a success piped to a file is not.
 /// [`Self::capture`] under [`ColorMode::Auto`] holds no escape sequence when
 /// that stream is not a terminal.
 ///

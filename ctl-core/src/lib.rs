@@ -17,8 +17,8 @@
 //! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
 //!   the environment binding. [`ColorMode`] and [`OutputFormat`] are the values
 //!   the flags parse to.
-//! - [`RenderOptions`], [`Theme`], and [`Renderer`] set how a document renders:
-//!   width policy, record and list framing, and style.
+//! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
+//!   policy, the record and table framing, and the style of each role.
 //! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
 //!
 //! ## Quick start
@@ -97,8 +97,8 @@
 //!   rules. They lay out plain lines of styled spans and never see an escape
 //!   sequence.
 //! - `ctl-term`: whether to write colour and how wide to lay out, decided for
-//!   the stream being written, and the one place an escape sequence is written,
-//!   its `Encoder`.
+//!   the stream being written. Its `Encoder` is the one place an escape
+//!   sequence is written.
 //!
 //! A [`Theme`] maps each [`Role`] to a style on the way from the document to
 //! the widgets. `ctl_core::Text` holds roles and `ctl_core::text::Text` holds
