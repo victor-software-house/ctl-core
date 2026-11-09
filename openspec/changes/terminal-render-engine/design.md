@@ -132,7 +132,7 @@ What moves where:
 | `src/verbatim.rs` (from [CTC-032][ledger]) | `ctl-text` | |
 | `src/document.rs`, `src/render.rs` mapping half, `src/view.rs`, `src/help.rs`, `src/app.rs`, `src/flags/`, `src/parser.rs`, `src/color.rs`, `src/format.rs`, `src/model.rs` | stay in `ctl-core` | |
 | `src/input.rs`, `src/input/`, `src/validate.rs` | stay | `ctl-input`: serde-saphyr, yamled, garde and toml are heavy dependencies a CLI may want without the chassis |
-| `src/served.rs`, `src/surface.rs`, `src/surface/`, `src/usage.rs` | stay | `ctl-surface`: MiniJinja and usage-lib |
+| `src/served.rs`, `src/surface.rs`, `src/surface/`, `src/usage.rs` | stay | `ctl-surface`: MiniJinja |
 | `src/fixture.rs` | stay | `ctl-fixture`: a dev-only consumer with its own dependency, tempfile |
 
 Alternatives:

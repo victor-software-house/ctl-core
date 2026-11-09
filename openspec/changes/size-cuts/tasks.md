@@ -228,13 +228,31 @@
   On 2026-11-09 (-03:00), the command showed `env`, `std`, `string`, and
   `usage` for `app,usage,input` and for `usage`, and `env`, `std`, and
   `string` for `cli`.
-- [ ] 4.5 Verify: CI's `deps` (cargo-machete) passes.
-- [ ] 4.6 Declare `-h`/`--help` and the `help` subcommand in ctl-core, and
+- [x] 4.5 Verify: CI's `deps` (cargo-machete) passes.
+
+  [PR 238][ctl-core#238] merged at [4eaa0fa][4eaa0fa]. Its last head,
+  [b8c0b9a][b8c0b9a], passed `deps` in the Static checks job of
+  [run 42568402969][run-42568402969].
+- [x] 4.6 Declare `-h`/`--help` and the `help` subcommand in ctl-core, and
   add `test:cli`, which runs the parser tests with only the `cli` feature.
   Verify: CI's `test:cli` passes with `-h`, `--help`, `-V`, and
   `help <command>`, no snapshot or parity file changes, and `check:size`
   reports each tier within its budget.
-- [ ] 4.7 Give `Surface::from_command` the same `-h`/`--help` flag and
+
+  In [run 42568402969][run-42568402969] on [b8c0b9a][b8c0b9a], `test:cli`
+  passed its 6 tests, `help_and_version_shorts` and
+  `help_subcommand_names_the_command` among them. No snapshot or parity
+  file changed in [PR 238][ctl-core#238]. `check:size` passed every tier
+  within its limit:
+
+  | Tier | `.text` | Budget | Limit |
+  |:--|--:|--:|--:|
+  | `cli` | 343,888 | 343,888 | 350,765 |
+  | `help` | 446,886 | 444,582 | 453,473 |
+  | `view` | 408,998 | 408,998 | 417,177 |
+  | `app` | 471,974 | 469,654 | 479,047 |
+
+- [x] 4.7 Give `Surface::from_command` the same `-h`/`--help` flag and
   `help` subcommand, so its Usage KDL holds them as it did with Clap's
   `help` feature, and turns help off only where the CLI declared that.
   Verify: a unit test fails without the change and passes in CI with it.
@@ -242,7 +260,8 @@
   On 2026-11-09 (-03:00), `usage_kdl_keeps_the_declared_help` failed at
   [e7861c6] with no help flag and no `help` command line, and with
   `disable_help_flag` on every declared command. With the change it
-  passed. CI's run is still to come.
+  passed, and it passed in CI in [run 42568402969][run-42568402969] on
+  [b8c0b9a][b8c0b9a].
 
 ## 5. annotate-snippets
 
@@ -301,8 +320,9 @@
   `[workspace.dependencies]`.
 - [ ] 6.3 Add the `usage` and `input` tiers to the `size` example and to
   `[workspace.metadata.size]`. Set every budget to the `.text` CI prints
-  for the commit, with a reason per tier. Verify: no budget is higher than
-  before, and CI's `check:size` passes.
+  for the commit, with a reason per tier. Verify: a budget follows a
+  measured, explained change and never rises to hide an unexplained one,
+  and CI's `check:size` passes.
 - [ ] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
   module docs, and the feature docs in `ctl-core/Cargo.toml` where they
   name usage-lib or its Serde edge. Verify: `rg usage-lib` finds only
@@ -325,5 +345,8 @@
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
 [e7861c6]: https://github.com/victor-software-house/ctl-core/commit/e7861c6c3dfb8760f6007bcdd657b30d64158eb8
 [4eaa0fa]: https://github.com/victor-software-house/ctl-core/commit/4eaa0faf6ff60aba20f99adaefdb1258f72aa6d0
+[b8c0b9a]: https://github.com/victor-software-house/ctl-core/commit/b8c0b9a271d4842ab1e006794abe822e31ebe033
+[ctl-core#238]: https://github.com/victor-software-house/ctl-core/pull/238
+[run-42568402969]: https://github.com/victor-software-house/ctl-core/actions/runs/42568402969
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
