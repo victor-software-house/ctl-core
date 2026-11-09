@@ -67,7 +67,8 @@ insta = { version = "=1.49.0", default-features = false }
 pty-process = "=0.5.4"
 # A KDL v2 parser for the Usage spec tests (ctl-core/tests/usage_spec.rs),
 # which read every spec back. Test-only, so it never reaches a build. Without
-# defaults: the tests need neither spans nor serde. Pinned exactly like insta.
+# defaults: the tests need neither spans nor serde. Pinned exactly like insta;
+# deny.toml lets only ctl-core depend on it.
 kdl = { version = "=6.7.1", default-features = false }
 
 [workspace.lints.rust]

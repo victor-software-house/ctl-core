@@ -5,13 +5,24 @@ ci_runner: github-hosted
 clippy_disallowed_methods: []
 clippy_disallowed_types: []
 default_branch: main
-deny_bans: []
+deny_bans:
+-   crate: kdl
+    reason: a KDL v2 parser for the Usage spec tests only; ctl-core writes the spec
+        itself
+    wrappers:
+    - ctl-core
+-   crate: winnow:<1.0
+    reason: winnow 0.7 reaches the graph only through the test-only kdl
+    wrappers:
+    - kdl
 deny_ignore: []
 deny_licenses:
 -   license: BSD-3-Clause
     reason: encoding_rs, which serde-saphyr's deserialize feature pulls in for the
         input feature
-deny_skip: []
+deny_skip:
+-   crate: syn@2
+    reason: garde_derive 0.23.0, the latest release, requires syn 2
 feature_sets: []
 github_owner: victor-software-house
 layout: workspace
