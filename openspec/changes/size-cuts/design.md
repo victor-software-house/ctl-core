@@ -286,9 +286,9 @@ unicode-width 0.1 into the dev graph.
 5. The templates repository renders `deny.toml`. Each entry is an answer
    in `.copier-answers.yml` (`deny_bans`, `deny_skip`), applied with
    `copier update`, never a hand edit.
-6. `check:tree` fails when kdl or winnow below 1.0 appears in ctl-core's
-   normal dependencies under any feature set. The dev-dependency is the
-   one path left.
+6. `check:tree` fails when usage-lib, kdl, or winnow below 1.0 appears in
+   ctl-core's normal dependencies with every feature. The dev-dependency
+   is the one path left for kdl and winnow 0.7.
 
 Alternative considered: set `exclude-dev = true` in `deny.toml`'s
 `[graph]`. It lost because it would also drop every other dev-dependency
@@ -308,6 +308,46 @@ usage-lib is gone the same command must show no `default`, and the
 `features` spec gains a scenario for `app`, `usage`, and `input` together.
 If something else still enables it, the work cuts it or records why it
 cannot.
+
+With usage-lib removed, nothing else enables `default`. One of its
+features was in use: `usage::spec` writes each command's usage line from
+clap's `render_usage`, which needs clap's `usage` feature. The writer's
+change already turned `clap/usage` on in ctl-core's `usage` feature
+([decision 3](#3-the-writer-departs-from-730-only-where-kdl-v2-or-mise-requires-it)),
+so the removal changes no spec byte.
+
+A second one was in use too. Without clap's `help` feature, clap turns
+off the `-h`/`--help` flag and the `help` subcommand, unless a command
+overrides its help ([clap_builder 4.6.6, `Command::_build_self`][clap-help-gate]).
+ctl-core owns that flag and renders the help itself.
+
+usage-lib had hidden the gap: the tests run with every feature, so
+usage-lib's defaults gave clap `help` there. CI's first run without
+usage-lib failed 8 tests on it.
+
+Turning on `clap/help` fixed them and grew every size tier by 37 to 41 KB,
+8 to 12 percent. That is clap's help writer, which no ctl-core binary runs.
+So ctl-core declares both itself, as clap words them:
+
+- `parser::apply_defaults` and `help::document` add an `ArgAction::Help`
+  flag, `-h`/`--help`, which stops the parse with `DisplayHelp` without the
+  feature ([`ArgAction::Help`][clap-help-action]).
+- They add a `help` subcommand holding a copy of each subcommand name, as
+  clap's own does when a command is built. `App` answers it before the
+  derive's `from_arg_matches` sees it.
+
+A plain `Cli::parse()` outside ctl-core's entry point gets clap's minimal
+output for `--help` and no `help` subcommand. `test:cli` runs the parser
+tests with `cli` alone, so no other crate can hide a gap again.
+
+`check:tree` holds these results:
+
+1. With `cli`, clap's `help` feature is off.
+2. With `usage`, clap's `usage` feature is on.
+3. With `app`, `usage`, and `input`, clap's `default`, `color`, `help`,
+   `error-context`, and `suggestions` are off.
+
+`check:features` compiles `app,usage,input` warning-free.
 
 ### 7. The YAML loader stops reaching annotate-snippets, or the work stops
 
@@ -399,6 +439,8 @@ tier carries its reason.
 [input-options]: https://github.com/victor-software-house/ctl-core/blob/d05500fa0a1689038dc16b58d5c1fa2227c68b78/ctl-core/src/input.rs#L294-L311
 [input-options-0624]: https://github.com/victor-software-house/ctl-core/blob/v0.6.24/src/input.rs#L262-L279
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
+[clap-help-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/builder/command.rs#4415
+[clap-help-action]: https://docs.rs/crate/clap_builder/4.6.6/source/src/parser/parser.rs#1302
 [d16]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53

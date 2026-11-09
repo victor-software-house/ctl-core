@@ -117,7 +117,7 @@ Features are tree-shaking.
 `surface-model` adds only the Clap and Usage metadata that the rendered documents read.
 `surface-serde` adds ctl-core's direct Serde edge without a template engine.
 `surface-templates` adds MiniJinja, and `surface` preserves the full legacy aggregate.
-`surface-model` still inherits Serde from `usage-lib`, whose KDL model requires it; that is not ctl-core serialization.
+`surface-model` pulls in no Serde: ctl-core writes the Usage KDL itself.
 
 Prefer the narrowest feature set a consumer needs.
 Never add serialization or rendering behaviour to a lower tier.
@@ -127,8 +127,10 @@ Do not add `help` only to make the prelude compile.
 
 ctl-core asks a dependency only for the features its own code calls.
 Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
+
 `clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
 Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's choice.
+Without Clap's `help` feature, Clap turns off `-h`/`--help` and the `help` subcommand, so `parser::apply_defaults` and `help::document` declare both (`parser::with_help`), worded as Clap words them.
 ctl-core renders every help Clap stops for and never calls `Error::print` or `Command::color`.
 
 Measure a new dependency or feature with `cargo bloat` on a release build before adding it (`openspec/changes/archive/2026-11-08-narrow-clap-features/design.md`).

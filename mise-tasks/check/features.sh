@@ -7,6 +7,6 @@ set -euo pipefail
 export RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-D warnings"
 cargo check --locked --package ctl-core --no-default-features
 cargo check --locked --package ctl-term --no-default-features
-for features in document unsafe-chars render surface-model surface-serde surface-templates surface validate input input-toml fixture served usage json cli view help app app,usage schema shell shell,view completion shell-init app,shell-init; do
+for features in document unsafe-chars render surface-model surface-serde surface-templates surface validate input input-toml fixture served usage json cli view help app app,usage app,usage,input schema shell shell,view completion shell-init app,shell-init; do
   cargo check --locked --package ctl-core --no-default-features --features "${features}"
 done

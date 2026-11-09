@@ -14,9 +14,6 @@ categories = ["command-line-interface", "development-tools"]
 all-features = true
 rustdoc-args = ["--cap-lints", "warn"]
 
-[package.metadata.cargo-machete]
-ignored = ["usage-lib"]
-
 [lints]
 workspace = true
 
@@ -28,8 +25,11 @@ app = ["cli", "view", "help", "dep:anyhow"]
 
 ## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
 ## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
-## and `string`. Clap's own `error-context`, `suggestions`, `help`, and
-## `color` features stay the CLI's choice.
+## and `string`. ctl-core declares `-h`/`--help` and the `help` subcommand
+## itself and renders the help, so Clap's `help` feature stays off. A plain
+## `Cli::parse()` outside ctl-core's entry point gets Clap's minimal output
+## and no `help` subcommand. Clap's own `error-context`, `suggestions`,
+## `help`, and `color` features stay the CLI's choice.
 cli = ["dep:clap"]
 
 ## Semantic presentation documents without a terminal engine.
@@ -113,7 +113,7 @@ shell-init = ["shell", "view"]
 
 ## Mise Usage spec from clap (`--usage-spec` and the `#USAGE mount` line).
 ## Adds Clap's `usage` feature, which renders the spec's usage line.
-usage = ["cli", "clap/usage", "dep:usage-lib"]
+usage = ["cli", "clap/usage"]
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
@@ -130,7 +130,6 @@ serde-saphyr = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 yamled = { workspace = true, optional = true }
-usage-lib = { workspace = true, optional = true }
 ctl-layout = { workspace = true, optional = true }
 ctl-term = { workspace = true, optional = true }
 ctl-text = { workspace = true, optional = true }
