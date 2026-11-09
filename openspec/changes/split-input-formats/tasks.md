@@ -1,10 +1,12 @@
 # Tasks
 
-- [ ] 1. Plan: this change, its design decisions approved, and the
+- [x] 1. Plan: this change, its design decisions approved, and the
   [ledger row for TOML input without YAML][ledger] pointed at it with
   `qctl edit --plan`.
   Proof: `openspec validate split-input-formats --strict` and
   `mise run q check` pass.
+  2026-11-09 UTC: the lead approved the six decisions. Both commands pass
+  on the change's branch, and the row's `plan` names the proposal.
 - [ ] 2. Split the features: `input-yaml`, `input-toml` without `input`, and
   `input` as `input-yaml` plus `validate`; gate the module, `Format`, the
   constructors, `frontmatter`, `check`, `load`, and the field placing.

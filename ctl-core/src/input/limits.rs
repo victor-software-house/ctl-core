@@ -1,84 +1,118 @@
-//! How much a text may hold before [`Input::parse`] refuses it, and who
-//! decides. The order is on [`Limits`]. A TOML text reads three fields:
-//! `max_reader_input_bytes`, `max_depth`, and `max_nodes`.
+//! How much a text may hold before [`Input::parse`](super::Input::parse)
+//! refuses it, and who decides. The order is on [`Limits`]. Three fields hold
+//! a text of every format: `max_reader_input_bytes`, `max_depth`, and
+//! `max_nodes`. The others name YAML syntax and exist only with `input-yaml`.
 
 use std::fmt;
+#[cfg(feature = "input-yaml")]
 use std::path::Path;
 use std::sync::{PoisonError, RwLock};
 
 use serde::Deserialize;
+#[cfg(feature = "input-yaml")]
 use serde_saphyr::Budget;
+#[cfg(feature = "input-yaml")]
 use serde_saphyr::budget::BudgetBreach;
 
+#[cfg(feature = "input-yaml")]
 use super::{Input, InputError};
 
 /// Where a repository overrides limits, relative to its root.
+#[cfg(feature = "input-yaml")]
 pub const REPO_FILE: &str = ".ctl/input.yaml";
 
 macro_rules! limits {
-    ($( $(#[$doc:meta])* $field:ident: $ty:ty $(=> $wrap:ident)?, )*) => {
-        /// Overrides for serde-saphyr's [`Budget`], one per field. `None`
+    (
+        shared { $( $(#[$sdoc:meta])* $sfield:ident = $sdefault:ident, )* }
+        yaml { $( $(#[$ydoc:meta])* $yfield:ident: $yty:ty, )* }
+    ) => {
+        /// Overrides for the limits a text is held to, one per field. `None`
         /// leaves the field to the next tier.
         ///
         /// Each field is decided on its own, highest first:
         ///
-        /// 1. the call: [`Input::limits`];
-        /// 2. the repository: `limits:` in [`REPO_FILE`], installed by
-        ///    [`use_repo_limits`];
+        /// 1. the call: [`Input::limits`](super::Input::limits);
+        /// 2. with `input-yaml`, the repository: `limits:` in
+        ///    `.ctl/input.yaml`, installed by `use_repo_limits`;
         /// 3. the process: [`set_default_limits`], or `App::input_limits`;
-        /// 4. serde-saphyr's own default.
+        /// 4. the default: ctl-core's for the three fields every format
+        ///    reads, and serde-saphyr's for the YAML-only fields.
         ///
         /// A repository beats the CLI's default because the user owns the
         /// repository, as a user's environment beats the CLI's built-in width.
         ///
+        /// The field set follows the enabled format features.
+        /// `max_reader_input_bytes`, `max_depth`, and `max_nodes` exist in
+        /// every build, and the YAML-only fields exist with `input-yaml`.
+        /// Cargo enables a feature for every crate in a build, so another
+        /// crate can add fields to a build of yours. Build a value with
+        /// `..Limits::NONE`, as in `Limits { max_depth: Some(8),
+        /// ..Limits::NONE }`, and it compiles whatever the build enables.
+        ///
         /// `enforce_alias_anchor_ratio` is not here: the ratio check is one
         /// comparison after scanning, so turning it off saves nothing. It
         /// stays on; its multiplier and minimum alias count are overridable.
-        ///
-        /// A TOML text reads only `max_reader_input_bytes`, `max_depth`, and
-        /// `max_nodes`. Every other field names a YAML syntax feature, so it
-        /// has no effect on TOML.
         #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
         #[serde(deny_unknown_fields, default)]
         pub struct Limits {
-            $( $(#[$doc])* pub $field: Option<$ty>, )*
+            $( $(#[$sdoc])* pub $sfield: Option<usize>, )*
+            $( $(#[$ydoc])* #[cfg(feature = "input-yaml")] pub $yfield: Option<$yty>, )*
         }
 
         impl Limits {
             /// No overrides: every field falls through.
-            pub const NONE: Self = Self { $( $field: None, )* };
+            pub const NONE: Self = Self {
+                $( $sfield: None, )*
+                $( #[cfg(feature = "input-yaml")] $yfield: None, )*
+            };
 
             /// `self`, with each unset field taken from `lower`.
             #[must_use]
             pub fn or(self, lower: &Self) -> Self {
-                Self { $( $field: self.$field.or(lower.$field), )* }
+                Self {
+                    $( $sfield: self.$sfield.or(lower.$sfield), )*
+                    $( #[cfg(feature = "input-yaml")] $yfield: self.$yfield.or(lower.$yfield), )*
+                }
             }
 
-            /// serde-saphyr's defaults with these overrides applied.
-            #[must_use]
-            pub fn budget(&self) -> Budget {
+            /// serde-saphyr's settings for these limits. An unset shared
+            /// field takes ctl-core's default, and an unset YAML-only field
+            /// takes serde-saphyr's.
+            #[cfg(feature = "input-yaml")]
+            pub(super) fn budget(&self) -> Budget {
+                let bounds = self.bounds();
                 let mut budget = Budget::default();
-                $( if let Some(value) = self.$field {
-                    $( let value = $wrap(value); )?
-                    budget.$field = value;
+                budget.max_reader_input_bytes = Some(bounds.input_bytes);
+                budget.max_depth = bounds.depth;
+                budget.max_nodes = bounds.nodes;
+                $( if let Some(value) = self.$yfield {
+                    budget.$yfield = value;
                 } )*
                 budget
             }
 
-            /// Each set field that is looser than serde-saphyr's default.
+            /// Each set field that is looser than its default.
+            #[cfg(feature = "input-yaml")]
             fn loosened(&self) -> Vec<Loosened> {
-                let default = Budget::default();
                 let mut loosened = Vec::new();
-                $( if let Some(value) = self.$field {
-                    let wrapped = value;
-                    $( let wrapped = $wrap(wrapped); )?
-                    if wrapped.looser_than(&default.$field) {
-                        loosened.push(Loosened {
-                            field: stringify!($field),
-                            value: value.to_string(),
-                            default: default.$field.shown(),
-                        });
-                    }
+                $( if let Some(value) = self.$sfield
+                    && value > Self::$sdefault
+                {
+                    loosened.push(Loosened {
+                        field: stringify!($sfield),
+                        value: value.to_string(),
+                        default: Self::$sdefault.to_string(),
+                    });
+                } )*
+                let default = Budget::default();
+                $( if let Some(value) = self.$yfield
+                    && value > default.$yfield
+                {
+                    loosened.push(Loosened {
+                        field: stringify!($yfield),
+                        value: value.to_string(),
+                        default: default.$yfield.to_string(),
+                    });
                 } )*
                 loosened
             }
@@ -87,56 +121,90 @@ macro_rules! limits {
 }
 
 limits! {
-    /// Bytes of input text, for YAML and TOML. Also checked for text already
-    /// in memory.
-    max_reader_input_bytes: usize => Some,
-    /// Comment events buffered while resolving an ambiguous entry.
-    max_buffered_comment_events: usize,
-    /// Characters scanned to resolve a simple key.
-    simple_key_max_lookahead: usize,
-    /// Simultaneously nested flow collections.
-    flow_nesting_limit: usize,
-    /// Parser events in total.
-    max_events: usize,
-    /// Alias (`*ref`) events.
-    max_aliases: usize,
-    /// Distinct anchor (`&anchor`) definitions.
-    max_anchors: usize,
-    /// Event copies retained for anchors.
-    max_recorded_anchor_events: usize,
-    /// Bytes of string payload retained for anchors.
-    max_recorded_anchor_bytes: usize,
-    /// Nested expansions in one property interpolation.
-    max_property_expansion_depth: usize,
-    /// Bytes inspected across all property interpolation.
-    max_total_property_interpolation_work: usize,
-    /// Nesting of sequences and mappings; in TOML, of arrays and tables, with
-    /// the root table as 1.
-    max_depth: usize,
-    /// Nesting of `!include`.
-    max_inclusion_depth: u32,
-    /// YAML documents in one text.
-    max_documents: usize,
-    /// Sequences, mappings, and scalars in total; in TOML, the root table and
-    /// every table, array, and value.
-    max_nodes: usize,
-    /// Bytes of scalar text in total.
-    max_total_scalar_bytes: usize,
-    /// Bytes of comment text in total.
-    max_total_comment_bytes: usize,
-    /// Merge keys (`<<`). ctl-core refuses merge keys whatever this says.
-    max_merge_keys: usize,
-    /// Aliases allowed before the alias-to-anchor ratio applies.
-    alias_anchor_min_aliases: usize,
-    /// How many aliases each anchor may have once the ratio applies.
-    alias_anchor_ratio_multiplier: usize,
+    shared {
+        /// Bytes of input text. Also checked for text already in memory.
+        max_reader_input_bytes = DEFAULT_MAX_READER_INPUT_BYTES,
+        /// Nesting of YAML sequences and mappings, or of TOML arrays and
+        /// tables, with the root table as 1.
+        max_depth = DEFAULT_MAX_DEPTH,
+        /// YAML sequences, mappings, and scalars in total; in TOML, the root
+        /// table and every table, array, and value.
+        max_nodes = DEFAULT_MAX_NODES,
+    }
+    yaml {
+        /// Comment events buffered while resolving an ambiguous entry.
+        max_buffered_comment_events: usize,
+        /// Characters scanned to resolve a simple key.
+        simple_key_max_lookahead: usize,
+        /// Simultaneously nested flow collections.
+        flow_nesting_limit: usize,
+        /// Parser events in total.
+        max_events: usize,
+        /// Alias (`*ref`) events.
+        max_aliases: usize,
+        /// Distinct anchor (`&anchor`) definitions.
+        max_anchors: usize,
+        /// Event copies retained for anchors.
+        max_recorded_anchor_events: usize,
+        /// Bytes of string payload retained for anchors.
+        max_recorded_anchor_bytes: usize,
+        /// Nested expansions in one property interpolation.
+        max_property_expansion_depth: usize,
+        /// Bytes inspected across all property interpolation.
+        max_total_property_interpolation_work: usize,
+        /// Nesting of `!include`.
+        max_inclusion_depth: u32,
+        /// YAML documents in one text.
+        max_documents: usize,
+        /// Bytes of scalar text in total.
+        max_total_scalar_bytes: usize,
+        /// Bytes of comment text in total.
+        max_total_comment_bytes: usize,
+        /// Merge keys (`<<`). ctl-core refuses merge keys whatever this says.
+        max_merge_keys: usize,
+        /// Aliases allowed before the alias-to-anchor ratio applies.
+        alias_anchor_min_aliases: usize,
+        /// How many aliases each anchor may have once the ratio applies.
+        alias_anchor_ratio_multiplier: usize,
+    }
+}
+
+impl Limits {
+    /// `max_reader_input_bytes` when no tier sets it: 256 MiB.
+    pub const DEFAULT_MAX_READER_INPUT_BYTES: usize = 256 * 1024 * 1024;
+    /// `max_depth` when no tier sets it.
+    pub const DEFAULT_MAX_DEPTH: usize = 64;
+    /// `max_nodes` when no tier sets it.
+    pub const DEFAULT_MAX_NODES: usize = 250_000;
+
+    /// The three limits every format reads, with ctl-core's default for each
+    /// unset field.
+    pub(super) fn bounds(&self) -> Bounds {
+        Bounds {
+            input_bytes: self
+                .max_reader_input_bytes
+                .unwrap_or(Self::DEFAULT_MAX_READER_INPUT_BYTES),
+            depth: self.max_depth.unwrap_or(Self::DEFAULT_MAX_DEPTH),
+            nodes: self.max_nodes.unwrap_or(Self::DEFAULT_MAX_NODES),
+        }
+    }
+}
+
+/// The three limits every format reads, as they are in force.
+#[derive(Clone, Copy)]
+pub(super) struct Bounds {
+    pub(super) input_bytes: usize,
+    pub(super) depth: usize,
+    pub(super) nodes: usize,
 }
 
 static PROCESS: RwLock<Limits> = RwLock::new(Limits::NONE);
+#[cfg(feature = "input-yaml")]
 static REPOSITORY: RwLock<Limits> = RwLock::new(Limits::NONE);
 
-/// Set the process-wide default, which a repository's [`REPO_FILE`] and a
-/// call's [`Input::limits`] both beat.
+/// Set the process-wide default, which a call's
+/// [`Input::limits`](super::Input::limits) beats, and with `input-yaml` a
+/// repository's `.ctl/input.yaml` too.
 pub fn set_default_limits(limits: Limits) {
     *PROCESS.write().unwrap_or_else(PoisonError::into_inner) = limits;
 }
@@ -146,14 +214,15 @@ pub fn set_default_limits(limits: Limits) {
 /// The file itself is read under the process default, not under whatever
 /// repository was installed before.
 ///
-/// Returns each limit the repository raises above serde-saphyr's default.
-/// Print each as `{bin}: warning: {loosened}`. A raised limit is one above
+/// Returns each limit the repository raises above its default. Print each as
+/// `{bin}: warning: {loosened}`. A raised limit is one above ctl-core's or
 /// serde-saphyr's default, whatever the CLI set as its process default.
 ///
 /// # Errors
 ///
 /// An [`InputError`] when the file cannot be read, is not YAML, or names a
 /// field [`Limits`] does not have.
+#[cfg(feature = "input-yaml")]
 pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
     let path = root.join(REPO_FILE);
     let limits = match std::fs::read_to_string(&path) {
@@ -161,7 +230,7 @@ pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
             let process = PROCESS
                 .read()
                 .unwrap_or_else(PoisonError::into_inner)
-                .budget();
+                .clone();
             Input::new(path.display().to_string(), text)
                 .parse_within::<RepoFile>(&process, Raise::InProcess)?
                 .limits
@@ -179,17 +248,20 @@ pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
     Ok(loosened)
 }
 
-/// A limit a repository's [`REPO_FILE`] raises above serde-saphyr's default.
+/// A limit a repository's [`REPO_FILE`] raises above its default.
+#[cfg(feature = "input-yaml")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Loosened {
     /// The [`Limits`] field.
     pub field: &'static str,
     /// The repository's value.
     pub value: String,
-    /// serde-saphyr's default.
+    /// The default: ctl-core's for a field every format reads, and
+    /// serde-saphyr's for a YAML-only field.
     pub default: String,
 }
 
+#[cfg(feature = "input-yaml")]
 impl fmt::Display for Loosened {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -200,48 +272,8 @@ impl fmt::Display for Loosened {
     }
 }
 
-/// How a [`Budget`] field compares with serde-saphyr's default.
-trait Bound {
-    fn looser_than(&self, default: &Self) -> bool;
-    fn shown(&self) -> String;
-}
-
-impl Bound for usize {
-    fn looser_than(&self, default: &Self) -> bool {
-        self > default
-    }
-
-    fn shown(&self) -> String {
-        self.to_string()
-    }
-}
-
-impl Bound for u32 {
-    fn looser_than(&self, default: &Self) -> bool {
-        self > default
-    }
-
-    fn shown(&self) -> String {
-        self.to_string()
-    }
-}
-
-/// `None` is no cap at all, the loosest bound.
-impl Bound for Option<usize> {
-    fn looser_than(&self, default: &Self) -> bool {
-        match (self, default) {
-            (None, Some(_)) => true,
-            (Some(value), Some(default)) => value > default,
-            (_, None) => false,
-        }
-    }
-
-    fn shown(&self) -> String {
-        self.map_or_else(|| "none".to_owned(), |value| value.to_string())
-    }
-}
-
 /// The shape of [`REPO_FILE`].
+#[cfg(feature = "input-yaml")]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RepoFile {
@@ -251,19 +283,39 @@ struct RepoFile {
 
 /// What a parse with `call` uses, field by field.
 pub(super) fn effective(call: &Limits) -> Limits {
-    let repository = REPOSITORY.read().unwrap_or_else(PoisonError::into_inner);
     let process = PROCESS.read().unwrap_or_else(PoisonError::into_inner);
-    call.clone().or(&repository).or(&process)
+    #[cfg(feature = "input-yaml")]
+    let call = call
+        .clone()
+        .or(&REPOSITORY.read().unwrap_or_else(PoisonError::into_inner));
+    #[cfg(not(feature = "input-yaml"))]
+    let call = call.clone();
+    call.or(&process)
 }
 
 /// Where a user raises a limit a text went past.
 #[derive(Clone, Copy)]
 pub(super) enum Raise {
     /// In the repository's [`REPO_FILE`].
+    #[cfg(feature = "input-yaml")]
     InRepository,
     /// In the tool's process default, for [`REPO_FILE`] itself, which is
     /// read before any repository override applies.
+    #[cfg(feature = "input-yaml")]
     InProcess,
+    /// Nowhere the user can reach: a build without `input-yaml` reads no
+    /// repository file, so only the tool sets limits.
+    #[cfg(not(feature = "input-yaml"))]
+    InTool,
+}
+
+impl Raise {
+    /// Where a limit hit by a CLI's own text is raised.
+    #[cfg(feature = "input-yaml")]
+    pub(super) const FOR_TEXT: Self = Self::InRepository;
+    /// Where a limit hit by a CLI's own text is raised.
+    #[cfg(not(feature = "input-yaml"))]
+    pub(super) const FOR_TEXT: Self = Self::InTool;
 }
 
 /// A limit a text went past: the field and the value in force.
@@ -290,6 +342,7 @@ impl Exceeded {
     /// The field serde-saphyr reports as breached, with its value in `budget`.
     /// `None` for a breach this version does not know, which keeps
     /// serde-saphyr's own wording.
+    #[cfg(feature = "input-yaml")]
     #[expect(
         clippy::wildcard_enum_match_arm,
         reason = "BudgetBreach is non_exhaustive: a variant added later keeps serde-saphyr's wording"
@@ -355,14 +408,39 @@ impl fmt::Display for Exceeded {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "exceeds {} ({}); ", self.field, self.limit)?;
         match self.raise {
+            #[cfg(feature = "input-yaml")]
             Raise::InRepository => {
                 write!(formatter, "raise limits.{} in {REPO_FILE}", self.field)
             }
+            #[cfg(feature = "input-yaml")]
             Raise::InProcess => write!(
                 formatter,
                 "raise {} in the tool's process default, which reads {REPO_FILE}",
                 self.field
             ),
+            #[cfg(not(feature = "input-yaml"))]
+            Raise::InTool => write!(formatter, "the tool sets this limit"),
         }
+    }
+}
+
+#[cfg(all(test, feature = "input-yaml"))]
+mod tests {
+    use serde_saphyr::Budget;
+
+    use super::Limits;
+
+    /// ctl-core states the three shared defaults, and a YAML text meets the
+    /// same ones it met under serde-saphyr's. A serde-saphyr release that
+    /// moves its defaults fails here before it ships.
+    #[test]
+    fn the_shared_defaults_match_serde_saphyr() {
+        let budget = Budget::default();
+        assert_eq!(
+            budget.max_reader_input_bytes,
+            Some(Limits::DEFAULT_MAX_READER_INPUT_BYTES)
+        );
+        assert_eq!(budget.max_depth, Limits::DEFAULT_MAX_DEPTH);
+        assert_eq!(budget.max_nodes, Limits::DEFAULT_MAX_NODES);
     }
 }

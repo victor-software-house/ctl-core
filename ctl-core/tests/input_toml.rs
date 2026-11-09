@@ -7,7 +7,7 @@
     missing_docs,
     reason = "an integration test crate has no public API to document"
 )]
-#![cfg(all(feature = "input-toml", feature = "fixture"))]
+#![cfg(all(feature = "input", feature = "input-toml", feature = "fixture"))]
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

@@ -1,4 +1,4 @@
-//! Input limits: serde-saphyr's defaults unless overridden, field by field, by
+//! Input limits: the stated defaults unless overridden, field by field, by
 //! the call, then the repository, then the process.
 //!
 //! The repository and process tiers are global, so every test that sets one

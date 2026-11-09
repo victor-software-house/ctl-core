@@ -142,7 +142,7 @@ pub mod fixture;
 pub mod flags;
 #[cfg(feature = "help")]
 pub mod help;
-#[cfg(feature = "input")]
+#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 pub mod input;
 #[cfg(feature = "cli")]
 pub mod parser;
