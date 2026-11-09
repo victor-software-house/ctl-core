@@ -180,11 +180,17 @@
 
 ## 4. Remove usage-lib and keep clap's defaults off
 
-- [ ] 4.1 Remove usage-lib from `[workspace.dependencies]`,
+- [x] 4.1 Remove usage-lib from `[workspace.dependencies]`,
   `ctl-core/Cargo.toml`, and the machete ignore list. Verify:
   `Cargo.lock` holds no usage-lib, and holds kdl and winnow 0.7 only
   through the dev-dependency.
-- [ ] 4.2 Ban usage-lib in `deny.toml` through the `deny_bans` answer,
+
+  On 2026-11-09 (-03:00), the lock went from 119 packages to 99. It
+  dropped usage-lib, usage-argv, regex, itertools, thiserror, semver,
+  strsim, anstream and its parsers, and the crates only they pulled in.
+  `cargo tree --all-features --edges normal` shows no kdl and no winnow
+  0.7; `--edges dev` shows kdl under ctl-core alone.
+- [x] 4.2 Ban usage-lib in `deny.toml` through the `deny_bans` answer,
   with a reason. Verify: `mise run deny` passes in CI with no warning.
 
   The writer's change already applied the rest of decision 5 through
@@ -195,13 +201,31 @@
      ok, with no warning.
   2. With each ban's wrappers pointed elsewhere, it failed with `banned`
      for kdl 6.7.1 and winnow 0.7.15.
-- [ ] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
+
+  The usage-lib ban went in as a `deny_bans` answer through the same
+  `copier update`. On 2026-11-09 (-03:00), `mise run deny` reported bans,
+  licenses, and sources ok, with no warning. CI's advisory run is still
+  to come on the pull request.
+- [x] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
   1.0 in ctl-core's normal dependencies with every feature. Verify: CI's
   `check:tree` passes, and fails on a commit that adds usage-lib back.
-- [ ] 4.4 Verify: `cargo tree -e features -i clap_builder` for ctl-core
+
+  On 2026-11-09 (-03:00), `mise run check:tree` passed on the branch.
+  With usage-lib added back to both manifests and the lock re-resolved,
+  it failed on usage-lib and on clap's `color`, `help`, `error-context`,
+  and `suggestions`. With `clap/usage` taken out of the `usage` feature,
+  it failed on the missing `usage`. CI's run is still to come.
+- [x] 4.4 Verify: `cargo tree -e features -i clap_builder` for ctl-core
   with `app`, `usage`, and `input` shows no `default`, `color`, `help`,
   `error-context`, or `suggestions`. If one shows, cut it or record why it
   cannot be cut.
+
+  On 2026-11-09 (-03:00), the command showed `env`, `std`, `string`, and
+  `usage`, for `app,usage,input` and for `usage` alone. Every feature
+  together adds only `unstable-ext`, from clap_complete's
+  `unstable-dynamic`. The `usage` feature turns on `clap/usage` since the
+  writer's change
+  ([decision 6](design.md#6-nothing-turns-claps-defaults-back-on)).
 - [ ] 4.5 Verify: CI's `deps` (cargo-machete) passes.
 
 ## 5. annotate-snippets

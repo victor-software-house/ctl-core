@@ -286,9 +286,9 @@ unicode-width 0.1 into the dev graph.
 5. The templates repository renders `deny.toml`. Each entry is an answer
    in `.copier-answers.yml` (`deny_bans`, `deny_skip`), applied with
    `copier update`, never a hand edit.
-6. `check:tree` fails when kdl or winnow below 1.0 appears in ctl-core's
-   normal dependencies under any feature set. The dev-dependency is the
-   one path left.
+6. `check:tree` fails when usage-lib, kdl, or winnow below 1.0 appears in
+   ctl-core's normal dependencies with every feature. The dev-dependency
+   is the one path left for kdl and winnow 0.7.
 
 Alternative considered: set `exclude-dev = true` in `deny.toml`'s
 `[graph]`. It lost because it would also drop every other dev-dependency
@@ -308,6 +308,21 @@ usage-lib is gone the same command must show no `default`, and the
 `features` spec gains a scenario for `app`, `usage`, and `input` together.
 If something else still enables it, the work cuts it or records why it
 cannot.
+
+With usage-lib removed, nothing else enables `default`. One of its
+features was in use: `usage::spec` writes each command's usage line from
+clap's `render_usage`, which needs clap's `usage` feature. The writer's
+change already turned `clap/usage` on in ctl-core's `usage` feature
+([decision 3](#3-the-writer-departs-from-730-only-where-kdl-v2-or-mise-requires-it)),
+so the removal changes no spec byte.
+
+`check:tree` holds both results:
+
+1. With `usage`, clap's `usage` feature is on.
+2. With `app`, `usage`, and `input`, clap's `default`, `color`, `help`,
+   `error-context`, and `suggestions` are off.
+
+`check:features` compiles `app,usage,input` warning-free.
 
 ### 7. The YAML loader stops reaching annotate-snippets, or the work stops
 
