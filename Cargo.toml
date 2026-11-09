@@ -129,15 +129,23 @@ multiple_crate_versions = "allow"
 # more than tolerance-percent. A change that grows a tier on purpose raises the
 # budget in the same pull request, and one that shrinks a tier lowers it. The
 # budgets are the `.text` that CI measured on linux-x64 with rustc 1.99.1
-# (58cf8f9c3 2026-10-13) at b84f7a6, after the render engine review fixes.
+# (58cf8f9c3 2026-10-13) at 72eaae8, where ctl-term's error converts into
+# `io::Error` without boxing.
 [workspace.metadata.size]
 tolerance-percent = 2
 
 [workspace.metadata.size.tiers]
+# No render code; unchanged since the size example was added.
 cli = { features = "cli", text = 343888 }
-help = { features = "help", text = 447878 }
+# 906 above the first engine budget, 443676: clusters stay whole across
+# spans, line breaks stay word boundaries, and equal styles merge.
+help = { features = "help", text = 444582 }
+# 364 below the first engine budget, 409362: the ctl-text growth, offset by
+# a smaller ctl-layout Table and a smaller inlined View setup.
 view = { features = "cli,view", text = 408998 }
-app = { features = "app", text = 472902 }
+# 188 below the first engine budget, 469842: help's growth, less the
+# copies View no longer keeps beside its one RenderOptions.
+app = { features = "app", text = 469654 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

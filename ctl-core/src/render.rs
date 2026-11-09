@@ -402,7 +402,9 @@ impl RenderOptions {
     /// it.
     ///
     /// The error keeps the kind of the failed write, so a closed pipe is still
-    /// [`std::io::ErrorKind::BrokenPipe`].
+    /// [`std::io::ErrorKind::BrokenPipe`]. It goes through ctl-term's
+    /// conversion rather than a boxed wrapper, which would keep the wrapper's
+    /// `Debug` code in every binary that prints help.
     #[cfg(feature = "help")]
     pub(crate) fn print_for(
         self,
@@ -411,12 +413,7 @@ impl RenderOptions {
     ) -> std::io::Result<()> {
         self.console(stream)
             .print(&Renderer::new(self).widget(document))
-            .map_err(|error| {
-                let kind = std::error::Error::source(&error)
-                    .and_then(|source| source.downcast_ref::<std::io::Error>())
-                    .map_or(std::io::ErrorKind::Other, std::io::Error::kind);
-                std::io::Error::new(kind, error)
-            })
+            .map_err(std::io::Error::from)
     }
 }
 

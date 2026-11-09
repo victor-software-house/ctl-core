@@ -84,7 +84,9 @@
 //!
 //! When the reader closes the stream, as `head` does, a write fails with
 //! [`Error::BrokenPipe`], which is a variant of its own. This crate reports
-//! it and leaves the exit code to the caller.
+//! it and leaves the exit code to the caller. A caller that returns
+//! [`std::io::Result`] converts [`Error`] with `From`, and a closed pipe keeps
+//! the kind [`std::io::ErrorKind::BrokenPipe`].
 //!
 //! # Platforms
 //!

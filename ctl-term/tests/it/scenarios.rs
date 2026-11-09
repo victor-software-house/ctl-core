@@ -217,6 +217,17 @@ fn a_closed_pipe_is_its_own_error() {
 }
 
 #[test]
+fn an_error_becomes_an_io_error_of_the_same_kind() {
+    use std::io::{self, ErrorKind};
+
+    let closed = io::Error::from(Error::BrokenPipe(io::Error::from(ErrorKind::BrokenPipe)));
+    assert_eq!(closed.kind(), ErrorKind::BrokenPipe);
+    let full = io::Error::from(Error::Io(io::Error::other("disk full")));
+    assert_eq!(full.kind(), ErrorKind::Other);
+    assert_eq!(full.to_string(), "disk full");
+}
+
+#[test]
 fn named_colours_are_the_same_at_every_depth() {
     let text = Text::styled("ok", fg(AnsiColor::Green));
     let expected = "\u{1b}[32mok\u{1b}[0m\n";

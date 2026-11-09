@@ -57,6 +57,20 @@ impl From<io::Error> for Error {
     }
 }
 
+impl From<Error> for io::Error {
+    /// [`Error::Io`] gives back the error it holds, with its kind and message.
+    /// [`Error::BrokenPipe`] becomes a new error of kind
+    /// [`io::ErrorKind::BrokenPipe`]. Nothing is boxed, so a caller that
+    /// returns [`io::Result`] keeps a closed pipe apart without carrying this
+    /// type's formatting code.
+    fn from(error: Error) -> Self {
+        match error {
+            Error::BrokenPipe(_) => io::ErrorKind::BrokenPipe.into(),
+            Error::Io(error) => error,
+        }
+    }
+}
+
 /// Writes widgets to one output stream, in the colour and at the width
 /// decided for that stream.
 ///

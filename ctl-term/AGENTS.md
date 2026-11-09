@@ -13,6 +13,7 @@ This file holds what applies to this crate alone.
   It needs no terminal, so ctl-core's string rendering calls it with a depth it chose.
 - `Console`: renders a `ctl_text::Renderable` at its stream's width and writes it.
   It reports a closed pipe as `Error::BrokenPipe`.
+  `From<Error> for io::Error` keeps that kind without boxing, so a caller that returns `io::Result` carries no `Debug` code for `Error`.
 
 ## What it must not own
 
