@@ -130,6 +130,7 @@ mise run verify
 - `test` (unit and integration; targets with `test = false` are skipped)
 - `test:doc` (doc-tests)
 - `doc` (rustdoc as docs.rs builds it) and `check:docs` (the docs.rs metadata, feature labels, and error docs)
+- `doc:default-features` and `doc:no-default-features` (rustdoc for every crate with its default features and with none, warnings denied)
 - cargo-deny licenses/bans/sources
 - cargo-machete
 - `check:versions`, verctl's hand-edit guard
