@@ -62,10 +62,10 @@ fn limits_build_from_none_whatever_the_build_enables() {
     let limits = Limits {
         max_reader_input_bytes: Some(1),
         max_depth: Some(2),
-        max_nodes: Some(3),
         ..Limits::NONE
     };
     assert_eq!(limits.max_reader_input_bytes, Some(1));
+    assert_eq!(limits.max_nodes, None);
     assert_eq!(limits.clone().or(&Limits::NONE), limits);
 }
 

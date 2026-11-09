@@ -15,11 +15,15 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
+/// Hosts `JsonSchema`. With `schema`, schemars expands `concat!`; this module
+/// is the allow, and only that feature needs it.
 mod data {
-    #![expect(
-        clippy::disallowed_macros,
-        reason = "schemars' JsonSchema derive expands concat!"
+    #![cfg_attr(
+        feature = "schema",
+        expect(
+            clippy::disallowed_macros,
+            reason = "schemars' JsonSchema derive expands concat!"
+        )
     )]
 
     /// The output representation a view writes a result in.

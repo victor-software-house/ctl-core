@@ -10,7 +10,8 @@ These break callers:
 
 - `input-toml` no longer enables `input`.
   A consumer that read YAML or validated through `input-toml` alone adds `input`, or `input-yaml` and `validate`.
-- `Input::check` and `Input::load` need the `validate` feature.
+- `Input::check`, `Input::load`, and the `ctl_core::validate` module need the `validate` feature.
+- With `input-toml` alone, `Format::Toml` is the only variant, so its discriminant is 0, where it was 1.
 - `Format::Yaml`, `Input::new`, `Input::read`, `Input::frontmatter`, `REPO_FILE`, `use_repo_limits`, and `Loosened` need the new `input-yaml` feature.
 - `Limits` is ctl-core's own type.
   Its 17 YAML-only fields need `input-yaml`, and a caller builds it with `..Limits::NONE`.

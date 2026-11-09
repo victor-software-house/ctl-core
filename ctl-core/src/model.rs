@@ -24,11 +24,15 @@
 /// ctl-core raises it when the envelope shape changes.
 pub const SCHEMA_VERSION: u32 = 1;
 
-/// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
+/// Hosts `JsonSchema`. With `schema`, schemars expands `concat!`; this module
+/// is the allow, and only that feature needs it.
 mod data {
-    #![expect(
-        clippy::disallowed_macros,
-        reason = "schemars' JsonSchema derive expands concat!"
+    #![cfg_attr(
+        feature = "schema",
+        expect(
+            clippy::disallowed_macros,
+            reason = "schemars' JsonSchema derive expands concat!"
+        )
     )]
 
     /// A JSON envelope: `status` is `ok` with `data`, or `err` with `error`,
