@@ -74,11 +74,11 @@ bin h
 unknown_flags error
 args_override_self #false
 usage "Usage: h [OPTIONS]"
-flag --quad-hash help=#"""
+flag --quad-hash help=##"""
 x
 """"#
 y
-"""#
+"""##
 
 // triple-two-hash
 name h
