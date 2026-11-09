@@ -10,6 +10,11 @@
 //! serialization. `surface-templates` adds the shared `minijinja` fragments
 //! and the [`render`] function. A generated documentation file is then a
 //! render of the CLI's own Clap types.
+#![cfg_attr(
+    not(feature = "surface-templates"),
+    doc = "",
+    doc = "[`render`]: crate#cargo-features"
+)]
 
 use std::collections::{BTreeMap, BTreeSet};
 

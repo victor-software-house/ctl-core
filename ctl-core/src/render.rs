@@ -618,8 +618,14 @@ impl Document {
     ///
     /// Styles are written only under [`ColorMode::Always`], as the theme gives
     /// them, at full colour depth. [`ColorMode::Auto`] has no stream to look
-    /// at here and writes none. A [`View`](crate::View) and help write to a
-    /// stream, so they decide width and colour for it instead.
+    /// at here and writes none. A [`View`] and help write to a stream, so they
+    /// decide width and colour for it instead.
+    #[cfg_attr(feature = "view", doc = "", doc = "[`View`]: crate::View")]
+    #[cfg_attr(
+        not(feature = "view"),
+        doc = "",
+        doc = "[`View`]: crate#cargo-features"
+    )]
     #[must_use]
     pub fn render(&self, options: RenderOptions) -> String {
         Renderer::new(options).render(self)

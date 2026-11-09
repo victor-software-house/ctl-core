@@ -1,6 +1,6 @@
 //! Styled help extracted from Clap and rendered as a semantic document.
 //!
-//! [`App`](crate::App) prints help for you. These functions serve a CLI that
+//! [`App`] prints help for you. These functions serve a CLI that
 //! drives its own lifecycle. [`document`] turns a Clap command into a
 //! [`Document`], and the `try_emit` functions print it when the arguments
 //! ask for help. Help uses the same renderer, theme, and width policy as
@@ -17,6 +17,8 @@
 //! let help = document(<Cli as clap::CommandFactory>::command());
 //! assert!(!help.is_empty());
 //! ```
+#![cfg_attr(feature = "app", doc = "", doc = "[`App`]: crate::App")]
+#![cfg_attr(not(feature = "app"), doc = "", doc = "[`App`]: crate#cargo-features")]
 
 use std::io;
 

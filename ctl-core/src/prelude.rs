@@ -2,7 +2,7 @@
 //!
 //! The prelude re-exports what a binary needs:
 //!
-//! - [`App`] and the [`Present`] trait;
+//! - [`App`] with `app`, and the [`Present`] trait with `view`;
 //! - the document builders and the shared flags;
 //! - the render and view options, and the `indoc` macros;
 //! - clap's `Parser`, `Args`, and `Subcommand` traits, and [`ExitCode`].
@@ -41,6 +41,12 @@
 //!         .run(|_| Ok(Done))
 //! }
 //! ```
+#![cfg_attr(not(feature = "app"), doc = "", doc = "[`App`]: crate#cargo-features")]
+#![cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Present`]: crate#cargo-features"
+)]
 
 #[doc(no_inline)]
 pub use std::process::ExitCode;

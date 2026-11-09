@@ -136,18 +136,30 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
 /// `-h/--help`, the `help` subcommand, and `-V/--version` stay on. Repeated
 /// flags take the last value (`args_override_self`), and
 /// [`chassis_warnings`](crate::flags::chassis_warnings) still
-/// reports the clash. [`App`](crate::App) applies it to every run, so a CLI
-/// calls it only to parse a command itself.
+/// reports the clash. [`App`] applies it to every run, so a CLI calls it only
+/// to parse a command itself.
 ///
 /// ctl-core declares `-h/--help` and `help` on every command, as Clap does
 /// with its `help` feature. A CLI that parses the result itself calls
-/// [`help::try_emit`](crate::help::try_emit) first: the derive's
-/// `from_arg_matches` does not know the `help` subcommand.
+/// [`help::try_emit`] first: the derive's `from_arg_matches` does not know
+/// the `help` subcommand.
 ///
 /// # Panics
 ///
 /// Panics if `command` disabled the help or version flag. ctl-core owns
 /// `-h`/`--help` and `-V`/`--version`, so the CLI never turns them off.
+#[cfg_attr(feature = "app", doc = "", doc = "[`App`]: crate::App")]
+#[cfg_attr(not(feature = "app"), doc = "", doc = "[`App`]: crate#cargo-features")]
+#[cfg_attr(
+    feature = "help",
+    doc = "",
+    doc = "[`help::try_emit`]: crate::help::try_emit"
+)]
+#[cfg_attr(
+    not(feature = "help"),
+    doc = "",
+    doc = "[`help::try_emit`]: crate#cargo-features"
+)]
 #[must_use]
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);

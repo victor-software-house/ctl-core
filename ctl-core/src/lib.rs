@@ -131,6 +131,58 @@
 //! Declared input takes one feature per format. `input-yaml` reads YAML and
 //! `input-toml` reads TOML; neither links the other's parser. `validate`
 //! adds garde validation, and `input` is `input-yaml` with `validate`.
+#![cfg_attr(
+    not(feature = "app"),
+    doc = "",
+    doc = "[`App`]: crate#cargo-features",
+    doc = "[`App::broken_pipe`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Present`]: crate#cargo-features",
+    doc = "[`Outcome`]: crate#cargo-features",
+    doc = "[`View`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "document"),
+    doc = "",
+    doc = "[`Document`]: crate#cargo-features",
+    doc = "[`Fields`]: crate#cargo-features",
+    doc = "[`Table`]: crate#cargo-features",
+    doc = "[`Section`]: crate#cargo-features",
+    doc = "[`Notice`]: crate#cargo-features",
+    doc = "[`Role`]: crate#cargo-features",
+    doc = "[`document::Text`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "cli"),
+    doc = "",
+    doc = "[`OutputArgs`]: crate#cargo-features",
+    doc = "[`DryRunArgs`]: crate#cargo-features",
+    doc = "[`EnvPrefix`]: crate#cargo-features",
+    doc = "[`FlagWarning`]: crate#cargo-features",
+    doc = "[`FlagClash`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "render"),
+    doc = "",
+    doc = "[`RenderOptions`]: crate#cargo-features",
+    doc = "[`Theme`]: crate#cargo-features",
+    doc = "[`text`]: crate#cargo-features",
+    doc = "[`layout`]: crate#cargo-features",
+    doc = "[`text::Text`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(any(feature = "view", feature = "help")),
+    doc = "",
+    doc = "[`term`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(any(feature = "input-yaml", feature = "input-toml")),
+    doc = "",
+    doc = "[`input::Input`]: crate#cargo-features"
+)]
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
