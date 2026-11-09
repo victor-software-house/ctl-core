@@ -3,8 +3,10 @@
 ## Purpose
 
 Bind every long option of a ctl CLI to an environment variable under one
-prefix, so a caller that holds its settings in the environment can run the
-bare verb. A flag wins over its variable, the variable over the config file,
+prefix.
+A caller that holds its settings in the environment can then run the bare
+verb.
+A flag wins over its variable, the variable over the config file,
 and the config file over the default.
 
 ## Requirements
@@ -13,10 +15,15 @@ and the config file over the default.
 
 `Command::env_prefix(prefix)`, through the `EnvPrefix` trait, SHALL bind each
 long option of the command and of every subcommand, at any depth, to the
-variable `<prefix>_<LONG>`, where `<LONG>` is the long name upper-cased with
-`-` replaced by `_`. It SHALL leave unbound an option that declares its own
-`env`, has no long name, is hidden, has a long name starting with `no-`, or is
-help or version.
+variable `<prefix>_<LONG>`.
+Here `<LONG>` is the long name upper-cased with `-` replaced by `_`.
+It SHALL leave unbound an option that:
+
+- declares its own `env`;
+- has no long name;
+- is hidden;
+- has a long name starting with `no-`;
+- is help or version.
 
 #### Scenario: A subcommand option and a shared flag
 

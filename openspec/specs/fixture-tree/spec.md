@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Temporary file trees for integration tests: one suite directory per test file, a scenario per case that cannot outlive its suite, and one call per file.
+Temporary file trees for integration tests: one suite directory per test file and a scenario per case.
+A scenario cannot outlive its suite.
+Each file takes one call.
 
 ## Requirements
 

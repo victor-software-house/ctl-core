@@ -25,9 +25,11 @@ error.
 ### Requirement: Every ctl CLI has the same completion verb
 
 A CLI that flattens `CompletionCommand` into its subcommands SHALL accept
-`<bin> completion <SHELL>`, whose help SHALL read "Print the script that
-loads shell completion for this command" and SHALL name bash, zsh, and fish
-in the argument's value list and help.
+`<bin> completion <SHELL>`.
+The help of that verb SHALL read "Print the script that loads shell
+completion for this command".
+That help SHALL name bash, zsh, and fish in the argument's value list and
+help.
 
 #### Scenario: The verb parses
 
@@ -57,9 +59,10 @@ the completer `bin` called by name.
 
 ### Requirement: The zsh script completes on the first TAB from fpath
 
-The zsh script SHALL start with `#compdef <bin>` and SHALL end with lines
-that run the completer when zsh autoloads the file as the function
-`_<bin>`, and do nothing when the file is sourced.
+The zsh script SHALL start with `#compdef <bin>`.
+It SHALL end with lines that run the completer when zsh autoloads the file as
+the function `_<bin>`.
+Those lines SHALL do nothing when the file is sourced.
 
 #### Scenario: The appended lines
 

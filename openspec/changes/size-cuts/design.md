@@ -188,8 +188,10 @@ Users see no snippet today. The loader parses with `with_snippet: false`
 and passes `error.without_snippet()` to the message
 ([input.rs][input-options]), so every report is one line: file, line,
 column, and serde-saphyr's text. A real run on 2026-11-08 (-03:00) showed
-it. qctl 0.6.0 is built on ctl-core 0.6.24, whose loader has the same
-two calls ([0.6.24 input.rs][input-options-0624]). It checked three
+it.
+
+qctl 0.6.0 is built on ctl-core 0.6.24, whose loader has the same
+two calls ([0.6.24 input.rs][input-options-0624]). The run checked three
 malformed ledgers:
 
 | Ledger | Report after the path |

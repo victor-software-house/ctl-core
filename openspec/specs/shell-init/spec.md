@@ -56,12 +56,13 @@ with no exclusions, `zsh -f -n`, or `fish --no-config -n`.
 ### Requirement: The hook runs once before the first prompt
 
 A shell whose startup file loads the script SHALL run `<bin> <subcommand>`
-once, in the foreground, before its first prompt, when `variable` is
-non-empty and `bin` is on `PATH`, and SHALL NOT run it at a later prompt.
+once, in the foreground, before its first prompt.
+It SHALL do so when `variable` is non-empty and `bin` is on `PATH`.
+It SHALL NOT run it at a later prompt.
 
 #### Scenario: Loaded twice, three prompts
 
-- **WHEN** bash, zsh, or fish starts on a terminal with a startup file that loads the script twice, with `TOY_BLOCK` set and `toy-cli` on `PATH`, and two lines are typed before `exit`
+- **WHEN** bash, zsh, or fish starts on a terminal with a startup file that loads the script twice. `TOY_BLOCK` is set, `toy-cli` is on `PATH`, and two lines are typed before `exit`
 - **THEN** `toy-cli` ran exactly once, with the argument `pick`
 
 #### Scenario: Another tool rewrites PROMPT_COMMAND

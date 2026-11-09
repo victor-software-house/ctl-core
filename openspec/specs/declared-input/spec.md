@@ -2,16 +2,23 @@
 
 ## Purpose
 
-How a ctl CLI reads a config file: shared garde rules, one loader that parses YAML and validates it once, and every problem placed on its file and line.
+How a ctl CLI reads a config file.
+It has shared garde rules and one loader that parses YAML and validates it once.
+Every problem is placed on its file and line.
 
 ## Requirements
 
 ### Requirement: Shared validators complain in the repository's words
 
 The `validate` feature SHALL provide garde `custom` rules generic over the
-context: a path that stays inside the repository, one file name, a list that
-needs at least one entry, and a value that cannot be empty. Each message SHALL
-say what a person changes.
+context:
+
+- a path that stays inside the repository;
+- one file name;
+- a list that needs at least one entry;
+- a value that cannot be empty.
+
+Each message SHALL say what a person changes.
 
 #### Scenario: An empty list names what it needs
 
@@ -40,9 +47,14 @@ SHALL refuse duplicate keys and merge keys. For TOML, the parser is the
 
 ### Requirement: Every schema problem names its file and line
 
-A validation failure SHALL report every problem garde finds, each with the
-input's name, the line and column of the field it names (or of its nearest
-written ancestor), the field path, and the message.
+A validation failure SHALL report every problem garde finds.
+Each problem SHALL carry:
+
+- the input's name;
+- the line and column of the field it names, or of its nearest written
+  ancestor;
+- the field path;
+- the message.
 
 #### Scenario: Two problems in one file
 
@@ -64,8 +76,9 @@ frontmatter SHALL carry the line number it has in the whole file.
 ### Requirement: An alias error names where its value is defined
 
 When a value reached through an alias fails to parse, the problem SHALL sit
-on the alias, and its message SHALL name where the failing value is defined,
-counted from the file, with no other position in the text.
+on the alias.
+Its message SHALL name where the failing value is defined, counted from the
+file, with no other position in the text.
 
 #### Scenario: A value copied by an alias in frontmatter
 
@@ -78,10 +91,13 @@ counted from the file, with no other position in the text.
 ### Requirement: Input limits are overridable field by field in tiers
 
 `Input::parse` SHALL use serde-saphyr's `Budget` with each field taken from
-the highest tier that sets it: the call's `Input::limits`, then the
-repository's `limits:` in `.ctl/input.yaml` installed by `use_repo_limits`,
-then the process default from `set_default_limits`, then serde-saphyr's
-default.
+the highest tier that sets it, in this order:
+
+1. the call's `Input::limits`;
+2. the repository's `limits:` in `.ctl/input.yaml` installed by
+   `use_repo_limits`;
+3. the process default from `set_default_limits`;
+4. serde-saphyr's default.
 
 #### Scenario: The process default applies
 
@@ -115,8 +131,9 @@ default.
 `Limits` SHALL expose every `Budget` field except
 `enforce_alias_anchor_ratio`, which stays on. `max_reader_input_bytes` SHALL
 also cap text already in memory. `use_repo_limits` SHALL return each field the
-repository sets looser than serde-saphyr's default, with its value and the
-default, for the CLI to print as a warning.
+repository sets looser than serde-saphyr's default.
+It SHALL return each field with its value and the default, for the CLI to
+print as a warning.
 
 #### Scenario: The alias ratio cannot be turned off
 
@@ -132,7 +149,7 @@ default, for the CLI to print as a warning.
   `max_nodes`, and the `max_depth` one
   reads `.ctl/input.yaml raises max_depth to 128, above the default 64`
 
-### Requirement: A limit error says how to raise the limit
+### Requirement: A limit error shows how to raise the limit
 
 A refusal caused by a limit SHALL name the file, the line when known, the
 limit's field and value, and `raise limits.<field> in .ctl/input.yaml`. A limit
@@ -163,9 +180,11 @@ default instead.
 
 `Input::open(path)` SHALL read a file and take its format from the extension,
 compared without regard to case: `.toml` is TOML, and `.yaml` and `.yml` are
-YAML. A file with any other extension, or none, SHALL be refused with a
-problem that names the extension and the accepted ones, before the file is
+YAML.
+A file with any other extension, or none, SHALL be refused before the file is
 read.
+The refusal SHALL be a problem that names the extension and the accepted
+ones.
 
 #### Scenario: A TOML file is opened by its extension
 
@@ -191,7 +210,7 @@ read.
 
 `Format::of(path)` SHALL apply the extension rule of `Input::open`.
 `Input::format` SHALL set the format of an input, and `Input::new` and
-`Input::read` SHALL create YAML inputs whatever the name says. Without the
+`Input::read` SHALL create YAML inputs whatever name they are given. Without the
 `input-toml` feature, a `.toml` file SHALL be refused with a problem that
 names the feature.
 
@@ -203,11 +222,17 @@ names the feature.
 
 ### Requirement: A TOML problem names its file, line, and column
 
-A TOML parse error, a serde error, and each garde problem SHALL carry the
-input's name, a 1-based line, a 1-based column counted in characters, and
-a message. A garde problem SHALL sit on the value of the field it names,
-or on its nearest written ancestor, for a key at the top level, in a table,
-in an inline table, and in an array of tables.
+A TOML parse error, a serde error, and each garde problem SHALL carry:
+
+- the input's name;
+- a 1-based line;
+- a 1-based column counted in characters;
+- a message.
+
+A garde problem SHALL sit on the value of the field it names, or on its
+nearest written ancestor.
+This SHALL hold for a key at the top level, in a table, in an inline table,
+and in an array of tables.
 
 #### Scenario: A top-level key
 
@@ -255,9 +280,11 @@ in an inline table, and in an array of tables.
 ### Requirement: A TOML text is held to the size and nesting limits
 
 A TOML input SHALL be held to `max_reader_input_bytes`, `max_depth`, and
-`max_nodes`, each decided by the tiers `Input::limits`, the repository's
-`.ctl/input.yaml`, the process default, and serde-saphyr's default, with the
-same limit messages as YAML. Depth counts tables and arrays, and the root
+`max_nodes`.
+Each limit SHALL be decided by the tiers `Input::limits`, the repository's
+`.ctl/input.yaml`, the process default, and serde-saphyr's default.
+The limit messages SHALL be the same as for YAML.
+Depth counts tables and arrays, and the root
 table is 1. Nodes count the root table and every table, array, and value.
 
 #### Scenario: The input size
