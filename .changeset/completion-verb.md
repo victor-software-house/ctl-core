@@ -1,9 +1,11 @@
 ---
 ctl-core: patch
+"verctl:group": added
 ---
 
 Add a shared shell completion verb.
 The new `completion` feature gives a ctl CLI `<bin> completion <SHELL>` for bash, zsh, and fish.
+
 To use it:
 
 - flatten `completion::CompletionCommand` into the CLI's subcommands;

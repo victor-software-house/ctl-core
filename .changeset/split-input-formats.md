@@ -1,5 +1,6 @@
 ---
 ctl-core: patch
+"verctl:group": changed
 ---
 
 Each declared-input format is now its own feature, so a TOML-only consumer links no YAML crate and no garde.

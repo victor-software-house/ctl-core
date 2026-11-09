@@ -1,5 +1,6 @@
 ---
 ctl-core: patch
+"verctl:group": changed
 ---
 
 The docs.rs pages for `ctl-core`, `ctl-text`, `ctl-layout`, and `ctl-term` now open on a landing page that starts with a quick start and ends with the Cargo features.

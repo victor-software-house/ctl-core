@@ -1,5 +1,6 @@
 ---
 ctl-core: patch
+"verctl:group": added
 ---
 
 New crate on crates.io: `ctl-text`, styled text for terminals over `anstyle::Style`.

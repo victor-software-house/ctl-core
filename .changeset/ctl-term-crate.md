@@ -1,5 +1,6 @@
 ---
 ctl-core: patch
+"verctl:group": added
 ---
 
 New crate on crates.io: `ctl-term`, terminal facts and the escape encoder.

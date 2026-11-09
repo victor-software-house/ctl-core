@@ -1,8 +1,10 @@
 ---
 ctl-core: patch
+"verctl:group": changed
 ---
 
 Rename the two public types whose names held "kind", and the field and method that use them.
+
 This breaks every caller that names them:
 
 - `WarningKind` is now `FlagClash`, and `FlagWarning`'s `kind` field is now `clash`.
