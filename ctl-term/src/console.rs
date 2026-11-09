@@ -106,8 +106,7 @@ impl Console {
         self.stream
     }
 
-    /// The colour, depth, and width decided for the stream, after the Windows
-    /// virtual-terminal check.
+    /// The colour, depth, and width decided for the stream.
     #[must_use]
     pub fn terminal(self) -> Terminal {
         self.terminal

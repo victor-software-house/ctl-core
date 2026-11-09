@@ -10,7 +10,7 @@
 //!
 //! ```
 //! use ctl_core::document::{Document, Fields};
-//! use ctl_core::view::{JsonLayout, Present, Stream, View};
+//! use ctl_core::view::{Destination, JsonLayout, Present, View};
 //! use ctl_core::{ColorMode, OutputFormat};
 //! use serde::Serialize;
 //!
@@ -29,7 +29,7 @@
 //! let json = View::new(OutputFormat::Json, ColorMode::Never)
 //!     .json_layout(JsonLayout::Pretty)
 //!     .capture(&status)?;
-//! assert_eq!(json.stream(), Stream::Stdout);
+//! assert_eq!(json.stream(), Destination::Stdout);
 //! assert!(json.text().contains("\"pending\": 2"));
 //!
 //! let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
@@ -55,8 +55,9 @@ use crate::theme::Theme;
 /// has not: `CTL_CORE_JSON_LAYOUT`. Its values are the [`JsonLayout`] names
 /// `pretty`, `compact`, and `pretty-on-terminal`.
 pub const DEFAULT_JSON_LAYOUT_ENV: &str = "CTL_CORE_JSON_LAYOUT";
-/// The ordered list of variables [`View::layout`] reads, holding only
-/// [`DEFAULT_JSON_LAYOUT_ENV`]. [`View::json_layout_envs`] replaces it.
+/// The ordered list of variables [`View::resolved_json_layout`] reads,
+/// holding only [`DEFAULT_JSON_LAYOUT_ENV`]. [`View::json_layout_envs`]
+/// replaces it.
 pub const DEFAULT_JSON_LAYOUT_ENVS: &[&str] = &[DEFAULT_JSON_LAYOUT_ENV];
 
 /// A command result that serializes for machines and presents itself to people.
@@ -147,7 +148,7 @@ impl Captured {
     }
 
     /// The rendered text as UTF-8 bytes. It is empty when the stream is
-    /// [`Stream::None`].
+    /// [`Destination::None`].
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         self.content.as_bytes()
@@ -383,11 +384,11 @@ impl View {
     /// Render `value` without writing it. Tests and alternate transports use
     /// this path.
     ///
-    /// JSON output is `value` serialized in the [`Self::layout`], for stdout.
-    /// Pretty output is rendered as [`Self::show`] would write it. Colour and
-    /// width are decided for the stream [`Captured::stream`] names, from the
-    /// colour mode, the process environment, and whether that stream is a
-    /// terminal.
+    /// JSON output is `value` serialized in the layout
+    /// [`Self::resolved_json_layout`] returns, for stdout. Pretty output is
+    /// rendered as [`Self::show`] would write it. Colour and width are decided
+    /// for the stream [`Captured::stream`] names, from the colour mode, the
+    /// process environment, and whether that stream is a terminal.
     ///
     /// # Errors
     ///

@@ -30,8 +30,7 @@ impl<'a> Stack<'a> {
         self
     }
 
-    /// Adds `child` below the others. Use [`push_boxed`](Self::push_boxed)
-    /// when the child is already a `Box<dyn Renderable>`.
+    /// Adds `child` below the others.
     #[must_use]
     pub fn push(mut self, child: impl Renderable + 'a) -> Self {
         self.children.push(Box::new(child));
