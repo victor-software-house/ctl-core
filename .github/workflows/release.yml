@@ -16,14 +16,15 @@ jobs:
     permissions:
       contents: write # tags, Releases, and verctl/release/main without the App
       pull-requests: write # the Version PR without the App
-      id-token: write # crates.io trusted publishing
     uses: victor-software-house/verctl/.github/workflows/release.yml@cb1be28d654781dfe77fc565ee34276c09550438 # v0.7.4
     with:
       mise-version: 2026.10.25
       mise-env: ci,release
-      crates-io-trusted-publishing: true
     # The App token opens the Version PR so that its CI starts; a PR opened
     # with GITHUB_TOKEN starts no workflow.
+    # The first publish of ctl-text, ctl-layout and ctl-term uses the API
+    # token, because crates.io trusted publishing cannot create a crate.
     secrets:
+      registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       app-client-id: ${{ secrets.CHANGESET_VERSION_APP_CLIENT_ID }}
       app-private-key: ${{ secrets.CHANGESET_VERSION_APP_PRIVATE_KEY }}
