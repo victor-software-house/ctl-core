@@ -4,7 +4,7 @@
 //! sees, for generated documentation files and the tests that compare them
 //! with the CLI. It holds the binary name, the mise task name, every command
 //! and alias, every argument, the Usage KDL, and the `#USAGE mount` line (see
-//! [`usage`](crate::usage)).
+//! [`usage`]).
 //!
 //! The `surface-model` feature builds a [`Surface`]. `surface-serde` adds
 //! serialization. `surface-templates` adds the shared `minijinja` fragments
