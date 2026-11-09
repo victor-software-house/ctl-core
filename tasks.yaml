@@ -185,6 +185,20 @@ horizon:
       - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
+  - id: CTC-046
+    title: Keep the shell_init bash tests off the system bashrc
+    scope: ctl-core/tests/shell_init.rs
+    outcome: >-
+      The three bash hook tests pass under a bash whose system rc file resets PATH,
+      as NixOS bash does.
+    notes:
+      - 2026-11-09, a NixOS Linux VM showed that /etc/bashrc sources /etc/profile in an empty environment and drops the test's bin directory from PATH.
+    completed: 2026-11-09T13:08:35
+    evidence:
+      - '2026-11-09, on a NixOS Linux VM with bash 5.3.20: at main b9975fc the three bash hook tests in shell_init failed; with 0ae61ab all 14 shell_init tests passed.'
+      - 2026-11-09, mise run test passed on the same VM with 0ae61ab.
+    disposition: completed
+
   - id: CTC-045
     title: Lock the public API before 0.7.0
     scope: "ctl-core: document, format, model, input, served, flags, completion, shell_init, view, surface"

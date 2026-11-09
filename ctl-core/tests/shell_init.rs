@@ -228,6 +228,12 @@ fn startup_function(shell: Shell, setup: Setup) -> String {
 /// Write `shell`'s startup file under `root`, with `function` and two loads
 /// of the script, and return the command that starts the shell on it with
 /// an empty environment.
+///
+/// bash keeps its system rc file under `--rcfile`, and only `--norc` drops
+/// it, which drops the test's rc file too. A system rc file can reset `PATH`:
+/// NixOS's `/etc/bashrc` sources `/etc/profile` when the environment is
+/// empty, which removes the fake binary's directory. `NOSYSBASHRC` makes that
+/// file return at once, and bash builds that read no system rc file ignore it.
 fn shell_command(
     shell: Shell,
     root: &Root<'_>,
@@ -253,6 +259,7 @@ fn shell_command(
             );
             Command::new("bash")
                 .env_clear()
+                .env("NOSYSBASHRC", "1")
                 .arg("--noprofile")
                 .arg("--rcfile")
                 .arg(rc)
