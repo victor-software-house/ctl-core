@@ -16,17 +16,17 @@
 └──┴───────────┴───────────────────────┴───────────────────────────────────────┘
 
 \u{1b}[1m\u{1b}[36mOutput\u{1b}[0m
-┌────┬────────────┬─────────────────────┬─────────────────────────────────────┐
-│ \u{1b}[1m\u{1b}[32m-f\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--format\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[33m[pretty|json]\u{1b}[0m       ┆ Output representation \u{1b}[90m[default:\u{1b}[0m     │
-│    ┆            ┆                     ┆ \u{1b}[90mpretty]\u{1b}[0m \u{1b}[90m[env: LEDGERCTL_FORMAT]\u{1b}[0m     │
-│ \u{1b}[1m\u{1b}[32m-c\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--color\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[33m[auto|always|never]\u{1b}[0m ┆ Pretty-output color policy. JSON    │
-│    ┆            ┆                     ┆ never contains ANSI \u{1b}[90m[default: auto]\u{1b}[0m │
-│    ┆            ┆                     ┆ \u{1b}[90m[env: LEDGERCTL_COLOR]\u{1b}[0m              │
-│    ┆ \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m ┆                     ┆ Force colorless pretty output. Wins │
-│    ┆            ┆                     ┆ over `--color`                      │
-│ \u{1b}[1m\u{1b}[32m-q\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--quiet\u{1b}[0m    ┆                     ┆ Suppress successful pretty output   │
-│    ┆            ┆                     ┆ \u{1b}[90m[env: LEDGERCTL_QUIET]\u{1b}[0m              │
-└────┴────────────┴─────────────────────┴─────────────────────────────────────┘
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
+│ \u{1b}[1m\u{1b}[32m-f\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--format\u{1b}[0m   ┆ \u{1b}[1m\u{1b}[33m[pretty|json]\u{1b}[0m       ┆ Output representation \u{1b}[90m[default:\u{1b}[0m      │
+│    ┆            ┆                     ┆ \u{1b}[90mpretty]\u{1b}[0m \u{1b}[90m[env: LEDGERCTL_FORMAT]\u{1b}[0m      │
+│ \u{1b}[1m\u{1b}[32m-c\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--color\u{1b}[0m    ┆ \u{1b}[1m\u{1b}[33m[auto|always|never]\u{1b}[0m ┆ Pretty-output colour policy. JSON    │
+│    ┆            ┆                     ┆ never contains ANSI \u{1b}[90m[default: auto]\u{1b}[0m  │
+│    ┆            ┆                     ┆ \u{1b}[90m[env: LEDGERCTL_COLOR]\u{1b}[0m               │
+│    ┆ \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m ┆                     ┆ Force colourless pretty output. Wins │
+│    ┆            ┆                     ┆ over `--color`                       │
+│ \u{1b}[1m\u{1b}[32m-q\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--quiet\u{1b}[0m    ┆                     ┆ Suppress successful pretty output    │
+│    ┆            ┆                     ┆ \u{1b}[90m[env: LEDGERCTL_QUIET]\u{1b}[0m               │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
 
 \u{1b}[1m\u{1b}[36mHelp\u{1b}[0m
 ┌────┬────────┬──┬─────────────────────────────────────┐
