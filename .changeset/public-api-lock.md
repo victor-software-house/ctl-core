@@ -25,4 +25,4 @@ Each break and its migration:
 - `EnvPrefix` is sealed. `#[command(env_prefix = "...")]` works as before, and no type outside ctl-core can implement the trait.
 
 `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, `FlagClash`, and `Shell` stay exhaustive.
-The rustdoc of each one holds the reason its set is closed.
+Each one's rustdoc holds one sentence on why its set is closed.
