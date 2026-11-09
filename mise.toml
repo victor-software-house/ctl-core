@@ -59,12 +59,31 @@ depends = [
   "test:input-toml",
   "test:doc",
   "doc",
+  "doc:default-features",
+  "doc:no-default-features",
   "check:docs",
   "deny",
   "deps",
   "check:versions",
   "check:repo",
 ]
+
+# The shared doc task builds every feature, so an intra-doc link to an item
+# behind a feature resolves there even when a crate's own feature set lacks
+# it. These two build each crate with its default features and with none.
+# --workspace unifies features across the members, which adds none here:
+# ctl-core's defaults ask ctl-term only for detect, its own default, and
+# ctl-core without features depends on no member. They use doc's target
+# directory, so the three builds take turns on one lock.
+[tasks."doc:default-features"]
+description = "rustdoc for every crate with its default features, warnings denied"
+run = 'cargo +${RUST_NIGHTLY} doc --no-deps --workspace --locked'
+env = { RUSTDOCFLAGS = "--cfg docsrs -D warnings", CARGO_TARGET_DIR = "target/rustdoc" }
+
+[tasks."doc:no-default-features"]
+description = "rustdoc for every crate without its default features, warnings denied"
+run = 'cargo +${RUST_NIGHTLY} doc --no-deps --workspace --no-default-features --locked'
+env = { RUSTDOCFLAGS = "--cfg docsrs -D warnings", CARGO_TARGET_DIR = "target/rustdoc" }
 
 # Prose habits from the prose-style package; .vale.ini picks the files. `vale
 # sync` fetches the package named there, so the first run needs the network.
