@@ -125,6 +125,18 @@ queue:
       - Filed 2026-11-08 by operator decision, before 0.7.0.
       - "2026-11-09, the annotate-snippets cut stopped: serde-saphyr's deserialize_str calls Display on its own Error, so deserialize reaches the snippet renderer whatever ctl-core does (size-cuts task 5.3)."
       - 2026-11-09, the operator chose a public serde-saphyr fork kept with forkctl and published on crates.io as vsh-serde-saphyr, library name serde_saphyr unchanged; once it is out, ctl-core takes it through package = and the 5.3 cut resumes.
+
+  - id: CTC-042
+    title: Measure a non-generic copy of the help subcommand tree
+    scope: "ctl-core: parser"
+    outcome: The help subcommand ctl-core declares costs no more .text than it needs.
+    blocked_by: []
+    acceptance:
+      - The help-subcommand copy's size is measured, and the cheaper form is kept.
+    notes:
+      - '2026-11-09, in rawr the copy cost 1,644 bytes of .text: Command::subcommands over copy_for_help, 1,229, and Vec<Command>::from_iter, 415.'
+      - A loop that pushes each copy, with no generic iterator, may cost less. Nobody has measured it.
+      - Design decision 16 of terminal-render-engine holds the attribution.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker

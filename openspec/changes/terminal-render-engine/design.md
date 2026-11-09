@@ -804,9 +804,24 @@ What each step moved, in `.text` bytes:
    clap's defaults back on. It is now -54,160 bytes. Each consumer makes
    that cut in its own `Cargo.toml`.
 3. rawr uses neither `usage` nor `input`, so the cuts had nothing to remove
-   from it. Its +7,040 was not attributed. The size gate's `app` tier grew
-   2,320 bytes over the same range, from the help flag and subcommand
-   ctl-core now declares.
+   from it. Its +7,040 is the `-h/--help` flag and `help` subcommand
+   ctl-core now declares. rawr keeps clap's defaults, so clap's own help
+   code stays linked beside them.
+
+   cargo-bloat 0.12.1 compared unstripped B and C builds, made the same
+   way. Functions grew by 7,028 bytes:
+   - [`with_help_below`][with-help-below], new: 4,506.
+   - The `help` subcommand's copy of the subcommand tree
+     ([`copy_for_help`][copy-for-help]): `Command::subcommands`, 1,229, and
+     `Vec<Command>::from_iter`, 415.
+   - `App::run_from` +512, and `shows_long_help`, new: 318.
+   - `help::emit_selected` +32, and `App::clap_error` +16.
+
+   Every other crate is unchanged, and the dependency tree is the same.
+   With clap's defaults off, build D, rawr drops clap's help code and
+   80,672 bytes. ctl-core cannot avoid its share without clap's `help`
+   feature, which the cuts removed. [CTC-042][ledger] measures a
+   non-generic copy of the tree.
 4. annotate-snippets stays in qctl, for the reason item 3 gives.
 
 The engine itself stays: its three crates cost what the crates they replaced
@@ -1015,6 +1030,8 @@ compatibility path for comfy-table.
 [ci-4bc7862]: https://github.com/victor-software-house/ctl-core/actions/runs/42577032966
 [size-cuts]: ../size-cuts/design.md
 [size-cuts-53]: ../size-cuts/tasks.md#5-annotate-snippets
+[with-help-below]: https://github.com/victor-software-house/ctl-core/blob/4bc7862089fc4a4956f69ea42c169cd033f1a9f5/ctl-core/src/parser.rs#L182
+[copy-for-help]: https://github.com/victor-software-house/ctl-core/blob/4bc7862089fc4a4956f69ea42c169cd033f1a9f5/ctl-core/src/parser.rs#L237
 [verctl-head]: https://github.com/victor-software-house/verctl/tree/d087741fd60190757141761eb8410a1a73875c53
 [qctl-head]: https://github.com/victor-software-house/qctl/tree/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [forkctl-head]: https://github.com/victor-software-house/forkctl/tree/7b987070f9069842c2e9afdd17fca28353b81bc5
