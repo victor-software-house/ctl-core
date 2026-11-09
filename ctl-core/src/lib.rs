@@ -1,17 +1,18 @@
-//! Shared clap chassis and presentation kernel for the `*ctl` CLIs. A
-//! library, not a command.
+//! A framework for command-line programs built on clap. A library, not a
+//! command.
 //!
-//! A consumer owns typed domain requests and results. ctl-core owns parsing,
-//! help, Usage mounts, color policy, terminal layout, streams, errors, and
-//! JSON emission. One serializable result feeds pretty, colorless, and JSON
-//! output.
+//! A program declares its arguments with clap's derive macros and writes a
+//! handler that returns a typed result. ctl-core parses the arguments, prints
+//! help, and writes the result as terminal text or as JSON. It also supplies
+//! the shared flags, colour policy, error output, and exit codes. One
+//! serializable result feeds the pretty, colourless, and JSON output.
 //!
 //! ## Where to start
 //!
 //! - [`App`] runs a CLI: it parses argv, calls your handler, and writes the
 //!   result or the error. [`prelude`] is the one import a binary needs.
 //! - [`Present`] maps a serializable result to a [`Document`]. [`View`] writes
-//!   it as pretty text, colorless text, or JSON.
+//!   it as pretty text, colourless text, or JSON.
 //! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
 //!   [`Table`]s, [`Section`]s, and [`Notice`]s. It has no layout in it.
 //! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
@@ -22,6 +23,15 @@
 //! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
 //!
 //! ## Quick start
+//!
+//! The derive macros expand to paths in `clap` and `serde`, so a program
+//! depends on both itself, each with its `derive` feature:
+//!
+//! ```text
+//! cargo add ctl-core
+//! cargo add clap --no-default-features --features std,derive
+//! cargo add serde --features derive
+//! ```
 //!
 //! ```no_run
 //! use ctl_core::prelude::*;
@@ -68,26 +78,26 @@
 //!
 //! ```text
 //! Clap types ──→ App ──→ typed domain result ──┬──→ JSON
-//!                                              └──→ Document ──→ pretty/colorless
+//!                                              └──→ Document ──→ pretty/colourless
 //! ```
 //!
 //! - Domain handlers return data. They do not print, read terminal state, or
 //!   choose the output format.
 //! - [`Present`] maps a serializable result to a semantic [`Document`].
 //! - [`View`] serializes the result for JSON and renders its document for
-//!   pretty and colorless output.
+//!   pretty and colourless output.
 //! - JSON always goes to stdout and never contains ANSI. Human failures go to
 //!   stderr.
 //! - A reader that closes stdout early, such as `head -1`, does not change the
 //!   exit code. A command that succeeded exits 0, and a failure keeps its code.
 //!   [`App::broken_pipe`] can make every closed pipe a failure.
 //!
-//! [`prelude`] is the one import a `*ctl` binary needs.
+//! [`prelude`] is the one import a program's `main.rs` needs.
 //!
 //! ## The rendering engine
 //!
-//! A [`Document`] renders through three crates of this workspace, which a
-//! CLI can also use directly through the re-exports [`text`], [`layout`], and
+//! A [`Document`] renders through three companion crates, which a CLI can also
+//! use directly through the re-exports [`text`], [`layout`], and
 //! [`term`] (`term` with `view` or `help`):
 //!
 //! - `ctl-text`: styled spans, lines, and text, with widths counted in terminal
@@ -101,8 +111,8 @@
 //!   sequence is written.
 //!
 //! A [`Theme`] maps each [`Role`] to a style on the way from the document to
-//! the widgets. `ctl_core::Text` holds roles and `ctl_core::text::Text` holds
-//! styles; the second is reached only through the [`text`] module.
+//! the widgets. [`document::Text`] holds roles and [`text::Text`] holds
+//! styles.
 //!
 //! ## Cargo features
 //!

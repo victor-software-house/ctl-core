@@ -1,7 +1,7 @@
-//! The parser contract every ctl CLI keeps: `-h` / `--help` and `-V` /
-//! `--version` stay on, and a repeated flag takes its last value.
+//! The parser rules every CLI built on ctl-core keeps: `-h` / `--help` and `-V`
+//! / `--version` stay on, and a repeated flag takes its last value.
 //!
-//! [`apply_defaults`] sets that contract on a Clap command, and [`verify`] is
+//! [`apply_defaults`] sets those rules on a Clap command, and [`verify`] is
 //! the test a CLI runs over its own parser.
 //!
 //! ```
@@ -90,7 +90,7 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
     command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
 }
 
-/// Apply the `*ctl` parser contract to a Clap command and return it.
+/// Apply ctl-core's parser rules to a Clap command and return it.
 ///
 /// `-h/--help` and `-V/--version` stay on. Repeated flags take the last value
 /// (`args_override_self`), and [`crate::flags::chassis_warnings`] still
@@ -100,7 +100,7 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
 /// # Panics
 ///
 /// Panics if `command` disabled the help or version flag. ctl-core owns
-/// `-h`/`--help` and `-V`/`--version`, so a consumer never turns them off.
+/// `-h`/`--help` and `-V`/`--version`, so the CLI never turns them off.
 #[must_use]
 pub fn apply_defaults(command: Command) -> Command {
     assert_help_enabled(&command);
@@ -110,15 +110,16 @@ pub fn apply_defaults(command: Command) -> Command {
         .disable_version_flag(false)
 }
 
-/// Check a CLI's parser: Clap's recommended `Command::debug_assert` plus the
-/// help-flag contract.
+/// Check a CLI's parser: Clap's recommended `Command::debug_assert`, and that
+/// help and version stay on.
 ///
 /// Call it from a unit test, so a mistake in the Clap types fails the test
 /// suite and not a user's first run.
 ///
 /// # Panics
 ///
-/// Panics if help or version flags were disabled.
+/// Panics when Clap's `debug_assert` finds an invalid command definition, or
+/// when the command disables `-h/--help` or `-V/--version`.
 pub fn verify<C: clap::CommandFactory>() {
     C::command().debug_assert();
     assert_help_enabled(&C::command());

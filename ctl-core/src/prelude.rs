@@ -1,14 +1,19 @@
-//! One import for a `*ctl` binary's `main.rs`.
+//! One import for a program's `main.rs`.
 //!
-//! The prelude re-exports the flat surface a binary needs:
+//! The prelude re-exports what a binary needs:
 //!
 //! - [`App`] and the [`Present`] trait;
 //! - the document builders and the shared flags;
 //! - the render and view options, and the `indoc` macros;
-//! - Clap's `Parser`, `Args`, and `Subcommand`, and [`ExitCode`].
+//! - clap's `Parser`, `Args`, and `Subcommand` traits, and [`ExitCode`].
 //!
 //! Each group needs the feature that builds it, so a narrow feature set gets a
 //! smaller prelude.
+//!
+//! The prelude does not bring clap's derive macros along. They expand to
+//! `clap::` paths, and `#[derive(Serialize)]` to `serde::` paths, so a program
+//! depends on `clap` and `serde` itself, each with its `derive` feature, as the
+//! [crate quick start](crate#quick-start) shows.
 //!
 //! ```no_run
 //! use ctl_core::prelude::*;

@@ -1,10 +1,11 @@
 //! Mise Usage spec from a clap [`Command`].
 //!
-//! One hidden flag, one mount line, one operator form. A consumer declares
-//! `--usage-spec[=BIN]` as a hidden flag with `require_equals`. The served
-//! mise task carries [`mount_directives`], which ends with [`mount_line`].
-//! Operators then run `mise run q status` with no `--`. The `--` in the mount
-//! is only the completion bootstrap, as mise documents.
+//! A CLI declares `--usage-spec[=BIN]` as a hidden flag with
+//! `require_equals`. A mise file task that runs the CLI carries
+//! [`mount_directives`], which end with [`mount_line`]: a `#USAGE mount`
+//! line, from which mise asks the CLI for its spec. A user then runs
+//! `mise run toy status` with no `--`. The `--` in the mount line is only how
+//! mise fetches the spec, as mise documents.
 //!
 //! [`App::mounted_as`](crate::App::mounted_as) answers the request for an
 //! [`App`](crate::App), and [`take`] does the same for a binary without one.
@@ -19,8 +20,8 @@ use crate::formatdoc;
 
 /// Render the Usage KDL spec of `command` as a mise task named `bin`.
 ///
-/// Both the spec's `name` and `bin` are set to `bin`, so mise shows the
-/// mounted task name and not the real binary name.
+/// Both the spec's `name` and `bin` are set to `bin`, so mise shows the task
+/// name and not the real binary name.
 #[must_use]
 pub fn spec(mut command: Command, bin: &str) -> String {
     command.set_bin_name(bin);
@@ -30,7 +31,7 @@ pub fn spec(mut command: Command, bin: &str) -> String {
     spec.to_string()
 }
 
-/// The `#USAGE mount` line a served mise file task carries for the task named
+/// The `#USAGE mount` line a mise file task carries for the task named
 /// `task`.
 ///
 /// The line runs `mise run --quiet <task> -- --usage-spec=<task>`. That
@@ -40,7 +41,7 @@ pub fn mount_line(task: &str) -> String {
     formatdoc! {r#"#USAGE mount "mise run --quiet {task} -- --usage-spec={task}""#}
 }
 
-/// The mise directives a served CLI-proxy task carries for the task named
+/// The mise directives a file task that runs a CLI carries for the task named
 /// `task`, ending with [`mount_line`].
 ///
 /// - `raw_args` passes argv through untouched.
@@ -82,9 +83,9 @@ pub fn take<C: clap::CommandFactory>(default_bin: &str) -> Option<ExitCode> {
 /// Read `--usage-spec` or `--usage-spec=BIN` from `args`, which exclude the
 /// program name.
 ///
-/// Returns the mounted binary name: `BIN`, or `default_bin` for a bare flag or
-/// an empty `BIN`. Scanning stops at `--`, so an argument after it never
-/// counts.
+/// Returns the task name the spec is for: `BIN`, or `default_bin` for a bare
+/// flag or an empty `BIN`. Scanning stops at `--`, so an argument after it
+/// never counts.
 #[must_use]
 pub fn spec_bin(
     args: impl IntoIterator<Item = impl AsRef<str>>,

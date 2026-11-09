@@ -1,4 +1,5 @@
-//! The flags every ctl CLI shares, as Clap structs to flatten into a parser.
+//! The flags every CLI built on ctl-core shares, as Clap structs to flatten
+//! into a parser.
 //!
 //! - [`OutputArgs`] adds `-f/--format`, `-c/--color`, `--no-color`, and
 //!   `-q/--quiet`. [`FormatArgs`], [`FormatLong`], and [`ColorLong`] are the
@@ -10,8 +11,9 @@
 //!
 //! ```
 //! use clap::Parser;
+//! use ctl_core::color::ColorMode;
 //! use ctl_core::flags::OutputArgs;
-//! use ctl_core::{ColorMode, OutputFormat};
+//! use ctl_core::format::OutputFormat;
 //!
 //! #[derive(Parser)]
 //! struct Cli {
@@ -45,9 +47,12 @@ pub fn resolve_color(color: ColorMode, no_color: bool) -> ColorMode {
     if no_color { ColorMode::Never } else { color }
 }
 
-/// Last-wins boolean after clap `overrides_with`. `on` is the yes flag.
+/// The value of a `--x`/`--no-x` pair declared with Clap's `overrides_with`
+/// both ways: `on`, the `--x` flag, returned unchanged.
 ///
-/// Clap clears the flag that lost, so `on` already holds the answer.
+/// Clap clears the flag that came first, so `on` already holds the answer.
+/// The call names that rule at the call site, so a reader does not look for
+/// a missing check of `--no-x`.
 #[must_use]
 pub fn switch(on: bool) -> bool {
     on

@@ -1,7 +1,9 @@
-//! The JSON envelope types. A view serializes a result as is; the envelope
-//! wraps a payload for a consumer that wants a status and a schema version.
+//! The JSON envelope types. A view serializes a result as is. The envelope
+//! wraps a success or a failure for a reader that wants a status and a schema
+//! version: [`Envelope::Ok`] holds a result, and [`Envelope::Err`] holds an
+//! [`ErrorBody`].
 //!
-//! `View::emit_err` writes an [`Envelope::Err`] for a failure with no model.
+//! `View::emit_err` writes an `Envelope::Err` for a failure with no model.
 //! The types serialize with the `json` feature and describe themselves with
 //! `schema`.
 //!
@@ -19,7 +21,7 @@
 //! ```
 
 /// The envelope shape version, written to every envelope as `schema_version`.
-/// Bump it when the envelope shape changes.
+/// ctl-core raises it when the envelope shape changes.
 pub const SCHEMA_VERSION: u32 = 1;
 
 /// Hosts `JsonSchema`. schemars expands `concat!`; this module is the allow.
@@ -59,7 +61,7 @@ mod data {
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub struct ErrorBody {
-        /// The name of the binary that failed, such as `qctl`.
+        /// The name of the binary that failed, such as `toy`.
         pub bin: String,
         /// The message to show. Format an `anyhow` error with `{error:#}` to
         /// include its whole chain.

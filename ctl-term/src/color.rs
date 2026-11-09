@@ -11,6 +11,9 @@ use crate::palette::{ansi256_to_ansi16, rgb_to_ansi16, rgb_to_ansi256};
 /// `CLICOLOR_FORCE`, `FORCE_COLOR`, and `TERM=dumb`, and ask no stream. The
 /// depth and the width still follow their variables. [`Auto`](Self::Auto)
 /// follows the order in the Colour section of the [crate docs](crate).
+///
+/// ctl-core's own `ColorMode`, which its `--color` flag parses to, converts
+/// into this type with `From`.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum ColorMode {

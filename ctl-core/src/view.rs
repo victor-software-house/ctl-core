@@ -1,4 +1,4 @@
-//! Pretty, colorless, and JSON output from one typed model.
+//! Pretty, colourless, and JSON output from one typed model.
 //!
 //! A command result implements [`Present`]: it serializes for JSON and builds
 //! a [`Document`] for people. A [`View`] holds the output format, the colour
@@ -9,9 +9,10 @@
 //! goes to stdout. JSON never contains ANSI whatever the colour mode says.
 //!
 //! ```
+//! use ctl_core::color::ColorMode;
 //! use ctl_core::document::{Document, Fields};
+//! use ctl_core::format::OutputFormat;
 //! use ctl_core::view::{Destination, JsonLayout, Present, View};
-//! use ctl_core::{ColorMode, OutputFormat};
 //! use serde::Serialize;
 //!
 //! #[derive(Serialize)]
@@ -51,8 +52,8 @@ use crate::model::{Envelope, ErrorBody};
 use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
 use crate::theme::Theme;
 
-/// The environment variable that sets the JSON layout when the library owner
-/// has not: `CTL_CORE_JSON_LAYOUT`. Its values are the [`JsonLayout`] names
+/// The environment variable that sets the JSON layout when the CLI has not:
+/// `CTL_CORE_JSON_LAYOUT`. Its values are the [`JsonLayout`] names
 /// `pretty`, `compact`, and `pretty-on-terminal`.
 pub const DEFAULT_JSON_LAYOUT_ENV: &str = "CTL_CORE_JSON_LAYOUT";
 /// The ordered list of variables [`View::resolved_json_layout`] reads,
@@ -62,7 +63,7 @@ pub const DEFAULT_JSON_LAYOUT_ENVS: &[&str] = &[DEFAULT_JSON_LAYOUT_ENV];
 
 /// A command result that serializes for machines and presents itself to people.
 ///
-/// JSON output is `self` serialized as is. Pretty and colorless output is the
+/// JSON output is `self` serialized as is. Pretty and colourless output is the
 /// [`Document`] that [`Self::present`] builds. The two share one value, so they
 /// cannot drift apart.
 pub trait Present: Serialize {
@@ -115,9 +116,8 @@ impl MessageKind {
 
 /// Where a view sends rendered output.
 ///
-/// It is not [`ctl_term::Stream`](crate::term::Stream): that one names a
-/// stream colour and width are decided for, and this one also names no
-/// output at all.
+/// [`ctl_term::Stream`](crate::term::Stream) names the stream that colour
+/// and width are decided for. A destination can also be no output at all.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Destination {
     /// No output, used for quiet successful pretty output.
@@ -254,7 +254,7 @@ impl View {
         self
     }
 
-    /// JSON layout: the owner's choice, then the environment, then the
+    /// JSON layout: the CLI's choice, then the environment, then the
     /// default. It reads the process environment.
     #[must_use]
     pub fn resolved_json_layout(self) -> JsonLayout {
