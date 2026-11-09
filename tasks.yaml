@@ -87,26 +87,6 @@ queue:
       - "2026-11-07, operator, while adding rows to a private repository's queue with long qctl flag lists: qctl should take nicer input formats, such as JSON or from files; that is partly or even mostly a ctl-core thing; we need to support JSON inputs and from files, the same way as multiple output formats are."
       - CTC-008 owns the declared-input layer for config files; this row extends input to command arguments.
       - 2026-11-09, it ships as a patch after 0.7.0 (operator).
-
-  - id: CTC-045
-    title: Lock the public API before 0.7.0
-    scope: "ctl-core: document, format, model, input, served, flags, completion, shell_init, view, surface"
-    outcome: >-
-      Every ctl-core type that can grow does so in a minor release, and every set
-      that cannot grow says why.
-    blocked_by: []
-    acceptance:
-      - 'Block, OutputFormat, and NoticeLevel are #[non_exhaustive].'
-      - 'ErrorBody, FlagWarning, Surface, SurfaceCommand, SurfaceArgument, both Envelope variants, and the flattened clap Args structs are #[non_exhaustive].'
-      - View reads its format and quiet setting through format() and is_quiet().
-      - EnvPrefix is sealed at its public path.
-      - Each closed enum that stays exhaustive says in its rustdoc why its set is closed.
-      - 'InputError and ServeError are #[non_exhaustive] and return the io::ErrorKind of an I/O failure from io_failure(), still deriving Clone and Eq.'
-      - OutputArgs and ColorLong read their colour flags only through color().
-      - 'A ctl-core: minor changeset lists each break and its migration, and cargo-semver-checks against the previous main reports no break it leaves out.'
-    plan: openspec/changes/lock-public-api/proposal.md
-    notes:
-      - 2026-11-09, the operator approved the list of breaks for 0.7.0.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
@@ -205,6 +185,20 @@ horizon:
       - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
+  - id: CTC-045
+    title: Lock the public API before 0.7.0
+    scope: "ctl-core: document, format, model, input, served, flags, completion, shell_init, view, surface"
+    outcome: >-
+      Every ctl-core type that can grow does so in a minor release, and every set
+      that cannot grow says why.
+    plan: openspec/changes/archive/2026-11-09-lock-public-api/proposal.md
+    notes:
+      - 2026-11-09, the operator approved the list of breaks for 0.7.0.
+    completed: 2026-11-09T12:52:08
+    evidence:
+      - openspec/changes/archive/2026-11-09-lock-public-api/
+    disposition: completed
+
   - id: CTC-044
     title: Rename the public names that say kind
     scope: "ctl-core: flags/warn.rs, view.rs, prelude"

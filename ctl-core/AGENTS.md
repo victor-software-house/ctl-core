@@ -78,7 +78,7 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
   This covers the envelope types, `FlagWarning`, the `Surface` types, both error types, and every clap `Args` struct a CLI flattens.
 - A field whose meaning depends on another field stays private behind one reader.
   `OutputArgs::color()` and `ColorLong::color()` combine `--color` with `--no-color`; `View::format()` and `View::is_quiet()` read the view.
-- An error caused by an I/O failure keeps its `io::ErrorKind`, read through `io_failure()`, and stays `Clone` and `Eq` ([design](../openspec/changes/lock-public-api/design.md#1-an-error-keeps-the-ioerrorkind-not-the-ioerror)).
+- An error caused by an I/O failure keeps its `io::ErrorKind`, read through `io_failure()`, and stays `Clone` and `Eq` ([design](../openspec/changes/archive/2026-11-09-lock-public-api/design.md#1-an-error-keeps-the-ioerrorkind-not-the-ioerror)).
 - A trait that only ctl-core implements is sealed by a private supertrait, as `EnvPrefix` is.
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
   CI runs `mise run semver` against the last release before packaging.

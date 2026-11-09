@@ -77,5 +77,5 @@ The trait keeps its path, `ctl_core::flags::EnvPrefix`, and the prelude export, 
 2. cargo-semver-checks reports each break.
    The `minor` bump allows them while the workspace is below 1.0.
 
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml
 [c-good-err]: https://rust-lang.github.io/api-guidelines/interoperability.html#error-types-are-meaningful-and-well-behaved-c-good-err
