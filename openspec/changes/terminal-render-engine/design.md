@@ -735,24 +735,79 @@ of ctl-core's `usage` feature (verctl, qctl and forkctl) carries clap's
 `color`, `help`, `suggestions`, `error-context` and `usage`, whatever the
 consumer requests.
 
-What ctl-core could cut, measured and not changed:
+What ctl-core could cut, as measured on 2026-11-08, and what the
+[size cuts change][size-cuts] did with each:
 
 1. **usage-lib's clap defaults.** rawr shows their cost: 60,808 bytes, 6.4%
    of its `__text`. For a consumer with `usage`, the cut needs usage-lib to
    take clap with `default-features = false`. The other way is for ctl-core
    to build its spec without usage-lib's `clap` feature. A consumer's own
    clap needs the same setting, as the crate's quick start says.
+   - Cut: usage-lib is gone, and nothing in ctl-core turns clap's
+     defaults on.
 2. **The `usage` feature itself.** In qctl, kdl (117,572), usage-lib
    (108,540) and winnow (43,436) come to 269,548 bytes, 4.9% of its
    `__text`. Their job is to print one Usage spec for mise. Writing the KDL
    text straight from the clap command would drop all three.
+   - Cut: ctl-core writes the KDL itself.
 3. **annotate-snippets** (103,692 in qctl) comes with serde-saphyr's
    `deserialize` feature ([serde-saphyr Cargo.toml][serde-saphyr-toml]),
-   which ctl-core's `input` needs. ctl-core places its errors through
-   yamled, but LTO keeps annotate-snippets, so some path still reaches it;
-   which path was not checked.
+   which ctl-core's `input` needs.
+   - Not cut: serde-saphyr's own `deserialize_str` formats its error to
+     read it. That reaches the renderer whatever ctl-core does
+     ([size cuts task 5.3][size-cuts-53]).
 4. **The largest ctl-core symbol**, the closure in `Renderer::widget`, takes
    9,328 bytes in qctl.
+
+After the size cuts, qctl and rawr were measured again on 2026-11-09
+(UTC). The host was linux-x64, so these numbers do not compare with the
+darwin-arm64 tables above:
+
+- The host was an AMD Ryzen 9 9950X with NixOS 26.11 installed.
+  - Each consumer's `rust-toolchain.toml` picked rustc 1.99.1 for its
+    builds.
+  - Only CPUs 0 to 19 ran them.
+- Each consumer is at the head named above, built with its own release
+  profile, which strips. `nm --defined-only` lists no symbol in any binary.
+- File size is `stat -c %s`, and `.text` is binutils' `size -A`.
+- Built packages are the distinct name and version pairs of
+  `cargo tree -e normal,build --target x86_64-unknown-linux-gnu`.
+
+Four builds of each:
+
+- A: as committed.
+- B: patched to [a1e2d43], `main` before the size cuts, which CI verified
+  in [run 42553507748][ci-a1e2d43].
+- C: patched to [4bc7862], `main` with them, which CI verified in
+  [run 42577032966][ci-4bc7862]. qctl's lock also takes the serde-saphyr
+  release ctl-core now requires. rawr has no serde-saphyr.
+- D: as C, with the consumer's own clap set to `default-features = false`
+  (`std`, `derive`, and `env` for qctl).
+
+| Build | qctl file | qctl `.text` | qctl lock, built | rawr file | rawr `.text` | rawr lock, built |
+|:--|--:|--:|--:|--:|--:|--:|
+| A | 5,634,296 | 3,999,862 | 219, 168 | 1,482,120 | 1,141,190 | 121, 95 |
+| B | 5,614,744 | 3,981,558 | 212, 163 | 1,431,600 | 1,142,918 | 115, 90 |
+| C | 5,327,736 | 3,713,654 | 197, 147 | 1,439,008 | 1,149,958 | 115, 90 |
+| D | 5,261,440 | 3,659,494 | 188, 140 | 1,347,528 | 1,069,286 | 107, 84 |
+
+What each step moved, in `.text` bytes:
+
+| Step | qctl | rawr |
+|:--|--:|--:|
+| B → C, the size cuts | -267,904 (-6.7%) | +7,040 (+0.6%) |
+| C → D, the consumer's clap without default features | -54,160 (-1.5%) | -80,672 (-7.0%) |
+
+1. qctl's B → C is close to the 269,548 bytes that kdl, usage-lib and
+   winnow took on darwin-arm64. Its lock drops 15 packages.
+2. Before the cuts, qctl's C → D was zero, because usage-lib turned
+   clap's defaults back on. It is now -54,160 bytes. Each consumer makes
+   that cut in its own `Cargo.toml`.
+3. rawr uses neither `usage` nor `input`, so the cuts had nothing to remove
+   from it. Its +7,040 was not attributed. The size gate's `app` tier grew
+   2,320 bytes over the same range, from the help flag and subcommand
+   ctl-core now declares.
+4. annotate-snippets stays in qctl, for the reason item 3 gives.
 
 The engine itself stays: its three crates cost what the crates they replaced
 cost, and its grapheme tables are the price of cluster-correct widths.
@@ -954,6 +1009,12 @@ compatibility path for comfy-table.
 [pr-101]: https://github.com/victor-software-house/ctl-core/pull/101
 [2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
 [ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587
+[a1e2d43]: https://github.com/victor-software-house/ctl-core/commit/a1e2d438f2ce4abbd1f652f59d88cb245cd1fd76
+[ci-a1e2d43]: https://github.com/victor-software-house/ctl-core/actions/runs/42553507748
+[4bc7862]: https://github.com/victor-software-house/ctl-core/commit/4bc7862089fc4a4956f69ea42c169cd033f1a9f5
+[ci-4bc7862]: https://github.com/victor-software-house/ctl-core/actions/runs/42577032966
+[size-cuts]: ../size-cuts/design.md
+[size-cuts-53]: ../size-cuts/tasks.md#5-annotate-snippets
 [verctl-head]: https://github.com/victor-software-house/verctl/tree/d087741fd60190757141761eb8410a1a73875c53
 [qctl-head]: https://github.com/victor-software-house/qctl/tree/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [forkctl-head]: https://github.com/victor-software-house/forkctl/tree/7b987070f9069842c2e9afdd17fca28353b81bc5

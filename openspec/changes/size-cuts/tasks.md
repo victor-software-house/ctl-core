@@ -404,9 +404,21 @@
 
 ## 7. Measure again
 
-- [ ] 7.1 Measure qctl and rawr with the stack patched in, by decision
+- [x] 7.1 Measure qctl and rawr with the stack patched in, by decision
   16's method. Verify: decision 16 holds the table, linked to the commits
   and runs.
+
+  On 2026-11-09 (UTC), on linux-x64, each consumer was built four ways:
+  1. as committed;
+  2. patched to `main` before the stack;
+  3. patched to `main` with it;
+  4. as 3, with its own clap's default features off.
+
+  [Decision 16][d16-after] holds the table and links each `main` commit to
+  its CI run. The stack cut qctl's `.text` by 267,904 bytes, 6.7%. rawr
+  uses neither `usage` nor `input`, and grew 7,040 bytes, not attributed.
+  With clap's defaults off in the consumer, qctl drops another 54,160
+  bytes and rawr 80,672.
 
 [a1e2d43]: https://github.com/victor-software-house/ctl-core/commit/a1e2d438f2ce4abbd1f652f59d88cb245cd1fd76
 [9161cfc]: https://github.com/victor-software-house/ctl-core/commit/9161cfc74d150a9e9ad467b2ac1d2312261f49a2
@@ -433,3 +445,4 @@
 [saphyr-budget-211]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
+[d16-after]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
