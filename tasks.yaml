@@ -103,6 +103,26 @@ queue:
     plan: openspec/changes/terminal-render-engine/proposal.md
     notes:
       - 'Research: docs/research/terminal-rendering/. Decisions for the maintainer are listed in the proposal.'
+
+  - id: CTC-041
+    title: Cut usage-lib, clap defaults, and annotate-snippets from the graph
+    scope: "ctl-core: usage, input, manifests, deny.toml, size gates"
+    outcome: >-
+      A CLI built on ctl-core links no KDL crate and none of clap’s default features,
+      and its YAML loader links no snippet renderer unless a problem report would
+      change.
+    blocked_by: []
+    acceptance:
+      - With every feature, ctl-core’s normal dependencies hold none of usage-lib, kdl, or winnow below 1.0.
+      - usage::spec returns usage-lib 7.3.0’s bytes for every corpus command, except the departures design decision 3 lists, and every string reads back under a KDL v2 parser.
+      - mise 2026.11.4 parses a mounted toy’s spec, prints its help, and completes its arguments.
+      - With app, usage, and input, cargo tree -e features -i clap_builder shows no default feature of clap.
+      - Every input problem report keeps its file, line, and message text, and qctl links no annotate-snippets symbol, or the row records why the cut stopped.
+      - check:size holds usage and input tiers, and every budget equals the .text CI measured.
+      - Decision 16 records qctl and rawr measured with the cuts.
+    plan: openspec/changes/size-cuts/proposal.md
+    notes:
+      - Filed 2026-11-08 by operator decision, before 0.7.0.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
