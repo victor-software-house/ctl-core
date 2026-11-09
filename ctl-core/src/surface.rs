@@ -378,7 +378,10 @@ fn collect_declarations(
             subcommand_off: command.is_disable_help_subcommand_set() && !owns_help_subcommand,
         },
     );
-    for child in command.get_subcommands() {
+    for child in command
+        .get_subcommands()
+        .filter(|child| !crate::parser::is_generated_help(child))
+    {
         let child_path = child_path(path, child.get_name());
         collect_declarations(child, &child_path, declared_arguments, help_settings);
     }
@@ -635,6 +638,14 @@ mod tests {
             "{}",
             applied.usage_kdl
         );
+        for setting in ["disable_help_flag=#true", "disable_help_subcommand=#true"] {
+            assert_eq!(
+                applied.usage_kdl.matches(setting).count(),
+                usage.matches(setting).count(),
+                "{setting} in {}",
+                applied.usage_kdl
+            );
+        }
     }
 
     #[cfg(feature = "surface-templates")]

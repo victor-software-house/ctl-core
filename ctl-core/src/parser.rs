@@ -157,6 +157,15 @@ pub fn apply_defaults(command: Command) -> Command {
 /// What Clap's own `help` subcommand says it does.
 const HELP_ABOUT: &str = "Print this message or the help of the given subcommand(s)";
 
+/// Whether `command` is a `help` subcommand ctl-core generated, by its name
+/// and the text Clap gives its own.
+pub(crate) fn is_generated_help(command: &Command) -> bool {
+    command.get_name() == "help"
+        && command
+            .get_about()
+            .is_some_and(|about| about.to_string() == HELP_ABOUT)
+}
+
 /// `command` with ctl-core's `-h/--help` flag and `help` subcommand, at every
 /// level Clap would add them, worded as Clap words them.
 ///
