@@ -3,17 +3,28 @@
 //!
 //! Every widget implements [`Renderable`](ctl_text::Renderable). It first
 //! *measures*: the narrowest width it can be drawn at without breaking a word
-//! it keeps whole, and its natural width. Then it *renders* lines at the
-//! width it is given. A container measures its children, decides their widths,
-//! and renders each child at its own. The result is plain lines of styled
-//! spans, with no escape sequence in them: whatever writes the lines to a
-//! terminal adds the styling.
+//! it keeps whole, and its natural width. Then it *renders* lines at the width
+//! it is given.
+//!
+//! A container measures its children, decides their widths, and renders each
+//! child at its own. The result is plain lines of styled spans with no escape
+//! sequence in them. Whatever writes the lines to a terminal adds the styling.
+//!
+//! # Widgets
+//!
+//! - [`Table`]: rows under column headers. A [`Column`] sets the header, the
+//!   overflow policy, and how its cells are aligned ([`Align`]). A [`Frame`]
+//!   and a [`RowSeparation`] set the rules between them.
+//! - [`Record`]: labelled values, drawn in a [`RecordStyle`].
+//! - [`Rule`]: a horizontal line with an optional title.
+//! - [`Stack`]: widgets one above the other.
+//! - [`Indent`]: a widget moved right.
 //!
 //! # Quick start
 //!
 //! A [`Table`] gives each column the widest cell it holds, and shrinks the
-//! widest columns first when the width runs short. A column says what it does
-//! with a cell that does not fit, and which edge its cells sit against:
+//! widest columns first when the width runs short. A column sets what
+//! happens to a cell that does not fit, and which edge its cells sit against:
 //!
 //! ```
 //! use ctl_layout::{Column, Frame, Table};
@@ -25,8 +36,8 @@
 //!     Column::new("age").numeric(),
 //! ])
 //! .frame(Frame::HeaderRule)
-//! .row([Text::plain("QCTL-014"), Text::plain("Let a ledger declare row separation"), Text::plain("3")])
-//! .row([Text::plain("QCTL-015"), Text::plain("Write a ledger atomically"), Text::plain("120")]);
+//! .row([Text::plain("job-0014"), Text::plain("Fix the layout of narrow tables"), Text::plain("3")])
+//! .row([Text::plain("job-0015"), Text::plain("Document each public item"), Text::plain("120")]);
 //!
 //! let lines: Vec<String> = table
 //!     .render(&Context::new(40))
@@ -38,8 +49,8 @@
 //!     [
 //!         "id        title                      age",
 //!         "────────────────────────────────────────",
-//!         "QCTL-014  Let a ledger declare row…    3",
-//!         "QCTL-015  Write a ledger atomically  120",
+//!         "job-0014  Fix the layout of narrow…    3",
+//!         "job-0015  Document each public item  120",
 //!     ]
 //! );
 //! ```
@@ -59,7 +70,7 @@
 //!         2,
 //!         Record::new()
 //!             .row(Text::plain("ledger"), Text::plain("tasks.yaml"))
-//!             .row(Text::plain("active"), Text::plain("QCTL-014")),
+//!             .row(Text::plain("active"), Text::plain("job-0014")),
 //!     ));
 //!
 //! let lines: Vec<String> = screen
@@ -73,13 +84,13 @@
 //!         "── Ledger ──────────────",
 //!         "",
 //!         "  ledger  tasks.yaml",
-//!         "  active  QCTL-014",
+//!         "  active  job-0014",
 //!     ]
 //! );
 //! ```
 //!
-//! Widgets are objects that ctl-text's [`Renderable`](ctl_text::Renderable)
-//! describes, so a widget of your own sits in a [`Stack`] beside these.
+//! A widget of your own sits in a [`Stack`] beside these once it implements
+//! [`Renderable`](ctl_text::Renderable).
 
 mod align;
 mod column;
@@ -101,3 +112,8 @@ pub use record::Record;
 pub use rule::Rule;
 pub use stack::Stack;
 pub use table::Table;
+
+/// The README's examples, compiled and run as doctests.
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;

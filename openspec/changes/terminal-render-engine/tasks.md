@@ -46,11 +46,12 @@ and in CI, as each task says.
     member uses, so no ban needs a wrapper and none was added.
   - 2026-11-08 UTC: `.ctl/ver.yaml` reads the root `Cargo.toml`, the
     virtual manifest, and pins each member's `={version}` entry in
-    `[workspace.dependencies]`. On main at [93c8642], `ver publish --dry-run`
-    listed `ctl-text`, `ctl-layout`, `ctl-term`, then `ctl-core`, all at
-    0.6.28 through cargo, and published nothing.
-    `cargo deny --locked check licenses bans sources` passed in the merge
-    queue's [run 42460567403][q-213].
+    `[workspace.dependencies]`. On main at [93c8642],
+    `verctl publish --dry-run`, run through `mise run ver`, listed
+    `ctl-text`, `ctl-layout`, `ctl-term`, then `ctl-core`, all at 0.6.28
+    through cargo, and published nothing. `mise run deny` runs
+    `cargo deny --locked check licenses bans sources`, which passed in the
+    merge queue's [run 42460567403][q-213].
 
 ## 3. `ctl-text`
 
@@ -133,7 +134,8 @@ and in CI, as each task says.
     which lists each of the eight differences with an example and its
     reason; [#206]'s description summarises them. [#208] changed
     difference 5 and updated that file. The parity test passed in
-    [run 42458984812][q-209].
+    [run 42458984812][q-209]. The committed file now carries the
+    per-difference list the proof asked of the pull request.
 - [x] 6.3 Remove comfy-table, anstream, unicode-general-category, `kv` and
   `grid`; add `App::broken_pipe` and `App::theme`. Proof: `cargo tree` in CI
   lists none of comfy-table, crossterm, anstream, anstyle-parse or console
@@ -161,7 +163,8 @@ and in CI, as each task says.
     passed on its push. On this branch, `rg 'comfy|anstream'` over `docs`,
     `AGENTS.md` and `README.md` finds the research in
     `docs/research/terminal-rendering/`, which is history, and one
-    `AGENTS.md` line listing the crates `check:tree` refuses.
+    `AGENTS.md` line listing the crates `check:tree` refuses: a rule that
+    names the crates as removed, which the amended proof allows.
 
 ## 7. Size
 
@@ -185,6 +188,22 @@ and in CI, as each task says.
   on darwin-arm64 with the release profile, and record file, `__text` and
   package counts against ctl-core 0.6.x in this change's design. Proof: the
   table is in the design with the commit and the strip check.
+
+## Release prerequisites
+
+- The first publish of `ctl-text`, `ctl-layout`, and `ctl-term` needs a
+  registry token. crates.io configures [trusted publishing] only on a crate
+  that already exists, and the release workflow passes only
+  `crates-io-trusted-publishing: true`.
+  1. The release pull request passes the `CARGO_REGISTRY_TOKEN` repository
+     secret as the shared publish workflow's `registry-token`, with trusted
+     publishing off; that workflow refuses both at once.
+  2. After the publish, the maintainer configures a GitHub trusted publisher
+     on the three crates.
+  3. A pull request turns trusted publishing back on.
+
+  The maintainer owns these steps. Nothing changes before the release is
+  approved.
 
 ## 8. Integration
 
@@ -258,3 +277,4 @@ and in CI, as each task says.
 [run-217]: https://github.com/victor-software-house/ctl-core/actions/runs/42460793731
 [run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
 [q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294
+[trusted publishing]: https://crates.io/docs/trusted-publishing
