@@ -138,6 +138,7 @@ ctl-text = { workspace = true, optional = true }
 insta.workspace = true
 garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
+kdl.workspace = true
 pty-process.workspace = true
 
 [[example]]

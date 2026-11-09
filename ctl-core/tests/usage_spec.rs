@@ -22,6 +22,7 @@ use clap::builder::PossibleValue;
 use clap::{Arg, ArgAction, ArgGroup, Command, ValueHint};
 use ctl_core::prelude::*;
 use ctl_core::usage;
+use kdl::{KdlDocument, KdlNode, KdlValue};
 use serde::Serialize;
 
 /// Strings a spec writer must quote or escape, each with its snapshot label.
@@ -432,4 +433,135 @@ fn value_names_that_read_as_usage_syntax() {
             out
         });
     insta::assert_snapshot!("value_names", visible(&corpus));
+}
+
+/// A character KDL v2 forbids literally anywhere in a spec: every Newline but
+/// LF, which only breaks lines and sits in raw multi-line strings, and every
+/// disallowed literal code point (KDL v2, sections 3.13 and 3.19). kdl 6.7.1
+/// misses U+007F, so a parse alone cannot catch it.
+fn is_forbidden_literal(c: char) -> bool {
+    matches!(
+        c,
+        '\r' | '\u{85}'
+            | '\u{b}'
+            | '\u{c}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\0'..='\u{8}'
+            | '\u{e}'..='\u{1f}'
+            | '\u{7f}'
+            | '\u{200e}'
+            | '\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{feff}'
+    )
+}
+
+/// Every spec the corpus renders, with its label.
+fn corpus() -> Vec<(String, String)> {
+    let mut specs = vec![
+        ("every".to_owned(), usage::spec(every(), "every")),
+        ("toy".to_owned(), mounted_toy()),
+    ];
+    for (id, text) in HOSTILE {
+        let help = Command::new("h").arg(
+            Arg::new(*id)
+                .long(*id)
+                .help(*text)
+                .action(ArgAction::SetTrue),
+        );
+        specs.push((format!("help {id}"), usage::spec(help, "h")));
+        let default =
+            Command::new("h").arg(Arg::new(*id).long(*id).value_name("V").default_value(*text));
+        specs.push((format!("default {id}"), usage::spec(default, "h")));
+    }
+    for word in IDENTIFIER {
+        specs.push((format!("identifier {word:?}"), identifier_spec(word)));
+    }
+    for (id, name) in VALUE_NAMES {
+        specs.push((format!("value name {id}"), value_name_spec(name)));
+    }
+    specs
+}
+
+/// One command whose only flag takes `word` as its default and its one
+/// possible value. clap borrows a string only as `&'static str`.
+fn identifier_spec(word: &'static str) -> String {
+    let command = Command::new("h").arg(
+        Arg::new("v")
+            .long("v")
+            .value_parser([PossibleValue::new(word)])
+            .default_value(word),
+    );
+    usage::spec(command, "h")
+}
+
+/// The first `flag` node of a parsed spec.
+fn flag(document: &KdlDocument) -> Option<&KdlNode> {
+    document.get("flag")
+}
+
+#[test]
+fn every_spec_parses_with_no_forbidden_literal() {
+    for (label, spec) in corpus() {
+        if let Err(error) = KdlDocument::parse_v2(&spec) {
+            panic!("{label}: the spec does not parse as KDL v2: {error:?}\n{spec}");
+        }
+        assert!(
+            !spec.chars().any(is_forbidden_literal),
+            "{label}: the spec holds a literal KDL v2 forbids: {}",
+            visible(&spec)
+        );
+    }
+}
+
+#[test]
+fn help_reads_back_as_clap_renders_it() {
+    for (id, text) in HOSTILE {
+        let arg = Arg::new(*id)
+            .long(*id)
+            .help(*text)
+            .action(ArgAction::SetTrue);
+        let expected = arg.get_help().map(ToString::to_string);
+        let spec = usage::spec(Command::new("h").arg(arg), "h");
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let help = flag(&document)
+            .and_then(|node| node.get("help"))
+            .and_then(KdlValue::as_string);
+        assert_eq!(help, expected.as_deref(), "help {id}: {}", visible(&spec));
+    }
+}
+
+#[test]
+fn defaults_read_back_unchanged() {
+    for (id, text) in HOSTILE {
+        let command =
+            Command::new("h").arg(Arg::new(*id).long(*id).value_name("V").default_value(*text));
+        let spec = usage::spec(command, "h");
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let default = flag(&document)
+            .and_then(|node| node.get("default"))
+            .and_then(KdlValue::as_string);
+        assert_eq!(default, Some(*text), "default {id}: {}", visible(&spec));
+    }
+}
+
+#[test]
+fn identifier_words_read_back_as_strings() {
+    for word in IDENTIFIER {
+        let spec = identifier_spec(word);
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let node = flag(&document).expect("the spec has a flag");
+        let default = node.get("default").and_then(KdlValue::as_string);
+        assert_eq!(default, Some(*word), "default {word:?}: {spec}");
+        let choice = node
+            .children()
+            .and_then(|children| children.get("arg"))
+            .and_then(KdlNode::children)
+            .and_then(|children| children.get("choices"))
+            .and_then(|choices| choices.entries().first())
+            .and_then(|entry| entry.value().as_string());
+        assert_eq!(choice, Some(*word), "choice {word:?}: {spec}");
+    }
 }
