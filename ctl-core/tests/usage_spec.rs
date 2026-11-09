@@ -12,6 +12,7 @@
 #![cfg(all(feature = "usage", feature = "app"))]
 
 use std::cell::RefCell;
+use std::fmt::Write as _;
 use std::rc::Rc;
 
 use clap::builder::PossibleValue;
@@ -64,6 +65,10 @@ const HOSTILE: &[(&str, &str)] = &[
 /// character. Newlines stay. The spec itself already writes some of them as
 /// KDL's `\u{..}`, so the marker differs from it. No spec contains `<U+`, so
 /// the view is lossless.
+#[expect(
+    clippy::expect_used,
+    reason = "writing to a String cannot fail, and a test helper may panic"
+)]
 fn visible(spec: &str) -> String {
     assert!(
         !spec.contains("<U+"),
@@ -79,7 +84,7 @@ fn visible(spec: &str) -> String {
                     | '\u{feff}'
             );
         if hidden {
-            out.push_str(&format!("<U+{:04X}>", u32::from(c)));
+            write!(out, "<U+{:04X}>", u32::from(c)).expect("writing to a String cannot fail");
         } else {
             out.push(c);
         }
