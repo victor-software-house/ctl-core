@@ -64,8 +64,8 @@ pub struct Served {
 ///
 /// `Display` prints `template: message`.
 ///
-/// A failure to write the file keeps the [`io::ErrorKind`] of the I/O error,
-/// which [`Self::io_kind`] returns, so a caller can treat a refused permission
+/// A file that could not be written keeps its [`io::ErrorKind`], which
+/// [`Self::io_failure`] returns. So a caller can treat a refused permission
 /// apart from a full disk. A field can join this type in a minor release.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -75,8 +75,8 @@ pub struct ServeError {
     pub template: String,
     /// What went wrong, in words a user can act on.
     pub message: String,
-    /// The kind of the I/O failure, for a file that could not be written.
-    io_kind: Option<io::ErrorKind>,
+    /// The I/O failure, for a file that could not be written.
+    io_failure: Option<io::ErrorKind>,
 }
 
 impl ServeError {
@@ -85,25 +85,25 @@ impl ServeError {
         Self {
             template,
             message,
-            io_kind: None,
+            io_failure: None,
         }
     }
 
     /// A failure of `template` that `error` caused, described by `message`.
-    fn io_failure(template: String, message: String, error: &io::Error) -> Self {
+    fn failed_io(template: String, message: String, error: &io::Error) -> Self {
         Self {
-            io_kind: Some(error.kind()),
+            io_failure: Some(error.kind()),
             ..Self::refusal(template, message)
         }
     }
 
-    /// The kind of the I/O failure when the file or a directory above it could
-    /// not be written or resolved, such as
+    /// The I/O failure when the file or a directory above it could not be
+    /// written or resolved, such as
     /// [`io::ErrorKind::PermissionDenied`]. `None` for a template that did not
     /// render or declared a target it may not write.
     #[must_use]
-    pub const fn io_kind(&self) -> Option<io::ErrorKind> {
-        self.io_kind
+    pub const fn io_failure(&self) -> Option<io::ErrorKind> {
+        self.io_failure
     }
 }
 
@@ -212,7 +212,7 @@ impl Served {
         let failed =
             |message: String| ServeError::refusal(self.target.display().to_string(), message);
         let io_failed = |message: String, error: &io::Error| {
-            ServeError::io_failure(self.target.display().to_string(), message, error)
+            ServeError::failed_io(self.target.display().to_string(), message, error)
         };
         let mut walked = root.to_path_buf();
         for part in self.target.components() {

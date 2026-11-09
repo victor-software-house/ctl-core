@@ -98,12 +98,12 @@ queue:
     acceptance:
       - 'Block, OutputFormat, and NoticeLevel are #[non_exhaustive].'
       - 'ErrorBody, FlagWarning, Surface, SurfaceCommand, SurfaceArgument, both Envelope variants, and the flattened clap Args structs are #[non_exhaustive].'
-      - OutputArgs and ColorLong read their colour flags only through color().
-      - 'InputError and ServeError are #[non_exhaustive] and return the io::ErrorKind of an I/O failure from io_kind(), still deriving Clone and Eq.'
       - View reads its format and quiet setting through format() and is_quiet().
       - EnvPrefix is sealed at its public path.
       - Each closed enum that stays exhaustive says in its rustdoc why its set is closed.
-      - 'A ctl-core: minor changeset lists each break and its migration, and mise run semver reports only breaks it names.'
+      - 'InputError and ServeError are #[non_exhaustive] and return the io::ErrorKind of an I/O failure from io_failure(), still deriving Clone and Eq.'
+      - OutputArgs and ColorLong read their colour flags only through color().
+      - 'A ctl-core: minor changeset lists each break and its migration, and cargo-semver-checks against the previous main reports no break it leaves out.'
     plan: openspec/changes/lock-public-api/proposal.md
     notes:
       - 2026-11-09, the operator approved the list of breaks for 0.7.0.

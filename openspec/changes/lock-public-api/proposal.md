@@ -31,7 +31,7 @@ This change belongs to [CTC-045][ledger].
    `CompletionCommand` and `InitCommand` stay exhaustive.
 5. **BREAKING** `color` and `no_color` become private in `OutputArgs` and `ColorLong`. `color()` is their only reader.
 6. **BREAKING** `InputError` and `ServeError` become `#[non_exhaustive]`.
-   Each keeps the `io::ErrorKind` of an I/O failure in a private field, read through `io_kind()`.
+   Each keeps the `io::ErrorKind` of an I/O failure in a private field, read through `io_failure()`.
 7. **BREAKING** `View`'s `format` and `quiet` become private.
    `View::format()` and `View::is_quiet()` read them, and the `quiet(bool)` setter stays.
 8. **BREAKING** `EnvPrefix` is sealed by a private supertrait, at its public path.
@@ -56,10 +56,11 @@ None.
 2. Tests: `ctl-core/tests/completion.rs` and `ctl-core/tests/shell_init.rs` match the verbs' arguments without building them.
 3. Docs: `ctl-core/AGENTS.md`, under Public API, and the rustdoc of every changed type.
 4. Consumers:
-   - A consumer that builds one of these types with a struct literal, or matches one of the open enums without a wildcard arm, changes that code.
+   - A consumer that builds one of these types with a struct literal changes that code.
+     So does one that matches an open enum without a wildcard arm.
    - A consumer that reads `OutputArgs::color` calls `color()`.
    - A consumer that reads `View::format` or `View::quiet` calls `format()` or `is_quiet()`.
-   - A consumer that reads `InputError::problems` for an I/O failure can call `io_kind()` instead.
+   - A consumer that reads `InputError::problems` for an I/O failure can call `io_failure()` instead.
 5. Release: one `ctl-core: minor` changeset lists each break and its migration.
 
 [ledger]: ../../../tasks.yaml

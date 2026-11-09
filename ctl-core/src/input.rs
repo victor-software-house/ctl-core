@@ -139,9 +139,9 @@ pub struct Input {
 /// `Display` prints one problem per line as `name:line:column: field: message`,
 /// leaving out what is not known.
 ///
-/// A file that could not be read keeps the [`io::ErrorKind`] of the failure,
-/// which [`Self::io_kind`] returns, so a caller can treat a missing file
-/// apart from a refused one. A field can join this type in a minor release.
+/// A file that could not be read keeps its [`io::ErrorKind`], which
+/// [`Self::io_failure`] returns. So a caller can treat a missing file apart
+/// from a refused one. A field can join this type in a minor release.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct InputError {
@@ -149,8 +149,8 @@ pub struct InputError {
     pub name: String,
     /// What is wrong, in the order found.
     pub problems: Vec<Problem>,
-    /// The kind of the I/O failure, for an input that could not be read.
-    io_kind: Option<io::ErrorKind>,
+    /// The I/O failure, for an input that could not be read.
+    io_failure: Option<io::ErrorKind>,
 }
 
 /// One thing wrong with an input.
@@ -441,10 +441,10 @@ impl InputError {
     }
 
     /// The input `name` could not be read: the failure's text is the one
-    /// problem, and its kind is kept.
+    /// problem, and its `io::ErrorKind` is kept.
     fn unread(name: String, error: &io::Error) -> Self {
         Self {
-            io_kind: Some(error.kind()),
+            io_failure: Some(error.kind()),
             ..Self::whole(name, error.to_string())
         }
     }
@@ -454,15 +454,15 @@ impl InputError {
         Self {
             name,
             problems,
-            io_kind: None,
+            io_failure: None,
         }
     }
 
-    /// The kind of the I/O failure when the file could not be read, such as
+    /// The I/O failure when the file could not be read, such as
     /// [`io::ErrorKind::NotFound`]. `None` when the text was read and refused.
     #[must_use]
-    pub const fn io_kind(&self) -> Option<io::ErrorKind> {
-        self.io_kind
+    pub const fn io_failure(&self) -> Option<io::ErrorKind> {
+        self.io_failure
     }
 }
 

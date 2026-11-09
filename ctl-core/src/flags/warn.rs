@@ -8,9 +8,9 @@ use crate::{formatdoc, writedoc};
 /// The type of clash between flags that a [`FlagWarning`] reports. The last
 /// value still wins in every case.
 ///
-/// The set is closed, and the enum is deliberately not `#[non_exhaustive]`:
-/// two flags given together are the same flag, two names of one flag, or
-/// opposites, and no other relation between them exists.
+/// The set is closed, and the enum is deliberately not `#[non_exhaustive]`.
+/// Two flags given together are the same flag, two names of one flag, or
+/// opposites; no other relation between them exists.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FlagClash {
     /// Same flag twice (`--format json --format pretty`).

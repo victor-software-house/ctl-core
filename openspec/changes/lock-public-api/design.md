@@ -2,15 +2,15 @@
 
 ## Context
 
-[proposal.md](proposal.md) lists eight changes the maintainer approved for 0.7.0.
+[proposal.md](proposal.md) lists the eight changes the maintainer approved.
 Each one either lets a type grow in a minor release or closes a field that a caller could misuse.
 This design records the choices the list left open.
 
 ## Decisions
 
-### 1. An error keeps the I/O kind, not the `io::Error`
+### 1. An error keeps the `io::ErrorKind`, not the `io::Error`
 
-`InputError` and `ServeError` gain a private `io_kind: Option<io::ErrorKind>`, read through `io_kind()`.
+`InputError` and `ServeError` gain a private `io_failure: Option<io::ErrorKind>`, read through `io_failure()`.
 The error's message still holds the `io::Error` text, as before.
 
 The alternative was to keep the whole `io::Error` and return it from `Error::source`.
@@ -21,7 +21,7 @@ It lost for these reasons:
    Keeping the error would need an `Arc<io::Error>` and a hand-written `PartialEq` that ignores it.
    Equality would then skip a field, which the docs must explain.
 2. `io::ErrorKind` is `Copy`, `Eq`, and `Hash`, so the derives stay as they are.
-3. What a caller acts on is the kind, such as `NotFound` against `PermissionDenied`.
+3. A caller acts on the `io::ErrorKind`, such as `NotFound` against `PermissionDenied`.
    The OS text is already in the message that `Display` prints.
 
 [C-GOOD-ERR][c-good-err] still holds: both types implement `Error` and `Display`, and are `Send`, `Sync`, and `'static`.
@@ -45,7 +45,8 @@ An enum is `#[non_exhaustive]` when a plan already names a variant it could gain
 
 An enum stays exhaustive when its set is closed by what it means, and its rustdoc says why in one sentence.
 `Shell` set the pattern.
-A consumer's match on a closed enum then needs no wildcard arm, and a new variant fails the build at every match that must handle it.
+A consumer's match on a closed enum then needs no wildcard arm.
+A new variant fails the build at every match that must handle it.
 
 The alternative was `#[non_exhaustive]` on every public enum.
 It lost because a consumer would then write a wildcard arm for a set that cannot grow, and that arm hides nothing but mistakes.

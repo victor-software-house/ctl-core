@@ -46,21 +46,21 @@ These clap `Args` structs SHALL be `#[non_exhaustive]`: `OutputArgs`, `FormatArg
 - **WHEN** a CLI that flattens `OutputArgs` parses `--color always --no-color`
 - **THEN** `color()` returns `ColorMode::Never`, and no public field reads `always`
 
-### Requirement: An error keeps the kind of its I/O failure
+### Requirement: An error keeps its I/O failure
 
-`InputError::io_kind()` and `ServeError::io_kind()` SHALL return the `io::ErrorKind` of the I/O failure that caused the error.
+`InputError::io_failure()` and `ServeError::io_failure()` SHALL return the `io::ErrorKind` of the I/O failure that caused the error.
 They SHALL return `None` for a refusal no I/O failure caused.
 Both types SHALL keep deriving `Clone`, `PartialEq`, and `Eq`.
 
 #### Scenario: A missing input file
 
 - **WHEN** `Input::open` reads `missing.yaml`, which does not exist
-- **THEN** the error's `io_kind()` is `Some(io::ErrorKind::NotFound)`
+- **THEN** the error's `io_failure()` is `Some(io::ErrorKind::NotFound)`
 
 #### Scenario: A refused value
 
 - **WHEN** `Input::open` reads a file whose text fails to parse
-- **THEN** the error's `io_kind()` is `None`
+- **THEN** the error's `io_failure()` is `None`
 
 ### Requirement: View settings are read through methods
 

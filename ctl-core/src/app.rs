@@ -62,8 +62,8 @@ struct Fallback(Option<u16>);
 /// A CLI built on ctl-core ignores SIGPIPE, as every Rust program does by
 /// default. A closed pipe then reaches it as a failed write, not as a signal.
 ///
-/// The set is closed, and the enum is not `#[non_exhaustive]`: a run that
-/// failed keeps its code under either policy, so a policy decides only
+/// The set is closed, and the enum is not `#[non_exhaustive]`. A run that
+/// failed keeps its code under either policy. So a policy decides only
 /// whether a successful run whose reader left still exits 0.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BrokenPipe {

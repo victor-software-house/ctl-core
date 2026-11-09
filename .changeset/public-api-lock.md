@@ -21,8 +21,8 @@ Each break and its migration:
 - `View`'s `format` and `quiet` fields are private.
   Read them with `View::format()` and `View::is_quiet()`. The `quiet(bool)` setter is unchanged.
 - `InputError` and `ServeError` are `#[non_exhaustive]`.
-  Their public fields stay, and `io_kind()` returns the `io::ErrorKind` when a file could not be read or written.
+  Their public fields stay, and `io_failure()` returns the `io::ErrorKind` when a file could not be read or written.
 - `EnvPrefix` is sealed. `#[command(env_prefix = "...")]` works as before, and no type outside ctl-core can implement the trait.
 
 `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, `FlagClash`, and `Shell` stay exhaustive.
-Each one's docs say why its set is closed.
+The rustdoc of each one holds the reason its set is closed.

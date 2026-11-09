@@ -121,8 +121,8 @@ impl Document {
 /// Each variant has a builder method on [`Document`] that wraps it. The enum
 /// is the read side: a custom renderer matches on it.
 ///
-/// New kinds of block can join the set in a minor release, so a match on it
-/// outside ctl-core ends with a wildcard arm.
+/// A new block, such as a panel, can join the set in a minor release. So a
+/// match on it outside ctl-core ends with a wildcard arm.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Block {
