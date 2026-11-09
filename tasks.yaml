@@ -127,6 +127,7 @@ queue:
       - 2026-11-09, the operator chose a public serde-saphyr fork kept with forkctl and published on crates.io as vsh-serde-saphyr, library name serde_saphyr unchanged; once it is out, ctl-core takes it through package = and the 5.3 cut resumes.
       - "2026-11-09, the 5.3 cut holds on vsh-serde-saphyr 0.0.2: the toy's input tier drops 100,840 bytes, and no annotate-snippets function remains (size-cuts task 5.3)."
       - 2026-11-09, qctl gains a single serde-saphyr only with a yamled release on the fork; ctl-core then moves its own yamled pin to that release, so qctl links one yamled.
+      - 2026-11-09, with ctl-core on yamled 0.0.11, qctl links one yamled and one serde-saphyr, vsh-serde-saphyr 0.0.2; its .text is 3,614,566 bytes, 98,032 below the 3,712,598 of ctl-core main before the cut, and no annotate-snippets function remains.
 
   - id: CTC-042
     title: Measure a non-generic copy of the help subcommand tree
