@@ -395,6 +395,16 @@ If either fails, the work stops and reports the finding. It does not trade
 a message for bytes. An upstream proposal to split snippets from
 `deserialize` would then be the next step, made only with approval.
 
+Part 2 failed on 2026-11-09 (-03:00), so the cut was dropped. serde-saphyr
+reaches the renderer by itself. `deserialize_str` calls `to_string` on a
+visitor's error to look for "expected a borrowed string". The calls sit at
+lines 1270 and 1317 of [deserializer.rs in 2.1.1][saphyr-deserializer],
+and at lines 1149 and 1196 in 2.0.0.
+
+Any struct with string keys runs that code inside `deserialize`. So
+annotate-snippets stays in every binary that loads input, whatever
+ctl-core does. Task 5.3 holds the measurement.
+
 ### 8. serde-saphyr keeps `deserialize` and `comments`
 
 `deserialize` is the parser. `comments` gates the comment limits in
@@ -463,6 +473,7 @@ tier carries its reason.
 [saphyr-211]: https://docs.rs/crate/serde-saphyr/2.1.1
 [saphyr-211-toml]: https://docs.rs/crate/serde-saphyr/2.1.1/source/Cargo.toml
 [saphyr-error]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/error.rs
+[saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/deserializer.rs
 [saphyr-budget]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [annotate-01217]: https://docs.rs/crate/annotate-snippets/0.12.17
 [mise-release]: https://github.com/jdx/mise/releases/tag/v2026.11.4

@@ -1,0 +1,13 @@
+---
+source: ctl-core/tests/input.rs
+expression: "reports.join(\"\\n\")"
+---
+twice.yaml:3:1: duplicate mapping key: prefix, set DuplicateKeyPolicy in Options if acceptable
+block.yaml:4:3: "-" is only valid inside a block
+open.yaml:3:8: unclosed bracket '['
+loose.yaml:1:7: invalid boolean (strict mode expects true/false)
+merge.yaml:4:3: YAML merge keys are not allowed by configured policy
+port.yaml:1:7: invalid u16
+strict.yaml:2:1: unknown field `ex\u{2028}tra`, expected one of name
+mode.yaml:1:7: unknown variant `sl\u{7}ow`, expected one of fast
+alias.yaml:3:7: invalid u16 (defined at line 2, column 9)

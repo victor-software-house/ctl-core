@@ -249,3 +249,105 @@ fn a_path_that_leaves_the_repository_is_refused() {
         );
     }
 }
+
+/// What a user reads for one malformed file.
+fn report<T: serde::de::DeserializeOwned>(name: &str, text: &str) -> String {
+    match Input::new(name, text).parse::<T>() {
+        Ok(_) => format!("{name}: parsed"),
+        Err(error) => error.to_string(),
+    }
+}
+
+/// Every problem report the loader writes from serde-saphyr's wording, one
+/// line each. The three ledgers repeat the files a real qctl run reported
+/// on. Control characters in a value or key come out escaped.
+#[test]
+fn problem_reports_keep_their_wording() {
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Ledger {
+        schema_version: u32,
+        prefix: String,
+        #[serde(default)]
+        queue: Vec<BTreeMap<String, String>>,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Port {
+        port: u16,
+    }
+    #[derive(Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Strict {
+        name: String,
+    }
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    enum Mode {
+        Fast,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Moded {
+        mode: Mode,
+    }
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code, reason = "only the error is read")]
+    struct Copied {
+        base: BTreeMap<String, String>,
+        copy: Port,
+    }
+    type Flags = BTreeMap<String, bool>;
+    let reports = [
+        report::<Ledger>(
+            "twice.yaml",
+            indoc! {"
+            schema_version: 5
+            prefix: QCTL
+            prefix: QCTL
+            queue: []
+        "},
+        ),
+        report::<Ledger>(
+            "block.yaml",
+            indoc! {"
+            schema_version: 5
+            prefix: QCTL
+            queue: [
+              - id: QCTL-001
+            ]
+        "},
+        ),
+        report::<Ledger>(
+            "open.yaml",
+            indoc! {"
+            schema_version: 5
+            prefix: QCTL
+            queue: [
+        "},
+        ),
+        report::<Flags>("loose.yaml", "flag: yes\n"),
+        report::<BTreeMap<String, Flags>>(
+            "merge.yaml",
+            indoc! {"
+            base: &base
+              flag: true
+            copy:
+              <<: *base
+        "},
+        ),
+        report::<Port>("port.yaml", "port: eighty\n"),
+        report::<Strict>("strict.yaml", "name: a\n\"ex\\u2028tra\": b\n"),
+        report::<Moded>("mode.yaml", "mode: \"sl\\aow\"\n"),
+        report::<Copied>(
+            "alias.yaml",
+            indoc! {"
+            base: &b
+              port: eighty
+            copy: *b
+        "},
+        ),
+    ];
+    insta::assert_snapshot!("problem_reports", reports.join("\n"));
+}
