@@ -220,8 +220,9 @@ fn a_closed_pipe_is_its_own_error() {
 fn an_error_becomes_an_io_error_of_the_same_kind() {
     use std::io::{self, ErrorKind};
 
-    let closed = io::Error::from(Error::from(io::Error::from(ErrorKind::BrokenPipe)));
-    assert_eq!(closed.kind(), ErrorKind::BrokenPipe);
+    let held = io::Error::from(Error::from(io::Error::new(ErrorKind::BrokenPipe, "held")));
+    assert_eq!(held.kind(), ErrorKind::BrokenPipe);
+    assert_eq!(held.to_string(), "held");
     #[cfg(unix)]
     {
         const EPIPE: i32 = 32;
