@@ -7,8 +7,20 @@
 //! `mise run toy status` with no `--`. The `--` in the mount line is only how
 //! mise fetches the spec, as mise documents.
 //!
-//! [`App::mounted_as`](crate::App::mounted_as) answers the request for an
-//! [`App`](crate::App), and [`take`] does the same for a binary without one.
+//! [`App::mounted_as`] answers the request for an [`App`], and [`take`] does
+//! the same for a binary without one.
+#![cfg_attr(
+    feature = "app",
+    doc = "",
+    doc = "[`App::mounted_as`]: crate::App::mounted_as",
+    doc = "[`App`]: crate::App"
+)]
+#![cfg_attr(
+    not(feature = "app"),
+    doc = "",
+    doc = "[`App::mounted_as`]: crate#cargo-features",
+    doc = "[`App`]: crate#cargo-features"
+)]
 
 mod kdl;
 mod nodes;

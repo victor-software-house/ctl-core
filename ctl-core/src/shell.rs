@@ -4,6 +4,12 @@
 //! [`Shell`] needs the `shell` feature. [`Script`] and [`view`] also need
 //! `view`. The `completion` and `shell-init` features build the verbs that
 //! return a [`Script`].
+#![cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Script`]: crate#cargo-features",
+    doc = "[`view`]: crate#cargo-features"
+)]
 
 #[cfg(feature = "view")]
 use serde::Serialize;
@@ -66,8 +72,17 @@ impl Present for Script {
 ///
 /// The script is the verb's whole result. `source <(toy completion zsh)` or
 /// `eval "$(toy init zsh)"` would load nothing if `--quiet` or a quiet
-/// variable hid it. Route the verb here from
-/// [`App::view`](crate::app::App::view).
+/// variable hid it. Route the verb here from [`App::view`].
+#[cfg_attr(
+    feature = "app",
+    doc = "",
+    doc = "[`App::view`]: crate::app::App::view"
+)]
+#[cfg_attr(
+    not(feature = "app"),
+    doc = "",
+    doc = "[`App::view`]: crate#cargo-features"
+)]
 #[cfg(feature = "view")]
 #[must_use]
 pub const fn view(format: OutputFormat) -> View {

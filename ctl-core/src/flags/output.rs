@@ -8,9 +8,20 @@ use crate::format::OutputFormat;
 /// `#[command(flatten)]`.
 ///
 /// The flags are global, so a subcommand accepts them too. [`Self::view`]
-/// builds the [`View`](crate::view::View) for the parsed flags. A CLI
-/// that already uses `-c` flattens [`ColorLong`](super::ColorLong) plus
-/// [`FormatArgs`] instead.
+/// builds the [`View`] for the parsed flags. A CLI that already uses `-c`
+/// flattens [`ColorLong`](super::ColorLong) plus [`FormatArgs`] instead.
+#[cfg_attr(
+    feature = "view",
+    doc = "",
+    doc = "[`Self::view`]: Self::view",
+    doc = "[`View`]: crate::view::View"
+)]
+#[cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Self::view`]: crate#cargo-features",
+    doc = "[`View`]: crate#cargo-features"
+)]
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct OutputArgs {
@@ -63,6 +74,12 @@ impl OutputArgs {
 ///
 /// Pair it with [`ColorLong`](super::ColorLong) when the CLI owns `-c`, and
 /// pass the colour mode to [`Self::view`].
+#[cfg_attr(feature = "view", doc = "", doc = "[`Self::view`]: Self::view")]
+#[cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Self::view`]: crate#cargo-features"
+)]
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct FormatArgs {

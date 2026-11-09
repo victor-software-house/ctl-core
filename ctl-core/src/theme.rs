@@ -61,9 +61,23 @@ const fn bold(color: AnsiColor) -> Style {
 /// ```
 ///
 /// [`RenderOptions::theme`]: crate::RenderOptions::theme
-/// [`View::theme`]: crate::View::theme
-/// [`App::theme`]: crate::App::theme
 /// [`ColorMode::Never`]: crate::ColorMode::Never
+#[cfg_attr(
+    feature = "view",
+    doc = "",
+    doc = "[`View::theme`]: crate::View::theme"
+)]
+#[cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`View::theme`]: crate#cargo-features"
+)]
+#[cfg_attr(feature = "app", doc = "", doc = "[`App::theme`]: crate::App::theme")]
+#[cfg_attr(
+    not(feature = "app"),
+    doc = "",
+    doc = "[`App::theme`]: crate#cargo-features"
+)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Theme {
     plain: Style,

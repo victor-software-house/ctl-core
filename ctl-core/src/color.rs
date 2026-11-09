@@ -30,9 +30,20 @@ mod data {
     /// The colour policy for styled output. JSON output never holds an escape
     /// sequence.
     ///
-    /// It converts into [`ctl_term::ColorMode`](crate::term::ColorMode) with
-    /// `From`, for a CLI that writes a widget through a
-    /// [`Console`](crate::term::Console).
+    /// It converts into [`ctl_term::ColorMode`] with `From`, for a CLI that
+    /// writes a widget through a [`Console`].
+    #[cfg_attr(
+        any(feature = "view", feature = "help"),
+        doc = "",
+        doc = "[`ctl_term::ColorMode`]: crate::term::ColorMode",
+        doc = "[`Console`]: crate::term::Console"
+    )]
+    #[cfg_attr(
+        not(any(feature = "view", feature = "help")),
+        doc = "",
+        doc = "[`ctl_term::ColorMode`]: crate#cargo-features",
+        doc = "[`Console`]: crate#cargo-features"
+    )]
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
