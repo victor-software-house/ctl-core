@@ -3,10 +3,13 @@
 ### Requirement: One predicate decides which characters are unsafe to print verbatim
 
 `ctl_core::unsafe_chars::is_unsafe`, with the `unsafe-chars` feature, SHALL
-return true for every member of general category Cc, for all 12 directional
-formatting characters of UAX #9 at Unicode 16.0.0 (ALM, LRM, RLM, LRE, RLE,
-PDF, LRO, RLO, LRI, RLI, FSI, and PDI), and for the one member each of Zl and
-Zp. It SHALL return false for every other character.
+return true for each of these characters, and SHALL return false for every
+other character:
+
+- Every member of general category Cc.
+- All 12 directional formatting characters of UAX #9 at Unicode 16.0.0.
+  They are ALM, LRM, RLM, LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, and PDI.
+- The one member each of Zl and Zp.
 
 #### Scenario: Every member of each set
 
@@ -15,7 +18,9 @@ Zp. It SHALL return false for every other character.
 
 #### Scenario: The neighbours and the other format characters
 
-- **WHEN** `is_unsafe` is called with a neighbour of each set, such as U+00A0, U+061B, U+2027, and U+206A, or with another Cf character, such as U+200B, U+200D, U+FEFF, or U+E0067
+- **WHEN** `is_unsafe` is called with one of these:
+  - a neighbour of each set, such as U+00A0, U+061B, U+2027, and U+206A
+  - another Cf character, such as U+200B, U+200D, U+FEFF, or U+E0067
 - **THEN** it returns false
 
 #### Scenario: Nothing else
