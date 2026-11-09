@@ -158,7 +158,11 @@ impl CompletionCommand {
 }
 
 /// The arguments of the `completion` verb.
+///
+/// An argument can join it in a minor release, so a caller reads its fields
+/// and never builds one with a struct literal.
 #[derive(Debug, Clone, PartialEq, Eq, clap::Args)]
+#[non_exhaustive]
 pub struct CompletionArgs {
     /// Shell to load completion into: bash, zsh, or fish.
     #[arg(value_enum)]

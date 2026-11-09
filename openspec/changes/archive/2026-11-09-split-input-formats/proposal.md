@@ -73,7 +73,7 @@ None.
 - `AGENTS.md`, the crate docs, and a changeset naming the break.
 - No change to the serde-saphyr fork.
 
-[size]: ../../../Cargo.toml
+[size]: ../../../../Cargo.toml
 [limits]: https://github.com/victor-software-house/ctl-core/blob/9141d9f9a5fa5f7b32995945cd0101011f311486/ctl-core/src/input/limits.rs
 [toml-text]: https://github.com/victor-software-house/ctl-core/blob/9141d9f9a5fa5f7b32995945cd0101011f311486/ctl-core/src/input/toml_text.rs
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml

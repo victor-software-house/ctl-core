@@ -34,8 +34,8 @@
 //! # Ok::<(), ctl_core::input::InputError>(())
 //! ```
 
-use std::fmt;
 use std::path::Path;
+use std::{fmt, io};
 
 #[cfg(feature = "validate")]
 use garde::Validate;
@@ -138,12 +138,19 @@ pub struct Input {
 ///
 /// `Display` prints one problem per line as `name:line:column: field: message`,
 /// leaving out what is not known.
+///
+/// A file that could not be read keeps its [`io::ErrorKind`], which
+/// [`Self::io_failure`] returns. So a caller can treat a missing file apart
+/// from a refused one. A field can join this type in a minor release.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct InputError {
     /// The input's name, usually its path.
     pub name: String,
     /// What is wrong, in the order found.
     pub problems: Vec<Problem>,
+    /// The I/O failure, for an input that could not be read.
+    io_failure: Option<io::ErrorKind>,
 }
 
 /// One thing wrong with an input.
@@ -347,10 +354,7 @@ impl Input {
                 message,
             })
             .collect();
-        Err(InputError {
-            name: self.name.clone(),
-            problems,
-        })
+        Err(InputError::of(self.name.clone(), problems))
     }
 
     /// The 1-based line and column in the text of each garde field, or of its
@@ -387,7 +391,7 @@ fn read_text(path: &Path) -> Result<(String, String), InputError> {
     let name = path.display().to_string();
     match std::fs::read_to_string(path) {
         Ok(text) => Ok((name, text)),
-        Err(error) => Err(InputError::whole(name, error.to_string())),
+        Err(error) => Err(InputError::unread(name, &error)),
     }
 }
 
@@ -423,16 +427,42 @@ fn field_steps(field: &str) -> Vec<Step<'_>> {
 }
 
 impl InputError {
+    /// A refusal of the whole input, not placed on a line.
     fn whole(name: String, message: String) -> Self {
-        Self {
+        Self::of(
             name,
-            problems: vec![Problem {
+            vec![Problem {
                 line: None,
                 column: None,
                 field: String::new(),
                 message,
             }],
+        )
+    }
+
+    /// The input `name` could not be read: the failure's text is the one
+    /// problem, and its `io::ErrorKind` is kept.
+    fn unread(name: String, error: &io::Error) -> Self {
+        Self {
+            io_failure: Some(error.kind()),
+            ..Self::whole(name, error.to_string())
         }
+    }
+
+    /// The problems found in the input `name`, with no I/O failure.
+    const fn of(name: String, problems: Vec<Problem>) -> Self {
+        Self {
+            name,
+            problems,
+            io_failure: None,
+        }
+    }
+
+    /// The I/O failure when the file could not be read, such as
+    /// [`io::ErrorKind::NotFound`]. `None` when the text was read and refused.
+    #[must_use]
+    pub const fn io_failure(&self) -> Option<io::ErrorKind> {
+        self.io_failure
     }
 }
 

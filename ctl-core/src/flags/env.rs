@@ -33,10 +33,24 @@ use clap::{Arg, ArgAction, ArgMatches, Command, Id};
 /// - it is help or version.
 ///
 /// Not calling `env_prefix` disables the binding.
-pub trait EnvPrefix {
+///
+/// The trait is sealed: [`Command`] is its only implementation, and a type
+/// outside ctl-core cannot add one. So a method can join it in a minor
+/// release.
+pub trait EnvPrefix: sealed::Sealed {
     /// Bind every eligible long option under `prefix`.
     #[must_use]
     fn env_prefix(self, prefix: &str) -> Self;
+}
+
+/// Holds the supertrait that keeps [`EnvPrefix`] to the types ctl-core
+/// implements it for.
+mod sealed {
+    /// Implemented only inside ctl-core. Its path is private, so no other crate
+    /// can name it.
+    pub trait Sealed {}
+
+    impl Sealed for clap::Command {}
 }
 
 impl EnvPrefix for Command {

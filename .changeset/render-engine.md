@@ -34,7 +34,9 @@ Breaking changes:
   `JsonLayout` is `#[non_exhaustive]` too.
   `RenderOptions::list_style` is `frame`; the variable `CTL_CORE_LIST_STYLE` keeps its name.
 - Every setter on `RenderOptions` and `View` takes the name of its setting: `width`, `record_style`, `quiet`, and so on.
-  Neither type has a getter, because a getter would need the same name; a method that reads the environment starts with `resolved_`.
+  `RenderOptions` has no getter, because a getter would need the same name.
+  `View` reads its format and quiet setting through `format()` and `is_quiet()`.
+  A method that reads the environment starts with `resolved_`.
   - `record()`, `list()`, and `separation()` are `resolved_record_style()`, `resolved_frame()`, and `resolved_row_separation()`, and `View::layout()` is `resolved_json_layout()`.
   - The getters `active_theme`, `fallback`, `explicit_width`, `explicit_automatic_width_buffer`, `automatic_width_buffer_env_names`, and `automatic_width_minimum` are gone.
     Their settings are the setters `theme`, `fallback_width`, `width`, `automatic_width_buffer`, `automatic_width_buffer_envs`, and `minimum_automatic_width`.

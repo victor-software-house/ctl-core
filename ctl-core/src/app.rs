@@ -61,6 +61,10 @@ struct Fallback(Option<u16>);
 ///
 /// A CLI built on ctl-core ignores SIGPIPE, as every Rust program does by
 /// default. A closed pipe then reaches it as a failed write, not as a signal.
+///
+/// The set is closed, and the enum is not `#[non_exhaustive]`. A run that
+/// failed keeps its code under either policy. So a policy decides only
+/// whether a successful run whose reader left still exits 0.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BrokenPipe {
     /// Exit with the code the command would have exited with had every byte
@@ -514,7 +518,7 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
         }
     }
     if let Some(format) = last {
-        view.format = format;
+        view = view.in_format(format);
         if format.is_json() {
             view = view.color(ColorMode::Never);
         }
@@ -656,7 +660,7 @@ mod tests {
         for (argv, json) in cases {
             let raw: Vec<OsString> = argv.iter().map(OsString::from).collect();
             let view = parse_error_view(&raw, pretty);
-            assert_eq!(view.format.is_json(), json, "{argv:?}");
+            assert_eq!(view.format().is_json(), json, "{argv:?}");
             if json {
                 assert_eq!(
                     view.render_options(),
@@ -671,7 +675,7 @@ mod tests {
             .map(OsString::from)
             .collect();
         assert!(
-            !parse_error_view(&raw, json_first).format.is_json(),
+            !parse_error_view(&raw, json_first).format().is_json(),
             "a later --format pretty undoes the pre-parse's JSON"
         );
     }
@@ -877,13 +881,13 @@ mod tests {
     fn raw_view_uses_clap_to_separate_globals_from_domain_values() {
         let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
         let view = raw_view::<Cli>(&domain_value);
-        assert_eq!(view.format, OutputFormat::Pretty);
+        assert_eq!(view.format(), OutputFormat::Pretty);
         assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Auto));
 
         let global_after_subcommand =
             ["toy", "status", "-fjson", "-cnever", "--bogus"].map(OsString::from);
         let view = raw_view::<Cli>(&global_after_subcommand);
-        assert_eq!(view.format, OutputFormat::Json);
+        assert_eq!(view.format(), OutputFormat::Json);
         assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Never));
     }
 }

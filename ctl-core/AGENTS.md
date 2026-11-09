@@ -72,6 +72,14 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
 - A setter on a builder type takes the name of its setting (`RenderOptions::width`, `View::quiet`, `Theme::style`), never a `with_` prefix.
   A reader of the same setting gets another name, such as `Theme::role_style`, or no method at all.
   A method that reads the environment starts with `resolved_`, so a caller sees which methods are not pure.
+- A public enum that can gain a variant is `#[non_exhaustive]`, as `Block`, `OutputFormat`, and `NoticeLevel` are.
+  An enum whose set is closed by what it means stays exhaustive, and its rustdoc says why in one sentence, as `Shell` and `Outcome` do.
+- A public struct whose fields can grow is `#[non_exhaustive]`, and ctl-core builds it through a constructor.
+  This covers the envelope types, `FlagWarning`, the `Surface` types, both error types, and every clap `Args` struct a CLI flattens.
+- A field whose meaning depends on another field stays private behind one reader.
+  `OutputArgs::color()` and `ColorLong::color()` combine `--color` with `--no-color`; `View::format()` and `View::is_quiet()` read the view.
+- An error caused by an I/O failure keeps its `io::ErrorKind`, read through `io_failure()`, and stays `Clone` and `Eq` ([design](../openspec/changes/archive/2026-11-09-lock-public-api/design.md#1-an-error-keeps-the-ioerrorkind-not-the-ioerror)).
+- A trait that only ctl-core implements is sealed by a private supertrait, as `EnvPrefix` is.
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
   CI runs `mise run semver` against the last release before packaging.
   The crate-docs rules under [Cargo features](#cargo-features) keep traits visible to that check.

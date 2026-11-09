@@ -91,6 +91,9 @@ pub trait Present: Serialize {
 
 /// Whether a [`Present`] result succeeded. It picks the stream pretty output
 /// goes to and the default exit code.
+///
+/// The set is closed, and the enum is not `#[non_exhaustive]`: a command
+/// either succeeded or failed.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Outcome {
     /// The command succeeded. Pretty output goes to stdout, and the exit code
@@ -118,6 +121,10 @@ impl Outcome {
 ///
 /// [`ctl_term::Stream`](crate::term::Stream) names the stream that colour
 /// and width are decided for. A destination can also be no output at all.
+///
+/// The set is closed, and the enum is not `#[non_exhaustive]`: a process has
+/// one standard output and one standard error, and quiet output goes to
+/// neither.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Destination {
     /// No output, used for quiet successful pretty output.
@@ -213,13 +220,12 @@ impl JsonLayout {
 ///
 /// The colour, width, and style settings are one [`RenderOptions`], which
 /// [`Self::render_options`] returns. A setter takes the name of its setting
-/// and returns the view changed, as on `RenderOptions`.
+/// and returns the view changed, as on `RenderOptions`. [`Self::format`] and
+/// [`Self::is_quiet`] read the format and the quiet setting.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct View {
-    /// Pretty or JSON output.
-    pub format: OutputFormat,
-    /// Suppress successful pretty output.
-    pub quiet: bool,
+    format: OutputFormat,
+    quiet: bool,
     options: RenderOptions,
     json_layout: Option<JsonLayout>,
     json_layout_envs: &'static [&'static str],
@@ -313,6 +319,27 @@ impl View {
     #[must_use]
     pub const fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = quiet;
+        self
+    }
+
+    /// Pretty or JSON output, as [`Self::new`] set it.
+    #[must_use]
+    pub const fn format(self) -> OutputFormat {
+        self.format
+    }
+
+    /// Whether a successful pretty result is suppressed, as [`Self::quiet`]
+    /// set it.
+    #[must_use]
+    pub const fn is_quiet(self) -> bool {
+        self.quiet
+    }
+
+    /// The view in `format`, every other setting kept. The parse-error path
+    /// uses it when `--format` is read before the parser runs.
+    #[cfg(feature = "app")]
+    pub(crate) const fn in_format(mut self, format: OutputFormat) -> Self {
+        self.format = format;
         self
     }
 

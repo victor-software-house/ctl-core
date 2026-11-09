@@ -33,9 +33,10 @@ pub use templates::{
 ///
 /// Build it with [`Surface::new`] or [`Surface::from_command`]. It is plain
 /// data: a test compares a render of it with a committed file, and a template
-/// reads its fields.
+/// reads its fields. A field can join it in a minor release.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
+#[non_exhaustive]
 pub struct Surface {
     /// Executable name declared by the root Clap command.
     pub binary: String,
@@ -59,9 +60,11 @@ pub struct Surface {
     pub notes: BTreeMap<String, String>,
 }
 
-/// One command in a [`Surface`].
+/// One command in a [`Surface`], which [`Surface::new`] builds. A field can
+/// join it in a minor release.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
+#[non_exhaustive]
 pub struct SurfaceCommand {
     /// Command name.
     pub name: String,
@@ -86,9 +89,11 @@ pub struct SurfaceCommand {
     pub commands: Vec<Self>,
 }
 
-/// One positional argument or flag in a [`Surface`].
+/// One positional argument or flag in a [`Surface`], which [`Surface::new`]
+/// builds. A field can join it in a minor release.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
+#[non_exhaustive]
 pub struct SurfaceArgument {
     /// Clap argument identifier.
     pub id: String,
@@ -122,6 +127,9 @@ pub struct SurfaceArgument {
 
 /// Whether Clap requires an argument, as [`SurfaceArgument::requirement`]
 /// reports.
+///
+/// The set is closed, and the enum is not `#[non_exhaustive]`: Clap marks an
+/// argument required or leaves it optional.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]
@@ -134,6 +142,9 @@ pub enum SurfaceRequirement {
 
 /// How far Clap propagates an argument, as [`SurfaceArgument::scope`]
 /// reports.
+///
+/// The set is closed, and the enum is not `#[non_exhaustive]`: Clap marks an
+/// argument global or leaves it on its own command.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "surface-serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "surface-serde", serde(rename_all = "snake_case"))]

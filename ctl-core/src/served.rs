@@ -25,7 +25,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::{fmt, fs};
+use std::{fmt, fs, io};
 
 use garde::Validate;
 use minijinja::value::Value;
@@ -63,13 +63,48 @@ pub struct Served {
 /// Why a template could not be rendered or written, naming the template.
 ///
 /// `Display` prints `template: message`.
+///
+/// A file that could not be written keeps its [`io::ErrorKind`], which
+/// [`Self::io_failure`] returns. So a caller can treat a refused permission
+/// apart from a full disk. A field can join this type in a minor release.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ServeError {
     /// The template, as the caller named it. A write error names the target
     /// path instead.
     pub template: String,
     /// What went wrong, in words a user can act on.
     pub message: String,
+    /// The I/O failure, for a file that could not be written.
+    io_failure: Option<io::ErrorKind>,
+}
+
+impl ServeError {
+    /// A refusal of `template` that no I/O error caused.
+    const fn refusal(template: String, message: String) -> Self {
+        Self {
+            template,
+            message,
+            io_failure: None,
+        }
+    }
+
+    /// A failure of `template` that `error` caused, described by `message`.
+    fn failed_io(template: String, message: String, error: &io::Error) -> Self {
+        Self {
+            io_failure: Some(error.kind()),
+            ..Self::refusal(template, message)
+        }
+    }
+
+    /// The I/O failure when the file or a directory above it could not be
+    /// written or resolved, such as
+    /// [`io::ErrorKind::PermissionDenied`]. `None` for a template that did not
+    /// render or declared a target it may not write.
+    #[must_use]
+    pub const fn io_failure(&self) -> Option<io::ErrorKind> {
+        self.io_failure
+    }
 }
 
 impl fmt::Display for ServeError {
@@ -100,10 +135,7 @@ pub fn render(
     suffix: &str,
     context: &impl Serialize,
 ) -> Result<Served, ServeError> {
-    let failed = |message: String| ServeError {
-        template: template.display().to_string(),
-        message,
-    };
+    let failed = |message: String| ServeError::refusal(template.display().to_string(), message);
     let own_name = template
         .file_name()
         .and_then(|name| name.to_str())
@@ -177,9 +209,10 @@ impl Served {
     /// - the created directory does not resolve inside `root`;
     /// - the file or its directories cannot be written.
     pub fn write(&self, root: &Path) -> Result<PathBuf, ServeError> {
-        let failed = |message: String| ServeError {
-            template: self.target.display().to_string(),
-            message,
+        let failed =
+            |message: String| ServeError::refusal(self.target.display().to_string(), message);
+        let io_failed = |message: String, error: &io::Error| {
+            ServeError::failed_io(self.target.display().to_string(), message, error)
         };
         let mut walked = root.to_path_buf();
         for part in self.target.components() {
@@ -193,22 +226,26 @@ impl Served {
         }
         let path = root.join(&self.target);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| failed(format!("create {}: {error}", parent.display())))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                io_failed(format!("create {}: {error}", parent.display()), &error)
+            })?;
             let inside = fs::canonicalize(root)
                 .and_then(|real_root| Ok(fs::canonicalize(parent)?.starts_with(real_root)))
-                .map_err(|error| failed(format!("resolve {}: {error}", parent.display())))?;
+                .map_err(|error| {
+                    io_failed(format!("resolve {}: {error}", parent.display()), &error)
+                })?;
             if !inside {
                 return Err(failed("target must stay inside the repository".to_owned()));
             }
         }
-        fs::write(&path, &self.body).map_err(|error| failed(format!("write: {error}")))?;
+        fs::write(&path, &self.body)
+            .map_err(|error| io_failed(format!("write: {error}"), &error))?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let mode = if self.executable { 0o755 } else { 0o644 };
             fs::set_permissions(&path, fs::Permissions::from_mode(mode))
-                .map_err(|error| failed(format!("chmod: {error}")))?;
+                .map_err(|error| io_failed(format!("chmod: {error}"), &error))?;
         }
         Ok(path)
     }

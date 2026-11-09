@@ -237,10 +237,7 @@ pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Limits::NONE,
         Err(error) => {
-            return Err(InputError::whole(
-                path.display().to_string(),
-                error.to_string(),
-            ));
+            return Err(InputError::unread(path.display().to_string(), &error));
         }
     };
     let loosened = limits.loosened();

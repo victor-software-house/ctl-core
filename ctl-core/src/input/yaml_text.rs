@@ -30,9 +30,9 @@ pub(super) fn parse<T: DeserializeOwned>(
     };
     serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
         let location = error.location();
-        InputError {
-            name: input.name.clone(),
-            problems: vec![Problem {
+        InputError::of(
+            input.name.clone(),
+            vec![Problem {
                 line: location
                     .and_then(|at| usize::try_from(at.line()).ok())
                     .map(|line| line + input.lines_before),
@@ -40,7 +40,7 @@ pub(super) fn parse<T: DeserializeOwned>(
                 field: String::new(),
                 message: message(input, error.without_snippet(), budget, raise),
             }],
-        }
+        )
     })
 }
 

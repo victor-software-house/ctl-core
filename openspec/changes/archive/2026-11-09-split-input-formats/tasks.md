@@ -64,7 +64,7 @@
   - 2026-11-09 UTC: [PR 253][pr253] opened ready on stack 251. CI was green on
     [0376a89][head], and Kody's review reported no open findings.
 
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml
 [run]: https://github.com/victor-software-house/ctl-core/actions/runs/42622544979
 [head]: https://github.com/victor-software-house/ctl-core/commit/0376a89c0721b11045cd25f5dfc5091adf6fb0a2
 [pr253]: https://github.com/victor-software-house/ctl-core/pull/253

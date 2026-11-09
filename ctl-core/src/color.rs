@@ -32,6 +32,9 @@ mod data {
     ///
     /// It converts into [`ctl_term::ColorMode`] with `From`, for a CLI that
     /// writes a widget through a [`Console`].
+    ///
+    /// The set is closed, and the enum is not `#[non_exhaustive]`: colour is
+    /// on, off, or decided by the stream and the environment.
     #[cfg_attr(
         any(feature = "view", feature = "help"),
         doc = "",
