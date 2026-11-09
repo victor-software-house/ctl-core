@@ -149,6 +149,26 @@ queue:
       - 'A changeset marked ctl-core: patch names each old and new name, and CI passes with every snapshot unchanged or accepted through insta.'
     notes:
       - "2026-11-09, operator decision: 0.7.0 is ctl-core's one minor, so its public names stop using kind in it."
+
+  - id: CTC-045
+    title: Lock the public API before 0.7.0
+    scope: "ctl-core: document, format, model, input, served, flags, completion, shell_init, view, surface"
+    outcome: >-
+      Every ctl-core type that can grow does so in a minor release, and every set
+      that cannot grow says why.
+    blocked_by: []
+    acceptance:
+      - 'Block, OutputFormat, and NoticeLevel are #[non_exhaustive].'
+      - 'ErrorBody, FlagWarning, Surface, SurfaceCommand, SurfaceArgument, both Envelope variants, and the flattened clap Args structs are #[non_exhaustive].'
+      - OutputArgs and ColorLong read their colour flags only through color().
+      - 'InputError and ServeError are #[non_exhaustive] and return the io::ErrorKind of an I/O failure from io_kind(), still deriving Clone and Eq.'
+      - View reads its format and quiet setting through format() and is_quiet().
+      - EnvPrefix is sealed at its public path.
+      - Each closed enum that stays exhaustive says in its rustdoc why its set is closed.
+      - 'A ctl-core: minor changeset lists each break and its migration, and mise run semver reports only breaks it names.'
+    plan: openspec/changes/lock-public-api/proposal.md
+    notes:
+      - 2026-11-09, the operator approved the list of breaks for 0.7.0.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
