@@ -7,22 +7,6 @@
 //! the shared flags, colour policy, error output, and exit codes. One
 //! serializable result feeds the pretty, colourless, and JSON output.
 //!
-//! ## Where to start
-//!
-//! - [`App`] runs a CLI: it parses argv, calls your handler, and writes the
-//!   result or the error. [`prelude`] is the one ctl-core import a binary
-//!   needs.
-//! - [`Present`] maps a serializable result to a [`Document`]. [`View`] writes
-//!   it as pretty text, colourless text, or JSON.
-//! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
-//!   [`Table`]s, [`Section`]s, and [`Notice`]s. It has no layout in it.
-//! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
-//!   the environment binding. [`ColorMode`] and [`OutputFormat`] are the values
-//!   the flags parse to.
-//! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
-//!   policy, the record and table framing, and the style of each role.
-//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
-//!
 //! ## Quick start
 //!
 //! The derive macros expand to paths in `clap` and `serde`, so a program
@@ -75,6 +59,26 @@
 //!
 //! The default `app` feature covers this example.
 //!
+//! ## Where to start
+//!
+//! - [`App`] runs a CLI: it parses argv, calls your handler, and writes the
+//!   result or the error. [`prelude`] is the one ctl-core import a binary
+//!   needs.
+//! - [`Present`] maps a serializable result to a [`Document`], and its
+//!   [`Outcome`] says whether the result succeeded. [`View`] writes it as
+//!   pretty text, colourless text, or JSON.
+//! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
+//!   [`Table`]s, [`Section`]s, and [`Notice`]s. It has no layout in it.
+//! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
+//!   the environment binding. [`ColorMode`] and [`OutputFormat`] are the values
+//!   the flags parse to. A [`FlagWarning`] reports a [`FlagClash`] between two
+//!   of them, where the last one given wins.
+//! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
+//!   policy, the record and table framing, and the style of each role.
+//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
+//! - [`input::Input`] loads a CLI's declared config from YAML or TOML, and
+//!   reports every problem on its file and line.
+//!
 //! ## How output flows
 //!
 //! ```text
@@ -123,6 +127,10 @@
 //! renders to a `String` without reading any terminal. `help` and `view` turn
 //! on `ctl-term`'s `detect` feature, which reads the stream's width and
 //! decides colour for it.
+//!
+//! Declared input takes one feature per format. `input-yaml` reads YAML and
+//! `input-toml` reads TOML; neither links the other's parser. `validate`
+//! adds garde validation, and `input` is `input-yaml` with `validate`.
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -180,11 +188,13 @@ pub use app::{App, BrokenPipe};
 #[doc(hidden)]
 pub use color::ColorMode;
 #[cfg(feature = "document")]
+#[doc(hidden)]
 pub use document::Document;
 #[cfg(feature = "document")]
 #[doc(hidden)]
 pub use document::{Block, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text};
 #[cfg(feature = "cli")]
+#[doc(hidden)]
 pub use flags::EnvPrefix;
 #[cfg(feature = "cli")]
 #[doc(hidden)]
@@ -220,6 +230,7 @@ pub use theme::Theme;
 #[doc(hidden)]
 pub use usage::{mount_directives, mount_line, spec, spec_bin, take};
 #[cfg(feature = "view")]
+#[doc(hidden)]
 pub use view::Present;
 #[cfg(feature = "view")]
 #[doc(hidden)]

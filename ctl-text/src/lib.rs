@@ -17,7 +17,7 @@
 //! [`text_width`], [`cluster_width`], and [`prefix_len`] count cells, and
 //! [`overlay`] combines two styles.
 //!
-//! # Quick start
+//! ## Quick start
 //!
 //! Put text in a [`Text`], pick an [`Overflow`] policy, and render it at a
 //! width. The default policy keeps each word whole, so a long address keeps a
@@ -38,7 +38,7 @@
 //! );
 //! ```
 //!
-//! # Safe by construction
+//! ## Safe by construction
 //!
 //! Text from outside the program, such as a commit subject, can hold an
 //! escape sequence that moves the cursor. It can also hold a directional
@@ -51,7 +51,7 @@
 //! the words around it stay apart. [`unsafe_chars::strip_unsafe`] applies the
 //! same rule to a string that goes to a terminal as it is.
 //!
-//! # Widths
+//! ## Widths
 //!
 //! [`text_width`] counts terminal cells per extended grapheme cluster, so a
 //! family emoji is 2 cells and `日本` is 4. The cluster boundaries and the
@@ -62,7 +62,7 @@
 //! whole string. So two letters that a font joins into one glyph still count
 //! 1 cell each.
 //!
-//! # Writing a widget
+//! ## Writing a widget
 //!
 //! A widget implements [`Renderable`]. It reports how narrow and how wide it
 //! can be, then draws itself at the width it is given. A container does the
@@ -101,7 +101,7 @@
 //! assert_eq!(meter.render(&Context::new(80))[0].to_string(), "█████████");
 //! ```
 //!
-//! # Features
+//! ## Cargo features
 //!
 //! This crate has no optional features.
 
@@ -115,6 +115,7 @@ mod text;
 pub mod unsafe_chars;
 mod wrap;
 
+#[doc(no_inline)]
 pub use anstyle;
 #[doc(no_inline)]
 pub use anstyle::Style;

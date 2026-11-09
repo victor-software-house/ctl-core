@@ -8,7 +8,7 @@
 //! [`Renderable`](ctl_text::Renderable) at the width of its stream and writes
 //! it.
 //!
-//! # Quick start
+//! ## Quick start
 //!
 //! Decide once for a stream, then print. `from_probe` takes the stream's
 //! facts and an environment lookup, so this example needs no terminal; a
@@ -37,7 +37,7 @@
 //! assert_eq!(console.render(&text), "\u{1b}[31mfailed\u{1b}[0m\n");
 //! ```
 //!
-//! # Colour
+//! ## Colour
 //!
 //! [`ColorMode::Always`] writes colour and [`ColorMode::Never`] writes none,
 //! whatever `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, and
@@ -67,7 +67,7 @@
 //! A 24-bit colour on a 16-colour terminal prints as the nearest named
 //! colour, and an underline colour is dropped at 16 colours.
 //!
-//! # Width
+//! ## Width
 //!
 //! Widths count terminal cells: a column is one terminal cell. A width takes
 //! the first of these that applies:
@@ -85,7 +85,7 @@
 //! names some. [`DetectOptions`] overrides each of these and can turn each
 //! off.
 //!
-//! # A closed pipe
+//! ## A closed pipe
 //!
 //! When the reader closes the stream, as `head` does, a write fails with
 //! [`Error::BrokenPipe`], which is a variant of its own. This crate reports
@@ -93,13 +93,13 @@
 //! [`std::io::Result`] converts [`Error`] with `From`, and a closed pipe stays
 //! [`std::io::ErrorKind::BrokenPipe`].
 //!
-//! # Platforms
+//! ## Platforms
 //!
 //! The crate supports and tests Unix only. Windows is not supported: the crate
 //! does not turn on virtual-terminal mode. On other targets the crate builds
 //! but reports no window width.
 //!
-//! # Features
+//! ## Cargo features
 //!
 //! `detect`, on by default, asks the operating system about a stream. It adds
 //! `Probe::of`, `Terminal::detect`, the `from_process` constructors, and
@@ -117,6 +117,7 @@ mod terminal;
 
 pub use color::{ColorDepth, ColorMode};
 pub use console::{Console, Error};
+#[doc(no_inline)]
 pub use ctl_text;
 pub use encode::{Encoder, RESET};
 pub use palette::{ansi256_to_ansi16, rgb_to_ansi16, rgb_to_ansi256};
