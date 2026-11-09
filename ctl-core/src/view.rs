@@ -281,7 +281,7 @@ impl View {
         warnings
     }
 
-    /// Take the theme, record style, list frame, row separation, and the
+    /// Take the theme, record style, table frame, row separation, and the
     /// variables they read from `styles`. Its colour and width settings are
     /// ignored; the view owns those.
     #[must_use]
@@ -324,12 +324,12 @@ impl View {
         self
     }
 
-    /// Override the number of columns subtracted from an automatically
+    /// Override the number of cells subtracted from an automatically
     /// detected width. Zero disables the subtraction. An explicit
     /// [`Self::width`] stays exact.
     #[must_use]
-    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.options = self.options.automatic_width_buffer(columns);
+    pub const fn automatic_width_buffer(mut self, cells: u16) -> Self {
+        self.options = self.options.automatic_width_buffer(cells);
         self
     }
 
@@ -341,14 +341,14 @@ impl View {
         self
     }
 
-    /// Set the floor, in columns, for an automatically detected width.
+    /// Set the floor, in cells, for an automatically detected width.
     #[must_use]
-    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.options = self.options.minimum_automatic_width(columns);
+    pub const fn minimum_automatic_width(mut self, cells: u16) -> Self {
+        self.options = self.options.minimum_automatic_width(cells);
         self
     }
 
-    /// Lay out to `width` columns when no width is detected. `None` turns the
+    /// Lay out to `width` cells when no width is detected. `None` turns the
     /// fallback off, so tables render at their natural width.
     #[must_use]
     pub const fn fallback_width(mut self, width: Option<u16>) -> Self {

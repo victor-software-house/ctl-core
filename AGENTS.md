@@ -70,11 +70,12 @@ The template serves these whole files:
 - `lefthook.yml`, `committed.toml`, `rust-toolchain.toml`, and `rustfmt.toml`
 - `clippy.toml`, `deny.toml`, `.rumdl.toml`, `.taplo.toml`, and `.typos.toml`
 - `.github/workflows/ci.yml`, `.github/workflows/template.yml`, and `.github/actionlint.yaml`
-- the path-named file tasks in `mise-tasks/`: `check/repo.sh`, `commit-msg.sh`, `commits.sh`, `specs.sh`, `format/`, `lint/`, and `hooks/secrets/`
+- the path-named file tasks in `mise-tasks/`: `check/repo.sh`, `commit-msg.sh`, `commits.sh`, `specs.sh`, `format/`, `lint/`, and `hooks/`
 
 It also serves the settings, toolchain, and `[task_config]` blocks of `mise.toml` and the `[workspace.lints]` tables of the root `Cargo.toml`.
-The starters `mise-tasks/check/local.sh` and `openspec/config.yaml` are this repository's own.
-So is `mise-tasks/check/features.sh`, which holds this crate's feature sets.
+The starters `mise-tasks/check/local.sh`, `mise-tasks/check/features.sh`, and `openspec/config.yaml` are this repository's own.
+An update creates a starter where it is missing and never rewrites it.
+`features.sh` holds this crate's feature sets.
 
 Local edits survive an update.
 `.rumdl.toml` allows the README banner's HTML, and `.typos.toml` ignores commit hashes cited in prose.
@@ -82,7 +83,8 @@ Change a shared rule in the template, then take its new tag here.
 
 `.copier-answers.yml` records its tag and this repository's answers.
 Never edit it by hand.
-Take a new tag with `mise x uv@0.13.1 python@3.14.8 -- uvx copier@<pin> update --defaults --vcs-ref <tag>`, where `<pin>` is the `"pypi:copier"` version in the template's `mise.toml` at that tag.
+Take a new tag with `mise x uv@0.13.6 python@3.15.2 -- uvx copier@<pin> update --defaults --vcs-ref <tag>`, where `<pin>` is the `"pypi:copier"` version in the template's `mise.toml` at that tag.
+The uv and python versions are the `tools` of the `template:check` task.
 Review the diff, and fix any conflict markers (`git diff --check`) before committing.
 
 `ci.yml` calls the shared `rust-ci.yml`, and `template.yml` calls the shared `template-check.yml`.
@@ -112,7 +114,7 @@ Declarations live in [`.ctl/ver.yaml`](.ctl/ver.yaml).
 
 `.github/workflows/release.yml` calls verctl's reusable release workflow on every push to `main`.
 It publishes each version commit not yet fully released, then opens or updates the Version PR on `verctl/release/main`.
-Only the operator merges the Version PR, so no release happens on its own.
+Only the maintainer merges the Version PR, so no release happens on its own.
 Bump its pin together with the verctl pin in `mise.release.toml` and the `ver` task include in `mise.toml`.
 
 ## Checks
@@ -127,12 +129,13 @@ mise run verify
 - clippy and the feature sets
 - `test` (unit and integration; targets with `test = false` are skipped)
 - `test:doc` (doc-tests)
-- `doc` (rustdoc as docs.rs builds it)
+- `doc` (rustdoc as docs.rs builds it) and `check:docs` (the docs.rs metadata, feature labels, and error docs)
 - cargo-deny licenses/bans/sources
 - cargo-machete
 - `check:versions`, verctl's hand-edit guard
+- this repository's `check:tree`, `check:size`, and `check:repo`, described below
 
-Those tasks come from the actions repository's `tasks/rust.toml`.
+The shared tasks come from the actions repository's `tasks/rust.toml`.
 `mise.toml` includes it by `git::` URL at the commit the template pins, and composes `verify` from the tasks.
 
 This repository's own tasks live in `mise-tasks/`:
@@ -147,7 +150,7 @@ This repository's own tasks live in `mise-tasks/`:
 - `lint:prose` runs Vale with the prose-style package over the files `.vale.ini` picks: `README.md`, `AGENTS.md`, `docs/` outside `docs/research/`, every comment in the Rust files under each `src/`, and the changesets.
   `vale sync` fetches the package into the ignored `.vale/`, so the first run needs the network.
 
-`check:repo`, `commit-msg`, `commits`, and the secrets scans are the template's files in `mise-tasks/`.
+`check:repo`, `commit-msg`, `commits`, and the hook tasks are the template's files in `mise-tasks/`.
 `check:repo` runs taplo, rumdl, typos, actionlint, and OpenSpec validation, then `check:local`.
 `mise-tasks/check/local.sh` leaves `check:local` to this repository; ctl-core adds none.
 

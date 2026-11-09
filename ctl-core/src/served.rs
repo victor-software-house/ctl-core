@@ -1,5 +1,5 @@
-//! Files a repository serves, rendered from templates that declare where they
-//! go.
+//! Files a CLI generates into a repository from templates, each template
+//! declaring its own target path and mode.
 //!
 //! A template declares its target in Jinja's own syntax, as top-level
 //! `{%- set -%}` exports, instead of a manifest beside it or a mirrored
@@ -18,10 +18,10 @@
 //! for a regular file: when omitted, 0644. Trim declarations with `{%- … -%}`
 //! so a shebang stays on line one. Any other export is the template's own.
 //!
-//! Rendering uses [`crate::surface::environment`]: undefined names fail, the
-//! trailing newline is kept, and ctl-core's shared fragments are available.
-//! Which templates a repository has, and what context they see, stay with the
-//! CLI that serves them.
+//! Rendering uses [`surface::environment`](crate::surface::environment):
+//! undefined names fail, the trailing newline is kept, and ctl-core's shared
+//! fragments are available. Which templates a repository has, and what
+//! context they see, stay with the CLI that generates them.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::validate::{inside_the_repo, one_file_name};
 
-/// What a template declares about the file it serves, read as one schema
+/// What a template declares about the file it becomes, read as one schema
 /// from its exports and checked once.
 #[derive(Debug, Deserialize, Validate)]
 #[garde(allow_unvalidated)]
@@ -49,7 +49,7 @@ struct Declared {
     executable: bool,
 }
 
-/// A rendered template and the file it serves, checked and not yet written.
+/// A rendered template and the file it becomes, checked and not yet written.
 ///
 /// [`render`] builds one. Read it with [`Self::target`], [`Self::body`], and
 /// [`Self::executable`], or write it with [`Self::write`].

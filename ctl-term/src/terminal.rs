@@ -19,11 +19,15 @@ pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
 
 /// How the width of a stream is decided, and every default it applies.
 ///
-/// A width takes the first of these that applies: an explicit
-/// [`width`](Self::width), which is exact; the window of the stream; a
-/// `COLUMNS`, when it holds a number from 1 to 65535; the
-/// [fallback](Self::fallback_width). The column buffer and the minimum apply
-/// only to the window and `COLUMNS`. The width that results is at least 1.
+/// A width takes the first of these that applies:
+///
+/// 1. an explicit [`width`](Self::width), which is exact;
+/// 2. the window of the stream;
+/// 3. `COLUMNS`, when it holds a number from 1 to 65535;
+/// 4. the [fallback](Self::fallback_width).
+///
+/// The column buffer and the minimum apply only to the window and `COLUMNS`.
+/// The width that results is at least 1.
 ///
 /// Each default has an override and a way to turn it off:
 ///
@@ -58,20 +62,20 @@ impl DetectOptions {
         }
     }
 
-    /// Use exactly `columns`, with no detection, buffer, or minimum. 0 counts
+    /// Use exactly `cells`, with no detection, buffer, or minimum. 0 counts
     /// as 1.
     #[must_use]
-    pub const fn width(mut self, columns: u16) -> Self {
-        self.width = Some(columns);
+    pub const fn width(mut self, cells: u16) -> Self {
+        self.width = Some(cells);
         self
     }
 
-    /// Reserve `columns` from a detected width. 0 reserves nothing. This
+    /// Reserve `cells` from a detected width. 0 reserves nothing. This
     /// replaces whatever the variables of
     /// [`column_buffer_envs`](Self::column_buffer_envs) hold.
     #[must_use]
-    pub const fn column_buffer(mut self, columns: u16) -> Self {
-        self.column_buffer = Some(columns);
+    pub const fn column_buffer(mut self, cells: u16) -> Self {
+        self.column_buffer = Some(cells);
         self
     }
 
@@ -83,20 +87,20 @@ impl DetectOptions {
         self
     }
 
-    /// Never shrink a detected width below `columns`, unless the window is
+    /// Never shrink a detected width below `cells`, unless the window is
     /// narrower. 0 sets no floor.
     #[must_use]
-    pub const fn minimum_width(mut self, columns: u16) -> Self {
-        self.minimum_width = columns;
+    pub const fn minimum_width(mut self, cells: u16) -> Self {
+        self.minimum_width = cells;
         self
     }
 
-    /// Use `columns` when the stream gives no width and `COLUMNS` is unset,
+    /// Use `cells` when the stream gives no width and `COLUMNS` is unset,
     /// empty, zero, or not a number from 1 to 65535.
     /// `None` leaves the width undecided, and 0 counts as 1.
     #[must_use]
-    pub const fn fallback_width(mut self, columns: Option<u16>) -> Self {
-        self.fallback_width = columns;
+    pub const fn fallback_width(mut self, cells: Option<u16>) -> Self {
+        self.fallback_width = cells;
         self
     }
 }
@@ -128,9 +132,9 @@ pub struct Terminal {
 impl Terminal {
     /// What `stream` is, reading variables through `env`.
     ///
-    /// `env` returns a variable's value, or `None` when it is unset. It asks
-    /// the stream when called, so two calls can differ after a resize or a
-    /// redirect.
+    /// `env` returns a variable's value, or `None` when it is unset. This
+    /// method asks the stream each time it is called, so two calls can differ
+    /// after a resize or a redirect.
     /// Use [`from_probe`](Self::from_probe) to state the stream. Needs the
     /// `detect` feature.
     #[cfg(feature = "detect")]
@@ -199,7 +203,7 @@ impl Terminal {
         self.color
     }
 
-    /// The width to lay out to, in cells and at least 1, or `None` when the
+    /// The width to lay out to, in cells and at least 1. `None` when the
     /// stream gives none, `COLUMNS` holds no number from 1 to 65535, and the
     /// fallback is off.
     #[must_use]

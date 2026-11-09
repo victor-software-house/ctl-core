@@ -11,17 +11,20 @@ pub const RESET: &str = "\u{1b}[0m";
 /// Turns lines of styled spans into the bytes a terminal reads.
 ///
 /// Layout never sees an escape byte: it produces [`Line`]s, and this encoder
-/// adds the styling afterwards. It writes a style sequence only where the
-/// style changes between spans, with every colour converted to the encoder's
-/// depth, and it skips a span with no text. It writes a reset where a style
-/// ends, and at the end of a line only when a style is still open, so each
-/// line stands alone in `head`, `less -R`, and a log.
+/// adds the styling afterwards.
+///
+/// - It writes a style sequence only where the style changes between spans,
+///   with every colour converted to the encoder's depth.
+/// - It skips a span with no text.
+/// - It writes a reset where a style ends. At the end of a line it writes one
+///   only when a style is still open, so each line stands alone in `head`,
+///   `less -R`, and a log.
 ///
 /// An encoder with no depth writes the text of each line byte for byte, with
 /// no escape.
 ///
-/// It needs no terminal: the depth is an argument, so a program that renders
-/// to a string or to bytes builds one from a depth it chose.
+/// It needs no terminal, because the depth is an argument. A program that
+/// renders to a string or to bytes builds one from a depth it chose.
 ///
 /// ```
 /// use ctl_term::ctl_text::anstyle::AnsiColor;

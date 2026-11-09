@@ -6,9 +6,11 @@ use ctl_text::{Context, Line, Measurement, Renderable};
 
 use crate::lines::indent_lines;
 
-/// A widget moved right by a number of cells. The child gets the width that
-/// is left, but never less than 1 cell, so a child still draws when the
-/// indent is as wide as the context. A blank line stays blank.
+/// A widget moved right by a number of cells.
+///
+/// The child gets the width that is left, but never less than 1 cell. So a
+/// child still draws when the indent is as wide as the context. A blank line
+/// stays blank.
 ///
 /// The child may be borrowed, as in `Indent::new(2, &widget)`.
 pub struct Indent<'a> {

@@ -77,7 +77,7 @@ impl Document {
         self.block(fields)
     }
 
-    /// Append a table. Its frame follows the list style of the render options.
+    /// Append a table. Its frame follows the table frame of the render options.
     #[must_use]
     pub fn table(self, table: Table) -> Self {
         self.block(table)
@@ -468,7 +468,7 @@ impl Table {
         self
     }
 
-    /// Stack each row when the available width is below `width` columns.
+    /// Stack each row when the available width is below `width` cells.
     ///
     /// The first `label_columns` cells of a row form its label line. The
     /// remaining cells form the indented description under it. The label cells
@@ -548,7 +548,7 @@ pub struct Stacked {
 }
 
 impl Stacked {
-    /// The width, in columns, below which rows stack.
+    /// The width, in cells, below which rows stack.
     #[must_use]
     pub const fn width(self) -> u16 {
         self.width

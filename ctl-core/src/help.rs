@@ -182,6 +182,11 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
 /// (`Options` when an option names none). The command is built first, so
 /// derived values such as the version flag are present. Hidden subcommands,
 /// arguments, and options are left out.
+///
+/// # Panics
+///
+/// In a debug build, panics when Clap's `debug_assert` finds an invalid
+/// command definition, as [`parser::verify`](crate::parser::verify) does.
 #[must_use]
 pub fn document(mut command: Command) -> Document {
     command.build();

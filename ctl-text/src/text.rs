@@ -16,7 +16,7 @@ struct Segment {
     style: Style,
 }
 
-/// Styled text of any length: a paragraph, a cell, a title.
+/// Styled text of any length: a paragraph, a table cell, a title.
 ///
 /// Text from outside the program is safe to put here. Every character that
 /// [`is_unsafe`](crate::unsafe_chars::is_unsafe) refuses is removed, except

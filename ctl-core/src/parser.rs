@@ -93,7 +93,8 @@ pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
 /// Apply ctl-core's parser rules to a Clap command and return it.
 ///
 /// `-h/--help` and `-V/--version` stay on. Repeated flags take the last value
-/// (`args_override_self`), and [`crate::flags::chassis_warnings`] still
+/// (`args_override_self`), and
+/// [`chassis_warnings`](crate::flags::chassis_warnings) still
 /// reports the clash. [`App`](crate::App) applies it to every run, so a CLI
 /// calls it only to parse a command itself.
 ///

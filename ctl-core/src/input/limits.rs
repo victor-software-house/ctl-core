@@ -28,8 +28,8 @@ macro_rules! limits {
         /// 3. the process: [`set_default_limits`], or `App::input_limits`;
         /// 4. serde-saphyr's own default.
         ///
-        /// A repository beats a tool's default because the user owns the
-        /// repository, as a user's environment beats a tool's built-in width.
+        /// A repository beats the CLI's default because the user owns the
+        /// repository, as a user's environment beats the CLI's built-in width.
         ///
         /// `enforce_alias_anchor_ratio` is not here: the ratio check is one
         /// comparison after scanning, so turning it off saves nothing. It
@@ -147,9 +147,8 @@ pub fn set_default_limits(limits: Limits) {
 /// repository was installed before.
 ///
 /// Returns each limit the repository raises above serde-saphyr's default.
-/// Print each as `{bin}: warning: {loosened}`. The baseline is serde-saphyr's
-/// default, not the process tier. The warning marks a limit above
-/// serde-saphyr's default, whatever the tool chose.
+/// Print each as `{bin}: warning: {loosened}`. A raised limit is one above
+/// serde-saphyr's default, whatever the CLI set as its process default.
 ///
 /// # Errors
 ///

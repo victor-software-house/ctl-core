@@ -39,9 +39,10 @@ mod data {
         /// Colour when the stream is a terminal and the environment allows it.
         ///
         /// The first rule that applies wins. A non-empty `NO_COLOR` turns
-        /// colour off. `CLICOLOR_FORCE` other than `0`, or `FORCE_COLOR` other
-        /// than `0` or `false`, turns it on. `CLICOLOR=0` or `TERM=dumb` turns
-        /// it off. Otherwise the stream decides: colour when it is a terminal.
+        /// colour off. A non-empty `CLICOLOR_FORCE` other than `0`, or a
+        /// non-empty `FORCE_COLOR` other than `0` or `false`, turns it on.
+        /// `CLICOLOR=0` or `TERM=dumb` turns it off. Otherwise the stream
+        /// decides: colour when it is a terminal.
         Auto,
         /// Colour, whatever the environment holds.
         Always,
@@ -53,7 +54,7 @@ mod data {
 pub use data::ColorMode;
 
 /// The same policy in ctl-term's terms, so a CLI that writes a widget through
-/// [`crate::term::Console`] passes the colour mode its flags parsed.
+/// [`Console`](crate::term::Console) passes the colour mode its flags parsed.
 #[cfg(any(feature = "view", feature = "help"))]
 impl From<ColorMode> for ctl_term::ColorMode {
     fn from(mode: ColorMode) -> Self {

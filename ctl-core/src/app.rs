@@ -80,6 +80,8 @@ pub enum BrokenPipe {
 /// `C` is the CLI's Clap parser. Build an `App` with [`Self::new`],
 /// configure it with the builder methods, and finish with [`Self::run`].
 /// Every builder takes `self`, so a setting set later replaces an earlier one.
+/// The one exception: [`Self::theme`] wins over the theme in [`Self::styles`],
+/// whichever is called first.
 pub struct App<C> {
     bin: String,
     before_parse: Vec<BeforeParse>,
@@ -151,12 +153,12 @@ impl<C> App<C> {
         self
     }
 
-    /// Override the number of columns subtracted from an automatically
+    /// Override the number of cells subtracted from an automatically
     /// detected width, for help, errors, and command output. Zero disables the
     /// subtraction. An explicit view width stays exact.
     #[must_use]
-    pub fn automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.automatic_width_buffer = Some(columns);
+    pub fn automatic_width_buffer(mut self, cells: u16) -> Self {
+        self.automatic_width_buffer = Some(cells);
         self
     }
 
@@ -168,14 +170,14 @@ impl<C> App<C> {
         self
     }
 
-    /// Set the floor, in columns, for an automatically detected width.
+    /// Set the floor, in cells, for an automatically detected width.
     #[must_use]
-    pub fn minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.minimum_automatic_width = Some(columns);
+    pub fn minimum_automatic_width(mut self, cells: u16) -> Self {
+        self.minimum_automatic_width = Some(cells);
         self
     }
 
-    /// Lay out to `width` columns when no width is detected. `None` turns the
+    /// Lay out to `width` cells when no width is detected. `None` turns the
     /// fallback off, so tables render at their natural width.
     #[must_use]
     pub fn fallback_width(mut self, width: Option<u16>) -> Self {
@@ -301,7 +303,7 @@ impl<C> App<C> {
     /// `completion` verb prints can ask this binary for candidates.
     ///
     /// A run without the variable, or with it empty or `0`, parses as usual.
-    /// See [`crate::completion`].
+    /// See [the `completion` module](crate::completion).
     #[cfg(feature = "completion")]
     #[must_use]
     pub fn completion(self) -> Self
@@ -315,7 +317,8 @@ impl<C> App<C> {
     /// Answer a `--usage-spec` request from mise for the task named `task`.
     ///
     /// When argv matches, the run prints the Usage spec to stdout and exits 0
-    /// without parsing. See [`crate::usage`] for the argv shape.
+    /// without parsing. See [the `usage` module](crate::usage) for the argv
+    /// shape.
     #[cfg(feature = "usage")]
     #[must_use]
     pub fn mounted_as(mut self, task: impl Into<String>) -> Self {

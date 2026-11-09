@@ -1,6 +1,6 @@
-//! The two steps that make outside text safe to lay out: remove the unsafe
-//! characters and turn line breaks into something the layout understands, then
-//! expand tabs.
+//! The two steps that make outside text safe to lay out. First remove the
+//! unsafe characters and turn line breaks into something the layout
+//! understands, then expand tabs.
 
 use std::iter;
 use std::num::NonZeroU16;
@@ -33,8 +33,8 @@ impl Breaks {
 /// `text` without the characters [`is_unsafe`] refuses, except tab.
 ///
 /// A newline, carriage return, vertical tab, form feed, next line control, and
-/// the line and paragraph separators are line breaks: `breaks` says what each
-/// becomes, so the words around one stay apart. A carriage return before a
+/// the line and paragraph separators are line breaks. `breaks` decides what
+/// each becomes, so the words around one stay apart. A carriage return before a
 /// line feed is one break with it.
 pub(crate) fn clean(text: &str, breaks: Breaks) -> String {
     let mut cleaned = String::with_capacity(text.len());

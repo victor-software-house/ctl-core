@@ -1,7 +1,7 @@
 //! Mise Usage spec from a clap [`Command`].
 //!
-//! A CLI declares `--usage-spec[=BIN]` as a hidden flag with
-//! `require_equals`. A mise file task that runs the CLI carries
+//! A CLI answers `--usage-spec[=BIN]` before Clap parses, so it declares no
+//! such flag. A mise file task that runs the CLI carries
 //! [`mount_directives`], which end with [`mount_line`]: a `#USAGE mount`
 //! line, from which mise asks the CLI for its spec. A user then runs
 //! `mise run toy status` with no `--`. The `--` in the mount line is only how
