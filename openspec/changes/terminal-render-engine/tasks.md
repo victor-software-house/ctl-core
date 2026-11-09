@@ -215,6 +215,14 @@ and in CI, as each task says.
 
   The maintainer owns these steps. Nothing changes before the release is
   approved.
+- The release waits on a prose check in CI. `mise run lint:prose` runs Vale
+  over the Markdown, the Rust comments, and the changesets, and the docs
+  reach it with 0 findings. It stays out of `verify`, which runs only
+  offline checks, because `vale sync` downloads the style package.
+  1. The shared template's `lint_prose` piece adds the check when it ships.
+  2. If that piece is not out when the rest of the release is ready, a pull
+     request runs `lint:prose` as its own CI step, as `deny:advisories`
+     runs, and `verify` stays offline.
 
 ## 8. Integration
 
