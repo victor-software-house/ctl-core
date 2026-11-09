@@ -11,7 +11,9 @@ const LABEL_INDENT: u16 = 2;
 /// The indent of an entry's description lines.
 const DESCRIPTION_INDENT: u16 = 4;
 
-/// Entries, each a line of labels over indented lines of description:
+/// Entries, each a line of labels over indented lines of description.
+///
+/// An entry with two labels and one description line draws as:
 ///
 /// ```text
 ///   -f --format
@@ -21,7 +23,7 @@ const DESCRIPTION_INDENT: u16 = 4;
 /// It is the form of a table of flags or commands for a narrow width, where
 /// the columns no longer fit side by side. Put it in a
 /// [`Breakpoint`](crate::Breakpoint) beside the table. The labels of an entry
-/// share one line, separated by a space, and its description cells share the
+/// share one line, separated by a space, and its description lines share the
 /// lines below, wrapped at spaces to the width that is left. An entry whose
 /// labels or description are empty skips that part.
 #[derive(Clone, Debug, Default)]

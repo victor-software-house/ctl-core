@@ -45,9 +45,10 @@
 //! override that reorders the line. [`Span::new`] and [`Text`] remove every
 //! character that [`unsafe_chars::is_unsafe`] refuses, so a widget built on
 //! them cannot pass one on. A line break, such as a carriage return, becomes
-//! a space in a span, which is one line, and a newline in a text, so the words
-//! around it stay apart. [`unsafe_chars::strip_unsafe`] applies the same
-//! rule to a string that goes to a terminal as it is.
+//! a space inside a span, since a span is one line. Inside a text it becomes a
+//! newline. Either way the words around it stay apart.
+//! [`unsafe_chars::strip_unsafe`] applies the same rule to a string that goes
+//! to a terminal as it is.
 //!
 //! # Widths
 //!
@@ -96,6 +97,10 @@
 //! assert_eq!(meter.measure(&Context::new(80)), Measurement::exact(12));
 //! assert_eq!(meter.render(&Context::new(80))[0].to_string(), "█████████");
 //! ```
+//!
+//! # Features
+//!
+//! This crate has no optional features.
 
 mod cells;
 mod line;
@@ -107,7 +112,9 @@ mod text;
 pub mod unsafe_chars;
 mod wrap;
 
-pub use anstyle::{self, Style};
+pub use anstyle;
+#[doc(no_inline)]
+pub use anstyle::Style;
 pub use cells::{
     TAB_WIDTH, UNICODE_VERSIONS, UnicodeVersion, UnicodeVersions, cluster_width, prefix_len,
     text_width,

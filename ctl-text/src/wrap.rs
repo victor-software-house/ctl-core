@@ -8,7 +8,7 @@ use crate::line::{Line, Piece};
 /// The text an [`Overflow::Ellipsis`] cut ends with. One cell wide.
 pub const ELLIPSIS: &str = "…";
 
-/// What to do with a line wider than its width.
+/// What happens to a line wider than the width it is given.
 ///
 /// Each variant is a policy a layout offers a column or a paragraph. No
 /// policy splits a grapheme cluster.
@@ -90,8 +90,9 @@ impl Line {
     ///
     /// A wrapped line never ends in a space: the spaces at the end of the line
     /// and at each break are dropped. An ellipsis line that fits keeps the
-    /// spaces it ends with, as [`Line::truncate`] does, so trim it first;
-    /// `Text` does. A width of 0 counts as 1 when wrapping.
+    /// spaces it ends with, as [`Line::truncate`] does. Call
+    /// [`trim_end`](Line::trim_end) first; [`Text`](crate::Text) does this for
+    /// you. A width of 0 counts as 1 when wrapping.
     #[must_use]
     pub fn fit(&self, width: u16, overflow: Overflow) -> Vec<Self> {
         match overflow {

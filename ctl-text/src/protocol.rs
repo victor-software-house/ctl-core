@@ -167,7 +167,7 @@ impl Context {
 /// widget and a `Box` of one are widgets too, so a container can borrow its
 /// children.
 ///
-/// The crate-root docs show a complete widget.
+/// The `ctl_text` crate docs show a complete widget.
 pub trait Renderable {
     /// The narrowest and widest this content can usefully be.
     fn measure(&self, context: &Context) -> Measurement;

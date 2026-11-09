@@ -159,7 +159,7 @@ impl From<Span> for Text {
 impl Text {
     /// [`measure`](Renderable::measure) as if the text's overflow were
     /// `overflow`, so a container that decides overflow per column measures a
-    /// cell without cloning it.
+    /// table cell without cloning it.
     #[must_use]
     pub fn measure_as(&self, context: &Context, overflow: Overflow) -> Measurement {
         let lines = self.trimmed_lines(context);
@@ -174,7 +174,7 @@ impl Text {
 
     /// [`render`](Renderable::render) as if the text's overflow were
     /// `overflow`, so a container that decides overflow per column renders a
-    /// cell without cloning it.
+    /// table cell without cloning it.
     #[must_use]
     pub fn render_as(&self, context: &Context, overflow: Overflow) -> Vec<Line> {
         self.trimmed_lines(context)

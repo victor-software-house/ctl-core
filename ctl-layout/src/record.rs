@@ -7,7 +7,9 @@ use crate::column::Column;
 use crate::frame::{Frame, RecordStyle};
 use crate::table::Table;
 
-/// Labelled values, one pair to a row:
+/// Labelled values, one pair to a row.
+///
+/// Two rows draw as:
 ///
 /// ```text
 /// version  1.4.0
