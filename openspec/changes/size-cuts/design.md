@@ -97,7 +97,7 @@ The outputs differ in one case only: a multiline value that contains
 7.3.0's count is correct under KDL v2, so the writer follows it. The
 changeset lists it as a fix against today's output.
 
-### 3. The writer departs from 7.3.0 only where KDL v2 requires it
+### 3. The writer departs from 7.3.0 only where KDL v2 or mise requires it
 
 The same probe parsed each output back with kdl 6.7.1. In the cases
 below, 7.3.0's output fails that parse or reads back as a different
@@ -159,6 +159,77 @@ Default values are not stripped, so they need the escapes.
 Alternative considered: reproduce 7.3.0 exactly, invalid cases included.
 It lost because mise refuses a spec that does not parse. And a spec that
 parses to other text shows the user something the CLI never said.
+
+#### Value names that read as usage syntax
+
+mise reads an `arg` node's name as usage syntax, through usage-lib's
+[`SpecArg::from`][usage-730-arg-from]. mise 2026.11.4 embeds usage-lib
+7.3.0 ([`Cargo.lock`][mise-lock]). clap gives a value name no syntax, so
+a name such as `x...` means one value named `x...`. The parser reads
+three things into the name:
+
+1. a label that splits into two or more `<…>` or `[…]` words reads as
+   that many values ([`fixed_placeholders`][usage-730-placeholders]);
+2. a name that ends in `...` or `…` reads as any number of values;
+3. a name that starts with `--` and a space reads as a value that only
+   follows `--`.
+
+The parser applies the node's properties after the name, so a property
+can state clap's meaning again. A `value_names` child replaces the name
+and its split.
+
+The probe ran under mise 2026.11.4 on macOS, with one file task per
+form. Each task mounted a spec with that value name on a flag or on a
+positional. A positional with the choices `p1` and `p2` came next.
+
+zsh completion (`mise __complete_word__ --shell zsh --line`) then shows
+how many values mise reads. When it offers `p1 p2` after one value, mise
+reads one, as clap does.
+
+| Where | Value name | 7.3.0 writes | mise reads | The writer writes | mise reads |
+|:--|:--|:--|:--|:--|:--|
+| flag | `-- X` | `"<-- X>"` | one value | the same | one value |
+| flag | `[x]` | `"[x]" required=#false` | one value | `"<[x]>"` | one value |
+| flag | `<A> <B>` | `"<<A> <B>> <<A> <B>>" var=#true var_min=2 var_max=2` | nothing: mise rejects the whole spec, and completion offers only files | `"<<A> <B>>" var=#false` and `value_names "<A> <B>"` | one value |
+| flag | `x...` or `x…` | `<x>… var=#true` | any number | `<x...> var=#false` | one value |
+| positional | `[x]` | `"<[x]>"` | one value | the same | one value |
+| positional | `-- X` | `"<-- X>"` | one value, only after `--` | `"<-- X>" double_dash=optional` | one value, before or after `--` |
+| positional | `<A> <B>` | `"<<A> <B>>"` | two values | `"<<A> <B>>" var=#false` and `value_names "<A> <B>"` | one value |
+| positional | `x...` or `x…` | `<x...>` | any number | `<x...> var=#false` | one value |
+
+So the writer keeps clap's value name as written and adds a property
+only where mise would read more into it:
+
+- `var=#false` for a name that splits into placeholders or ends in
+  `...` or `…`;
+- a `value_names` child holding the whole name, for a name that splits;
+- `double_dash=optional` for a positional's name that starts with `--`
+  and a space.
+  A flag's value keeps the prefix with no property: mise reads it as one
+  value either way.
+
+An optional positional is wrapped as `[…]` before mise reads it, and the
+parser strips that before the split. So `[<A> <B>]` reads as one value
+and gains nothing, while `[[A] [B]]` splits and gains both.
+
+The `value_names` snapshot holds one case per form, for a flag and a
+positional. Its first capture is 7.3.0's output, and the writer's
+commit shows the change.
+
+7.3.0 has three defects here, none reported upstream; a report needs the
+maintainer's approval:
+
+1. A flag's value name that splits into placeholders becomes two values
+   under a repeated label, and mise rejects the whole spec.
+2. A flag's value name that ends in `...` or `…` becomes variadic.
+3. A positional's value name gets no property, so mise misreads it.
+
+Alternatives considered:
+
+1. Write 7.3.0's bytes. It lost because mise rejects a spec with the
+   first defect, and the whole command loses completion.
+2. Write the literal name alone. It lost because mise reads the forms
+   above as syntax, and no quoting in the name prevents that.
 
 ### 4. The writer covers every attribute 7.3.0 reads, not only today's
 
@@ -318,6 +389,9 @@ tier carries its reason.
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
 [usage-730]: https://docs.rs/crate/usage-lib/7.3.0
 [usage-730-disallowed]: https://docs.rs/crate/usage-lib/7.3.0/source/src/kdl/v2_parser.rs#1239
+[usage-730-arg-from]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/arg.rs#804
+[usage-730-placeholders]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/arg.rs#914
+[mise-lock]: https://github.com/jdx/mise/blob/4dc53ec645558e448f7f36a7b1f02ccbd69446d1/Cargo.lock
 [usage-730-toml]: https://docs.rs/crate/usage-lib/7.3.0/source/Cargo.toml
 [usage-notice]: https://docs.rs/crate/usage-lib/7.3.0/source/NOTICE.md
 [helpers-600]: https://docs.rs/crate/usage-lib/6.0.0/source/src/spec/helpers.rs

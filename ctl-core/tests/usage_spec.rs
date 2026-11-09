@@ -75,7 +75,8 @@ const IDENTIFIER: &[&str] = &[
 ];
 
 /// Value names that read as usage syntax, each with its snapshot label: a
-/// leading `-- `, two placeholders, brackets, and a trailing `...` or `…`.
+/// leading `--` and a space, two placeholders, brackets, and a trailing `...`
+/// or `…`.
 /// clap means each literally, as the name of one value.
 const VALUE_NAMES: &[(&str, &str)] = &[
     ("plain", "X"),

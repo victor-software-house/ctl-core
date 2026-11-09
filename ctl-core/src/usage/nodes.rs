@@ -712,7 +712,7 @@ impl ArgValue {
 
     /// The usage placeholder: `<name>` when required and `[name]` when not.
     /// A repeating value adds `…`, a fixed count writes one placeholder per
-    /// slot, and a value that only follows `--` starts with `-- `.
+    /// slot, and a value that only follows `--` starts with `--` and a space.
     fn label(&self) -> String {
         let fixed = self.fixed_count();
         let after_dash = |text: String| match self.dash {
@@ -781,9 +781,9 @@ impl ArgValue {
 
     /// The `arg` child of a flag that takes a value.
     ///
-    /// A flag's value keeps a name that starts with `-- `: mise reads the
-    /// prefix as a value that only follows `--`, which changes nothing for a
-    /// flag's value.
+    /// A flag's value keeps a name that starts with `--` and a space. mise
+    /// reads that prefix as a value that only follows `--`, which changes
+    /// nothing for a flag's value.
     fn node(&self, arg: &Arg) -> Node {
         let label = self.label();
         let misreading = self.misreading(&label);
@@ -804,9 +804,14 @@ impl ArgValue {
 /// What mise would read into a value's label beyond the name clap means.
 ///
 /// mise parses an `arg` name as usage syntax, and clap gives a value name no
-/// syntax at all. A label that splits into several `<…>` or `[…]` words reads
-/// as that many values, a name that ends in `...` or `…` reads as variadic,
-/// and a name that starts with `-- ` reads as a value that only follows `--`.
+/// syntax at all. mise reads three forms as more than a name:
+///
+/// - a label that splits into several `<…>` or `[…]` words, as that many
+///   values;
+/// - a name that ends in `...` or `…`, as variadic;
+/// - a name that starts with `--` and a space, as a value that only follows
+///   `--`.
+///
 /// mise applies an argument's properties after it parses the name, so a
 /// property states clap's meaning again.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
