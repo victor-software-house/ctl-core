@@ -1,7 +1,8 @@
 ## Purpose
 
-What every widget of the rendering engine guarantees about the width of what
-it draws, and how a table chooses its column widths, aligns its cells and
+It covers what every widget of the rendering engine guarantees about the
+width of what it draws.
+It also covers how a table chooses its column widths, aligns its cells and
 fits a narrow terminal.
 
 ## ADDED Requirements
@@ -19,7 +20,8 @@ drawn at without breaking a unit it keeps whole, and its natural width.
 ### Requirement: A widget fits the width it is given
 
 Every widget SHALL draw no line wider than the width it is given, except a
-line that holds a word kept whole, which SHALL be wider only by that word.
+line that holds a word kept whole.
+That line SHALL be wider only by that word.
 
 #### Scenario: Random content
 
@@ -49,8 +51,8 @@ the table SHALL give each column its natural width.
 ### Requirement: A table shrinks its widest wrappable column first
 
 When a table does not fit, it SHALL shrink the widest wrappable column toward
-the next widest, repeating until the table fits, and SHALL NOT shrink a column
-below its narrowest width in this step.
+the next widest, repeating until the table fits.
+It SHALL NOT shrink a column below its narrowest width in this step.
 
 #### Scenario: One long title
 
@@ -64,13 +66,14 @@ rendered line, and SHALL NOT widen a column in this step.
 
 #### Scenario: A title that wraps short of its width
 
-- **WHEN** a grid list with an id column of 8 cells and a title of eight 7-letter words and one 6-letter word renders at width 40
+- **WHEN** a grid list renders at width 40 with an id column of 8 cells. The title is eight 7-letter words and one 6-letter word
 - **THEN** the title column is 23 cells, its widest wrapped line, and the grid is 38 cells wide
 
 ### Requirement: Ellipsis columns give way before words break
 
 When the narrowest widths still do not fit, a table SHALL shrink ellipsis and
-fold columns down to 1 cell before a keep-words column runs past the width.
+fold columns down to 1 cell.
+It SHALL do so before a keep-words column runs past the width.
 
 #### Scenario: An ellipsis title
 
@@ -100,7 +103,8 @@ headers included.
 ### Requirement: A narrow table stacks
 
 A table with a stacking threshold SHALL render each row as indented label and
-description lines when the width is below the threshold, as it does today.
+description lines when the width is below the threshold.
+A table does this today.
 
 #### Scenario: Help at width 40
 

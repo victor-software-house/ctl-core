@@ -1,8 +1,9 @@
 ## Purpose
 
 How the rendering engine decides, for one output stream, whether to write
-colour and at what depth, how wide the output is, where escape sequences are
-written, and what happens when the reader closes the stream.
+colour and at what depth.
+It also covers how wide the output is, where escape sequences are written,
+and what happens when the reader closes the stream.
 
 ## ADDED Requirements
 
@@ -35,11 +36,15 @@ that set the colour depth and the width.
 
 ### Requirement: Automatic colour follows a fixed order
 
-Under `ColorMode::Auto` the engine SHALL take the first rule that applies:
-`NO_COLOR` non-empty turns colour off; `CLICOLOR_FORCE` non-empty and not `0`
-turns it on; `FORCE_COLOR` non-empty and not `0` or `false` turns it on;
-`CLICOLOR=0` turns it off; `TERM=dumb` turns it off; otherwise colour is on
-only when the stream is a terminal.
+Under `ColorMode::Auto` the engine SHALL take the first rule that applies,
+in this order:
+
+1. `NO_COLOR` non-empty turns colour off.
+2. `CLICOLOR_FORCE` non-empty and not `0` turns it on.
+3. `FORCE_COLOR` non-empty and not `0` or `false` turns it on.
+4. `CLICOLOR=0` turns it off.
+5. `TERM=dumb` turns it off.
+6. Otherwise colour is on only when the stream is a terminal.
 
 #### Scenario: NO_COLOR wins over CLICOLOR_FORCE
 
@@ -83,11 +88,14 @@ to, so stdout and stderr can differ.
 
 ### Requirement: Colour depth follows the environment
 
-When colour is on, the engine SHALL use 24-bit colour when `COLORTERM` is
-`truecolor` or `24bit` or `FORCE_COLOR=3`, 256 colours when `TERM` contains
-`256color` or `FORCE_COLOR=2`, and 16 colours otherwise, and SHALL convert
-every colour to the nearest colour at that depth. At 16 colours it SHALL drop
-the underline colour.
+When colour is on, the engine SHALL use this depth:
+
+- 24-bit colour when `COLORTERM` is `truecolor` or `24bit` or `FORCE_COLOR=3`;
+- 256 colours when `TERM` contains `256color` or `FORCE_COLOR=2`;
+- 16 colours otherwise.
+
+The engine SHALL convert every colour to the nearest colour at that depth.
+At 16 colours it SHALL drop the underline colour.
 
 #### Scenario: A 24-bit colour on a 16-colour terminal
 
@@ -128,11 +136,17 @@ ended in plain text. It SHALL write nothing for a span with no text.
 
 ### Requirement: Width comes from the stream being written
 
-When no explicit width is set, the engine SHALL take the width of the
-terminal behind the stream being written, then a non-zero `COLUMNS`, then the
-fallback width, and SHALL apply the column buffer and minimum only to a detected
-width. The width SHALL be at least 1, and the column buffer SHALL read no
-variable unless the caller names one.
+When no explicit width is set, the engine SHALL take the width from the first
+of these that gives one:
+
+1. The terminal behind the stream being written.
+2. A non-zero `COLUMNS`.
+3. The fallback width.
+
+The engine SHALL apply the column buffer and minimum only to a detected
+width.
+The width SHALL be at least 1.
+The column buffer SHALL read no variable unless the caller names one.
 
 #### Scenario: Output piped, COLUMNS set
 
@@ -147,8 +161,8 @@ variable unless the caller names one.
 ### Requirement: A closed pipe ends the program quietly
 
 When the reader closes stdout before the output of a successful command is
-written, `App` SHALL exit with code 0 and write nothing to stderr, unless the
-consumer chose to treat a closed pipe as a failure.
+written, `App` SHALL exit with code 0 and write nothing to stderr.
+The exception is a consumer that chose to treat a closed pipe as a failure.
 
 #### Scenario: Piped to head
 
@@ -164,8 +178,8 @@ consumer chose to treat a closed pipe as a failure.
 ### Requirement: A closed pipe never hides a failure
 
 When the reader closes the stream that carries a failed command's error or a
-parse error, `App` SHALL exit with that failure's own code under either
-policy.
+parse error, `App` SHALL exit with that failure's own code.
+This holds under either policy.
 
 #### Scenario: A failed command whose error reader stops early
 

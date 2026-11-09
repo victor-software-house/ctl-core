@@ -8,27 +8,34 @@ help. It does so in three passes over the same bytes
 
 1. `Renderer::paint` writes SGR escapes into each span before layout, for
    `--color auto` as well as `always` ([render.rs:662][render-paint]).
-2. comfy-table measures and wraps those strings, so its `custom_styling`
-   feature parses the escapes again through `ansi-str` and `console`. Plain
-   paragraphs go through a one-cell comfy table too
-   ([render.rs:609][render-wrap]), and the terminal width comes from
-   `comfy_table::Table::width()`, which asks crossterm about `/dev/tty`
+2. comfy-table measures and wraps those strings. To do so, its
+   `custom_styling` feature parses the escapes again through `ansi-str` and
+   `console`. Plain paragraphs go through a one-cell comfy table too
+   ([render.rs:609][render-wrap]). The terminal width comes from
+   `comfy_table::Table::width()`, which queries crossterm about `/dev/tty`
    ([layout.rs:16][layout-detect]).
 3. `anstream::AutoStream` parses the escapes a third time to strip them when
    the stream is not a terminal.
 
 `custom_styling` turns on comfy-table's `tty` feature, which links crossterm.
 The research behind this design is in
-[docs/research/terminal-rendering][research]: Python's rich and typer, Charm's
-lipgloss and glamour, 13 Rust layout crates and 7 Rust ports of rich, 19 Rust
-styling and terminal crates, every consumer's call sites, and binary-size
-measurements of each candidate.
+[docs/research/terminal-rendering][research]. It covers:
+
+- Python's rich and typer;
+- Charm's lipgloss and glamour;
+- 13 Rust layout crates and 7 Rust ports of rich;
+- 19 Rust styling and terminal crates;
+- every consumer's call sites;
+- binary-size measurements of each candidate.
 
 The approved crate-structure rules apply: the `rust-projects` skill, section 4
-items 19 and 20 and section 5 items 4, 9 and 11. In short: a crate starts
-where a heavy dependency or an independent consumer starts; the facade keeps
-the family's bare name; leaves are `ctl-<noun>`; every crate in the
-workspace releases at one version; no generic code crosses a crate boundary.
+items 19 and 20 and section 5 items 4, 9 and 11. In short:
+
+- a crate starts where a heavy dependency or an independent consumer starts;
+- the facade keeps the family's bare name;
+- leaves are `ctl-<noun>`;
+- every crate in the workspace releases at one version;
+- no generic code crosses a crate boundary.
 
 ## Goals / Non-Goals
 
@@ -42,9 +49,9 @@ workspace releases at one version; no generic code crosses a crate boundary.
    ctl-core pin and reviewing its snapshot diffs.
 4. A measured size win at every feature tier and in every consumer, and no
    build-time loss.
-5. The widgets rich has that the consumers already hand-roll: per-column width
-   policy with ellipsis and numeric alignment, sanitized spans, tree, panel,
-   hyperlinks, live progress. The last three come in later phases (decision
+5. The widgets rich has that the consumers already hand-roll. They are
+   per-column width policy with ellipsis and numeric alignment, sanitized
+   spans, tree, panel, hyperlinks, live progress. The last three come in later phases (decision
    14).
 
 **Non-Goals:**
@@ -71,31 +78,40 @@ Alternatives:
 
 1. **A private module in ctl-core**, as the unpublished prototype did. It
    lost because consumers want a piece of the engine without the rest
-   ([consumer needs, D.2][needs-d2]): rawr wrote its own escape-sequence
-   filter and wrapper, and private consumers, checked but not named here,
-   wrote their own styled text, width rule and table. A module inside ctl-core gives them clap, serde and the CLI chassis as well.
+   ([consumer needs, D.2][needs-d2]).
+   - rawr wrote its own escape-sequence filter and wrapper.
+   - Private consumers, checked but not named here, wrote their own styled
+     text, width rule and table.
+   - A module inside ctl-core gives them clap, serde and the CLI chassis as
+     well.
 2. **A Cargo feature of ctl-core.** Same reach problem, and features unify
    across a build and spread `#[cfg]`. The approved rules make a crate the
    default way to make a piece opt-in.
-3. **Its own repository**, released separately. It lost on lockstep. Cargo
-   treats every `0.0.x` as incompatible with every other, so each engine
-   release would need a ctl-core release before any consumer could move, and
-   a change that touches the facade and the engine would be two pull requests
-   in two repositories. Today every consumer reaches the engine through
-   ctl-core. The crate boundaries in decision 3 are what a later move would
-   need, so the repository can split without renames once the engine has a
-   consumer that does not use ctl-core. verctl already releases a virtual
-   workspace as one package and publishes its members in dependency order
-   ([verctl members.rs][verctl-members]), so the release lane stays one
-   Version PR.
-4. **Adopt an existing crate.** comfy-table has no configuration that keeps
-   styled cells without crossterm ([layout survey, 3][layout-comfy]). tabled
-   rewrites cells to wrap them and parses ANSI behind a feature that changes
-   its width answer. The rich ports are young: the most used has 6 releases,
-   and the most literal ships its own width tables and has 174 open issues
-   ([layout survey, 10][layout-ports]). None separates measuring from
-   rendering for arbitrary nested content except the ports. Measured costs
-   are in decision 16.
+3. **Its own repository**, released separately. It lost on lockstep.
+   - Cargo treats every `0.0.x` as incompatible with every other. Each
+     engine release would need a ctl-core release before any consumer could
+     move.
+   - A change that touches the facade and the engine would be two pull
+     requests in two repositories.
+   - Today every consumer reaches the engine through ctl-core. The crate
+     boundaries in decision 3 are what a later move would need. The
+     repository can split without renames once the engine has a consumer
+     that does not use ctl-core.
+   - verctl already releases a virtual workspace as one package and
+     publishes its members in dependency order
+     ([verctl members.rs][verctl-members]). The release lane stays one
+     Version PR.
+4. **Adopt an existing crate.**
+   - comfy-table has no configuration that keeps styled cells without
+     crossterm ([layout survey, 3][layout-comfy]).
+   - tabled rewrites cells to wrap them and parses ANSI behind a feature
+     that changes its width answer.
+   - The rich ports are young. The most used has 6 releases. The most
+     literal ships its own width tables and has 174 open issues
+     ([layout survey, 10][layout-ports]).
+   - None separates measuring from rendering for arbitrary nested content
+     except the ports.
+   - Measured costs are in decision 16.
 
 ### 2. ctl-core becomes a virtual workspace now, with each crate in a root folder, and its other modules move later, one change each
 
@@ -113,7 +129,7 @@ What moves where:
 | Today | This change | Later, with evidence |
 |:--|:--|:--|
 | `src/render.rs` engine half, `src/layout.rs`, `src/style.rs`, `src/table.rs` | `ctl-layout`, `ctl-text`, `ctl-term`; `table.rs` (`kv`, `grid`) is deleted, no caller exists | |
-| `src/verbatim.rs` (from CTC-032) | `ctl-text` | |
+| `src/verbatim.rs` (from [CTC-032][ledger]) | `ctl-text` | |
 | `src/document.rs`, `src/render.rs` mapping half, `src/view.rs`, `src/help.rs`, `src/app.rs`, `src/flags/`, `src/parser.rs`, `src/color.rs`, `src/format.rs`, `src/model.rs` | stay in `ctl-core` | |
 | `src/input.rs`, `src/input/`, `src/validate.rs` | stay | `ctl-input`: serde-saphyr, yamled, garde and toml are heavy dependencies a CLI may want without the chassis |
 | `src/served.rs`, `src/surface.rs`, `src/surface/`, `src/usage.rs` | stay | `ctl-surface`: MiniJinja and usage-lib |
@@ -123,22 +139,42 @@ Alternatives:
 
 1. **A `crates/` folder** holding every member, as BeautifulRust's
    M-CRATES-FLAT-FOLDER suggests. It lost: the house rule names a crate's
-   folder like its package at the root, and no measurement or source shows a
+   folder like its package at the root. No measurement or source shows a
    gain from the extra level.
 2. **Move everything now.** It lost on scope: each later move has its own
-   consumers to migrate and its own evidence to collect, and folding them in
+   consumers to migrate and its own evidence to collect. Folding them in
    would make this change unreviewable.
 3. **Keep a single crate and put the engine in a second repository.** It
    lost under decision 1.
 
 ### 3. Three leaves, split where a dependency or an independent consumer starts
 
-| Crate | Holds | Depends on | Independent consumer |
-|:--|:--|:--|:--|
-| `ctl-text` | styled text (`Span`, `Line`, `Text`), the cell-width model, wrapping and truncation, the unsafe-character set, and the renderable protocol (`Renderable`, `Measurement`, `Context`) | `anstyle`, `unicode-width`, `unicode-segmentation`, `unicode-bidi` | rawr's title filter and wrapper; private consumers, checked but not named here |
-| `ctl-layout` | widgets built on the protocol: `Table`, `Record`, `Rule`, `Stack`, `Indent`, later `Panel`, `Tree`, `Columns`, `ProgressBar` | `ctl-text` | private consumers, checked but not named here |
-| `ctl-term` | terminal facts (`Terminal`: is attached to a terminal, colour depth, width), colour policy, the escape encoder, the `Console` writer, later `Live` and prompts | `ctl-text`, `anstyle`, and `terminal_size` behind the default `detect` feature | rawr's terminal check; private consumers, checked but not named here |
-| `ctl-core` | the facade and the CLI chassis: `App`, flags, `Document`, the `Theme` that maps roles to styles, `View`, help, JSON | the three leaves behind features | every CLI |
+- `ctl-text`
+  - Holds: styled text (`Span`, `Line`, `Text`), the cell-width model,
+    wrapping and truncation, the unsafe-character set, and the renderable
+    protocol (`Renderable`, `Measurement`, `Context`).
+  - Depends on: `anstyle`, `unicode-width`, `unicode-segmentation`,
+    `unicode-bidi`.
+  - Independent consumer: rawr's title filter and wrapper; private
+    consumers, checked but not named here.
+- `ctl-layout`
+  - Holds: widgets built on the protocol: `Table`, `Record`, `Rule`,
+    `Stack`, `Indent`, later `Panel`, `Tree`, `Columns`, `ProgressBar`.
+  - Depends on: `ctl-text`.
+  - Independent consumer: private consumers, checked but not named here.
+- `ctl-term`
+  - Holds: terminal facts (`Terminal`: is attached to a terminal, colour
+    depth, width), colour policy, the escape encoder, the `Console` writer,
+    later `Live` and prompts.
+  - Depends on: `ctl-text`, `anstyle`, and `terminal_size` behind the
+    default `detect` feature.
+  - Independent consumer: rawr's terminal check; private consumers, checked
+    but not named here.
+- `ctl-core`
+  - Holds: the facade and the CLI chassis: `App`, flags, `Document`, the
+    `Theme` that maps roles to styles, `View`, help, JSON.
+  - Depends on: the three leaves behind features.
+  - Independent consumer: every CLI.
 
 The maintainer chose these names on 2026-11-08 (UTC). All three were free on
 crates.io. The names considered and not taken:
@@ -158,17 +194,19 @@ built, and the layout crates link no `rustix` or `libc`.
 The protocol sits in `ctl-text` because both other leaves need it: `ctl-term`
 will redraw any `&dyn Renderable` in a live region, and `ctl-layout`
 implements it. A fourth interface crate holding one trait was considered and
-lost: it has no dependency or consumer of its own, so the rules keep it a
+lost. It has no dependency or consumer of its own, so the rules keep it a
 module.
 
 How the two rules are reconciled. BeautifulRust prefers small single-purpose
 crates in a flat workspace (Microsoft M-SMALLER-CRATES and
 M-CRATES-FLAT-FOLDER). The `rust-projects` skill splits only at a boundary
 shown by a dependency, a second consumer or a measurement. Where they
-disagree, the skill wins, because a split with no evidence is the boundary
-Wasmtime merged back. Workspace-wide versions and lints, and individual
-re-exports, come from BeautifulRust and apply in full; its `crates/` folder
-does not (decision 2).
+conflict, the skill wins, because a split with no evidence is the boundary
+Wasmtime merged back.
+
+Workspace-wide versions and lints, and individual re-exports, come from
+BeautifulRust and apply in full; its `crates/` folder does not (decision 2).
+
 So `Table`, `Tree` and `Panel` share `ctl-layout`: they share every
 dependency and no consumer wants one without the others. A widget that brings
 a heavy dependency becomes its own crate: `ctl-markdown` with
@@ -177,8 +215,9 @@ a heavy dependency becomes its own crate: `ctl-markdown` with
 Alternatives:
 
 1. **One engine crate.** It lost because `ctl-term` brings `rustix` (and
-   `windows-sys` on Windows) and the text consumers want neither, and because
-   it would make the pure layout code depend on the operating system.
+   `windows-sys` on Windows) and the text consumers want neither. It also
+   lost because it would make the pure layout code depend on the operating
+   system.
 2. **A crate per widget** (`ctl-table`, `ctl-tree`, `ctl-panel`). It lost
    under the skill: no dependency or consumer separates them, and LTO already
    drops an unused widget, so the split would shrink nothing.
@@ -195,11 +234,13 @@ the top style's colours and effects win.
 Alternatives:
 
 1. **Our own style type**, with rich's tri-state attributes. It lost on
-   reuse: anstyle is `Copy`, `const`, has no dependency, is stable at 1.0,
-   and is what clap's `Styles` and cargo already use, so a CLI shares one type
-   with its parser. clap_builder links anstyle unconditionally, so it costs a
-   ctl CLI nothing. Tri-state inheritance is only needed for markup, which is
-   a non-goal.
+   reuse.
+   - anstyle is `Copy` and `const`, has no dependency and is stable at 1.0.
+     It is what clap's `Styles` and cargo already use, so a CLI shares one
+     type with its parser.
+   - clap_builder links anstyle unconditionally, so it costs a ctl CLI
+     nothing.
+   - Tri-state inheritance is only needed for markup, which is a non-goal.
 2. **owo-colors or yansi.** They write escapes at format time and decide
    colour from global state, which is the opposite of decision 5.
 
@@ -210,23 +251,23 @@ No escape byte exists before `ctl-term`'s encoder. The encoder:
 
 1. writes an SGR sequence only where the style changes between spans, at the
    colour depth the terminal supports (decision 11);
-2. skips a span with no text, and ends every line with no style open: a reset
-   follows the last styled span, and none follows a line that already ended in
+2. skips a span with no text, and ends every line with no style open. A reset
+   follows the last styled span. None follows a line that already ended in
    plain text, so each line stands alone in `head`, `less -R` and a log;
 3. opens and closes OSC 8 around a linked span when links are on;
 4. writes plain text, byte for byte, when colour is off.
 
 So `anstream`, `anstyle-parse`, `utf8parse`, `colorchoice`, `ansi-str`,
 `ansitok`, `nom`, `vte` and `console` leave the graph. The encoder needs no
-terminal: its depth is an argument, so ctl-core's string rendering calls the
-same encoder instead of keeping a second one (decision 19 states what
-`ctl-term` supports).
+terminal: its depth is an argument. ctl-core's string rendering therefore
+calls the same encoder instead of keeping a second one (decision 19 states
+what `ctl-term` supports).
 
 Alternatives:
 
 1. **Paint first, strip later**, as today and as lipgloss does on every
-   operation ([Charm survey, 7.2][charm-weak]). It lost: it costs a parser,
-   it makes captured output depend on the strip, and layout has to measure
+   operation ([Charm survey, 7.2][charm-weak]). It lost: it costs a parser
+   and makes captured output depend on the strip. Layout has to measure
    around escapes it did not need to see.
 2. **Keep anstream as the writer.** `AutoStream::new(writer, Always)` reads
    no environment, so it could sit under the encoder. It lost because with
@@ -242,11 +283,11 @@ Alternatives:
 2. East Asian ambiguous characters count 1 cell. `unicode-width`'s `cjk`
    feature stays off, which also keeps its second table out of the binary.
 3. A tab expands to the next multiple of 8 cells from the start of its line
-   when text is built, so layout never measures a tab.
+   when text is built. Layout never measures a tab.
 4. Storage offsets are bytes into `str`. Widths are cells. The two units
    never share a type: a width is `u16`, an offset is `usize`.
 5. A cut that falls inside a 2-cell cluster replaces the cluster with a space
-   on each side, as rich does, so every line keeps its exact width.
+   on each side, as rich does. Every line keeps its exact width.
 6. `ctl_text::UNICODE_VERSIONS` states both crates' Unicode versions, and a
    test pins them, so an upgrade that moves one forces a recheck (the
    complete-sets rule). Today both are Unicode 17.0.0, with `unicode-width`
@@ -260,24 +301,27 @@ Alternatives:
    complete-sets rule: regional indicators, Hangul jamo and Indic conjuncts
    are left to chance.
 3. **No segmentation, break only at whitespace.** It would save the
-   segmentation tables (5,248 bytes of `__text`, [measurements, A4][m-a4]),
-   but a table that must fold a long
-   word would still need cluster boundaries.
+   segmentation tables (5,248 bytes of `__text`, [measurements, A4][m-a4]).
+   But a table that must fold a long word would still need cluster
+   boundaries.
 
 ### 7. Text from outside the program is filtered when a span is built
 
-`Span::new` drops every character `unsafe_chars::is_unsafe` refuses (the C0 and
-C1 controls including ESC, the twelve UAX #9 directional formatting
-characters, and the line and paragraph separators), splits on newline, and
-expands tabs. So a commit subject or a session title cannot move the cursor,
-reorder the line or break the layout, in any widget, without each consumer
-filtering by hand. The set and its sources are CTC-032's module, which moves
-into `ctl-text` unchanged. `Document::verbatim` keeps its rule (no wrapping,
+`Span::new` drops every character `unsafe_chars::is_unsafe` refuses. These are
+the C0 and C1 controls including ESC, the twelve UAX #9 directional formatting
+characters, and the line and paragraph separators. It also splits on newline
+and expands tabs.
+
+So a commit subject or a session title cannot move the cursor, reorder the
+line or break the layout, in any widget. No consumer has to filter by hand.
+
+The set and its sources are the module of [CTC-032][ledger], which moves into
+`ctl-text` unchanged. `Document::verbatim` keeps its rule (no wrapping,
 newlines and tabs kept).
 
 Alternative: **filter only in `verbatim`**, as today. It lost: rawr, the agent
 runtime and its terminal client each wrote their own filter
-([consumer needs, D.2][needs-d2], gap 5), and rich's equivalent strips only 5
+([consumer needs, D.2][needs-d2], gap 5). Also, rich's equivalent strips only 5
 characters and lets ESC through ([rich survey, 9.2][rich-flaws], flaw 3).
 
 ### 8. Every widget measures, then renders
@@ -323,21 +367,23 @@ For a table laid out to width `W`, with frame and gaps taking `F` cells:
    folds instead, to keep its borders whole, as today.
 5. Render each cell at its width. An `Ellipsis` cell ends in `…`; a numeric
    column aligns right.
-6. Narrow each column to its widest rendered line, as comfy-table does. A
-   column that wrapped otherwise keeps blank cells down every row that do
-   nothing for the reader. The lines stay as rendered, since text wrapped at
-   one width wraps the same at its own widest line. A width never grows, so
-   a keep-words word that runs past still does, and an `Ellipsis` column that
-   cut a cell keeps its width because the cut cell fills it.
+6. Narrow each column to its widest rendered line, as comfy-table does.
+   - A column that wrapped otherwise keeps blank cells down every row that do
+     nothing for the reader.
+   - The lines stay as rendered, since text wrapped at one width wraps the
+     same at its own widest line.
+   - A width never grows. A keep-words word that runs past still does, and an
+     `Ellipsis` column that cut a cell keeps its width because the cut cell
+     fills it.
 
-This fixes two flaws found in rich ([rich survey, 9.2][rich-flaws], flaw 10):
-its collapse ignores minimum widths, and its last step can shrink fixed and
+This fixes two flaws found in rich ([rich survey, 9.2][rich-flaws], flaw 10).
+Its collapse ignores minimum widths, and its last step can shrink fixed and
 no-wrap columns. Step 3 keeps the prototype's useful rule that a column whose
 content fits its share takes its content width.
 
 Step 6 was added after the parity corpus showed the solved width left on a
-wrapped column: `qctl status` at width 80 drew 80 columns where comfy-table
-drew 72. A table sized to its content reads as finished, and the snapshot
+wrapped column. `qctl status` at width 80 drew 80 columns where comfy-table
+drew 72. A table sized to its content reads as finished. The snapshot
 tests of verctl, qctl, forkctl, and rawr change less when they take the
 release.
 
@@ -345,7 +391,7 @@ Alternative: **keep the width step 3 gave a wrapped column.** It lost for the
 reasons step 6 gives.
 
 Alternative: **port comfy-table's dynamic arrangement.** It lost because it
-measures strings with escapes in them, and the result cannot be described in
+measures strings with escapes in them. The result cannot be described in
 a spec: parity snapshots (decision 17) show where the new algorithm differs.
 
 ### 10. Terminal facts are a pure function of an environment snapshot
@@ -354,10 +400,11 @@ a spec: parity snapshots (decision 17) show where the new algorithm differs.
 width }`. `env` is a lookup function, so a test passes a map and no test
 touches process state. `Terminal::from_process(stream, mode, options)` passes
 the process environment, reading it with `std::env::var_os` so that a value
-that is not valid UTF-8 still counts as set. `Terminal::from_probe(probe, mode,
-options, env)` is the whole decision with the stream stated. `options` is
-`DetectOptions`, and there is one constructor of each kind, not a pair with
-and without options.
+that is not valid UTF-8 still counts as set.
+
+`Terminal::from_probe(probe, mode, options, env)` is the whole decision with
+the stream stated. `options` is `DetectOptions`, and there is one constructor
+for each way to supply the input, not a pair with and without options.
 
 Colour, for `ColorMode::Auto`, first match wins:
 
@@ -377,19 +424,27 @@ variables that set the depth (`COLORTERM`, `TERM`, `FORCE_COLOR`) and the
 width (`COLUMNS`). The decision is made once, before rendering, for the stream
 the output goes to.
 
-Width, first match wins: an explicit width (exact); the window size of the
-stream being written, through `terminal_size::terminal_size_of`; `COLUMNS`;
-the fallback (`DEFAULT_FALLBACK_WIDTH`, 80). The column buffer
-(`DEFAULT_COLUMN_BUFFER`, 2) and the minimum (`DEFAULT_MINIMUM_WIDTH`, 20)
-apply to a detected width. The buffer reads no variable until the caller
-names some with `DetectOptions::column_buffer_envs`; ctl-core passes its
+Width, first match wins:
+
+1. an explicit width (exact);
+2. the window size of the stream being written, through
+   `terminal_size::terminal_size_of`;
+3. `COLUMNS`;
+4. the fallback (`DEFAULT_FALLBACK_WIDTH`, 80).
+
+The column buffer (`DEFAULT_COLUMN_BUFFER`, 2) and the minimum
+(`DEFAULT_MINIMUM_WIDTH`, 20) apply to a detected width. The buffer reads no
+variable until the caller names some with
+`DetectOptions::column_buffer_envs`. ctl-core passes its
 `CTL_CORE_COLUMN_BUFFER` names and uses these constants rather than its own
-copies. A width is at least 1: an explicit width of 0 counts as 1. Help
-printed to stderr now asks stderr, not stdout ([consumer needs, A.6][needs-a6]).
+copies.
+
+A width is at least 1: an explicit width of 0 counts as 1. Help printed to
+stderr now queries stderr, not stdout ([consumer needs, A.6][needs-a6]).
 
 A probe of a stream is `Probe::Redirected` (a pipe, a file, or a closed
-stream) or `Probe::Terminal` with the window width, built with
-`Probe::terminal(columns)`, where a width of 0 counts as not reported.
+stream) or `Probe::Terminal` with the window width. `Probe::terminal(columns)`
+builds it, and a width of 0 counts as not reported.
 Everything that asks the operating system (`Probe::of`, `Terminal::detect`, the
 `from_process` constructors, `Console::print`, and `terminal_size`) sits behind
 the default `detect` feature, so ctl-core's `render` tier takes the encoder
@@ -399,7 +454,7 @@ Alternatives:
 
 1. **anstream's detection.** It does not read `FORCE_COLOR`, re-detects on
    every print, and is tied to its writer ([style survey, 3.1][style-auto]).
-2. **crossterm's size.** It asks `/dev/tty`, not the stream, so it is wrong
+2. **crossterm's size.** It reads `/dev/tty`, not the stream, so it is wrong
    for redirected output, and it links `parking_lot` and `mio`.
 3. **rich's order.** It reads the width from stdin first and treats
    `FORCE_COLOR=0` as force ([rich survey, 9.2][rich-flaws], flaws 12 and
@@ -407,14 +462,20 @@ Alternatives:
 
 ### 11. Colour depth is detected and every colour is downgraded to it
 
-Depth: `COLORTERM` of `truecolor` or `24bit`, or `FORCE_COLOR=3`, is 24-bit;
-`TERM` containing `256color`, or `FORCE_COLOR=2`, is 256; anything else with
-colour on is 16. The encoder maps a 24-bit colour to the nearest of the 256
-palette and a 256 colour to the nearest of the 16, as a pure function. At 16
+Depth:
+
+- `COLORTERM` of `truecolor` or `24bit`, or `FORCE_COLOR=3`, is 24-bit;
+- `TERM` containing `256color`, or `FORCE_COLOR=2`, is 256;
+- anything else with colour on is 16.
+
+The encoder maps a 24-bit colour to the nearest of the 256 palette. It maps a
+256 colour to the nearest of the 16. Both mappings are pure functions. At 16
 colours the underline colour is dropped, because SGR 58 takes a palette or
-24-bit colour and has no 16-colour form. No surveyed crate does this
-([style survey, 5.3][style-depth]). The default theme
-uses only the 16 named colours, so its output is the same at every depth.
+24-bit colour and has no 16-colour form.
+
+No surveyed crate does this ([style survey, 5.3][style-depth]). The default
+theme uses only the 16 named colours, so its output is the same at every
+depth.
 
 ### 12. Roles map to styles through a public theme
 
@@ -428,29 +489,43 @@ is applied when `Document` becomes widgets, so `ctl-layout` never sees a role.
 The maintainer chose exit code 0 on 2026-11-08 (UTC). When stdout is closed
 by the reader (`| head`), `Console` reports `BrokenPipe`, and `App` exits with
 code 0 and writes nothing to stderr. Today `App` exits with a failure, so a
-consumer must catch the error by hand. The alternative, exit 141 as a shell does on SIGPIPE, was considered; it lost
-because a ctl CLI is not killed by the signal, and a non-zero exit fails
-`set -o pipefail` scripts for a reader that simply had enough. A consumer that
+consumer must catch the error by hand.
+
+The alternative, exit 141 as a shell does on SIGPIPE, was considered. It lost
+because a ctl CLI is not killed by the signal. A non-zero exit also fails
+`set -o pipefail` scripts for a reader that had enough. A consumer that
 wants the error sets `App::broken_pipe(BrokenPipe::Fail)`.
 
-A closed pipe never turns a failure into success. Under the default,
-`BrokenPipe::Ignore`, `App` exits with the code the command would have had
-with every byte read: a failed command keeps 1, and a parse error keeps 2.
+A closed pipe never turns a failure into success.
+
+Under the default, `BrokenPipe::Ignore`, `App` exits with the code the command
+would have had with every byte read. A failed command keeps 1, and a parse
+error keeps 2.
+
 `BrokenPipe::Fail` turns only success into a failure and keeps a code that is
-already non-zero, so a closed pipe never hides a more specific code and a
-script that checks `$? -eq 2` behaves the same under both policies.
-Only a command that succeeded exits 0. Exiting 0 on every closed pipe was
-the first version; review found it hid a failed command whose error went to
-a reader that stopped early, which a script would then read as a pass.
+already non-zero. So a closed pipe never hides a more specific code. A script
+that checks `$? -eq 2` behaves the same under both policies. Only a command
+that succeeded exits 0.
+
+Exiting 0 on every closed pipe was the first version. Review found it hid a
+failed command whose error went to a reader that stopped early. A script
+would then read it as a pass.
 
 ### 14. Phases: replace first, then add what rich has
 
-| Phase | Delivers | Row |
-|:--|:--|:--|
-| 1 (this change) | the workspace, the three leaves, `Table` with per-column overflow and numeric alignment, `Record`, `Rule`, `Stack`, `Indent`, paragraphs and headings, the encoder, detection, `Console`, the theme, closed-pipe handling; ctl-core on the new engine; comfy-table and anstream removed | CTC-034 |
-| 2 | `Panel`, `Tree`, `Columns`, `Align`, hyperlinks (OSC 8 with an allow-list and `FORCE_HYPERLINK`), a `Table` footer and title | new row |
-| 3 | `Live` region, `ProgressBar`, `Spinner`, `Status`, confirmation and secret prompts | new row |
-| 4 | `ctl-markdown`: the bundled instructions rendered instead of printed raw | new row |
+- Phase 1 (this change), row [CTC-034][ledger]:
+  - the workspace, the three leaves, `Table` with per-column overflow and
+    numeric alignment, `Record`, `Rule`, `Stack`, `Indent`, paragraphs and
+    headings;
+  - the encoder, detection, `Console`, the theme, closed-pipe handling;
+  - ctl-core on the new engine;
+  - comfy-table and anstream removed.
+- Phase 2, new row: `Panel`, `Tree`, `Columns`, `Align`, hyperlinks (OSC 8
+  with an allow-list and `FORCE_HYPERLINK`), a `Table` footer and title.
+- Phase 3, new row: `Live` region, `ProgressBar`, `Spinner`, `Status`,
+  confirmation and secret prompts.
+- Phase 4, new row: `ctl-markdown`: the bundled instructions rendered
+  instead of printed raw.
 
 Left out on purpose: markup, highlighters, syntax highlighting, diff, export
 to HTML or SVG, pretty-printing of arbitrary data, tracebacks. Each either
@@ -481,7 +556,7 @@ impl Present for Status {
 ```
 
 `ellipsis_column` and `numeric_column` are the two new semantic options.
-They say what a column holds, not how it is drawn.
+They mark what a column holds, not how it is drawn.
 
 A CLI that needs a widget `Document` does not have uses the engine through
 the facade's re-exports (`ctl_core::layout`, `ctl_core::term`,
@@ -520,10 +595,14 @@ impl Renderable for Meter {
 }
 ```
 
-Rules every public item follows: no `bool` parameter (an enum instead); a
-builder method converts its argument at once and calls a concrete inner
-function, so its generic shim stays small; `#[non_exhaustive]` on public
-enums; `Debug` on every public type; `# Errors` on every fallible function.
+Rules every public item follows:
+
+- no `bool` parameter (an enum instead);
+- a builder method converts its argument at once and calls a concrete inner
+  function, so its generic shim stays small;
+- `#[non_exhaustive]` on public enums;
+- `Debug` on every public type;
+- `# Errors` on every fallible function.
 
 ### 16. Feature tiers and their measured sizes
 
@@ -537,16 +616,19 @@ ctl-core's features turn on leaves:
 | `app` | as today | unchanged |
 
 Measured on darwin-arm64 at [2f23725], the `main` commit CI verified in
-[run 42542525587][ci-2f23725], against ctl-core 0.6.x (task 7.2,
-2026-11-08 UTC). The host was an Apple M4 Pro with macOS 26.7.1 and rustc
-1.99.1. A strip check passed on every binary: `nm -U` lists no Rust symbol.
-File size is `stat -f %z`, `__text` is the `Section __text` line of
-`size -m`, and built packages are the lines of
-`cargo tree -e normal,build --target aarch64-apple-darwin`.
+[run 42542525587][ci-2f23725]. The baseline is ctl-core 0.6.x (task 7.2,
+2026-11-08 UTC).
+
+- The host was an Apple M4 Pro with macOS 26.7.1 and rustc 1.99.1.
+- A strip check passed on every binary: `nm -U` lists no Rust symbol.
+- File size is `stat -f %z`.
+- `__text` is the `Section __text` line of `size -m`.
+- Built packages are the lines of
+  `cargo tree -e normal,build --target aarch64-apple-darwin`.
 
 The toy is `ctl-core/examples/size.rs` in a crate of its own, with clap's
-`std` and `derive` only, opt-level `"s"`, fat LTO, one codegen unit, abort
-and strip, built against v0.6.28 and against [2f23725]:
+`std` and `derive` only. It uses opt-level `"s"`, fat LTO, one codegen unit,
+abort and strip, and is built against v0.6.28 and against [2f23725]:
 
 | Tier | File, 0.6.28 | File, main | `__text`, 0.6.28 | `__text`, main | Change | Built packages |
 |:--|--:|--:|--:|--:|--:|--:|
@@ -556,46 +638,71 @@ and strip, built against v0.6.28 and against [2f23725]:
 | `app` | 718,864 | 551,376 | 499,464 | 410,544 | -88,920 | 54 → 35 |
 
 The toy's lock went from 65 packages, 63 from the registry, to 38 and 33.
+
 The `cli` tier renders nothing, so its change is the narrowing of clap's
-features alone, the figure [Matrix B][m-b] measured for it. If the narrowing
-costs the other tiers what Matrix B measured, the engine's share is about
--40,500 (`help`), -41,000 (`view`) and -40,700 (`app`), against -57,000 for
-the prototype; that split was not measured again on `main`. The same
-example built inside this repository, with its own profile and lock, is
-within 1,000 bytes of the toy at each tier.
+features alone, the figure [Matrix B][m-b] measured for it.
+
+If the narrowing costs the other tiers what Matrix B measured, the engine's
+share is about -40,500 (`help`), -41,000 (`view`) and -40,700 (`app`). The
+prototype's share was -57,000. That split was not measured again on `main`.
+
+The same example built inside this repository, with its own profile and lock,
+is within 1,000 bytes of the toy at each tier.
 
 The leaves' own dependencies cost little over a plain `println!` baseline:
-anstyle 1,620 bytes, unicode-width with unicode-segmentation 10,232,
-terminal_size 788 and anstyle-query 596 (since removed, decision 19).
-comfy-table as ctl-core 0.6.28 sets it costs 80,288, crossterm's
+
+- anstyle 1,620 bytes;
+- unicode-width with unicode-segmentation 10,232;
+- terminal_size 788;
+- anstyle-query 596 (since removed, decision 19).
+
+comfy-table as ctl-core 0.6.28 sets it costs 80,288, and crossterm's
 `terminal::size` alone 23,396 ([measurements, Matrix A][m-a]).
 
 Each public consumer was built at its `main` head with its own release
-profile, as committed and with an uncommitted `[patch.crates-io]` to
-[2f23725], whose version was rewritten to the consumer's pin:
+profile. One build was as committed. The other had an uncommitted
+`[patch.crates-io]` to [2f23725], whose version was rewritten to the
+consumer's pin:
 
-| Consumer | Pin | File, as committed | File, patched | `__text`, as committed | `__text`, patched | Change | Lock packages | Built packages |
-|:--|:--|--:|--:|--:|--:|--:|--:|--:|
-| [verctl][verctl-head] | 0.6.23 | 15,727,712 | 15,662,704 | 12,293,148 | 12,285,916 | -7,232 | 408 → 397 | 315 → 309 |
-| [qctl][qctl-head] | 0.6.24 | 6,863,728 | 6,798,608 | 5,533,776 | 5,524,304 | -9,472 | 219 → 212 | 167 → 162 |
-| [forkctl][forkctl-head] | 0.6.23 | 5,536,656 | 5,471,184 | 4,523,776 | 4,516,672 | -7,104 | 138 → 126 | 119 → 110 |
-| [rawr][rawr-head] | 0.6.28 | 1,233,216 | 1,183,712 | 950,920 | 953,564 | +2,644 | 121 → 115 | 94 → 89 |
+| Consumer | Pin | File, as committed | File, patched | `__text`, as committed | `__text`, patched | Change |
+|:--|:--|--:|--:|--:|--:|--:|
+| [verctl][verctl-head] | 0.6.23 | 15,727,712 | 15,662,704 | 12,293,148 | 12,285,916 | -7,232 |
+| [qctl][qctl-head] | 0.6.24 | 6,863,728 | 6,798,608 | 5,533,776 | 5,524,304 | -9,472 |
+| [forkctl][forkctl-head] | 0.6.23 | 5,536,656 | 5,471,184 | 4,523,776 | 4,516,672 | -7,104 |
+| [rawr][rawr-head] | 0.6.28 | 1,233,216 | 1,183,712 | 950,920 | 953,564 | +2,644 |
 
-The as-committed numbers equal [Matrix C][m-c] to the byte. Every patched
-consumer drops ansi-str, ansitok, arrayvec, comfy-table, console,
-minimal-lexical, nom and vte, and gains ctl-text, ctl-layout, ctl-term and
-terminal_size. All but rawr also drop crossterm, all but qctl drop
-unicode-general-category, and forkctl drops parking_lot and the three
-crates it brings. The prototype had cut 28,524 to 45,632 bytes per consumer;
-the engine that shipped is larger, and the attribution below shows where the
-difference went. The private consumers were not measured.
+| Consumer | Lock packages | Built packages |
+|:--|--:|--:|
+| [verctl][verctl-head] | 408 → 397 | 315 → 309 |
+| [qctl][qctl-head] | 219 → 212 | 167 → 162 |
+| [forkctl][forkctl-head] | 138 → 126 | 119 → 110 |
+| [rawr][rawr-head] | 121 → 115 | 94 → 89 |
+
+The as-committed numbers equal [Matrix C][m-c] to the byte.
+
+Every patched consumer drops ansi-str, ansitok, arrayvec, comfy-table,
+console, minimal-lexical, nom and vte. It gains ctl-text, ctl-layout,
+ctl-term and terminal_size. All but rawr also drop crossterm. All but qctl
+drop unicode-general-category. forkctl drops parking_lot and the three
+crates it brings.
+
+The prototype had cut 28,524 to 45,632 bytes per consumer. The engine that
+shipped is larger, and the attribution below shows where the difference
+went. The private consumers were not measured.
 
 `cargo bloat` 0.12.1 attributed `__text` to crates in qctl, the largest
-cut, and rawr, which grows, with each one's release profile left unstripped
-and without debug info. Four builds of each: A as committed, B patched to
-v0.6.28, C patched to [2f23725], and D as C with the consumer's own clap
-dependency set to `default-features = false` (`std`, `derive`, and `env` for
-qctl). Unstripped `__text`, in bytes:
+cut, and rawr, which grows. Each one's release profile was left unstripped
+and without debug info.
+
+Four builds of each:
+
+- A: as committed;
+- B: patched to v0.6.28;
+- C: patched to [2f23725];
+- D: as C with the consumer's own clap dependency set to
+  `default-features = false` (`std`, `derive`, and `env` for qctl).
+
+Unstripped `__text`, in bytes:
 
 | Step | qctl | rawr | What moved |
 |:--|--:|--:|:--|
@@ -603,38 +710,42 @@ qctl). Unstripped `__text`, in bytes:
 | B → C, the engine and every other change to `main` | -8,256 | +2,580 | see below |
 | C → D, the consumer's clap without default features | 0 | -60,808 | clap_builder -48,808, std -8,112, heck -5,984, strsim -1,864 |
 
-In B → C, the engine crates come to 53,608 bytes in qctl (ctl-text 21,644,
-ctl-layout 24,296, ctl-term 7,668) and 52,872 in rawr, plus 6,368 and 2,516
-of unicode-segmentation's grapheme tables. They replace comfy-table and the
-crates it brought, 51,016 bytes in qctl and 45,396 in rawr, with comfy-table
-itself 32,252 and 32,044. With the smaller crates, the swap nets +9,288 in
-qctl and +10,192 in rawr. The
-generic std code the removed crates instantiated shrinks by 11,228 in qctl
-and 2,620 in rawr, which turns qctl's total negative. ctl-core's own code,
-the other changes since 0.6.28 included, moves by -780 in qctl and +784 in
-rawr. In rawr, 20,084 bytes leave ctl-core's crate and about as many reach
-rawr's, likely ctl-core code inlined into rawr; that was not checked. clap moves by -720 and -5,352. cargo-bloat
-attributes generic code by symbol name, so the rest, spread under 2 KB a
-crate, is not assigned to a cause.
+In B → C:
+
+- The engine crates come to 53,608 bytes in qctl and 52,872 in rawr. In
+  qctl they are ctl-text 21,644, ctl-layout 24,296 and ctl-term 7,668. The
+  grapheme tables of unicode-segmentation add 6,368 and 2,516.
+- They replace comfy-table and the crates it brought, 51,016 bytes in qctl
+  and 45,396 in rawr. Of these, comfy-table itself is 32,252 and 32,044. With
+  the smaller crates, the swap nets +9,288 in qctl and +10,192 in rawr.
+- The generic std code the removed crates instantiated shrinks by 11,228 in
+  qctl and 2,620 in rawr. This turns qctl's total negative.
+- ctl-core's own code, the other changes since 0.6.28 included, moves by -780
+  in qctl and +784 in rawr. In rawr, 20,084 bytes leave ctl-core's crate and
+  about as many reach rawr's, likely ctl-core code inlined into rawr. That was
+  not checked.
+- clap moves by -720 and -5,352.
+- cargo-bloat attributes generic code by symbol name, so the rest, spread
+  under 2 KB a crate, is not assigned to a cause.
 
 qctl's C → D is zero because usage-lib turns clap's default features back
-on: its `clap` dependency, in 6.1.1 and in 6.12.1, the latest, leaves
-`default-features` on ([usage-lib Cargo.toml][usage-lib-toml]). Every
-consumer of ctl-core's `usage` feature (verctl, qctl and forkctl) carries
-clap's `color`, `help`, `suggestions`, `error-context` and `usage` whatever
-it asks for.
+on. Its `clap` dependency leaves `default-features` on, in 6.1.1 and in
+6.12.1, the latest ([usage-lib Cargo.toml][usage-lib-toml]). Every consumer
+of ctl-core's `usage` feature (verctl, qctl and forkctl) carries clap's
+`color`, `help`, `suggestions`, `error-context` and `usage`, whatever the
+consumer requests.
 
 What ctl-core could cut, measured and not changed:
 
 1. **usage-lib's clap defaults.** rawr shows their cost: 60,808 bytes, 6.4%
    of its `__text`. For a consumer with `usage`, the cut needs usage-lib to
-   take clap with `default-features = false`, or ctl-core to build its spec
-   without usage-lib's `clap` feature. A consumer's own clap needs the same
-   setting, as the crate's quick start says.
+   take clap with `default-features = false`. The other way is for ctl-core
+   to build its spec without usage-lib's `clap` feature. A consumer's own
+   clap needs the same setting, as the crate's quick start says.
 2. **The `usage` feature itself.** In qctl, kdl (117,572), usage-lib
    (108,540) and winnow (43,436) come to 269,548 bytes, 4.9% of its
-   `__text`, to print one Usage spec for mise. Writing the KDL text straight
-   from the clap command would drop all three.
+   `__text`. Their job is to print one Usage spec for mise. Writing the KDL
+   text straight from the clap command would drop all three.
 3. **annotate-snippets** (103,692 in qctl) comes with serde-saphyr's
    `deserialize` feature ([serde-saphyr Cargo.toml][serde-saphyr-toml]),
    which ctl-core's `input` needs. ctl-core places its errors through
@@ -646,15 +757,18 @@ What ctl-core could cut, measured and not changed:
 The engine itself stays: its three crates cost what the crates they replaced
 cost, and its grapheme tables are the price of cluster-correct widths.
 
-A budget task, `check:size`, builds the toy at each tier in CI on linux-x64
-and fails when `.text` grows more than 2% over that tier's budget. The
-budgets are build configuration for this repository's own crates, so they
-live where the repository already keeps tool configuration for its build:
-Cargo metadata, as `[package.metadata.docs.rs]` and
+A budget task, `check:size`, builds the toy at each tier in CI on linux-x64.
+It fails when `.text` grows more than 2% over that tier's budget.
+
+The budgets are build configuration for this repository's own crates, so they
+live where the repository already keeps tool configuration for its build.
+That place is Cargo metadata, as `[package.metadata.docs.rs]` and
 `[package.metadata.cargo-machete]` do. They form a `[workspace.metadata.size]`
-table in the root `Cargo.toml`. The task reads it with
+table in the root `Cargo.toml`.
+
+The task reads it with
 `cargo metadata --format-version 1 --no-deps --locked | jq`, using the jq the
-repository already pins, and measures `.text` with binutils' `size -A`, which
+repository already pins. It measures `.text` with binutils' `size -A`, which
 the Linux runner already has.
 
 Where the budgets live, alternatives:
@@ -689,9 +803,9 @@ It lost because a size regression would ship before anyone measured.
 1. **Snapshots.** Every widget and every `Document` block has insta file
    snapshots at widths 20, 40, 80 and 120, colourless and with colour, under
    `<crate>/tests/snapshots/`.
-2. **Parity.** A corpus of the documents consumers render (taken from their
-   snapshot and capture tests) is rendered by ctl-core at the last
-   comfy-table release and by the new engine. The parity test commits both
+2. **Parity.** A corpus of the documents consumers render is taken from
+   their snapshot and capture tests. ctl-core at the last comfy-table release
+   renders it, and so does the new engine. The parity test commits both
    outputs; each difference is listed in the PR with its reason, and none is
    accepted silently.
 3. **Properties** (proptest), over random text with wide, combining, emoji and
@@ -721,25 +835,31 @@ new rule keeps two parts and replaces two:
 2. Replaced: ANSI stripping is not written at all, because nothing is painted
    before the decision to paint (decision 5).
 3. Replaced: table sizing is written in `ctl-layout`, because no crate sizes
-   styled cells without a terminal crate and a second escape parser, and the
+   styled cells without a terminal crate and a second escape parser. The
    one that comes closest still ignores minimum widths. The algorithm is
    specified (decision 9) and property-tested (decision 17).
-4. Replaced: the colour policy is written in `ctl-term` as a pure function,
-   because no crate reads both `NO_COLOR` and `FORCE_COLOR` with an explicit
-   override, per stream, without global state.
+4. Replaced: the colour policy is written in `ctl-term` as a pure function.
+   The reason is that no crate reads both `NO_COLOR` and `FORCE_COLOR` with an
+   explicit override, per stream, without global state.
 
 ### 19. ctl-term supports and tests Unix only, for now
 
 The maintainer chose this on 2026-11-08 (UTC). `ctl-term` has no Windows
-path: it does not turn on virtual-terminal mode, it does not depend on
-`anstyle-query`, and a target that is not Unix reports no window width. The
-reason is what the Windows path did. `anstyle-query`'s
+path:
+
+- it does not turn on virtual-terminal mode;
+- it does not depend on `anstyle-query`;
+- a target that is not Unix reports no window width.
+
+The reason is what the Windows path did. `anstyle-query`'s
 `windows::enable_ansi_colors` enables virtual-terminal mode for stdout and
-stderr at once, so a piped stdout turned off the colour of a terminal stderr,
-and mintty lost its colour. No consumer ships a Windows build, and no CI job
-runs on Windows, so the path could not be tested. The crate docs, the README
-and `ctl-term/AGENTS.md` state it. Windows returns with a Windows CI job that
-runs the tests, and the path comes back with them.
+stderr at once. A piped stdout therefore turned off the colour of a terminal
+stderr, and mintty lost its colour.
+
+No consumer ships a Windows build, and no CI job runs on Windows, so the path
+could not be tested. The crate docs, the README and `ctl-term/AGENTS.md` state
+it. Windows returns with a Windows CI job that runs the tests, and the path
+comes back with them.
 
 Alternatives:
 
@@ -767,15 +887,15 @@ Alternatives:
 ## Risks / Trade-offs
 
 1. [Output differs from comfy-table in column widths] → the parity test
-   (decision 17) lists every difference, and each consumer reviews its
+   (decision 17) lists every difference. Each consumer reviews its
    snapshot diff in the pull request that moves its pin.
 2. [We now own a table algorithm] → it is specified in six steps and checked
-   by properties, and its cases are a subset of rich's, whose behaviour is on
+   by properties. Its cases are a subset of rich's, whose behaviour is on
    record.
 3. [`ctl_core::Text` (roles) and `ctl_text::Text` (styles) share a name] →
    the facade re-exports the leaf as a module (`ctl_core::text::Text`), never
-   at the root, and the docs say which is which.
-4. [`unicode-segmentation` and `unicode-width` disagree on a new emoji] → the
+   at the root. The docs show which is which.
+4. [`unicode-segmentation` and `unicode-width` diverge on a new emoji] → the
    pinned version test fails on any upgrade that moves one of them.
 5. [Four crates to release] → verctl publishes a virtual workspace as one
    package at one version, in dependency order.
@@ -783,7 +903,7 @@ Alternatives:
    `Auto` holds SGR bytes because the strip happens at write time. After this
    change, `Auto` off a terminal paints nothing. Consumer tests use `Never`
    ([consumer needs, A.5][needs-a5]), so none should break; the changeset
-   says so.
+   states this.
 
 ## Migration Plan
 
@@ -811,6 +931,7 @@ compatibility path for comfy-table.
 [needs-c]: ../../../docs/research/terminal-rendering/consumer-needs.md#part-c-needs-matrix
 [needs-d2]: ../../../docs/research/terminal-rendering/consumer-needs.md#d2-hand-rolled-gaps-that-the-library-could-obviously-offer
 [research]: ../../../docs/research/terminal-rendering/README.md
+[ledger]: ../../../tasks.yaml
 [rich-flaws]: ../../../docs/research/terminal-rendering/rich-and-typer.md#92-known-flaws-and-the-fix-for-each
 [charm-weak]: ../../../docs/research/terminal-rendering/charm.md#72-weaknesses-visible-in-the-code
 [layout-comfy]: ../../../docs/research/terminal-rendering/rust-layout-crates.md#3-comfy-table-801

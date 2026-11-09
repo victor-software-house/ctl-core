@@ -147,7 +147,8 @@ This repository's own tasks live in `mise-tasks/`:
   It fails when a tier's `.text` grows more than the tolerance past its budget in `[workspace.metadata.size]` of the root `Cargo.toml`.
   - The budgets are linux-x64 numbers, so the task runs on Linux x86-64 and skips elsewhere.
   - A change that grows a tier on purpose raises its budget in the same pull request, measured with the pinned rustc.
-- `lint:prose` runs Vale with the prose-style package over the files `.vale.ini` picks: `README.md`, `AGENTS.md`, `docs/` outside `docs/research/`, every comment in the Rust files under each `src/`, and the changesets.
+- `lint:prose` runs Vale with the prose-style package over the files `.vale.ini` picks.
+  They are `README.md`, `AGENTS.md`, `docs/` outside `docs/research/`, every comment in the Rust files under each `src/`, the changesets, and `openspec/` outside the archived changes.
   `vale sync` fetches the package into the ignored `.vale/`, so the first run needs the network.
 
 `check:repo`, `commit-msg`, `commits`, and the hook tasks are the template's files in `mise-tasks/`.

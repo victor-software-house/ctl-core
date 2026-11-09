@@ -1,18 +1,24 @@
 ## Purpose
 
-How the rendering engine turns text into styled spans: which characters from
-outside the program it removes, how it counts width in terminal cells, and how
-it wraps, folds and truncates a line.
+How the rendering engine turns text into styled spans.
+This covers which characters from outside the program it removes, and how it
+counts width in terminal cells.
+It also covers how it wraps, folds and truncates a line.
 
 ## ADDED Requirements
 
 ### Requirement: Unsafe characters are removed from every span
 
-The engine SHALL remove from the text of every span the C0 and C1 control
-characters, including ESC, the twelve UAX #9 directional formatting
-characters, and U+2028 and U+2029, except newline and tab, which it handles as
-the next requirements state, and the other line breaks, which the requirement
-after them states.
+The engine SHALL remove these characters from the text of every span:
+
+- the C0 and C1 control characters, including ESC;
+- the twelve UAX #9 directional formatting characters;
+- U+2028 and U+2029.
+
+The exceptions are newline and tab, which the engine handles as the next
+requirements state.
+The other line breaks are also exceptions, as the requirement after them
+states.
 
 #### Scenario: An escape sequence in a title
 
@@ -75,8 +81,8 @@ it renders a paragraph that was never given text.
 ### Requirement: A tab expands to the next tab stop
 
 The engine SHALL replace each tab with spaces up to the next multiple of 8
-cells from the start of its line, and SHALL let a caller set another tab
-width.
+cells from the start of its line.
+It SHALL let a caller set another tab width.
 
 #### Scenario: Default tab stop
 
@@ -93,8 +99,8 @@ width.
 ### Requirement: Width is counted per grapheme cluster
 
 The engine SHALL count the width of text as the sum, over its extended
-grapheme clusters, of each cluster's width in terminal cells, and SHALL count
-East Asian ambiguous characters as 1 cell.
+grapheme clusters, of each cluster's width in terminal cells.
+It SHALL count East Asian ambiguous characters as 1 cell.
 
 #### Scenario: A family emoji
 
@@ -124,12 +130,12 @@ segmentation data.
 ### Requirement: A word is kept whole unless the caller allows a fold
 
 When wrapping with the keep-words policy, the engine SHALL break lines only at
-whitespace or at a zero width space, and SHALL let a word wider than the width
-run past it.
+whitespace or at a zero width space.
+It SHALL let a word wider than the width run past it.
 
 #### Scenario: A long URL
 
-- **WHEN** a paragraph holds `see https://example.test/releases/tag/pkg@1.2.3` at width 30
+- **WHEN** a paragraph holds `see`, a space, and `https://example.test/releases/tag/pkg@1.2.3` at width 30
 - **THEN** the URL appears whole on one line
 - **AND** that line is the only line wider than 30 cells
 
@@ -141,8 +147,8 @@ run past it.
 
 ### Requirement: A fold never splits a grapheme cluster
 
-When folding, the engine SHALL break a word only between grapheme clusters,
-and SHALL carry a cluster that does not fit at the end of a line to the next
+When folding, the engine SHALL break a word only between grapheme clusters.
+It SHALL carry a cluster that does not fit at the end of a line to the next
 line whole.
 
 #### Scenario: Folding wide text

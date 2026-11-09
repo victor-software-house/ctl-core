@@ -50,8 +50,9 @@ default to no separation.
 
 ### Requirement: JSON layout is a public option and never carries ANSI
 
-ctl-core SHALL print JSON in the layout set on `View`, SHALL use `Pretty` when
-none is set, and SHALL never write an escape sequence into JSON output.
+ctl-core SHALL print JSON in the layout set on `View`, and SHALL use `Pretty`
+when none is set.
+It SHALL never write an escape sequence into JSON output.
 
 #### Scenario: Pretty JSON
 
@@ -66,7 +67,8 @@ none is set, and SHALL never write an escape sequence into JSON output.
 ### Requirement: Identifiers have their own role
 
 ctl-core SHALL render text marked as an identifier bold in the terminal's
-foreground colour, and SHALL keep the token style for flags and commands.
+foreground colour.
+It SHALL keep the token style for flags and commands.
 
 #### Scenario: Id column
 
@@ -108,8 +110,8 @@ fallback SHALL NOT change the minimum applied to a detected width.
 ### Requirement: The environment picks a style the owner left open
 
 ctl-core SHALL read each style option from its environment variable when the
-library owner has not set that option, and SHALL ignore the variable when the
-owner has.
+library owner has not set that option.
+It SHALL ignore the variable when the owner has.
 
 #### Scenario: Boxed record from the shell
 

@@ -31,9 +31,13 @@ suffix, and an unsaid `executable` false. Any other export SHALL be ignored.
 ### Requirement: A declaration that does not fit names the template and the field
 
 `render` SHALL fail with an error that starts with the template's name when
-`path` is outside the repository, `name` is not one file name, a value has the
-wrong type, the file name does not end in the suffix, or the template uses an
-undefined name.
+any one of these holds:
+
+- `path` is outside the repository;
+- `name` is not one file name;
+- a value has the wrong type;
+- the file name does not end in the suffix;
+- the template uses an undefined name.
 
 #### Scenario: A climbing path
 

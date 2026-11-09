@@ -203,9 +203,9 @@ impl Terminal {
         self.color
     }
 
-    /// The width to lay out to, in cells and at least 1. `None` when the
-    /// stream gives none, `COLUMNS` holds no number from 1 to 65535, and the
-    /// fallback is off.
+    /// The width to lay out to, in cells and at least 1. It is `None` when
+    /// the stream gives none, `COLUMNS` holds no number from 1 to 65535, and
+    /// the fallback is off.
     #[must_use]
     pub fn width(self) -> Option<u16> {
         self.width

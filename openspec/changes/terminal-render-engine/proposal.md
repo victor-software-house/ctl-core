@@ -2,20 +2,25 @@
 
 ## Why
 
-ctl-core paints colour into every span before layout, then hands the painted
-strings to comfy-table, which parses the escapes again to measure them, then
-writes through anstream, which parses them a third time to strip them when the
-stream is not a terminal. comfy-table can keep styled cells only with its
-`tty` feature, which links crossterm, so every ctl CLI links a terminal
-library it never drives.
+ctl-core paints colour into every span before layout.
+It hands the painted strings to comfy-table, which parses the escapes again
+to measure them.
+It then writes through anstream, which parses them a third time to strip
+them when the stream is not a terminal.
 
-Measured on a toy CLI (opt-level `"s"`, fat LTO, strip, darwin-arm64), an
-unpublished prototype engine in place of comfy-table cut 57,052 to 57,436
-bytes of `__text` at the `help`, `view` and `app` tiers and removed 19
-packages from the build. In the four public consumers it cut 28,524 to
-45,632 bytes of `__text` and 9 to 14 packages
-([measurements][measurements]). The narrower clap features of [CTC-032][ctc-032] save
-another 48,000 to 62,000 bytes and are not counted here.
+comfy-table can keep styled cells only with its `tty` feature, which links
+crossterm, so every ctl CLI links a terminal library it never drives.
+
+In a toy CLI (opt-level `"s"`, fat LTO, strip, darwin-arm64), an
+unpublished prototype engine replaced comfy-table.
+It cut 57,052 to 57,436 bytes of `__text` at the `help`, `view` and `app`
+tiers.
+It also removed 19 packages from the build.
+
+In the four public consumers it cut 28,524 to 45,632 bytes of `__text` and
+9 to 14 packages ([measurements][measurements]).
+The narrower clap features of [CTC-032][ctc-032] save another 48,000 to
+62,000 bytes and are not counted here.
 
 The width rule is also wrong in two places. Help printed to stderr asks stdout
 for its width, and the width comes from `/dev/tty` rather than from the
@@ -24,12 +29,14 @@ out of text from outside the program, so rawr and other consumers wrote
 their own filter.
 
 Beyond replacing comfy-table, the consumers hand-roll what a rendering
-library should give them: a table with ellipsis and numeric columns, a width
-rule, closed-pipe handling, a live progress view, a tree, hyperlinks
-([consumer needs, D.2][needs-d2]). The maintainer asked for an engine at the
+library should give them ([consumer needs, D.2][needs-d2]).
+The list covers a table with ellipsis and numeric columns, a width rule,
+closed-pipe handling, a live progress view, a tree and hyperlinks.
+
+The maintainer asked for an engine at the
 level of Python's rich, with ctl-core as typer is to rich.
 
-Queue row: CTC-034.
+Queue row: [CTC-034][ledger].
 
 ## What Changes
 
@@ -113,4 +120,5 @@ The maintainer decided these on 2026-11-08 (UTC). Each is argued in
 [design]: design.md
 [design-18]: design.md#18-the-rule-against-writing-these-from-scratch-is-replaced
 [measurements]: ../../../docs/research/terminal-rendering/measurements.md
+[ledger]: ../../../tasks.yaml
 [ctc-032]: https://github.com/victor-software-house/ctl-core/pull/183

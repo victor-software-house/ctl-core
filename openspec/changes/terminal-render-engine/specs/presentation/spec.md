@@ -25,9 +25,9 @@ after a usage error.
 ### Requirement: Undetected width uses a fallback width
 
 ctl-core SHALL lay out to the fallback width when neither the stream being
-written nor `COLUMNS` gives a width, and SHALL let a consumer change or
-disable it. The fallback SHALL NOT change the minimum applied to a detected
-width.
+written nor `COLUMNS` gives a width.
+It SHALL let a consumer change or disable the fallback width.
+The fallback SHALL NOT change the minimum applied to a detected width.
 
 #### Scenario: Everything piped
 

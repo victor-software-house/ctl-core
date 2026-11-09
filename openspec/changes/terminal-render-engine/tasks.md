@@ -7,25 +7,28 @@ and in CI, as each task says.
 ## 1. Plan
 
 - [x] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
-  change, and the CTC-034 row with the later phases as horizon rows. Proof:
-  `openspec validate --all --strict` passes on the pushed commit, and
+  change, and the [CTC-034][ledger] row with the later phases as horizon rows.
+  Proof: `openspec validate --all --strict` passes on the pushed commit, and
   `mise run q check` passes on main.
   - Amended 2026-11-08 UTC in [89f907a]. The proof first read: "`openspec
     validate --all --strict` and `mise run q check` pass on the pushed
     commit, and the maintainer approves the decisions listed in the
-    proposal." On the pushed commit of [#185], `q check` reported CTC-030
-    to CTC-033 as missing, because the pull requests that add those rows
-    were still open, so the check now runs on main. [#185] carries no
-    formal review, so the approval clause is dropped. The sign-off on this
-    amendment is the maintainer's merge of [#222], which carries it; that
-    pull request has no formal review either.
+    proposal."
+    - On the pushed commit of [#185], `q check` reported [CTC-030][ledger] to
+      [CTC-033][ledger] as missing, because the pull requests that add those
+      rows were still open. The check now runs on main.
+    - [#185] carries no formal review, so the approval clause is dropped.
+      The sign-off on this amendment is the maintainer's merge of [#222],
+      which carries it; that pull request has no formal review either.
   - 2026-11-08 UTC: committed in [#185], which the maintainer merged. CI
     [run 42439929592][run-185] passed on [2cc125b], and the merge queue's
     [run 42440121205][q-185] on [e0b5249]. `openspec validate --all
-    --strict` passed, 7 of 7. On that commit, `mise run q check` reported
-    CTC-030 to CTC-033 as missing ids, because their pull requests were
-    still open. On main after [#198] landed those rows, `mise run q check`
-    passes, and `openspec validate --all --strict` passes 11 of 11.
+    --strict` passed, 7 of 7.
+  - On that commit, `mise run q check` reported [CTC-030][ledger] to
+    [CTC-033][ledger] as missing ids, because their pull requests were still
+    open.
+  - On main after [#198] landed those rows, `mise run q check` passes, and
+    `openspec validate --all --strict` passes 11 of 11.
 
 ## 2. Workspace
 
@@ -46,10 +49,11 @@ and in CI, as each task says.
     which now lists only version commits whose release is incomplete;
     `--dry-run` prints the publish order. It also asked for `wrappers`
     entries in `deny.toml`, which allow a named crate to depend on a
-    banned one. `deny.toml` bans only `openssl` and `native-tls`, which no
-    member uses, so no ban needs a wrapper and none was added. The
-    sign-off is the maintainer's merge of [#221], which carries this
-    amendment in [253c007]; it has no formal review.
+    banned one.
+    - `deny.toml` bans only `openssl` and `native-tls`, which no member
+      uses, so no ban needs a wrapper and none was added.
+    - The sign-off is the maintainer's merge of [#221], which carries this
+      amendment in [253c007]; it has no formal review.
   - 2026-11-08 UTC: `.ctl/ver.yaml` reads the root `Cargo.toml`, the
     virtual manifest, and pins each member's `={version}` entry in
     `[workspace.dependencies]`. On main at [93c8642],
@@ -62,8 +66,8 @@ and in CI, as each task says.
 ## 3. `ctl-text`
 
 - [x] 3.1 Add `ctl-text/` with `Span`, `Line`, `Text`, the cell-width
-  functions, `overlay`, and `UNICODE_VERSION`; move CTC-032's `verbatim`
-  module into it. Proof: unit tests for the width scenarios of the
+  functions, `overlay`, and `UNICODE_VERSION`; move the `verbatim` module of
+  [CTC-032][ledger] into it. Proof: unit tests for the width scenarios of the
   `styled-text` spec and the version pin test pass in CI.
   - 2026-11-08 UTC: [#193]. CI [run 42451537424][run-193] passed on
     [fcd8f62], and the merge queue's [run 42451743356][q-193] on [ea5ab25],
@@ -83,9 +87,9 @@ and in CI, as each task says.
 ## 4. `ctl-layout`
 
 - [x] 4.1 Add `ctl-layout/` with `Table` and its five-step column
-  algorithm, per-column overflow and numeric alignment, the frames ctl-core
-  uses today (grid, header rule, plain, row rule, blank rows), and stacking.
-  Proof: the `layout` spec scenarios, insta snapshots at widths 20, 40, 80 and
+  algorithm. Add per-column overflow and numeric alignment, the frames
+  ctl-core uses today (grid, header rule, plain, row rule, blank rows), and
+  stacking. Proof: the `layout` spec scenarios, insta snapshots at widths 20, 40, 80 and
   120, and the width properties pass in CI.
   - 2026-11-08 UTC: [#197]. CI [run 42452982117][run-197] passed on
     [e2df8f6], and the merge queue's [run 42453256063][q-197] on [eb81419].
@@ -109,15 +113,15 @@ and in CI, as each task says.
     cover 31 colour environments on a pipe and on a terminal, `Always` and
     `Never` against all 31, 18 depth cases and 31 width cases.
 - [x] 5.2 Add the encoder and `Console`: style changes only, a reset at each
-  line end, plain bytes when colour is off, width per stream through
+  line end and plain bytes when colour is off. Add width per stream through
   `terminal_size`, virtual-terminal mode on Windows, and `BrokenPipe`
   reported as its own error. Proof: the `terminal-output` scenarios pass in
   CI, the closed-pipe one through a child process piped to `head -1`.
-  - 2026-11-08 UTC: [#199], [#200] and [#202], in the same runs as 5.1.
-    `tests/it/scenarios.rs` holds the scenarios, and the closed-pipe test
-    runs the test binary as a child piped to `head -1` on Linux. Not
-    verified: the Windows virtual-terminal path, since CI has no Windows
-    job, and the closed-pipe test on macOS.
+  - 2026-11-08 UTC: the same runs as 5.1 cover [#199], [#200] and [#202].
+    `tests/it/scenarios.rs` holds the scenarios. The closed-pipe test runs
+    the test binary as a child piped to `head -1` on Linux. Not verified:
+    the Windows virtual-terminal path, since CI has no Windows job, and the
+    closed-pipe test on macOS.
 
 ## 6. ctl-core on the engine
 
@@ -127,23 +131,24 @@ and in CI, as each task says.
   `presentation` delta scenarios pass, the stderr help one in a child process.
   - 2026-11-08 UTC: [#206], with [#207], [#208] and [#210]. CI
     [run 42458776026][run-210] passed on [e06097e], and the merge queue's
-    [run 42458984812][q-209] on [c17236d], including the help snapshots
+    [run 42458984812][q-209] on [c17236d]. Both included the help snapshots
     rendered in a child process and the pty test on Linux.
 - [x] 6.2 Add the parity test: the consumer corpus rendered by ctl-core 0.6.x
-  and by the engine, both committed, every difference listed with its reason
-  in the pull request. Proof: the parity test passes in CI and the pull
+  and by the engine, both committed. Every difference is listed with its
+  reason in the pull request. Proof: the parity test passes in CI and the pull
   request lists each difference.
   - 2026-11-08 UTC: [#203] committed the 0.6.x baselines and [#204] fixed
-    its lint; CI [run 42456492298][run-204] passed on [5b31f40], and the
-    merge queue's [run 42456761995][q-203] on [39e6f88]. [#206] added the
-    engine renders and [`ctl-core/tests/parity/DIFFERENCES.md`][differences],
-    which lists each of the eight differences with an example and its
-    reason; [#206]'s description summarises them. [#208] changed
-    difference 5 and updated that file. The parity test passed in
-    [run 42458984812][q-209]. The committed file now carries the
-    per-difference list the proof asked of the pull request. The sign-off
-    on that substitution is the maintainer's merge of [#223], which carries
-    this sentence in [ee51e4b]; it has no formal review.
+    its lint. CI [run 42456492298][run-204] passed on [5b31f40], and the
+    merge queue's [run 42456761995][q-203] on [39e6f88].
+  - [#206] added the engine renders and
+    [`ctl-core/tests/parity/DIFFERENCES.md`][differences], which lists each
+    of the eight differences with an example and its reason. [#206]'s
+    description summarises them. [#208] changed difference 5 and updated
+    that file.
+  - The parity test passed in [run 42458984812][q-209]. The committed file
+    now carries the per-difference list the proof asked of the pull request.
+    The sign-off on that substitution is the maintainer's merge of [#223],
+    which carries this sentence in [ee51e4b]; it has no formal review.
 - [x] 6.3 Remove comfy-table, anstream, unicode-general-category, `kv` and
   `grid`; add `App::broken_pipe` and `App::theme`. Proof: `cargo tree` in CI
   lists none of comfy-table, crossterm, anstream, anstyle-parse or console
@@ -169,9 +174,10 @@ and in CI, as each task says.
     allowed too. The sign-off is the maintainer's merge of [#221], which
     carries this amendment in [ae33a31]; it has no formal review.
   - 2026-11-08 UTC: [#212], in the same runs as 6.3; the pre-push hooks
-    passed on its push. On this branch, `rg 'comfy|anstream'` over `docs`,
-    `AGENTS.md` and `README.md` finds the research in
-    `docs/research/terminal-rendering/`, which is history, and one
+    passed on its push.
+  - On this branch, `rg 'comfy|anstream'` over `docs`, `AGENTS.md` and
+    `README.md` finds two things. One is the research in
+    `docs/research/terminal-rendering/`, which is history. The other is one
     `AGENTS.md` line listing the crates `check:tree` refuses: a rule that
     names the crates as removed, which the amended proof allows.
 
@@ -187,28 +193,31 @@ and in CI, as each task says.
     sign-off is the maintainer's merge of [#222], which carries this
     amendment in [c3f6883]; it has no formal review.
   - 2026-11-08 UTC: [#217] added the task and the budgets, and [#218] made a
-    tier with no `.text` fail. CI [run 42460793731][run-217] passed on
-    [bbb006b] and measured cli 343,888, help 443,676, view 409,362 and app
-    469,842 bytes, the budgets. CI [run 42461005097][run-218] passed on
-    [4035f78], and the merge queue's [run 42461303294][q-219] on
-    [b7c1680]. On a linux-x64 host with rustc 1.99.1 and GNU size 2.46,
-    with `MISE_ENV=ci`, the task passed with those budgets and failed on all
-    four tiers with each budget lowered by 5%: cli measured 343,888 bytes
-    against a limit of 333,226.
+    tier with no `.text` fail.
+  - CI [run 42460793731][run-217] passed on [bbb006b] and measured cli
+    343,888, help 443,676, view 409,362 and app 469,842 bytes, the budgets.
+    CI [run 42461005097][run-218] passed on [4035f78], and the merge queue's
+    [run 42461303294][q-219] on [b7c1680].
+  - On a linux-x64 host with rustc 1.99.1 and GNU size 2.46, with
+    `MISE_ENV=ci`, the task passed with those budgets. It failed on all four
+    tiers with each budget lowered by 5%: cli measured 343,888 bytes against
+    a limit of 333,226.
 - [x] 7.2 Measure each tier and each public consumer at the commit CI verified,
-  on darwin-arm64 with the release profile, and record file, `__text` and
+  on darwin-arm64 with the release profile. Record file, `__text` and
   package counts against ctl-core 0.6.x in this change's design. Proof: the
   table is in the design with the commit and the strip check.
   - 2026-11-08 UTC: measured at [2f23725], which CI verified in
-    [run 42542525587][ci-2f23725], on an Apple M4 Pro with rustc 1.99.1, in a
-    scratch clone deleted afterwards; nothing was committed to a consumer.
-    Design decision 16 holds the tier and consumer tables, the strip check
-    (no Rust symbol in `nm -U` on any of the 20 binaries), and a cargo-bloat
-    attribution of qctl and rawr. The toy's `__text` fell by 62,016 to
-    101,224 bytes per tier. The consumers moved by -7,232 (verctl), -9,472
-    (qctl), -7,104 (forkctl) and +2,644 (rawr). Not verified: the split of
-    the toy's change between clap and the engine on `main`, which reuses
-    Matrix B's clap figures.
+    [run 42542525587][ci-2f23725]. The host was an Apple M4 Pro with rustc
+    1.99.1, in a scratch clone deleted afterwards. Nothing was committed to a
+    consumer.
+  - Design decision 16 holds the tier and consumer tables and a cargo-bloat
+    attribution of qctl and rawr. It also holds the strip check: no Rust
+    symbol in `nm -U` on any of the 20 binaries.
+  - The toy's `__text` fell by 62,016 to 101,224 bytes per tier. The
+    consumers moved by -7,232 (verctl), -9,472 (qctl), -7,104 (forkctl) and
+    +2,644 (rawr).
+  - Not verified: the split of the toy's change between clap and the engine
+    on `main`, which reuses Matrix B's clap figures.
 
 ## Release prerequisites
 
@@ -226,13 +235,13 @@ and in CI, as each task says.
   The maintainer owns these steps. Nothing changes before the release is
   approved.
 - The release waits on a prose check in CI. `mise run lint:prose` runs Vale
-  over the Markdown, the Rust comments, and the changesets, and the docs
+  over the Markdown, the Rust comments, and the changesets. The docs
   reach it with 0 findings. It stays out of `verify`, which runs only
   offline checks, because `vale sync` downloads the style package.
   1. The shared template's `lint_prose` piece adds the check when it ships.
   2. If that piece is not out when the rest of the release is ready, a pull
      request runs `lint:prose` as its own CI step, as `deny:advisories`
-     runs, and `verify` stays offline.
+     runs. `verify` stays offline.
 - After `ctl-text` publishes, open one `ctl-layout` page on docs.rs and
   confirm that its links to `ctl-text` resolve. Until then those links
   return 404, because docs.rs has no `ctl-text` page to link to.
@@ -317,6 +326,7 @@ and in CI, as each task says.
 [run-217]: https://github.com/victor-software-house/ctl-core/actions/runs/42460793731
 [run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
 [q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294
+[ledger]: ../../../tasks.yaml
 [trusted publishing]: https://crates.io/docs/trusted-publishing
 [2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
 [ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587

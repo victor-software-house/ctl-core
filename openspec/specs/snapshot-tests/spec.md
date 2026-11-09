@@ -2,15 +2,16 @@
 
 ## Purpose
 
-How ctl-core tests rendered scripts and help: reviewed snapshots that CI never writes, and a shell check for each script on a closed set of shells.
+How ctl-core tests rendered scripts and help.
+It uses reviewed snapshots that CI never writes, and a shell check for each script on a closed set of shells.
 
 ## Requirements
 
 ### Requirement: Rendered output is a reviewed snapshot
 
-A ctl-core test that checks a rendered shell script or a rendered help page
-SHALL compare it with an insta file snapshot under `tests/snapshots/`, and
-SHALL NOT hold the expected text in a string literal.
+A ctl-core test that checks a rendered shell script or help page
+SHALL compare it with an insta file snapshot under `tests/snapshots/`.
+It SHALL NOT hold the expected text in a string literal.
 
 #### Scenario: A script changes
 

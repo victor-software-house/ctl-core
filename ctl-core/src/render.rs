@@ -49,12 +49,12 @@ pub const DEFAULT_RECORD_STYLE_ENV: &str = "CTL_CORE_RECORD_STYLE";
 /// The ordered list of variables read for the record style, holding only
 /// [`DEFAULT_RECORD_STYLE_ENV`].
 pub const DEFAULT_RECORD_STYLE_ENVS: &[&str] = &[DEFAULT_RECORD_STYLE_ENV];
-/// The environment variable that sets the table frame of a list when the CLI
-/// has not: `CTL_CORE_LIST_STYLE`. Its values are the [`Frame`] names `grid`,
+/// The environment variable that sets the table frame when the CLI has not:
+/// `CTL_CORE_LIST_STYLE`. Its values are the [`Frame`] names `grid`,
 /// `header-rule`, and `plain`.
 pub const DEFAULT_LIST_STYLE_ENV: &str = "CTL_CORE_LIST_STYLE";
-/// The ordered list of variables read for the table frame of a list, holding
-/// only [`DEFAULT_LIST_STYLE_ENV`].
+/// The ordered list of variables read for the table frame, holding only
+/// [`DEFAULT_LIST_STYLE_ENV`].
 pub const DEFAULT_LIST_STYLE_ENVS: &[&str] = &[DEFAULT_LIST_STYLE_ENV];
 /// The environment variable that sets the row separation when the CLI has not:
 /// `CTL_CORE_ROW_SEPARATION`. Its values are the [`RowSeparation`] names
@@ -224,7 +224,7 @@ impl RenderOptions {
         self
     }
 
-    /// Set the table frame of [`Table`] lists to `frame`. This beats the
+    /// Set the frame every [`Table`] draws to `frame`. This beats the
     /// environment.
     #[must_use]
     pub const fn frame(mut self, frame: Frame) -> Self {
