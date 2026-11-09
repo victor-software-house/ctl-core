@@ -316,6 +316,10 @@ change already turned `clap/usage` on in ctl-core's `usage` feature
 ([decision 3](#3-the-writer-departs-from-730-only-where-kdl-v2-or-mise-requires-it)),
 so the removal changes no spec byte.
 
+`std` stays on as well, in every feature set. clap cannot build without
+it: clap_builder fails with a `compile_error!` when the feature is off
+([clap_builder 4.6.6, `lib.rs`][clap-std-gate]).
+
 A second one was in use too. Without clap's `help` feature, clap turns
 off the `-h`/`--help` flag and the `help` subcommand, unless a command
 overrides its help ([clap_builder 4.6.6, `Command::_build_self`][clap-help-gate]).
@@ -468,8 +472,9 @@ unexplained one. Each tier carries its reason.
 [input-options-0624]: https://github.com/victor-software-house/ctl-core/blob/v0.6.24/src/input.rs#L262-L279
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
 [clap-help-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/builder/command.rs#4415
+[clap-std-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/lib.rs#14
 [clap-help-action]: https://docs.rs/crate/clap_builder/4.6.6/source/src/parser/parser.rs#1302
-[d16]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[d16]: ../../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5

@@ -104,31 +104,6 @@ queue:
     notes:
       - 'Research: docs/research/terminal-rendering/. Decisions for the maintainer are listed in the proposal.'
 
-  - id: CTC-041
-    title: Cut usage-lib, clap defaults, and annotate-snippets from the graph
-    scope: "ctl-core: usage, input, manifests, deny.toml, size gates"
-    outcome: >-
-      A CLI built on ctl-core links no KDL crate and none of clap’s default features,
-      and its YAML loader links no snippet renderer unless a problem report would
-      change.
-    blocked_by: []
-    acceptance:
-      - With every feature, ctl-core’s normal dependencies hold none of usage-lib, kdl, or winnow below 1.0.
-      - usage::spec returns usage-lib 7.3.0’s bytes for every corpus command, except the departures design decision 3 lists, and every string reads back under a KDL v2 parser.
-      - mise 2026.11.4 parses a mounted toy’s spec, prints its help, and completes its arguments.
-      - With app, usage, and input, cargo tree -e features -i clap_builder shows no default feature of clap.
-      - Every input problem report keeps its file, line, and message text, and qctl links no annotate-snippets symbol, or the row records why the cut stopped.
-      - check:size holds usage and input tiers, and every budget equals the .text CI measured.
-      - Decision 16 records qctl and rawr measured with the cuts.
-    plan: openspec/changes/size-cuts/proposal.md
-    notes:
-      - Filed 2026-11-08 by operator decision, before 0.7.0.
-      - "2026-11-09, the annotate-snippets cut stopped: serde-saphyr's deserialize_str calls Display on its own Error, so deserialize reaches the snippet renderer whatever ctl-core does (size-cuts task 5.3)."
-      - 2026-11-09, the operator chose a public serde-saphyr fork kept with forkctl and published on crates.io as vsh-serde-saphyr, library name serde_saphyr unchanged; once it is out, ctl-core takes it through package = and the 5.3 cut resumes.
-      - "2026-11-09, the 5.3 cut holds on vsh-serde-saphyr 0.0.2: the toy's input tier drops 100,840 bytes, and no annotate-snippets function remains (size-cuts task 5.3)."
-      - 2026-11-09, qctl gains a single serde-saphyr only with a yamled release on the fork; ctl-core then moves its own yamled pin to that release, so qctl links one yamled.
-      - 2026-11-09, with ctl-core on yamled 0.0.11, qctl links one yamled and one serde-saphyr, vsh-serde-saphyr 0.0.2; its .text is 3,614,566 bytes, 98,032 below the 3,712,598 of ctl-core main before the cut, and no annotate-snippets function remains.
-
   - id: CTC-042
     title: Measure a non-generic copy of the help subcommand tree
     scope: "ctl-core: parser"
@@ -238,6 +213,26 @@ horizon:
       - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
+  - id: CTC-041
+    title: Cut usage-lib, clap defaults, and annotate-snippets from the graph
+    scope: "ctl-core: usage, input, manifests, deny.toml, size gates"
+    outcome: >-
+      A CLI built on ctl-core links no KDL crate and none of clap’s default features,
+      and its YAML loader links no snippet renderer unless a problem report would
+      change.
+    plan: openspec/changes/archive/2026-11-09-size-cuts/proposal.md
+    notes:
+      - Filed 2026-11-08 by operator decision, before 0.7.0.
+      - "2026-11-09, the annotate-snippets cut stopped: serde-saphyr's deserialize_str calls Display on its own Error, so deserialize reaches the snippet renderer whatever ctl-core does (size-cuts task 5.3)."
+      - 2026-11-09, the operator chose a public serde-saphyr fork kept with forkctl and published on crates.io as vsh-serde-saphyr, library name serde_saphyr unchanged; once it is out, ctl-core takes it through package = and the 5.3 cut resumes.
+      - "2026-11-09, the 5.3 cut holds on vsh-serde-saphyr 0.0.2: the toy's input tier drops 100,840 bytes, and no annotate-snippets function remains (size-cuts task 5.3)."
+      - 2026-11-09, qctl gains a single serde-saphyr only with a yamled release on the fork; ctl-core then moves its own yamled pin to that release, so qctl links one yamled.
+      - 2026-11-09, with ctl-core on yamled 0.0.11, qctl links one yamled and one serde-saphyr, vsh-serde-saphyr 0.0.2; its .text is 3,614,566 bytes, 98,032 below the 3,712,598 of ctl-core main before the cut, and no annotate-snippets function remains.
+    completed: 2026-11-09T09:12:32
+    evidence:
+      - openspec/changes/archive/2026-11-09-size-cuts/
+    disposition: completed
+
   - id: CTC-033
     title: One init verb that hooks a ctl CLI into the shell
     scope: ctl-core

@@ -1062,8 +1062,8 @@ compatibility path for comfy-table.
 [ci-a1e2d43]: https://github.com/victor-software-house/ctl-core/actions/runs/42553507748
 [4bc7862]: https://github.com/victor-software-house/ctl-core/commit/4bc7862089fc4a4956f69ea42c169cd033f1a9f5
 [ci-4bc7862]: https://github.com/victor-software-house/ctl-core/actions/runs/42577032966
-[size-cuts]: ../size-cuts/design.md
-[size-cuts-53]: ../size-cuts/tasks.md#5-annotate-snippets
+[size-cuts]: ../archive/2026-11-09-size-cuts/design.md
+[size-cuts-53]: ../archive/2026-11-09-size-cuts/tasks.md#5-annotate-snippets
 [with-help-below]: https://github.com/victor-software-house/ctl-core/blob/4bc7862089fc4a4956f69ea42c169cd033f1a9f5/ctl-core/src/parser.rs#L182
 [copy-for-help]: https://github.com/victor-software-house/ctl-core/blob/4bc7862089fc4a4956f69ea42c169cd033f1a9f5/ctl-core/src/parser.rs#L237
 [verctl-head]: https://github.com/victor-software-house/verctl/tree/d087741fd60190757141761eb8410a1a73875c53

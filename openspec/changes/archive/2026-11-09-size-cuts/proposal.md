@@ -78,8 +78,8 @@ The public API does not change. `usage::spec`, `mount_line`,
    `usage-lib = "=6.1.1"` directly ([forkctl Cargo.toml][forkctl-pin]),
    so it keeps usage-lib until it drops that pin.
 
-[d16]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
-[ledger]: ../../../tasks.yaml
+[d16]: ../../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[ledger]: ../../../../tasks.yaml
 [usage-730]: https://docs.rs/crate/usage-lib/7.3.0
 [kdl-v2]: https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md
 [forkctl-pin]: https://github.com/victor-software-house/forkctl/blob/7b987070f9069842c2e9afdd17fca28353b81bc5/Cargo.toml#L96
