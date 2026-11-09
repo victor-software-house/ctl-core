@@ -97,7 +97,10 @@
      `--strict`.
   4. The spec has no `--version` flag and no `help` command, so
      completion offers neither.
-- [ ] 2.4 Verify: CI passes on the pushed commit.
+- [x] 2.4 Verify: CI passes on the pushed commit.
+
+  [PR 235][ctl-core#235] passed every check on its last head,
+  [647fd7f][647fd7f], in [run 42555002114][run-42555002114], and merged.
 
 ## 3. The writer
 
@@ -175,8 +178,15 @@
      positional: completion offered `p1` and `p2` after one value. After
      two values it offered only files. Decision 3's table holds the 7.3.0
      results.
-- [ ] 3.6 Verify: CI passes on the pushed commit, and the changeset lists
+- [x] 3.6 Verify: CI passes on the pushed commit, and the changeset lists
   each departure as a fix.
+
+  [PR 236][ctl-core#236] passed every check on its last head,
+  [9325402][9325402], in [run 42562663537][run-42562663537], and merged.
+  `.changeset/usage-spec-writer.md` lists as a fix each row of decision
+  3's two tables whose result differs from 7.3.0. It also lists the help
+  stripping and the usage line that no longer depend on usage-lib's Clap
+  features.
 
 ## 4. Remove usage-lib and keep clap's defaults off
 
@@ -253,7 +263,7 @@
   | `app` | 471,974 | 469,654 | 479,047 |
 
 - [x] 4.7 Give `Surface::from_command` the same `-h`/`--help` flag and
-  `help` subcommand, so its Usage KDL holds them as it did with Clap's
+  `help` subcommand. Its Usage KDL then holds them as it did with Clap's
   `help` feature, and turns help off only where the CLI declared that.
   Verify: a unit test fails without the change and passes in CI with it.
 
@@ -355,12 +365,42 @@
   [PR 238][ctl-core#238] already measured. A linux-x64 measurement with
   1.99.1 set the first `usage` and `input` budgets, and it matched CI's
   numbers to the byte.
-- [ ] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
+- [x] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
   module docs, and the feature docs in `ctl-core/Cargo.toml` where they
-  name usage-lib or its Serde edge. Verify: `rg usage-lib` finds only
-  `deny.toml`, the changeset, and this change.
-- [ ] 6.5 Verify: Vale reports zero problems, no lint exception lacks a
+  name usage-lib or its Serde edge. Verify: no `Cargo.toml` or
+  `Cargo.lock` names usage-lib, and every remaining mention is a ban, a
+  check, or a dated record.
+
+  On 2026-11-09 (-03:00), `rg -i usage-lib` found no match in either
+  manifest or the lock, nor in `ctl-core/AGENTS.md`, `docs/presentation.md`,
+  or `ctl-core/src`. It found these, each kept:
+  - bans: `deny.toml` and the `deny_bans` answer in `.copier-answers.yml`
+    that renders it;
+  - checks: `mise-tasks/check/tree.sh`, which fails when usage-lib returns;
+  - dated records:
+    - the pending changesets `usage-lib-removed.md` and
+      `usage-spec-writer.md`;
+    - this change and its [ledger row](../../../tasks.yaml);
+    - two archived changes and a research note under `docs/research/`;
+    - decision 16's measurements in the terminal-render-engine change.
+- [x] 6.5 Verify: Vale reports zero problems, no lint exception lacks a
   reason, and the changeset covers every behaviour change in the stack.
+
+  1. Vale: on [fe205e8][fe205e8], `mise run lint:prose` reported 0 errors
+     and 2 warnings, both in this change. One was a 61-word paragraph in
+     decision 9, the other a 31-word sentence in task 4.7. The commit after
+     it splits both, and Vale then reports nothing on either file.
+  2. Lint exceptions: every `#[expect]` the stack adds carries a reason.
+     The stack adds no `#[allow]` and no Vale or typos exception.
+  3. Changesets: four cover the stack's behaviour changes.
+     `usage-spec-writer.md` covers the writer, `usage-spec-raw-strings.md`
+     the raw-string fix, and `usage-lib-removed.md` the removal with
+     ctl-core's own help. `serde-saphyr-2-1-1.md` covers the serde-saphyr
+     move. The tests, size gates, and documents change no behaviour.
+
+  CI passed every check on [fe205e8][fe205e8] in
+  [run 42576179341][run-42576179341], `check:size` with each tier at its
+  budget.
 
 ## 7. Measure again
 
@@ -381,6 +421,14 @@
 [ctl-core#238]: https://github.com/victor-software-house/ctl-core/pull/238
 [run-42568402969]: https://github.com/victor-software-house/ctl-core/actions/runs/42568402969
 [run-42575754249]: https://github.com/victor-software-house/ctl-core/actions/runs/42575754249
+[run-42576179341]: https://github.com/victor-software-house/ctl-core/actions/runs/42576179341
+[fe205e8]: https://github.com/victor-software-house/ctl-core/commit/fe205e8a51b36e57838c29c50db2beac0178fcee
+[ctl-core#235]: https://github.com/victor-software-house/ctl-core/pull/235
+[ctl-core#236]: https://github.com/victor-software-house/ctl-core/pull/236
+[647fd7f]: https://github.com/victor-software-house/ctl-core/commit/647fd7fce3a674524d1cfa35b676946e8b282285
+[9325402]: https://github.com/victor-software-house/ctl-core/commit/93254026962803a51205b2afb230f47e31069983
+[run-42555002114]: https://github.com/victor-software-house/ctl-core/actions/runs/42555002114
+[run-42562663537]: https://github.com/victor-software-house/ctl-core/actions/runs/42562663537
 [9d25529]: https://github.com/victor-software-house/ctl-core/commit/9d25529b4d73dd158b29e38bcbed0f50370cb1b7
 [saphyr-budget-211]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
