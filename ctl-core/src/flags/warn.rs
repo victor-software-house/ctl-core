@@ -8,7 +8,7 @@ use crate::{formatdoc, writedoc};
 /// The type of clash between flags that a [`FlagWarning`] reports. The last
 /// value still wins in every case.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WarningKind {
+pub enum FlagClash {
     /// Same flag twice (`--format json --format pretty`).
     Repeated,
     /// Opposite flags (`--color always --no-color`).
@@ -22,7 +22,7 @@ pub enum WarningKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FlagWarning {
     /// The type of clash.
-    pub kind: WarningKind,
+    pub clash: FlagClash,
     /// The flags involved, spelled as in a warning (`--color`, `--no-color`).
     pub names: Vec<String>,
 }
@@ -38,18 +38,18 @@ impl FlagWarning {
 
 impl fmt::Display for FlagWarning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let names = match self.kind {
-            WarningKind::Repeated => self.names.join("/"),
-            WarningKind::Contradictory | WarningKind::Redundant => self.names.join(" and "),
+        let names = match self.clash {
+            FlagClash::Repeated => self.names.join("/"),
+            FlagClash::Contradictory | FlagClash::Redundant => self.names.join(" and "),
         };
-        match self.kind {
-            WarningKind::Repeated => {
+        match self.clash {
+            FlagClash::Repeated => {
                 writedoc!(f, "{names} repeated; last value wins")
             }
-            WarningKind::Contradictory => {
+            FlagClash::Contradictory => {
                 writedoc!(f, "{names} both set; last wins")
             }
-            WarningKind::Redundant => {
+            FlagClash::Redundant => {
                 writedoc!(f, "{names} are the same flag")
             }
         }
@@ -74,7 +74,7 @@ where
     push_repeat(&mut out, &seen.color_off, "--no-color");
     if !seen.color.is_empty() && !seen.color_off.is_empty() {
         out.push(FlagWarning {
-            kind: WarningKind::Contradictory,
+            clash: FlagClash::Contradictory,
             names: vec!["--color".into(), "--no-color".into()],
         });
     }
@@ -85,7 +85,7 @@ where
 /// Find a `--foo` / `--no-foo` pair given together in `args`.
 ///
 /// `yes` and `no` list the spellings of each side. The result holds one
-/// [`WarningKind::Contradictory`] warning, naming the first spelling of each
+/// [`FlagClash::Contradictory`] warning, naming the first spelling of each
 /// side, or is empty. Scanning stops at `--`. Pair it with Clap's
 /// `overrides_with` on both sides, so the last flag wins and the clash is not
 /// silent.
@@ -109,7 +109,7 @@ where
     }
     if saw_yes && saw_no {
         vec![FlagWarning {
-            kind: WarningKind::Contradictory,
+            clash: FlagClash::Contradictory,
             names: vec![yes[0].to_owned(), no[0].to_owned()],
         }]
     } else {
@@ -205,7 +205,7 @@ fn push_dry(out: &mut Vec<FlagWarning>, hits: &[String]) {
         && hits.iter().any(|hit| hit == "--dry-run" || hit == "-n");
     if aliases {
         out.push(FlagWarning {
-            kind: WarningKind::Redundant,
+            clash: FlagClash::Redundant,
             names: vec!["--dry-run".into(), "--preview".into()],
         });
     } else {
@@ -215,45 +215,45 @@ fn push_dry(out: &mut Vec<FlagWarning>, hits: &[String]) {
 
 fn repeat(name: &str) -> FlagWarning {
     FlagWarning {
-        kind: WarningKind::Repeated,
+        clash: FlagClash::Repeated,
         names: vec![name.to_owned()],
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{FlagWarning, WarningKind, chassis_warnings, warn_opposites};
+    use super::{FlagClash, FlagWarning, chassis_warnings, warn_opposites};
 
-    fn kinds(args: &[&str]) -> Vec<WarningKind> {
+    fn clashes(args: &[&str]) -> Vec<FlagClash> {
         chassis_warnings(args.iter().copied())
             .into_iter()
-            .map(|warning| warning.kind)
+            .map(|warning| warning.clash)
             .collect()
     }
 
     #[test]
     fn equals_form_is_an_occurrence() {
         assert_eq!(
-            kinds(&["--format=json", "--format=pretty"]),
-            [WarningKind::Repeated]
+            clashes(&["--format=json", "--format=pretty"]),
+            [FlagClash::Repeated]
         );
         assert_eq!(
-            kinds(&["--color=always", "--color=never"]),
-            [WarningKind::Repeated]
+            clashes(&["--color=always", "--color=never"]),
+            [FlagClash::Repeated]
         );
     }
 
     #[test]
     fn peek_does_not_eat_the_following_flag() {
-        let hits = kinds(&["--color", "--no-color"]);
-        assert!(hits.contains(&WarningKind::Contradictory), "{hits:?}");
+        let hits = clashes(&["--color", "--no-color"]);
+        assert!(hits.contains(&FlagClash::Contradictory), "{hits:?}");
     }
 
     #[test]
     fn stops_at_double_dash() {
         assert_eq!(
-            kinds(&["--format", "json", "--", "--format", "pretty"]),
-            Vec::<WarningKind>::new()
+            clashes(&["--format", "json", "--", "--format", "pretty"]),
+            Vec::<FlagClash>::new()
         );
         assert_eq!(
             warn_opposites(["--pr", "--", "--no-pr"], &["--pr"], &["--no-pr"]),
@@ -264,16 +264,16 @@ mod tests {
     #[test]
     fn repeated_no_color() {
         assert_eq!(
-            kinds(&["--no-color", "--no-color"]),
-            [WarningKind::Repeated]
+            clashes(&["--no-color", "--no-color"]),
+            [FlagClash::Repeated]
         );
     }
 
     #[test]
     fn short_and_long_color_is_repeated() {
         assert_eq!(
-            kinds(&["-c", "always", "--color", "never"]),
-            [WarningKind::Repeated]
+            clashes(&["-c", "always", "--color", "never"]),
+            [FlagClash::Repeated]
         );
     }
 }

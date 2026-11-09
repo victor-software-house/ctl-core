@@ -73,26 +73,26 @@ pub trait Present: Serialize {
 
     /// Whether the result is a success or a failure. It picks the stream of
     /// pretty output (stdout or stderr) and the default exit code. The default
-    /// is [`MessageKind::Success`].
-    fn message_kind(&self) -> MessageKind {
-        MessageKind::Success
+    /// is [`Outcome::Success`].
+    fn outcome(&self) -> Outcome {
+        Outcome::Success
     }
 
     /// The process exit code. The default is `0` for a success and `1` for an
-    /// error ([`MessageKind::default_exit_code`]).
+    /// error ([`Outcome::default_exit_code`]).
     ///
     /// Override it to give a failure its own code, such as a usage error
     /// distinct from an operational failure. The stream still follows
-    /// [`Self::message_kind`].
+    /// [`Self::outcome`].
     fn exit_code(&self) -> u8 {
-        self.message_kind().default_exit_code()
+        self.outcome().default_exit_code()
     }
 }
 
 /// Whether a [`Present`] result succeeded. It picks the stream pretty output
 /// goes to and the default exit code.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum MessageKind {
+pub enum Outcome {
     /// The command succeeded. Pretty output goes to stdout, and the exit code
     /// is `0`.
     #[default]
@@ -102,7 +102,7 @@ pub enum MessageKind {
     Error,
 }
 
-impl MessageKind {
+impl Outcome {
     /// The exit code for a result of this variant, unless the result
     /// overrides [`Present::exit_code`]: `0` for a success, `1` for an error.
     #[must_use]
@@ -394,7 +394,7 @@ impl View {
     ///
     /// Returns an error when `value` does not serialize to JSON.
     pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
-        let kind = value.message_kind();
+        let outcome = value.outcome();
         let exit_code = value.exit_code();
         if self.format.is_json() {
             return Ok(Captured {
@@ -403,16 +403,16 @@ impl View {
                 exit_code,
             });
         }
-        if self.quiet && kind == MessageKind::Success {
+        if self.quiet && outcome == Outcome::Success {
             return Ok(Captured {
                 stream: Destination::None,
                 content: String::new(),
                 exit_code,
             });
         }
-        let (stream, target) = match kind {
-            MessageKind::Success => (Destination::Stdout, ctl_term::Stream::Stdout),
-            MessageKind::Error => (Destination::Stderr, ctl_term::Stream::Stderr),
+        let (stream, target) = match outcome {
+            Outcome::Success => (Destination::Stdout, ctl_term::Stream::Stdout),
+            Outcome::Error => (Destination::Stderr, ctl_term::Stream::Stderr),
         };
         Ok(Captured {
             stream,

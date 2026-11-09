@@ -189,7 +189,7 @@ pub use flags::EnvPrefix;
 #[cfg(feature = "cli")]
 #[doc(hidden)]
 pub use flags::{
-    ColorLong, DryRunArgs, FlagWarning, FormatArgs, FormatLong, OutputArgs, WarningKind,
+    ColorLong, DryRunArgs, FlagClash, FlagWarning, FormatArgs, FormatLong, OutputArgs,
     chassis_warnings, emit_warnings, resolve_color, switch, warn_opposites,
 };
 #[doc(hidden)]
@@ -224,8 +224,8 @@ pub use view::Present;
 #[cfg(feature = "view")]
 #[doc(hidden)]
 pub use view::{
-    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, Destination, JsonLayout,
-    MessageKind, View,
+    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, Destination, JsonLayout, Outcome,
+    View,
 };
 
 /// The README's example, compiled as a doctest. It needs the default `app`

@@ -6,7 +6,7 @@
 #![cfg(feature = "view")]
 
 use ctl_core::{
-    ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, MessageKind,
+    ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, Outcome,
     OutputFormat, Present, View,
 };
 use serde::Serialize;
@@ -22,11 +22,11 @@ impl Present for Status {
         Document::new().fields(Fields::new().row("pending", self.pending.to_string()))
     }
 
-    fn message_kind(&self) -> MessageKind {
+    fn outcome(&self) -> Outcome {
         if self.failed {
-            MessageKind::Error
+            Outcome::Error
         } else {
-            MessageKind::Success
+            Outcome::Success
         }
     }
 
