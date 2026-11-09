@@ -1,10 +1,12 @@
 //! The Usage KDL that `--usage-spec` prints, for a fixed corpus of commands.
 //!
-//! Three kinds of command, each a reviewed snapshot in `tests/snapshots`:
+//! Four kinds of command, each a reviewed snapshot in `tests/snapshots`:
 //! one builder command that sets every attribute the spec reads, a toy
-//! [`App`] mounted as the mise task `toy`, and one command per hostile string,
-//! once as help text and once as a default value. The snapshots hold the
-//! bytes the writer must keep, so a change to the spec shows as a diff.
+//! [`App`] mounted as the mise task `toy`, one command per hostile string,
+//! once as help text and once as a default value, and one command per word
+//! the KDL v2 identifier grammar treats specially, as a default and a
+//! possible value. The snapshots hold the bytes the writer must keep, so a
+//! change to the spec shows as a diff.
 #![allow(
     missing_docs,
     reason = "an integration test crate has no public API to document"
@@ -58,6 +60,16 @@ const HOSTILE: &[(&str, &str)] = &[
     ("braces", "{a}"),
     ("hash", "#a"),
     ("slash", "a//b"),
+];
+
+/// Words the KDL v2 identifier grammar treats specially, each used once as a
+/// default and as the only possible value. Each must read back as a string with
+/// the same text: number-like words, the reserved keywords bare and with `#`,
+/// and words holding a character no identifier may hold.
+const IDENTIFIER: &[&str] = &[
+    "1", "-1", "+1", ".5", "-.5", "+.5", "1e3", "0x1F", "1_000", "true", "false", "null", "inf",
+    "-inf", "nan", "#true", "#false", "#null", "#inf", "#-inf", "#nan", "", " ", "a b", "=", "a=b",
+    "(", ")", "{", "}", "[", "]", "/", "\\", ";", "\"", "'",
 ];
 
 /// Write each control, bidi, line or paragraph separator, and byte order mark
@@ -372,4 +384,19 @@ fn hostile_default_values() {
         },
     );
     insta::assert_snapshot!("hostile_default", visible(&corpus));
+}
+
+#[test]
+fn identifier_grammar() {
+    let corpus = IDENTIFIER.iter().fold(String::new(), |mut out, word| {
+        let command = Command::new("h").arg(
+            Arg::new("v")
+                .long("v")
+                .value_parser([PossibleValue::new(*word)])
+                .default_value(*word),
+        );
+        entry(&mut out, &format!("{word:?}"), &usage::spec(command, "h"));
+        out
+    });
+    insta::assert_snapshot!("identifier", visible(&corpus));
 }
