@@ -37,12 +37,17 @@ mod data {
 
     /// A JSON envelope: `status` is `ok` with `data`, or `err` with `error`,
     /// and both carry `schema_version`.
+    ///
+    /// Build one with [`Envelope::ok`] or [`Envelope::err`]. Each variant can
+    /// gain a field in a minor release, so a pattern outside ctl-core ends
+    /// with `..`.
     #[derive(Clone, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "json", serde(tag = "status", rename_all = "snake_case"))]
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub enum Envelope<T> {
         /// A success. Serializes with `"status": "ok"`.
+        #[non_exhaustive]
         Ok {
             /// The envelope shape version,
             /// [`SCHEMA_VERSION`](super::SCHEMA_VERSION).
@@ -51,6 +56,7 @@ mod data {
             data: T,
         },
         /// A failure. Serializes with `"status": "err"`.
+        #[non_exhaustive]
         Err {
             /// The envelope shape version,
             /// [`SCHEMA_VERSION`](super::SCHEMA_VERSION).
@@ -61,7 +67,11 @@ mod data {
     }
 
     /// The payload of a failure envelope: which binary failed, and why.
+    ///
+    /// Build one with [`ErrorBody::new`]. A field can join it in a minor
+    /// release.
     #[derive(Clone, Debug, Eq, PartialEq)]
+    #[non_exhaustive]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub struct ErrorBody {

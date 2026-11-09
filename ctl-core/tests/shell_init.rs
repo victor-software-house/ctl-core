@@ -21,7 +21,7 @@ use ctl_core::fixture::{Root, Suite};
 use ctl_core::help;
 use ctl_core::prelude::*;
 use ctl_core::shell::Shell;
-use ctl_core::shell_init::{Hook, HookError, InitArgs, InitCommand};
+use ctl_core::shell_init::{Hook, HookError, InitCommand};
 use pty_process::blocking::Command;
 use terminal::{PROMPT, Terminal};
 
@@ -55,7 +55,8 @@ fn hook() -> Hook {
 fn a_shell_parses_from_its_name() {
     let toy = Toy::try_parse_from([BIN, "init", "fish"]).unwrap();
     let Cmd::Init(command) = toy.command;
-    assert_eq!(command, InitCommand::Init(InitArgs { shell: Shell::Fish }));
+    let InitCommand::Init(args) = &command;
+    assert_eq!(args.shell, Shell::Fish);
     assert_eq!(command.script(&hook()), hook().script(Shell::Fish));
     let error = Toy::try_parse_from([BIN, "init", "elvish"]).unwrap_err();
     assert_eq!(error.kind(), ErrorKind::InvalidValue);

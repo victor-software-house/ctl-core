@@ -120,7 +120,11 @@ impl Document {
 ///
 /// Each variant has a builder method on [`Document`] that wraps it. The enum
 /// is the read side: a custom renderer matches on it.
+///
+/// New kinds of block can join the set in a minor release, so a match on it
+/// outside ctl-core ends with a wildcard arm.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Block {
     /// A heading, drawn in [`Role::Heading`].
     Heading(Text),
@@ -653,7 +657,11 @@ impl Notice {
 
 /// The severity of a [`Notice`]. It picks the label (`success`, `warning`, or
 /// `error`) and the style of the label.
+///
+/// A level can join the set in a minor release, so a match on it outside
+/// ctl-core ends with a wildcard arm.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum NoticeLevel {
     /// A successful outcome.
     Success,

@@ -7,6 +7,10 @@ use crate::{formatdoc, writedoc};
 
 /// The type of clash between flags that a [`FlagWarning`] reports. The last
 /// value still wins in every case.
+///
+/// The set is closed, and the enum is deliberately not `#[non_exhaustive]`:
+/// two flags given together are the same flag, two names of one flag, or
+/// opposites, and no other relation between them exists.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FlagClash {
     /// Same flag twice (`--format json --format pretty`).
@@ -19,7 +23,11 @@ pub enum FlagClash {
 
 /// One flag clash. Its `Display` text is the sentence a warning line holds
 /// after the `{bin}: warning: ` prefix.
+///
+/// [`chassis_warnings`] builds them. A field can join the struct in a minor
+/// release.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub struct FlagWarning {
     /// The type of clash.
     pub clash: FlagClash,

@@ -293,7 +293,11 @@ impl InitCommand {
 }
 
 /// The arguments of the `init` verb.
+///
+/// An argument can join it in a minor release, so a caller reads its fields
+/// and never builds one with a struct literal.
 #[derive(Debug, Clone, PartialEq, Eq, clap::Args)]
+#[non_exhaustive]
 pub struct InitArgs {
     /// Shell to hook into: bash, zsh, or fish.
     #[arg(value_enum)]

@@ -27,7 +27,11 @@ mod data {
     )]
 
     /// The output representation a view writes a result in.
+    ///
+    /// A format, such as YAML, can join the set in a minor release, so a
+    /// match on it outside ctl-core ends with a wildcard arm.
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    #[non_exhaustive]
     #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
     #[cfg_attr(feature = "json", serde(rename_all = "lowercase"))]

@@ -129,7 +129,8 @@ fn a_shell_parses_from_its_name() {
     assert!(matches!(
         toy.command,
         Cmd::Completion(CompletionCommand::Completion(CompletionArgs {
-            shell: Shell::Fish
+            shell: Shell::Fish,
+            ..
         }))
     ));
     let error = Toy::try_parse_from(["toy", "completion", "elvish"]).unwrap_err();

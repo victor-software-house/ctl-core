@@ -22,8 +22,13 @@ use crate::format::OutputFormat;
     doc = "[`Self::view`]: crate#cargo-features",
     doc = "[`View`]: crate#cargo-features"
 )]
+///
+/// The colour flags are private, so [`Self::color`] is their only reader and
+/// `--no-color` is never skipped. A flag can join the struct in a minor
+/// release.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
+#[non_exhaustive]
 pub struct OutputArgs {
     /// Output representation.
     #[arg(
@@ -44,10 +49,10 @@ pub struct OutputArgs {
         default_value = "auto",
         help_heading = "Output"
     )]
-    pub color: ColorMode,
+    color: ColorMode,
     /// Force colourless pretty output. Wins over `--color`.
     #[arg(long, global = true, help_heading = "Output")]
-    pub no_color: bool,
+    no_color: bool,
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     pub quiet: bool,
@@ -80,8 +85,11 @@ impl OutputArgs {
     doc = "",
     doc = "[`Self::view`]: crate#cargo-features"
 )]
+///
+/// A flag can join it in a minor release.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
+#[non_exhaustive]
 pub struct FormatArgs {
     /// Output representation.
     #[arg(
@@ -110,8 +118,11 @@ impl FormatArgs {
 
 /// `--format` and `-q`/`--quiet` without the `-f` short flag, for CLIs that
 /// already use `-f` for a domain flag such as `--file`.
+///
+/// A flag can join it in a minor release.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
+#[non_exhaustive]
 pub struct FormatLong {
     /// Output representation.
     #[arg(

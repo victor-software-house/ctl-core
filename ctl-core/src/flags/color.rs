@@ -6,9 +6,12 @@ use crate::flags::resolve_color;
 /// `--color` and `--no-color` without the `-c` short flag, for CLIs that
 /// already use `-c` for config.
 ///
-/// [`Self::color`] gives the colour mode in force.
+/// [`Self::color`] gives the colour mode in force. The flags are private, so
+/// it is their only reader and `--no-color` is never skipped. A flag can join
+/// the struct in a minor release.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
+#[non_exhaustive]
 pub struct ColorLong {
     /// Pretty-output colour policy. JSON never contains ANSI.
     #[arg(
@@ -18,10 +21,10 @@ pub struct ColorLong {
         default_value = "auto",
         help_heading = "Output"
     )]
-    pub color: ColorMode,
+    color: ColorMode,
     /// Force colourless pretty output. Wins over `--color`.
     #[arg(long, global = true, help_heading = "Output")]
-    pub no_color: bool,
+    no_color: bool,
 }
 
 impl ColorLong {
