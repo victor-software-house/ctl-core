@@ -9,9 +9,9 @@
 //!   line a raw string keeps as written;
 //! - a quoted string otherwise.
 //!
-//! A quoted string writes `\u{…}` for every character KDL v2 forbids literally
-//! in a single-line string: a Newline, or a disallowed literal code point
-//! ([KDL v2], sections 3.13 and 3.19).
+//! A single-line string may not hold a Newline or a disallowed literal code
+//! point ([KDL v2], sections 3.13 and 3.19). A quoted string writes each of
+//! them as `\u{…}`.
 //!
 //! [KDL v2]: https://kdl.dev/spec/
 
@@ -135,8 +135,8 @@ pub(crate) enum Value {
     Number(usize),
     /// A name or a value: bare when it is an identifier, quoted otherwise.
     Word(String),
-    /// Prose such as help text. Multi-line text is a raw multi-line string,
-    /// and text holding a control character, or an argument that starts with
+    /// Prose such as help text. Multi-line text is a raw multi-line string.
+    /// Text that a raw string would change, and an argument that starts with
     /// `-`, is quoted with every control character escaped.
     Text(String),
 }
@@ -166,10 +166,10 @@ fn write_word(f: &mut Formatter<'_>, word: &str) -> fmt::Result {
     }
 }
 
-// The escaped form keeps a value that a raw string would change or could not
-// hold: a control character, a forbidden character, or a whitespace-only line,
-// which a multi-line string reads back empty. An argument that starts with `-`
-// is quoted so a reader never takes it for a flag.
+// The escaped form keeps what a raw string would change or could not hold: a
+// control character, a forbidden character, or a whitespace-only line.
+// A multi-line string reads such a line back empty. An argument that starts
+// with `-` is quoted so a reader never takes it for a flag.
 fn write_text(f: &mut Formatter<'_>, text: &str, place: Place) -> fmt::Result {
     let dashed = place == Place::Argument && text.starts_with('-');
     let multiline = text.contains('\n');
@@ -214,8 +214,8 @@ fn write_quoted(f: &mut Formatter<'_>, text: &str, controls: Controls) -> fmt::R
 }
 
 /// The hashes a raw multi-line string of `text` needs: one more than the
-/// longest run of `#` after any `"""` in it, counted at every offset, so
-/// `""""#` needs two.
+/// longest run of `#` after any `"""` in it. Runs are counted at every
+/// offset, so `""""#` needs two.
 fn raw_hashes(text: &str) -> usize {
     let bytes = text.as_bytes();
     let longest = bytes

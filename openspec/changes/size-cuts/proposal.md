@@ -31,9 +31,10 @@ This change belongs to [CTC-041][ledger].
    latest release, byte for byte. It departs only where 7.3.0's output is
    not valid [KDL v2][kdl-v2], or does not read back as written.
    [design.md](design.md), decision 3, lists those cases.
-2. usage-lib leaves the workspace, and with it kdl and winnow 0.7.
-   `deny.toml` bans them with a reason. winnow 1.x stays, because toml
-   needs it.
+2. usage-lib leaves the workspace. kdl 6.7.1, with winnow 0.7, enters as
+   a dev-dependency only, to parse the writer's output back in tests.
+   `deny.toml` bans usage-lib, and keeps kdl and winnow 0.7 to that one
+   path, each with a reason. winnow 1.x stays, because toml needs it.
 3. With usage-lib gone, nothing in ctl-core's graph turns clap's default
    features on. The `features` spec holds that for `usage` and `input`.
 4. The YAML loader stops reaching annotate-snippets, if and only if every

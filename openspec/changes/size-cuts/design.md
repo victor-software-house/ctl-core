@@ -113,6 +113,7 @@ behaves the same in every one.
 | default | U+2028, U+2029, or U+0085 | a quoted string, character literal | all three are Newline | parse fails |
 | default | U+200E, U+202E, U+2066, U+FEFF, or ESC | a quoted string, character literal | disallowed literal code points | parse fails |
 | default | U+007F (DEL) | a bare identifier, character literal | a disallowed literal code point | parses only because both parsers miss it |
+| default, choice | `-.5` or `+.5` | a bare identifier | a sign, then `.` and a digit, starts a number, and no identifier may start that way | parse fails |
 
 In each case the writer uses the escaped quoted form. 7.3.0 already writes
 that form for a value with a control character. It is a quoted string
@@ -139,6 +140,17 @@ It is not reported upstream: a report needs the maintainer's approval.
   A later missed character then fails a test without a new row.
 - Every other bare default in the corpus is a valid identifier: `-x` and
   `--x` are signed identifiers.
+- The corpus also holds one default and possible value per case of the
+  identifier grammar:
+  - number-like words: `1`, `-1`, `+1`, `.5`, `-.5`, `+.5`, `1e3`,
+    `0x1F`, and `1_000`;
+  - the keywords and their `#` forms;
+  - the empty string, whitespace, `=`, brackets, `/`, `\`, `;`, and
+    quotes.
+
+  Each reads back as a string with the same text. 7.3.0 quotes all of
+  them except `-.5` and `+.5`, the row above, and `'`, which is a valid
+  identifier.
 
 7.3.0 strips terminal escape sequences and DEL from help text before
 writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that.
@@ -167,19 +179,37 @@ spec that silently drops it.
 ### 5. A KDL v2 parser runs in tests only
 
 The tests parse the writer's output with [kdl 6.7.1][kdl-671], the KDL
-project's own KDL v2 parser. It is a dev-dependency, pinned with `=`. kdl
-pulls winnow 0.7 into the dev graph.
+project's own KDL v2 parser. It is a dev-dependency, pinned with `=`, and
+built without default features. kdl pulls winnow 0.7, miette, and
+unicode-width 0.1 into the dev graph.
 
 1. `deny.toml` bans usage-lib outright.
 2. It bans kdl and winnow below 1.0 with `wrappers`. Only ctl-core may
    depend on kdl, and only kdl on winnow 0.7.
-3. `check:tree` fails when either appears in ctl-core's normal
-   dependencies under any feature set. The dev-dependency is the one path
-   left.
+3. Neither second version needs a `skip`. cargo-deny 0.20.2 leaves a crate
+   reached only through dev-dependencies out of two checks:
+   - duplicates, by [`multiple-versions-include-dev`][deny-bans-0202],
+     default false;
+   - licences, by [`include-dev`][deny-licenses-0202], default false.
+
+   The advisory, ban, and source checks still cover it. A
+   dev-dependency never ships, so that default is the policy here.
+4. `syn@2` is the one `skip`: garde_derive 0.23.0, the latest release,
+   requires syn 2, while serde, clap, thiserror, and schemars use syn 3.
+5. The templates repository renders `deny.toml`. Each entry is an answer
+   in `.copier-answers.yml` (`deny_bans`, `deny_skip`), applied with
+   `copier update`, never a hand edit.
+6. `check:tree` fails when kdl or winnow below 1.0 appears in ctl-core's
+   normal dependencies under any feature set. The dev-dependency is the
+   one path left.
 
 Alternative considered: set `exclude-dev = true` in `deny.toml`'s
 `[graph]`. It lost because it would also drop every other dev-dependency
-from the licence, source, and advisory checks.
+from the advisory, ban, and source checks.
+
+Alternative considered: a `skip-tree` entry for kdl. It lost because the
+duplicate check never sees kdl's tree, and the template renders no
+`skip-tree`.
 
 ### 6. Nothing turns clap's defaults back on
 
@@ -294,6 +324,8 @@ tier carries its reason.
 [helpers-730]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/helpers.rs
 [kdl-v2]: https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md
 [kdl-671]: https://docs.rs/crate/kdl/6.7.1
+[deny-bans-0202]: https://github.com/EmbarkStudios/cargo-deny/blob/bca0dde53651ee946720e4540b5ce2610bec8f06/docs/src/checks/bans/cfg.md#the-multiple-versions-include-dev-field-optional
+[deny-licenses-0202]: https://github.com/EmbarkStudios/cargo-deny/blob/bca0dde53651ee946720e4540b5ce2610bec8f06/docs/src/checks/licenses/cfg.md#the-include-dev-field-optional
 [kdl-671-disallowed]: https://docs.rs/crate/kdl/6.7.1/source/src/v2_parser.rs#1571
 [clap-467]: https://docs.rs/crate/clap/4.6.7/source/Cargo.toml
 [saphyr-211]: https://docs.rs/crate/serde-saphyr/2.1.1

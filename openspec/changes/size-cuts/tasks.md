@@ -101,10 +101,18 @@
 
 ## 3. The writer
 
-- [ ] 3.1 Write the KDL from the clap `Command` in a private module under
+- [x] 3.1 Write the KDL from the clap `Command` in a private module under
   `usage`, covering every getter decision 4 lists. Verify: `usage::spec`
   no longer calls usage-lib, and the corpus snapshots pass unchanged
   except for the values decision 3 lists.
+
+  2026-11-09 (-03:00), on the measurement host with rustc 1.99.1:
+  [`usage/kdl.rs`](../../../ctl-core/src/usage/kdl.rs) writes nodes and
+  strings, and [`usage/nodes.rs`](../../../ctl-core/src/usage/nodes.rs)
+  maps the `Command`. `usage::spec` calls neither usage-lib nor its types.
+  `INSTA_UPDATE=always`, then `INSTA_UPDATE=no`, on `--test usage_spec`
+  passed 9 of 9. `every` and `toy` kept their bytes. The changed entries
+  are decision 3's rows, and `-.5` and `+.5` in `identifier`.
 - [ ] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and these tests:
   - one per row of decision 3, which parses the output and compares the
     value;
@@ -115,9 +123,16 @@
 
   Verify: each test fails against usage-lib 7.3.0's output and passes
   against the writer's.
-- [ ] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
+
+  2026-11-09 (-03:00), same run: the parse-back and literal checks pass
+  against the writer's output. Not yet run against 7.3.0's output.
+- [x] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
   text, a leading dash, and the words `true`, `null`, and `inf`. Verify:
   each value reads back unchanged.
+
+  2026-11-09 (-03:00), same run: `defaults_read_back_unchanged` and
+  `help_reads_back_as_clap_renders_it` cover every hostile string, and
+  `identifier_words_read_back_as_strings` every identifier case. All pass.
 - [ ] 3.4 Build qctl, verctl, and forkctl against the branch. Verify: each
   `--usage-spec` output equals its usage-lib 7.3.0 output.
 - [ ] 3.5 Repeat task 2.3 against the writer. Verify: the same result,
@@ -131,16 +146,17 @@
   `ctl-core/Cargo.toml`, and the machete ignore list. Verify:
   `Cargo.lock` holds no usage-lib, and holds kdl and winnow 0.7 only
   through the dev-dependency.
-- [ ] 4.2 Change `deny.toml`, giving each entry a reason in the syntax the
-  pinned cargo-deny accepts:
-  - ban usage-lib;
-  - ban kdl and winnow below 1.0 with `wrappers`, as decision 5
-    describes;
-  - skip `syn@2` in `[bans] skip`, and nothing else. garde_derive
-    0.23.0, the latest release, requires syn 2. serde, clap, thiserror,
-    and schemars use syn 3.
+- [ ] 4.2 Ban usage-lib in `deny.toml` through the `deny_bans` answer,
+  with a reason. Verify: `mise run deny` passes in CI with no warning.
 
-  Verify: `mise run deny` passes in CI with no warning.
+  The writer's change already applied the rest of decision 5 through
+  `copier update` at template v0.0.72. It added the kdl and winnow below
+  1.0 `wrappers` bans, and the `syn@2` skip. On 2026-11-09 (-03:00), with
+  cargo-deny 0.20.2:
+  1. `cargo deny check` reported advisories, bans, licenses, and sources
+     ok, with no warning.
+  2. With each ban's wrappers pointed elsewhere, it failed with `banned`
+     for kdl 6.7.1 and winnow 0.7.15.
 - [ ] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
   1.0 in ctl-core's normal dependencies with every feature. Verify: CI's
   `check:tree` passes, and fails on a commit that adds usage-lib back.
