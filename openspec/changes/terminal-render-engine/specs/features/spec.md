@@ -3,13 +3,14 @@
 ### Requirement: One predicate decides which characters are unsafe to print verbatim
 
 `ctl_core::unsafe_chars::is_unsafe`, with the `unsafe-chars` feature, SHALL
-return true for each of these characters, and SHALL return false for every
-other character:
+return true for each of these characters:
 
 - Every member of general category Cc.
 - All 12 directional formatting characters of UAX #9 at Unicode 16.0.0.
   They are ALM, LRM, RLM, LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, and PDI.
 - The one member each of Zl and Zp.
+
+It SHALL return false for every other character.
 
 #### Scenario: Every member of each set
 

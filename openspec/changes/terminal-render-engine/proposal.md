@@ -11,11 +11,11 @@ them when the stream is not a terminal.
 comfy-table can keep styled cells only with its `tty` feature, which links
 crossterm, so every ctl CLI links a terminal library it never drives.
 
-A toy CLI (opt-level `"s"`, fat LTO, strip, darwin-arm64) measured an
-unpublished prototype engine in place of comfy-table.
+In a toy CLI (opt-level `"s"`, fat LTO, strip, darwin-arm64), an
+unpublished prototype engine replaced comfy-table.
 It cut 57,052 to 57,436 bytes of `__text` at the `help`, `view` and `app`
 tiers.
-It removed 19 packages from the build.
+It also removed 19 packages from the build.
 
 In the four public consumers it cut 28,524 to 45,632 bytes of `__text` and
 9 to 14 packages ([measurements][measurements]).

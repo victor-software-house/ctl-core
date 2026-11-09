@@ -38,12 +38,14 @@ print to stderr and exit 2.
 ### Requirement: One predicate decides which characters are unsafe to print verbatim
 
 `ctl_core::verbatim::is_unsafe` SHALL return true for each of these
-characters, and SHALL return false for every other character:
+characters:
 
 - Every member of general category Cc.
 - All 12 directional formatting characters of UAX #9 at Unicode 16.0.0.
   They are ALM, LRM, RLM, LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, and PDI.
 - The one member each of Zl and Zp.
+
+It SHALL return false for every other character.
 
 #### Scenario: Every member of each set
 
