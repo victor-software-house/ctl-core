@@ -27,7 +27,7 @@ const HOSTILE: &[(&str, &str)] = &[
     ("newline", "one\ntwo"),
     ("tab", "a\tb"),
     ("tab-multi", "a\tb\nc"),
-    ("unicode", "caf\u{e9} \u{65e5}\u{672c} e\u{301}"),
+    ("unicode", "café \u{65e5}\u{672c} e\u{301}"),
     ("triple-hash", "x\n\"\"\"#\ny"),
     ("quad-hash", "x\n\"\"\"\"#\ny"),
     ("triple-two-hash", "x\n\"\"\"##\ny"),
