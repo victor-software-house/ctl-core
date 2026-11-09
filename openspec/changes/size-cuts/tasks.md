@@ -52,18 +52,51 @@
 
 ## 2. Baseline from usage-lib 7.3.0
 
-- [ ] 2.1 Add a corpus test of three kinds of command. One sets every
+- [x] 2.1 Add a corpus test of three kinds of command. One sets every
   attribute, one is a toy `App` command mounted as `toy`, and the rest
   hold one hostile string each. Verify: the snapshots come from a run of the
   current code on the measurement host. insta accepts them under CI's
   flags, and none is written by hand.
-- [ ] 2.2 Move usage-lib to 7.3.0 and accept the snapshots again. Verify:
+
+  2026-11-08 (-03:00), on the measurement host with rustc 1.99.1, at
+  [a1e2d43][a1e2d43] with usage-lib 6.0.0:
+  1. [`ctl-core/tests/usage_spec.rs`](../../../ctl-core/tests/usage_spec.rs)
+     renders four snapshots: `every`, `toy`, `hostile_help`, and
+     `hostile_default`. The toy goes through `App::mounted_as("toy")` and
+     `--usage-spec=toy`.
+  2. `INSTA_UPDATE=always` wrote them. A second run with
+     `INSTA_UPDATE=no`, CI's setting, passed 4 of 4.
+  3. Each control, bidi, separator, and byte order mark character shows
+     as `<U+XXXX>`. The spec already writes some as KDL's `\u{..}`.
+- [x] 2.2 Move usage-lib to 7.3.0 and accept the snapshots again. Verify:
   the snapshot diff shows only decision 2's `""""#` change. The changeset
   lists it as a fix.
-- [ ] 2.3 Mount the toy through `mount_directives` under mise 2026.11.4.
+
+  2026-11-08 (-03:00), same host: after `cargo update -p usage-lib
+  --precise 7.3.0`, only `hostile_help` changed, in two lines. The
+  `--quad-hash` string opens with `##"""` and closes with `"""##` in place
+  of one hash. The run with `INSTA_UPDATE=no` passed the corpus and the
+  91 library tests. The changeset lists the fix.
+- [x] 2.3 Mount the toy through `mount_directives` under mise 2026.11.4.
   Verify: `mise run toy --help` prints the toy's subcommands and flags.
   zsh completion after `mise run toy` and a space offers them. The note
   records the mise version.
+
+  2026-11-09 (-03:00), same host, mise 2026.11.4 macos-arm64 from its
+  release binary, ctl-core at usage-lib 7.3.0:
+  1. The toy binary declares the corpus's `Toy` and calls
+     `App::mounted_as("toy")`. A mise file task runs it and carries the
+     three lines `mount_directives("toy")` returns.
+  2. `mise run toy --help` printed the toy's help: `status`, `check`, and
+     `help`, and the flags `--format`, `--color`, `--no-color`, `--quiet`,
+     `--version`, and `--help`. `mise run toy status` ran the verb.
+  3. zsh completion runs `mise __complete_word__ --shell zsh --line` with
+     the text before the cursor. For `mise run toy` and a space, it
+     offered `check` and `status`. For `mise run toy --`, it offered the
+     four output flags and `--help`. For `mise run toy check --`, it added
+     `--strict`.
+  4. The spec has no `--version` flag and no `help` command, so
+     completion offers neither.
 - [ ] 2.4 Verify: CI passes on the pushed commit.
 
 ## 3. The writer
@@ -143,6 +176,7 @@
   16's method. Verify: decision 16 holds the table, linked to the commits
   and runs.
 
+[a1e2d43]: https://github.com/victor-software-house/ctl-core/commit/a1e2d438f2ce4abbd1f652f59d88cb245cd1fd76
 [9161cfc]: https://github.com/victor-software-house/ctl-core/commit/9161cfc74d150a9e9ad467b2ac1d2312261f49a2
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
