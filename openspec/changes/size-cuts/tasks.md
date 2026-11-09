@@ -220,13 +220,18 @@
   `error-context`, or `suggestions`. If one shows, cut it or record why it
   cannot be cut.
 
-  On 2026-11-09 (-03:00), the command showed `env`, `std`, `string`, and
-  `usage`, for `app,usage,input` and for `usage` alone. Every feature
-  together adds only `unstable-ext`, from clap_complete's
-  `unstable-dynamic`. The `usage` feature turns on `clap/usage` since the
-  writer's change
+  `help` cannot be cut: without it, clap drops the `-h`/`--help` flag, and
+  CI's first run without usage-lib failed 8 tests on that
   ([decision 6](design.md#6-nothing-turns-claps-defaults-back-on)).
+  The `cli` feature turns on `clap/help`, and the `usage` feature turns on
+  `clap/usage` since the writer's change. On 2026-11-09 (-03:00), after
+  that fix, the command showed `env`, `help`, `std`, `string`, and `usage`
+  for `app,usage,input` and for `usage`, and `env`, `help`, `std`, and
+  `string` for `cli`.
 - [ ] 4.5 Verify: CI's `deps` (cargo-machete) passes.
+- [ ] 4.6 Add `test:cli`, which runs the parser tests with only the `cli`
+  feature. Verify: CI's `test:cli` passes, and `check:size` reports each
+  tier against its budget.
 
 ## 5. annotate-snippets
 
