@@ -405,6 +405,22 @@ Any struct with string keys runs that code inside `deserialize`. So
 annotate-snippets stays in every binary that loads input, whatever
 ctl-core does. Task 5.3 holds the measurement.
 
+The operator then chose a public fork, published as
+[vsh-serde-saphyr][vsh-002] under the library name `serde_saphyr`. Release
+0.0.2 is serde-saphyr 2.1.1 with two patches, so `deserialize` no longer
+calls the renderer:
+
+1. `deserialize_str` tells a borrowed-string mismatch by the error's
+   variant ([3a4a1bb][fork-3a4a1bb]).
+2. An alias error takes its message from the plain text, not from
+   `Display` ([5c7ada7][fork-5c7ada7]). Release 0.0.1 had only the
+   first patch, and the toy kept every renderer symbol through this call.
+
+ctl-core takes it through `package =`, and the cut resumed on it. A
+consumer whose own yamled has the `serde` feature also needs a yamled
+release on the fork, or it links both serde-saphyr crates. Task 5.3 holds
+the measurement.
+
 ### 8. serde-saphyr keeps `deserialize` and `comments`
 
 `deserialize` is the parser. `comments` gates the comment limits in
@@ -479,3 +495,6 @@ unexplained one. Each tier carries its reason.
 [saphyr-budget]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [annotate-01217]: https://docs.rs/crate/annotate-snippets/0.12.17
 [mise-release]: https://github.com/jdx/mise/releases/tag/v2026.11.4
+[vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
+[fork-3a4a1bb]: https://github.com/victor-software-house/serde-saphyr/commit/3a4a1bbf2ab0ca3681ea238bb9655a4c17b90338
+[fork-5c7ada7]: https://github.com/victor-software-house/serde-saphyr/commit/5c7ada7

@@ -320,6 +320,33 @@
   Asking serde-saphyr to stop calling `Display` there is for the
   operator to decide.
 
+  Resumed on 2026-11-09 (-03:00) on [vsh-serde-saphyr 0.0.2][vsh-002],
+  the operator's fork, with the message builder from item 1. Measured on
+  linux-x64 by decision 16's method, against `main` at [d2fd6c8]:
+
+  | Build | `.text` | annotate-snippets symbols |
+  |:--|--:|--:|
+  | The toy's input tier, `main` | 1,141,709 | 105 |
+  | The toy's input tier, this change | 1,040,869 | 2 |
+  | qctl, `main` | 3,712,598 | 103 |
+  | qctl, this change, its yamled 0.0.8 unchanged | 3,962,886 | 104 |
+  | qctl, this change and a yamled on the fork | 3,614,454 | 6 |
+
+  1. The toy's `.text` is stripped, as `check:size` builds it; the symbol
+     counts come from the same build unstripped.
+  2. qctl is at [7d4e2ed][qctl-7d4e2ed], built unstripped with its pin
+     patched to this change.
+  3. The symbols left carry annotate-snippets only as the crate that
+     instantiated a core or alloc generic, such as `String::join` or
+     `Display` for `&usize`. No function of annotate-snippets remains.
+  4. qctl's own yamled has the `serde` feature, which depends on
+     upstream serde-saphyr. Unchanged, qctl links both crates. The last
+     row moves qctl and ctl-core to one yamled, built from a branch that
+     takes the fork. Both then share one serde-saphyr, and qctl drops
+     98,144 bytes.
+  5. The input tests and the problem-report snapshot run in this change's
+     CI.
+
 ## 6. Gates and docs
 
 - [x] 6.1 Move serde-saphyr to 2.1.1 and keep `deserialize` and
@@ -449,3 +476,5 @@
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
 [d16-after]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
+[d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
