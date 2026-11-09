@@ -232,6 +232,7 @@ fn an_error_becomes_an_io_error_of_the_same_kind() {
     }
     let built = io::Error::from(Error::BrokenPipe(io::Error::other("not a pipe")));
     assert_eq!(built.kind(), ErrorKind::BrokenPipe);
+    assert_eq!(built.to_string(), "broken pipe");
     let full = io::Error::from(Error::Io(io::Error::other("disk full")));
     assert_eq!(full.kind(), ErrorKind::Other);
     assert_eq!(full.to_string(), "disk full");
