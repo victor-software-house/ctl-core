@@ -1,12 +1,13 @@
 //! The Usage KDL that `--usage-spec` prints, for a fixed corpus of commands.
 //!
-//! Four kinds of command, each a reviewed snapshot in `tests/snapshots`:
+//! Five kinds of command, each a reviewed snapshot in `tests/snapshots`:
 //! one builder command that sets every attribute the spec reads, a toy
 //! [`App`] mounted as the mise task `toy`, one command per hostile string,
-//! once as help text and once as a default value, and one command per word
-//! the KDL v2 identifier grammar treats specially, as a default and a
-//! possible value. The snapshots hold the bytes the writer must keep, so a
-//! change to the spec shows as a diff.
+//! once as help text and once as a default value, one command per word the
+//! KDL v2 identifier grammar treats specially, as a default and a possible
+//! value, and one command per value name that reads as usage syntax. The
+//! snapshots hold the bytes the writer must keep, so a change to the spec shows
+//! as a diff.
 #![allow(
     missing_docs,
     reason = "an integration test crate has no public API to document"
@@ -70,6 +71,18 @@ const IDENTIFIER: &[&str] = &[
     "1", "-1", "+1", ".5", "-.5", "+.5", "1e3", "0x1F", "1_000", "true", "false", "null", "inf",
     "-inf", "nan", "#true", "#false", "#null", "#inf", "#-inf", "#nan", "", " ", "a b", "=", "a=b",
     "(", ")", "{", "}", "[", "]", "/", "\\", ";", "\"", "'",
+];
+
+/// Value names that read as usage syntax, each with its snapshot label: a
+/// leading `-- `, two placeholders, brackets, and a trailing `...` or `…`.
+/// clap means each literally, as the name of one value.
+const VALUE_NAMES: &[(&str, &str)] = &[
+    ("plain", "X"),
+    ("double-dash", "-- X"),
+    ("placeholders", "<A> <B>"),
+    ("brackets", "[x]"),
+    ("dots", "x..."),
+    ("ellipsis", "x…"),
 ];
 
 /// Write each control, bidi, line or paragraph separator, and byte order mark
@@ -399,4 +412,24 @@ fn identifier_grammar() {
         out
     });
     insta::assert_snapshot!("identifier", visible(&corpus));
+}
+
+/// One command with a flag and a positional that each take one value named
+/// `name`. clap borrows a string only as `&'static str`.
+fn value_name_spec(name: &'static str) -> String {
+    let command = Command::new("h")
+        .arg(Arg::new("f").long("f").value_name(name))
+        .arg(Arg::new("v").value_name(name));
+    usage::spec(command, "h")
+}
+
+#[test]
+fn value_names_that_read_as_usage_syntax() {
+    let corpus = VALUE_NAMES
+        .iter()
+        .fold(String::new(), |mut out, (id, name)| {
+            entry(&mut out, id, &value_name_spec(name));
+            out
+        });
+    insta::assert_snapshot!("value_names", visible(&corpus));
 }

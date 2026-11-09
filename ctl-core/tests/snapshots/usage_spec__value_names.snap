@@ -1,0 +1,69 @@
+---
+source: ctl-core/tests/usage_spec.rs
+expression: visible(&corpus)
+---
+// plain
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [X]"
+flag --f {
+    arg <X>
+}
+arg "[X]" required=#false
+
+// double-dash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [-- X]"
+flag --f {
+    arg "<-- X>"
+}
+arg "[-- X]" required=#false
+
+// placeholders
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [<A> <B>]"
+flag --f {
+    arg "<<A> <B>> <<A> <B>>" var=#true var_min=2 var_max=2
+}
+arg "[<A> <B>]" required=#false
+
+// brackets
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [[x]]"
+flag --f {
+    arg "[x]" required=#false
+}
+arg "[[x]]" required=#false
+
+// dots
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [x...]"
+flag --f {
+    arg <x>… var=#true
+}
+arg "[x...]" required=#false
+
+// ellipsis
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS] [x…]"
+flag --f {
+    arg <x>… var=#true
+}
+arg "[x…]" required=#false
