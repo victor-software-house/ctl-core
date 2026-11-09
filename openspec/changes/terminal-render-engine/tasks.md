@@ -233,6 +233,9 @@ and in CI, as each task says.
   2. If that piece is not out when the rest of the release is ready, a pull
      request runs `lint:prose` as its own CI step, as `deny:advisories`
      runs, and `verify` stays offline.
+- After `ctl-text` publishes, open one `ctl-layout` page on docs.rs and
+  confirm that its links to `ctl-text` resolve. Until then those links
+  return 404, because docs.rs has no `ctl-text` page to link to.
 
 ## 8. Integration
 

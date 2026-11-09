@@ -34,8 +34,8 @@ Non-goals:
 
 1. No change to the public API of the `usage` module or of `App`.
 2. No parser for Usage KDL. ctl-core only writes it.
-3. No change to how `Surface` renders operator documents, beyond the
-   spec text it embeds.
+3. No change to the documents `Surface` renders, beyond the spec text
+   they embed.
 4. No upstream pull request to usage-lib or serde-saphyr without the
    maintainer's approval.
 
@@ -63,7 +63,7 @@ Alternatives considered:
    fixes the clap defaults only. The parser and model stay. It remains a
    reasonable upstream proposal, made separately with approval.
 
-The operator chose the writer in ctl-core.
+The maintainer chose the writer in ctl-core.
 
 ### 2. usage-lib 7.3.0 is the reference output
 
@@ -184,6 +184,23 @@ calls the snippet renderer, so the renderer stays reachable even with
 `with_snippet: false` ([error.rs][saphyr-error]). `Display` on the error
 takes the same path.
 
+Users see no snippet today. The loader parses with `with_snippet: false`
+and passes `error.without_snippet()` to the message
+([input.rs][input-options]), so every report is one line: file, line,
+column, and serde-saphyr's text. A real run on 2026-11-08 (-03:00) showed
+it. qctl 0.6.0 is built on ctl-core 0.6.24, whose loader has the same
+two calls ([0.6.24 input.rs][input-options-0624]). It checked three
+malformed ledgers:
+
+| Ledger | Report after the path |
+|:--|:--|
+| `prefix` given twice | `3:1: duplicate mapping key: prefix, set DuplicateKeyPolicy in Options if acceptable` |
+| A block item inside `[` | `4:3: "-" is only valid inside a block` |
+| `queue: [` left open | `3:8: unclosed bracket '['`, the same text under `--format json` |
+
+None held a source line or a caret. So the cut removes code that renders
+nothing a user sees.
+
 The candidate cut builds each message from `MessageFormatter::format_message`
 directly, with the same control-character handling the renderer applies.
 No ctl-core path then reaches the renderer. The proof has two parts:
@@ -238,6 +255,8 @@ tier carries its reason.
 [usage-rs]: https://github.com/victor-software-house/ctl-core/blob/d05500fa0a1689038dc16b58d5c1fa2227c68b78/ctl-core/src/usage.rs#L26-L32
 [input-render]: https://github.com/victor-software-house/ctl-core/blob/d05500fa0a1689038dc16b58d5c1fa2227c68b78/ctl-core/src/input.rs#L339
 [input-render-alias]: https://github.com/victor-software-house/ctl-core/blob/d05500fa0a1689038dc16b58d5c1fa2227c68b78/ctl-core/src/input.rs#L351
+[input-options]: https://github.com/victor-software-house/ctl-core/blob/d05500fa0a1689038dc16b58d5c1fa2227c68b78/ctl-core/src/input.rs#L294-L311
+[input-options-0624]: https://github.com/victor-software-house/ctl-core/blob/v0.6.24/src/input.rs#L262-L279
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
 [d16]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
