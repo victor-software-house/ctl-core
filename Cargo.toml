@@ -30,7 +30,7 @@ minijinja = { version = "2.24.0", features = ["serde"] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-serde-saphyr = { version = "2.0.0", default-features = false, features = [
+serde-saphyr = { version = "2.1.1", default-features = false, features = [
   "deserialize",
   "comments",
 ] }
@@ -141,15 +141,21 @@ tolerance-percent = 2
 [workspace.metadata.size.tiers]
 # No render code; unchanged since the size example was added.
 cli = { features = "cli", text = 343888 }
-# 906 above the first engine budget, 443676: clusters stay whole across
-# spans, line breaks stay word boundaries, and equal styles merge.
-help = { features = "help", text = 444582 }
+# 2,304 above the last budget, 444582: ctl-core declares -h/--help and the
+# help subcommand itself since Clap's help feature stays off (size-cuts
+# decision 6).
+help = { features = "help", text = 446886 }
 # 364 below the first engine budget, 409362: the ctl-text growth, offset by
 # a smaller ctl-layout Table and a smaller inlined View setup.
 view = { features = "cli,view", text = 408998 }
-# 188 below the first engine budget, 469842: help's growth, less the
-# copies View no longer keeps beside its one RenderOptions.
-app = { features = "app", text = 469654 }
+# 2,320 above the last budget, 469654: the same declared help flag and
+# subcommand as help (size-cuts decision 6).
+app = { features = "app", text = 471974 }
+# app plus the answer to mise's --usage-spec: the Usage KDL writer.
+usage = { features = "app,usage", text = 525798 }
+# app plus input: serde-saphyr, yamled, and garde, and the snippet renderer
+# serde-saphyr's deserialize_str keeps (size-cuts task 5.3).
+input = { features = "app,input", text = 1141709 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

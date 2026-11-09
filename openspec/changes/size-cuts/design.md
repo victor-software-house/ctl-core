@@ -420,8 +420,10 @@ The `size` example gains code behind `usage` and `input`, so link-time
 optimization keeps the code those tiers add. `[workspace.metadata.size]`
 gains a `usage` tier (`app,usage`) and an `input` tier (`app,input`).
 Every tier's budget is set to the `.text` CI measures on linux-x64 for the
-commit that lands the cuts. A budget is lowered, never raised, and each
-tier carries its reason.
+commit that lands the cuts.
+
+A budget follows a measured, explained change and never rises to hide an
+unexplained one. Each tier carries its reason.
 
 ### 10. One stack, one pull request per step
 

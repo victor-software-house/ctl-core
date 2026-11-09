@@ -123,6 +123,8 @@ queue:
     plan: openspec/changes/size-cuts/proposal.md
     notes:
       - Filed 2026-11-08 by operator decision, before 0.7.0.
+      - "2026-11-09, the annotate-snippets cut stopped: serde-saphyr's deserialize_str calls Display on its own Error, so deserialize reaches the snippet renderer whatever ctl-core does (size-cuts task 5.3)."
+      - 2026-11-09, the operator chose a public serde-saphyr fork kept with forkctl and published on crates.io as vsh-serde-saphyr, library name serde_saphyr unchanged; once it is out, ctl-core takes it through package = and the 5.3 cut resumes.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
@@ -203,8 +205,7 @@ horizon:
     title: Move served files and the operator surface to a ctl-surface leaf
     scope: ctl-surface/
     outcome: >-
-      MiniJinja and usage-lib sit in a ctl-surface crate that ctl-core re-exports
-      behind its surface and served features.
+      MiniJinja sits in a ctl-surface crate that ctl-core re-exports behind its surface and served features.
     kind: deferred
     open: >-
       Needs a consumer that renders operator documents without the CLI chassis, or a
