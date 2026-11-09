@@ -753,9 +753,12 @@ What ctl-core could cut, as measured on 2026-11-08, and what the
 3. **annotate-snippets** (103,692 in qctl) comes with serde-saphyr's
    `deserialize` feature ([serde-saphyr Cargo.toml][serde-saphyr-toml]),
    which ctl-core's `input` needs.
-   - Not cut: serde-saphyr's own `deserialize_str` formats its error to
-     read it. That reaches the renderer whatever ctl-core does
-     ([size cuts task 5.3][size-cuts-53]).
+   - Cut on the operator's fork. Upstream's `deserialize_str` formats its
+     error to read it, so it reaches the renderer whatever ctl-core does.
+     [vsh-serde-saphyr 0.0.2][vsh-002] checks the error's variant instead,
+     and builds its alias message without the renderer
+     ([size cuts task 5.3][size-cuts-53]). The last table below measures
+     qctl with it.
 4. **The largest ctl-core symbol**, the closure in `Renderer::widget`, takes
    9,328 bytes in qctl.
 
@@ -822,7 +825,38 @@ What each step moved, in `.text` bytes:
    80,672 bytes. ctl-core cannot avoid its share without clap's `help`
    feature, which the cuts removed. [CTC-042][ledger] measures a
    non-generic copy of the tree.
-4. annotate-snippets stays in qctl, for the reason item 3 gives.
+4. annotate-snippets is still in build C, through upstream serde-saphyr's
+   `deserialize_str`, as item 3 of the earlier list gives.
+
+qctl was measured once more after the snippet cut, on 2026-11-09
+(-03:00), on the same host, toolchain, and CPUs. That cut uses the
+vsh-serde-saphyr 0.0.2 and yamled 0.0.11 releases:
+
+- qctl is at [7d4e2ed][qctl-7d4e2ed], built with its release profile and
+  `CARGO_PROFILE_RELEASE_STRIP=none`, so `nm` can count symbols. Stripping
+  leaves `.text` unchanged.
+- Its ctl-core requirement is 0.6.28, patched to [78d47bf], the first
+  commit of [PR 245][ctl-core#245]. The commits after it in that PR change
+  only the `input` budget. Its own yamled moves to the 0.0.11 release, and
+  `cargo update -p ctl-core -p yamled` resolves the lock.
+- The baseline is ctl-core `main` at [d2fd6c8], before the cut, from
+  [size cuts task 5.3][size-cuts-53].
+
+| Build | qctl `.text` | `annotate_snippets` symbols |
+|:--|--:|--:|
+| ctl-core `main` at d2fd6c8 | 3,712,598 | 103 |
+| ctl-core at 78d47bf, yamled 0.0.11, vsh-serde-saphyr 0.0.2 | 3,614,566 | 6 |
+
+1. qctl's `.text` drops 98,032 bytes, 2.6%.
+2. `cargo tree -i` finds one copy of each crate the cut shares.
+   vsh-serde-saphyr 0.0.2 is used by ctl-core and yamled, and yamled 0.0.11
+   by ctl-core and qctl. `cargo tree -d` lists neither, and the lock holds
+   no upstream serde-saphyr.
+3. The 6 symbols left are core and alloc generics, such as `String::join`
+   and `Display` for `&usize`. They name annotate-snippets only as the
+   crate that instantiated them, and no function of annotate-snippets
+   remains. The crate stays in the lock because the fork still declares
+   it.
 
 The engine itself stays: its three crates cost what the crates they replaced
 cost, and its grapheme tables are the price of cluster-correct widths.
@@ -1043,3 +1077,8 @@ compatibility path for comfy-table.
 [cargo-size]: https://crates.io/crates/cargo-size
 [cargo-bloat]: https://crates.io/crates/cargo-bloat
 [cargo-bloat-action]: https://github.com/orf/cargo-bloat-action
+[vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
+[qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
+[78d47bf]: https://github.com/victor-software-house/ctl-core/commit/78d47bf46e66e653d8a9eb312d96e503a47e31a9
+[d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
+[ctl-core#245]: https://github.com/victor-software-house/ctl-core/pull/245

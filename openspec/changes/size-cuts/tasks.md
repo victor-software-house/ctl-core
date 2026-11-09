@@ -375,23 +375,24 @@
   On 2026-11-09 (-03:00), `cargo deny --all-features check bans` reported
   bans ok on the branch, and CI's `deny` passed in
   [run 42575754249][run-42575754249].
-- [ ] 6.3 Add the `usage` and `input` tiers to the `size` example and to
+- [x] 6.3 Add the `usage` and `input` tiers to the `size` example and to
   `[workspace.metadata.size]`. Set every budget to the `.text` CI prints
   for the commit, with a reason per tier. Verify: a budget follows a
   measured, explained change and never rises to hide an unexplained one,
   and CI's `check:size` passes.
 
   In [run 42575754249][run-42575754249] on [9d25529][9d25529], CI printed
-  these `.text` sizes. Each budget now equals CI's number:
+  the first `.text` of each tier, and each budget took CI's number. The
+  last column is the budget `main` holds at [c3f9e41][c3f9e41]:
 
-  | Tier | Features | Old budget | `.text` and new budget |
-  |:--|:--|--:|--:|
-  | `cli` | `cli` | 343,888 | 343,888 |
-  | `help` | `help` | 444,582 | 446,886 |
-  | `view` | `cli,view` | 408,998 | 408,998 |
-  | `app` | `app` | 469,654 | 471,974 |
-  | `usage` | `app,usage` | none | 525,798 |
-  | `input` | `app,input` | none | 1,141,709 |
+  | Tier | Features | Old budget | `.text` on 9d25529 | Budget on `main` |
+  |:--|:--|--:|--:|--:|
+  | `cli` | `cli` | 343,888 | 343,888 | 343,888 |
+  | `help` | `help` | 444,582 | 446,886 | 446,886 |
+  | `view` | `cli,view` | 408,998 | 408,998 | 408,998 |
+  | `app` | `app` | 469,654 | 471,974 | 471,974 |
+  | `usage` | `app,usage` | none | 525,798 | 525,798 |
+  | `input` | `app,input` | none | 1,141,709 | 1,040,778 |
 
   `help` and `app` rose by 2,304 and 2,320 bytes. That is the cost of
   declaring `-h`/`--help` and the `help` subcommand in ctl-core
@@ -399,6 +400,23 @@
   [PR 238][ctl-core#238] already measured. A linux-x64 measurement with
   1.99.1 set the first `usage` and `input` budgets, and it matched CI's
   numbers to the byte.
+
+  The `input` budget fell twice since, each time to CI's number for a
+  measured change:
+  1. 1,040,869 at [9da230e][9da230e]: the snippet cut on vsh-serde-saphyr
+     0.0.2, which task 5.3 records with
+     [run 42589624008][run-42589624008].
+  2. 1,040,778 at [f92ada8][f92ada8], in [PR 245][ctl-core#245]: yamled
+     0.0.11's location index, the one crate that changed. CI measured it
+     in [run 42593521160][run-42593521160] on [da36fb5][da36fb5]. A
+     linux-x64 build of the same commit with the same rustc measured
+     1,040,851, 73 bytes more. That gap is not explained, so the budget
+     took CI's number.
+
+  On 2026-11-09 (-03:00), `check:size` passed with every tier equal to its
+  budget. It passed in [run 42595568951][run-42595568951] on f92ada8, PR
+  245's head, and in the merge queue's [run 42595968031][run-42595968031]
+  on c3f9e41.
 - [x] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
   module docs, and the feature docs in `ctl-core/Cargo.toml` where they
   name usage-lib or its Serde edge. Verify: no `Cargo.toml` or
@@ -487,3 +505,11 @@
 [d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
 [d987bf4]: https://github.com/victor-software-house/ctl-core/commit/d987bf4a37da36a342b43cb1786ccc69ab16b439
 [run-42589624008]: https://github.com/victor-software-house/ctl-core/actions/runs/42589624008
+[9da230e]: https://github.com/victor-software-house/ctl-core/commit/9da230e5ddd3219f50c9c009cd8dbefbd87b4873
+[da36fb5]: https://github.com/victor-software-house/ctl-core/commit/da36fb5420b6d460288c0f362af3c99f37f7aa97
+[f92ada8]: https://github.com/victor-software-house/ctl-core/commit/f92ada82f2852d059f7cbf1134e786860f22797b
+[c3f9e41]: https://github.com/victor-software-house/ctl-core/commit/c3f9e41e93106da9a9c5c422737e6c8b1782c1da
+[ctl-core#245]: https://github.com/victor-software-house/ctl-core/pull/245
+[run-42593521160]: https://github.com/victor-software-house/ctl-core/actions/runs/42593521160
+[run-42595568951]: https://github.com/victor-software-house/ctl-core/actions/runs/42595568951
+[run-42595968031]: https://github.com/victor-software-house/ctl-core/actions/runs/42595968031
