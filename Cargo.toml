@@ -150,6 +150,13 @@ view = { features = "cli,view", text = 408998 }
 # 188 below the first engine budget, 469842: help's growth, less the
 # copies View no longer keeps beside its one RenderOptions.
 app = { features = "app", text = 469654 }
+# app plus the answer to mise's --usage-spec: the Usage KDL writer.
+# Measured once on a linux-x64 host with 1.99.1 until CI prints its own.
+usage = { features = "app,usage", text = 525798 }
+# app plus input: serde-saphyr, yamled, and garde, and the snippet renderer
+# serde-saphyr's deserialize_str keeps (size-cuts task 5.3). Measured once
+# on a linux-x64 host with 1.99.1 until CI prints its own.
+input = { features = "app,input", text = 1141709 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

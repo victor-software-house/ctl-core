@@ -1,10 +1,12 @@
 //! The toy CLI whose `.text` size `check:size` holds to a budget at each
 //! feature tier.
 //!
-//! One status command, built four ways: `cli` parses and prints, `help` adds
+//! One status command, built six ways: `cli` parses and prints, `help` adds
 //! ctl-core's help, `view` presents a document through a view, and `app` runs
-//! the whole lifecycle. The budgets and the features of each tier are in
-//! `[workspace.metadata.size]` of the root `Cargo.toml`.
+//! the whole lifecycle. `usage` adds the app's answer to mise's
+//! `--usage-spec`, and `input` loads and validates a YAML queue file. The
+//! budgets and the features of each tier are in `[workspace.metadata.size]`
+//! of the root `Cargo.toml`.
 //!
 //! ```text
 //! cargo build --release --package ctl-core --example size --no-default-features --features app
@@ -12,6 +14,8 @@
 
 #[cfg(not(feature = "view"))]
 use std::io::{self, Write as _};
+#[cfg(all(feature = "app", feature = "input"))]
+use std::path::Path;
 
 use ctl_core::prelude::*;
 
@@ -57,16 +61,40 @@ impl Present for Status {
     }
 }
 
+/// The queue file the `input` tier loads.
+#[cfg(all(feature = "app", feature = "input"))]
+#[derive(serde::Deserialize, garde::Validate)]
+struct Queue {
+    #[garde(length(min = 1))]
+    prefix: String,
+    #[garde(skip)]
+    #[serde(default)]
+    pending: Vec<String>,
+}
+
 #[cfg(feature = "app")]
 fn main() -> ExitCode {
-    App::<Cli>::new("toy")
-        .view(|cli| cli.output.view())
-        .run(|cli| match cli.command {
-            Command::Status { name } => Ok(Status {
-                name: name.unwrap_or_default(),
-                pending: 1,
-            }),
+    let app = App::<Cli>::new("toy").view(|cli| cli.output.view());
+    #[cfg(feature = "usage")]
+    let app = app.mounted_as("toy");
+    app.run(|cli| {
+        let Command::Status { name } = cli.command;
+        #[cfg(feature = "input")]
+        let pending = pending()?;
+        #[cfg(not(feature = "input"))]
+        let pending = 1;
+        Ok(Status {
+            name: name.unwrap_or_default(),
+            pending,
         })
+    })
+}
+
+/// The number of pending rows in `tasks.yaml`.
+#[cfg(all(feature = "app", feature = "input"))]
+fn pending() -> Result<usize, ctl_core::input::InputError> {
+    let queue: Queue = ctl_core::input::Input::read(Path::new("tasks.yaml"))?.load()?;
+    Ok(queue.pending.len())
 }
 
 #[cfg(all(feature = "view", not(feature = "app")))]
