@@ -1,4 +1,4 @@
-//! Shell completion: one `completion <SHELL>` verb for every ctl CLI.
+//! Shell completion: one `completion <SHELL>` verb for a CLI.
 //!
 //! The verb prints a short registration script. The script does not hold the
 //! command grammar. At each TAB the shell runs the CLI again with [`VAR`] set
@@ -7,8 +7,10 @@
 //! installed, including values a CLI computes at run time through
 //! `clap_complete`'s `ArgValueCompleter`.
 //!
-//! A consumer flattens [`CompletionCommand`] into its subcommands, turns the
-//! hook on, routes the verb to [`shell::view`], and returns the script:
+//! A CLI flattens [`CompletionCommand`] into its subcommands, turns the hook
+//! on, routes the verb to [`shell::view`], and returns the script. The example
+//! needs `clap` with its `derive` feature, as the
+//! [crate quick start](crate#quick-start) shows:
 //!
 //! ```no_run
 //! use ctl_core::completion::CompletionCommand;
@@ -41,7 +43,7 @@
 //! }
 //! ```
 //!
-//! An operator loads the script at shell start, so it always matches the
+//! A user loads the script at shell start, so it always matches the
 //! installed binary:
 //!
 //! | Shell | Startup file | Line |
@@ -133,9 +135,9 @@ fn zsh_autoload(bin: &str) -> String {
     }
 }
 
-/// The `completion` verb, flattened into a consumer's subcommands with
+/// The `completion` verb, flattened into a CLI's subcommands with
 /// `#[command(flatten)]`, so its name, help, and argument read the same in
-/// every ctl CLI.
+/// every CLI built on ctl-core.
 #[derive(Debug, Clone, PartialEq, Eq, clap::Subcommand)]
 pub enum CompletionCommand {
     /// Print the script that loads shell completion for this command.
@@ -143,7 +145,7 @@ pub enum CompletionCommand {
 }
 
 impl CompletionCommand {
-    /// The registration script the operator asked for, for `bin`.
+    /// The registration script the user asked for, for `bin`.
     ///
     /// # Errors
     ///

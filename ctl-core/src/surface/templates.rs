@@ -1,4 +1,4 @@
-//! `MiniJinja` rendering for committed operator documents.
+//! `MiniJinja` rendering for a CLI's generated documentation files.
 
 use minijinja::{Environment, Error, context};
 use serde::Serialize;
@@ -6,14 +6,15 @@ use serde::Serialize;
 use super::Surface;
 
 /// Template source for `ctl/version.md.jinja`: the macro
-/// `version_line(version)` renders a skill's frontmatter version line.
+/// `version_line(version)` renders the `version:` line of a generated file's
+/// frontmatter.
 pub const VERSION_FRAGMENT: &str = r"{% macro version_line(version) -%}
 version: {{ version }}
 {%- endmacro %}";
 
 /// Template source for `ctl/invocation.md.jinja`: the macro
-/// `mounted_invocation(surface, examples)` renders the mounted invocations and
-/// the no-`--` rule.
+/// `mounted_invocation(surface, examples)` renders example `mise run` lines
+/// and the rule that they take no `--`.
 pub const INVOCATION_FRAGMENT: &str = r"{% macro mounted_invocation(surface, examples) -%}
 ## Invocation
 
@@ -47,7 +48,7 @@ const FRAGMENTS: [(&str, &str); 3] = [
     ("ctl/commands.md.jinja", COMMANDS_FRAGMENT),
 ];
 
-/// Add ctl-core's shared operator fragments to `environment`, under the names
+/// Add ctl-core's shared fragments to `environment`, under the names
 /// `ctl/version.md.jinja`, `ctl/invocation.md.jinja`, and
 /// `ctl/commands.md.jinja`. A template imports them from there.
 ///
@@ -78,11 +79,11 @@ pub fn environment() -> Result<Environment<'static>, Error> {
     Ok(environment)
 }
 
-/// Render the operator template `source`, named `name`, in a fresh
+/// Render the template `source`, named `name`, in a fresh
 /// [`environment`].
 ///
 /// The template sees two variables: `surface`, the [`Surface`], and `content`,
-/// the consumer's own serializable context.
+/// the CLI's own serializable context.
 ///
 /// # Errors
 ///

@@ -43,7 +43,8 @@
 //! whatever `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, and
 //! `TERM=dumb` hold. They still read the variables that set the depth and the
 //! width, `COLORTERM`, `TERM`, `FORCE_COLOR`, and `COLUMNS`. Under
-//! [`ColorMode::Auto`] the first rule that applies wins:
+//! [`ColorMode::Auto`] these rules apply in order, and the first that matches
+//! wins:
 //!
 //! 1. `NO_COLOR` set and non-empty: no colour.
 //! 2. `CLICOLOR_FORCE` set, non-empty, and not `0`: colour.
@@ -53,9 +54,9 @@
 //! 6. Otherwise colour only when the stream is a terminal.
 //!
 //! `FORCE_COLOR=0` and `FORCE_COLOR=false` are neutral: they neither force
-//! colour nor turn it off, so rules 4 to 6 still apply. Reading the
-//! process environment, a value that is not valid UTF-8 counts as set, so such
-//! a `NO_COLOR` still turns colour off.
+//! colour nor turn it off, so rules 4 to 6 still apply. When the crate reads
+//! the process environment, a value that is not valid UTF-8 counts as set, so
+//! such a `NO_COLOR` still turns colour off.
 //!
 //! When colour is on, the depth is 24-bit when `COLORTERM` is `truecolor` or
 //! `24bit` or `FORCE_COLOR=3`. It is 256 colours when `TERM` contains
@@ -68,15 +69,16 @@
 //!
 //! # Width
 //!
-//! A width takes the first of these that applies:
+//! Widths count terminal cells: a column is one terminal cell. A width takes
+//! the first of these that applies:
 //!
 //! 1. An explicit width, which is exact.
 //! 2. The window of the stream being written.
-//! 3. A non-zero `COLUMNS`.
+//! 3. `COLUMNS`, when it holds a number from 1 to 65535.
 //! 4. The fallback of [`DEFAULT_FALLBACK_WIDTH`], 80.
 //!
 //! A detected width loses a column buffer of [`DEFAULT_COLUMN_BUFFER`], 2
-//! columns, and never drops below [`DEFAULT_MINIMUM_WIDTH`], 20, unless the
+//! cells, and never drops below [`DEFAULT_MINIMUM_WIDTH`], 20, unless the
 //! window itself is narrower. A width is at least 1.
 //!
 //! The buffer reads no variable until [`DetectOptions::column_buffer_envs`]
@@ -93,9 +95,9 @@
 //!
 //! # Platforms
 //!
-//! The crate supports and tests Unix only. It has no Windows path: it does
-//! not turn on virtual-terminal mode, and it reports no window width on
-//! another target. Windows is to come with a Windows CI job.
+//! The crate supports and tests Unix only. Windows is not supported: the crate
+//! does not turn on virtual-terminal mode. On other targets the crate builds
+//! but reports no window width.
 //!
 //! # Features
 //!

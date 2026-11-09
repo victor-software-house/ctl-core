@@ -6,7 +6,7 @@
 //! or a file's contents can all hold them.
 //!
 //! A CLI that prints such text drops what [`is_unsafe`] refuses, with
-//! [`strip_unsafe`]. `Document::verbatim` in ctl-core applies the same rule.
+//! [`strip_unsafe`].
 //! [`Span::new`](crate::Span::new) and [`Text`](crate::Text) apply it too,
 //! but keep a line break as a space or a newline. The words around it then
 //! stay apart.
@@ -48,7 +48,8 @@ pub const LINE_SEPARATOR: char = '\u{2028}';
 /// [`is_unsafe`] refuses it.
 pub const PARAGRAPH_SEPARATOR: char = '\u{2029}';
 
-/// Whether `character` is in the set the [module](self) defines.
+/// Whether `character` is a Cc control, a directional formatting character,
+/// or U+2028 or U+2029: the set the [module](self) defines.
 ///
 /// Newline and tab are controls, so they are refused too. A caller that
 /// keeps them checks for them first, or passes [`Keep`] to [`strip_unsafe`].

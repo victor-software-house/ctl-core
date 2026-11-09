@@ -4,7 +4,7 @@
 //! [`App::run`] reads the process argv and returns the [`ExitCode`] for `main`.
 //! [`App::run_from`] takes explicit argv, which tests use. In order, a run:
 //!
-//! 1. answers a mounted `--usage-spec` request, then every
+//! 1. answers a `--usage-spec` request from mise, then every
 //!    [`App::before_parse`] hook;
 //! 2. warns on stderr about an unusable style or layout variable;
 //! 3. prints help, or the bare-command help, when the arguments ask for it;
@@ -13,6 +13,16 @@
 //!
 //! A handler returns a [`Present`] value and prints nothing. Help, errors, and
 //! results share one renderer, one theme, and one width policy.
+//!
+//! # Exit codes
+//!
+//! - A result exits with its [`Present::exit_code`], 0 by default.
+//! - A handler error exits 1.
+//! - A parse error exits with Clap's code, 2 for a usage error.
+//! - A bare invocation of a command that needs a subcommand or an argument
+//!   prints the root help to stderr and exits 2.
+//! - A reader that closed the output stream changes the code only under
+//!   [`BrokenPipe::Fail`].
 
 use std::ffi::OsString;
 use std::fmt;
@@ -36,7 +46,7 @@ type SelectView<C> = Box<dyn Fn(&C) -> View>;
 #[cfg(feature = "usage")]
 type RenderUsage = Box<dyn Fn(Command, &str) -> String>;
 
-/// A fallback width the owner chose, including `None` to disable it.
+/// A fallback width the CLI chose, including `None` to disable it.
 #[derive(Clone, Copy)]
 struct Fallback(Option<u16>);
 
@@ -49,8 +59,8 @@ struct Fallback(Option<u16>);
 /// one because its reader went away. A check such as `$? -eq 2` behaves the
 /// same under both.
 ///
-/// A ctl CLI ignores SIGPIPE, as every Rust program does by default. A closed
-/// pipe then reaches it as a failed write, not as a signal.
+/// A CLI built on ctl-core ignores SIGPIPE, as every Rust program does by
+/// default. A closed pipe then reaches it as a failed write, not as a signal.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BrokenPipe {
     /// Exit with the code the command would have exited with had every byte
@@ -59,15 +69,15 @@ pub enum BrokenPipe {
     /// `set -o pipefail` keeps going.
     #[default]
     Ignore,
-    /// Exit with a failure code when the command succeeded, for a consumer
-    /// that treats a reader that stopped early as an error. A command that
+    /// Exit 1 when the command succeeded, for a CLI that treats a reader that
+    /// stopped early as an error. A command that
     /// already failed keeps its own code.
     Fail,
 }
 
 /// One ctl process: short-circuits, help, parsing, execution, and presentation.
 ///
-/// `C` is the consumer's Clap parser. Build an `App` with [`Self::new`],
+/// `C` is the CLI's Clap parser. Build an `App` with [`Self::new`],
 /// configure it with the builder methods, and finish with [`Self::run`].
 /// Every builder takes `self`, so a setting set later replaces an earlier one.
 pub struct App<C> {
@@ -183,8 +193,9 @@ impl<C> App<C> {
         self
     }
 
-    /// Take record style, list frame, and row separation from `styles` for
-    /// help, errors, and command output.
+    /// Take the theme, record style, table frame, row separation, and the
+    /// variables they read from `styles`, for help, errors, and command
+    /// output. Its colour and width settings are ignored.
     #[must_use]
     pub fn styles(mut self, styles: RenderOptions) -> Self {
         self.styles = Some(styles);
@@ -276,7 +287,7 @@ impl<C> App<C> {
     ///
     /// A hook gets the raw argv, program name first. Returning `Some(code)`
     /// stops the run with that code. Hooks run in the order added, after a
-    /// mounted usage-spec request and before help and parsing.
+    /// `--usage-spec` request and before help and parsing.
     #[must_use]
     pub fn before_parse(
         mut self,
@@ -301,7 +312,7 @@ impl<C> App<C> {
         self.before_parse(move |args| crate::completion::complete::<C>(&bin, args))
     }
 
-    /// Answer a mounted `--usage-spec` request for the task named `task`.
+    /// Answer a `--usage-spec` request from mise for the task named `task`.
     ///
     /// When argv matches, the run prints the Usage spec to stdout and exits 0
     /// without parsing. See [`crate::usage`] for the argv shape.
@@ -312,9 +323,9 @@ impl<C> App<C> {
         self
     }
 
-    /// Replace how the mounted Usage document is rendered, keeping the
+    /// Replace how the Usage document is rendered, keeping the
     /// short-circuit and the stdout write. The `render` callback receives the
-    /// declared Clap command and the requested mounted binary name, and
+    /// declared Clap command and the requested task name, and
     /// returns the document text.
     #[cfg(feature = "usage")]
     #[must_use]
@@ -333,6 +344,10 @@ where
     /// The handler `execute` gets the parsed CLI. An `Err` from it is written
     /// as an error (`bin: message`, or a JSON envelope) with exit code 1. Its
     /// message includes the whole `anyhow` chain.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the command disables `-h/--help` or `-V/--version`.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run<T>(self, execute: impl FnOnce(C) -> Result<T>) -> ExitCode
     where
@@ -345,6 +360,10 @@ where
     ///
     /// The result is the same as [`Self::run`]. Use it in tests with a fixed
     /// argv.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the command disables `-h/--help` or `-V/--version`.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run_from<T>(
         self,
@@ -429,7 +448,7 @@ where
 
     /// Report a parse error, or print the help or version Clap stopped for.
     /// Help always comes from ctl-core's renderer, so it needs none of Clap's
-    /// help or color features.
+    /// `help` or `color` features.
     fn clap_error(&self, error: &clap::Error, view: &View, args: &[String]) -> ExitCode {
         use clap::error::ErrorKind;
 
@@ -471,7 +490,7 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
 /// wins in either direction, as it does in a full parse, so a later
 /// `--format pretty` undoes an earlier JSON choice.
 ///
-/// The short `-f` is left out, because a consumer may bind it to another
+/// The short `-f` is left out, because a CLI may bind it to another
 /// flag. The scan is lexical, so a domain option whose value happens to be
 /// `--format=json` also gets a JSON error. That only changes how a failed
 /// parse is reported.

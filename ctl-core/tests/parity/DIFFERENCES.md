@@ -3,7 +3,7 @@
 Every way a file in `engine/` differs from its file of the same name in `baseline/`, grouped by kind.
 `baseline/` is the comfy-table renderer of 0.6.x and stays frozen;
 `engine/` is the ctl-layout renderer.
-29 of the 208 files differ.
+31 of the 208 files differ.
 Each kind names one example as case, width, and mode, and the design decision of the `terminal-render-engine` change that produces it.
 No kind is an unfixable regression.
 
@@ -82,3 +82,13 @@ A single word longer than the width still runs past it, as the indented `LEDGERC
 
 Reason: decision 8.
 A widget renders lines no wider than the context's width, except a word kept whole.
+
+## 8. The colour flags' help uses British spelling
+
+Example: `help-root-w80-plain`.
+The baseline reads "Pretty-output color policy" and "Force colorless pretty output";
+the engine reads "Pretty-output colour policy" and "Force colourless pretty output".
+Where that text is the widest line of the description column, the column is one cell wider.
+
+Reason: not the renderer.
+ctl-core's prose, help text included, uses British spelling, as its `AGENTS.md` states; the flag names keep `--color`.

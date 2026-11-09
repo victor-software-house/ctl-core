@@ -33,14 +33,14 @@ Output
   -c --color
   [auto|always|never]
     Pretty-output
-    color policy.
+    colour policy.
     JSON never
     contains ANSI
     [default: auto]
     [env:
     LEDGERCTL_COLOR]
   --no-color
-    Force colorless
+    Force colourless
     pretty output.
     Wins over
     `--color`

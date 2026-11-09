@@ -1,14 +1,15 @@
-//! Clap-derived operator metadata and validation.
+//! A CLI's commands and flags as plain data, taken from its Clap types.
 //!
-//! Clap remains the command grammar. [`Surface`] extracts the stable operator
-//! view used by committed skills, installed instructions, and contract tests.
-//! The view holds the binary and mounted names, every command and alias,
-//! every argument, the Usage KDL, and the mount line.
+//! Clap remains the command grammar. [`Surface`] lists what a user of the CLI
+//! sees, for generated documentation files and the tests that compare them
+//! with the CLI. It holds the binary name, the mise task name, every command
+//! and alias, every argument, the Usage KDL, and the `#USAGE mount` line (see
+//! [`usage`]).
 //!
 //! The `surface-model` feature builds a [`Surface`]. `surface-serde` adds
 //! serialization. `surface-templates` adds the shared `minijinja` fragments
-//! and the [`render`] function. A skill or instruction file is then a render
-//! of the consumer's own Clap types.
+//! and the [`render`] function. A generated documentation file is then a
+//! render of the CLI's own Clap types.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -23,7 +24,7 @@ pub use templates::{
     COMMANDS_FRAGMENT, INVOCATION_FRAGMENT, VERSION_FRAGMENT, add_fragments, environment, render,
 };
 
-/// Operator-facing projection of one Clap command graph.
+/// What a user sees of one Clap command tree.
 ///
 /// Build it with [`Surface::new`] or [`Surface::from_command`]. It is plain
 /// data: a test compares a render of it with a committed file, and a template
@@ -33,7 +34,7 @@ pub use templates::{
 pub struct Surface {
     /// Executable name declared by the root Clap command.
     pub binary: String,
-    /// Mise task name used for mounted invocations.
+    /// The mise task name that runs the CLI.
     pub mount: String,
     /// Root command description.
     pub about: String,
@@ -45,11 +46,11 @@ pub struct Surface {
     pub inherited_arguments: Vec<SurfaceArgument>,
     /// Root subcommands in Clap declaration order, including hidden commands.
     pub commands: Vec<SurfaceCommand>,
-    /// Usage KDL for the mounted task name.
+    /// Usage KDL for the mise task name.
     pub usage_kdl: String,
-    /// Exact `#USAGE mount` line for a served mise task.
+    /// The exact `#USAGE mount` line for the mise task.
     pub mount_line: String,
-    /// Consumer-owned operator notes keyed for skill or instruction templates.
+    /// Prose the CLI adds by name, for its documentation templates.
     pub notes: BTreeMap<String, String>,
 }
 
@@ -139,20 +140,20 @@ pub enum SurfaceScope {
 }
 
 impl Surface {
-    /// Extract an operator surface from the Clap parser type `C`.
+    /// The surface of the Clap parser type `C`.
     ///
-    /// `mount` is the mise task name that mounts the CLI, such as `q` in
-    /// `mise run q status`. See [`Self::from_command`].
+    /// `mount` is the mise task name that runs the CLI, such as `toy` in
+    /// `mise run toy status`. See [`Self::from_command`].
     #[must_use]
     pub fn new<C: clap::CommandFactory>(mount: impl Into<String>) -> Self {
         Self::from_command(C::command(), mount)
     }
 
-    /// Extract an operator surface from a Clap command graph.
+    /// The surface of a Clap command tree.
     ///
-    /// `mount` is the mise task name that mounts the CLI. The Usage KDL and the
-    /// mount line use it. Hidden commands are listed with `hidden` set. Clap's
-    /// generated `help` subcommand is not.
+    /// `mount` is the mise task name that runs the CLI. The Usage KDL and the
+    /// `#USAGE mount` line use it. Hidden commands are listed with `hidden`
+    /// set. Clap's generated `help` subcommand is not.
     #[must_use]
     pub fn from_command(mut command: Command, mount: impl Into<String>) -> Self {
         let mut declared_arguments = BTreeMap::new();
@@ -192,8 +193,8 @@ impl Surface {
         }
     }
 
-    /// Add consumer-owned prose under `name`, for a template audience or
-    /// section. A template reads it as `surface.notes.<name>`. A later note of
+    /// Add the CLI's own prose under `name`, for one template section or
+    /// reader. A template reads it as `surface.notes.<name>`. A later note of
     /// the same name replaces an earlier one.
     #[must_use]
     pub fn note(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
@@ -218,13 +219,13 @@ impl Surface {
         missing
     }
 
-    /// Fail when a long option has no operator-visible short, except tokens in
+    /// Fail when a long option has no visible short, except tokens in
     /// `allow`.
     ///
     /// A root allowance is the displayed long option (`--format`). A nested
-    /// allowance includes its command path (`status --archived`). Chassis
-    /// mixins that deliberately leave a letter for the consumer (`--format`
-    /// for `-f`/`--file`, `--color` for `-c`) belong there.
+    /// allowance includes its command path (`status --archived`). ctl-core's
+    /// shared flags that leave a letter free for the CLI on purpose
+    /// (`--format` for `-f`/`--file`, `--color` for `-c`) belong there.
     ///
     /// # Errors
     ///

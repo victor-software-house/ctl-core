@@ -5,7 +5,7 @@ use crate::stream::Probe;
 #[cfg(feature = "detect")]
 use crate::stream::Stream;
 
-/// The columns reserved from a detected width, so a line never touches the
+/// The cells reserved from a detected width, so a line never touches the
 /// edge of the window.
 pub const DEFAULT_COLUMN_BUFFER: u16 = 2;
 
@@ -13,16 +13,17 @@ pub const DEFAULT_COLUMN_BUFFER: u16 = 2;
 /// narrower.
 pub const DEFAULT_MINIMUM_WIDTH: u16 = 20;
 
-/// The width used when the stream gives none and `COLUMNS` is unset.
+/// The width used when the stream gives none and `COLUMNS` is unset, empty,
+/// zero, or not a number from 1 to 65535.
 pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
 
 /// How the width of a stream is decided, and every default it applies.
 ///
 /// A width takes the first of these that applies: an explicit
 /// [`width`](Self::width), which is exact; the window of the stream; a
-/// non-zero `COLUMNS`; the [fallback](Self::fallback_width). The column buffer
-/// and the minimum apply only to the window and `COLUMNS`. The width that
-/// results is at least 1.
+/// `COLUMNS`, when it holds a number from 1 to 65535; the
+/// [fallback](Self::fallback_width). The column buffer and the minimum apply
+/// only to the window and `COLUMNS`. The width that results is at least 1.
 ///
 /// Each default has an override and a way to turn it off:
 ///
@@ -90,7 +91,8 @@ impl DetectOptions {
         self
     }
 
-    /// Use `columns` when the stream gives no width and `COLUMNS` is unset.
+    /// Use `columns` when the stream gives no width and `COLUMNS` is unset,
+    /// empty, zero, or not a number from 1 to 65535.
     /// `None` leaves the width undecided, and 0 counts as 1.
     #[must_use]
     pub const fn fallback_width(mut self, columns: Option<u16>) -> Self {
@@ -126,8 +128,9 @@ pub struct Terminal {
 impl Terminal {
     /// What `stream` is, reading variables through `env`.
     ///
-    /// `env` returns a variable's value, or `None` when it is unset. The
-    /// stream is queried now, so the result is only as pure as the stream.
+    /// `env` returns a variable's value, or `None` when it is unset. It asks
+    /// the stream when called, so two calls can differ after a resize or a
+    /// redirect.
     /// Use [`from_probe`](Self::from_probe) to state the stream. Needs the
     /// `detect` feature.
     #[cfg(feature = "detect")]
@@ -197,7 +200,8 @@ impl Terminal {
     }
 
     /// The width to lay out to, in cells and at least 1, or `None` when the
-    /// stream gives none, `COLUMNS` is unset, and the fallback is off.
+    /// stream gives none, `COLUMNS` holds no number from 1 to 65535, and the
+    /// fallback is off.
     #[must_use]
     pub fn width(self) -> Option<u16> {
         self.width

@@ -47,8 +47,9 @@ const fn bold(color: AnsiColor) -> Style {
 /// [`ColorMode::Never`] writes none whatever the theme holds.
 ///
 /// ```
+/// use ctl_core::Theme;
+/// use ctl_core::document::Role;
 /// use ctl_core::text::anstyle::{AnsiColor, Style};
-/// use ctl_core::{Role, Theme};
 ///
 /// let magenta = Style::new().fg_color(Some(AnsiColor::Magenta.into()));
 /// let theme = Theme::default().style(Role::Id, magenta);

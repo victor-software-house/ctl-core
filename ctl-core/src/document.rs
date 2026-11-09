@@ -335,7 +335,7 @@ pub enum Role {
     Value,
     /// Secondary information that should not draw the eye.
     Muted,
-    /// A flag, command, field name, or other operator token.
+    /// A flag, command, field name, or other literal the user types or reads.
     Token,
     /// The identifier of a row, patch, package, or other domain record.
     Id,

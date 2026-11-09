@@ -1,4 +1,4 @@
-//! The shells a ctl CLI writes scripts for, and the script a shell verb
+//! The shells a CLI writes scripts for, and the script a shell verb
 //! prints.
 //!
 //! [`Shell`] needs the `shell` feature. [`Script`] and [`view`] also need
@@ -17,14 +17,14 @@ use crate::format::OutputFormat;
 #[cfg(feature = "view")]
 use crate::view::{Present, View};
 
-/// A shell a ctl CLI prints a script for: the set Homebrew installs
+/// A shell a CLI prints a script for: the set Homebrew installs
 /// completion for by default.
 ///
 /// Every verb that takes a `Shell` supports every variant. A shell joins the
 /// set only when each of those verbs has a tested form for it.
 ///
 /// The set is closed, and the enum is deliberately not `#[non_exhaustive]`.
-/// A consumer matches on every variant, so the compiler shows each place a
+/// A caller matches on every variant, so the compiler shows each place a
 /// new shell needs a script. Adding a shell is therefore a breaking release.
 ///
 /// The command-line value is the lowercase name: `bash`, `zsh`, or `fish`.
@@ -43,7 +43,7 @@ pub enum Shell {
 /// One script for one shell, the result of a shell verb such as
 /// `completion` or `init`.
 ///
-/// Pretty and colorless output print the script as it is. JSON carries it
+/// Pretty and colourless output print the script as it is. JSON carries it
 /// under `text`, beside the shell's name under `shell`.
 #[cfg(feature = "view")]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

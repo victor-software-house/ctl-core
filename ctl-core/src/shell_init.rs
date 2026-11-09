@@ -1,5 +1,5 @@
-//! Shell integration: one `init <SHELL>` verb that hooks a ctl CLI into the
-//! operator's shell.
+//! Shell integration: one `init <SHELL>` verb that hooks a CLI into the
+//! user's shell.
 //!
 //! The verb prints a script that runs one command of the CLI in the
 //! foreground, before the shell draws its first prompt. It never runs again in
@@ -12,8 +12,9 @@
 //! marks.
 //! Loading the script twice installs the hook once.
 //!
-//! A consumer flattens [`InitCommand`] into its subcommands, routes the verb
-//! to [`shell::view`], and returns the script:
+//! A CLI flattens [`InitCommand`] into its subcommands, routes the verb to
+//! [`shell::view`], and returns the script. The example needs `clap` with its
+//! `derive` feature, as the [crate quick start](crate#quick-start) shows:
 //!
 //! ```no_run
 //! use ctl_core::prelude::*;
@@ -48,7 +49,7 @@
 //! }
 //! ```
 //!
-//! An operator loads the script from a startup file. Each script names its
+//! A user loads the script from a startup file. Each script names its
 //! line in its first comment:
 //!
 //! | Shell | Startup file | Line |
@@ -76,8 +77,9 @@ use crate::shell::{Script, Shell};
 /// removes the hook before running the command, so a later prompt never runs
 /// it again.
 ///
-/// bash's hook also sets a variable it checks first. Another tool, such as
-/// bash-preexec, can rewrite `PROMPT_COMMAND` so that the removal misses.
+/// In bash, another tool, such as bash-preexec, can rewrite `PROMPT_COMMAND`
+/// so that the removal misses. So bash's hook also sets a variable it checks
+/// first.
 ///
 /// Every part is one word the shell reads without quoting, which
 /// [`Hook::new`] checks once.
@@ -121,7 +123,7 @@ impl Hook {
     /// bash runs it from `PROMPT_COMMAND`, as a string or, from bash 5.1, an
     /// array. zsh runs it from `precmd_functions`, and fish on the
     /// `fish_prompt` event. The bash hook returns the exit status it found, so
-    /// a prompt command after it still reads the status of the operator's last
+    /// a prompt command after it still reads the status of the user's last
     /// command.
     #[must_use]
     pub fn script(&self, shell: Shell) -> Script {
@@ -271,9 +273,9 @@ impl fmt::Display for HookError {
 
 impl Error for HookError {}
 
-/// The `init` verb, flattened into a consumer's subcommands with
+/// The `init` verb, flattened into a CLI's subcommands with
 /// `#[command(flatten)]`, so its name, help, and argument read the same in
-/// every ctl CLI.
+/// every CLI built on ctl-core.
 #[derive(Debug, Clone, PartialEq, Eq, clap::Subcommand)]
 pub enum InitCommand {
     /// Print the script that hooks this command into your shell.
@@ -281,7 +283,7 @@ pub enum InitCommand {
 }
 
 impl InitCommand {
-    /// The script for the shell the operator asked for.
+    /// The script for the shell the user asked for.
     #[must_use]
     pub fn script(&self, hook: &Hook) -> Script {
         match self {

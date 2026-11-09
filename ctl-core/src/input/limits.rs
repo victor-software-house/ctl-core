@@ -28,8 +28,8 @@ macro_rules! limits {
         /// 3. the process: [`set_default_limits`], or `App::input_limits`;
         /// 4. serde-saphyr's own default.
         ///
-        /// A repository beats a tool's default because the operator owns
-        /// it, as an operator's environment beats a tool's built-in width.
+        /// A repository beats a tool's default because the user owns the
+        /// repository, as a user's environment beats a tool's built-in width.
         ///
         /// `enforce_alias_anchor_ratio` is not here: the ratio check is one
         /// comparison after scanning, so turning it off saves nothing. It
@@ -148,8 +148,8 @@ pub fn set_default_limits(limits: Limits) {
 ///
 /// Returns each limit the repository raises above serde-saphyr's default.
 /// Print each as `{bin}: warning: {loosened}`. The baseline is serde-saphyr's
-/// default, not the process tier: the warning marks leaving the library's own
-/// envelope, whatever the tool chose.
+/// default, not the process tier. The warning marks a limit above
+/// serde-saphyr's default, whatever the tool chose.
 ///
 /// # Errors
 ///
@@ -257,7 +257,7 @@ pub(super) fn effective(call: &Limits) -> Limits {
     call.clone().or(&repository).or(&process)
 }
 
-/// Where an operator raises a limit a text went past.
+/// Where a user raises a limit a text went past.
 #[derive(Clone, Copy)]
 pub(super) enum Raise {
     /// In the repository's [`REPO_FILE`].

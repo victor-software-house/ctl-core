@@ -10,7 +10,9 @@ use crate::lines::{literal, rule_line};
 const TITLE_MARGIN: u16 = 4;
 
 /// A rule across the whole width, drawn with `─`, or `-` for
-/// [`BoxChars::Ascii`](ctl_text::BoxChars::Ascii). A title sits at the left:
+/// [`BoxChars::Ascii`](ctl_text::BoxChars::Ascii).
+///
+/// A title sits at the left:
 ///
 /// ```text
 /// ── Title ──────────────

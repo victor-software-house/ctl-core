@@ -23,11 +23,11 @@ Output
     Output representation [default:
     pretty] [env: LEDGERCTL_FORMAT]
   -c --color [auto|always|never]
-    Pretty-output color policy. JSON
+    Pretty-output colour policy. JSON
     never contains ANSI [default: auto]
     [env: LEDGERCTL_COLOR]
   --no-color
-    Force colorless pretty output. Wins
+    Force colourless pretty output. Wins
     over `--color`
   -q --quiet
     Suppress successful pretty output

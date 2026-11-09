@@ -22,7 +22,7 @@ mod data {
         reason = "schemars' JsonSchema derive expands concat!"
     )]
 
-    /// Output representation. Models serialize first; views pick one of these.
+    /// The output representation a view writes a result in.
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
@@ -30,7 +30,7 @@ mod data {
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub enum OutputFormat {
         #[default]
-        /// Human text, optionally colored.
+        /// Human text, optionally coloured.
         Pretty,
         /// Machine JSON. Never contains ANSI.
         Json,

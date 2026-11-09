@@ -15,7 +15,7 @@ use clap::{Arg, ArgAction, ArgMatches, Command, Id};
 /// `<PREFIX>_<LONG>`, so the environment can set any flag a CLI declares.
 ///
 /// Put it on the root parser as a derive attribute, with the trait in scope
-/// (the prelude exports it): `#[command(env_prefix = "VERCTL")]`.
+/// (the prelude exports it): `#[command(env_prefix = "TOY")]`.
 ///
 /// Clap's derive applies a root attribute after it has added every argument
 /// and subcommand. So `C::command()` returns the bound graph to help, the
@@ -46,8 +46,8 @@ impl EnvPrefix for Command {
     }
 }
 
-/// The variable a long option reads: `dry-run` under `VERCTL` is
-/// `VERCTL_DRY_RUN`.
+/// The variable a long option reads: `dry-run` under `TOY` is
+/// `TOY_DRY_RUN`.
 #[must_use]
 fn env_name(prefix: &str, long: &str) -> String {
     format!("{prefix}_{}", long.to_ascii_uppercase().replace('-', "_"))
@@ -88,7 +88,9 @@ fn bind(arg: Arg, prefix: &str) -> Arg {
 /// 3. belongs to an option that conflicts with one the command line set. The
 ///    conflict may be a `conflicts_with` on either side, a single-choice group
 ///    they share, or an `exclusive` option on either side;
-/// 4. is empty, as a composite action sets an input it was not given;
+/// 4. is empty. A wrapper that maps every setting to a variable may set one the
+///    caller left out. A GitHub Actions composite action does this with an
+///    input it was not given;
 /// 5. reads as a boolean flag's default, `false` for a flag that sets `true`,
 ///    so it changes nothing and cannot conflict.
 ///

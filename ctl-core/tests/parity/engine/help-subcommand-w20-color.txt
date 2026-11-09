@@ -33,14 +33,14 @@
   \u{1b}[1m\u{1b}[32m-c\u{1b}[0m \u{1b}[1m\u{1b}[32m--color\u{1b}[0m
   \u{1b}[1m\u{1b}[33m[auto|always|never]\u{1b}[0m
     Pretty-output
-    color policy.
+    colour policy.
     JSON never
     contains ANSI
     \u{1b}[90m[default: auto]\u{1b}[0m
     \u{1b}[90m[env:\u{1b}[0m
     \u{1b}[90mLEDGERCTL_COLOR]\u{1b}[0m
   \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m
-    Force colorless
+    Force colourless
     pretty output.
     Wins over
     `--color`

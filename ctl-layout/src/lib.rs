@@ -135,7 +135,13 @@
 //! ```
 //!
 //! A widget of your own sits in a [`Stack`] beside these once it implements
-//! [`Renderable`].
+//! [`Renderable`]. Its [`Measurement`](ctl_text::Measurement) and
+//! [`Line`](ctl_text::Line) types come through
+//! [`ctl_layout::ctl_text`](ctl_text).
+//!
+//! # Features
+//!
+//! This crate has no optional features.
 
 mod align;
 mod breakpoint;

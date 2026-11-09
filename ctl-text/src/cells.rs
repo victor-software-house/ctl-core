@@ -6,15 +6,11 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 /// The tab stop spacing used when a caller sets none: every 8 cells.
-///
-/// Built from the smallest non-zero value because a denied lint rules out
-/// `NonZeroU16::new(8).unwrap()`.
+// Built from the smallest non-zero value because a denied lint rules out
+// `NonZeroU16::new(8).unwrap()`.
 pub const TAB_WIDTH: NonZeroU16 = NonZeroU16::MIN.saturating_add(7);
 
 /// A Unicode version, such as 17.0.0.
-///
-/// The dependencies state theirs as bare tuples of different integer types;
-/// this is the one shape the crate hands out.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UnicodeVersion {
     /// The major version.
@@ -30,8 +26,7 @@ pub struct UnicodeVersion {
 /// A cluster's boundaries come from `unicode-segmentation` and its width from
 /// `unicode-width`. The two crates ship their own tables, so they can sit on
 /// different Unicode versions. An emoji that one knows and the other does not
-/// is counted wrongly. This crate's tests pin both versions, so a dependency
-/// upgrade that moves either one fails until the pin is read and updated.
+/// is counted wrongly. The versions change only in a new release of this crate.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct UnicodeVersions {

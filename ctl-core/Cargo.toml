@@ -3,7 +3,7 @@ name = "ctl-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Shared clap chassis for the *ctl CLIs"
+description = "A framework for clap programs: typed results, help, and terminal or JSON output"
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
@@ -61,16 +61,17 @@ help = ["cli", "render", "clap/usage", "ctl-term/detect"]
 ## stream each result goes to.
 view = ["render", "json", "ctl-term/detect"]
 
-## Clap-derived operator metadata without serialization or a template engine.
+## A CLI's commands and flags as data (`surface::Surface`), without
+## serialization or a template engine.
 surface-model = ["cli", "usage"]
 
-## Serializable Surface metadata without a template engine.
+## `Surface` with serialization, without a template engine.
 surface-serde = ["surface-model", "dep:serde"]
 
-## Shared MiniJinja fragments for committed operator documents.
+## Shared MiniJinja fragments for generated documentation files.
 surface-templates = ["surface-serde", "dep:minijinja"]
 
-## Compatibility aggregate for the complete operator-document surface.
+## The same as `surface-templates`.
 surface = ["surface-templates"]
 
 ## Files a repository serves, rendered from templates that declare their own
@@ -98,7 +99,7 @@ input-toml = ["input", "dep:toml"]
 ## and one call per file.
 fixture = ["dep:tempfile"]
 
-## The shells a ctl CLI writes scripts for (`Shell`): bash, zsh, and fish.
+## The shells a CLI writes scripts for (`Shell`): bash, zsh, and fish.
 shell = ["cli"]
 
 ## The `completion <SHELL>` verb and the `COMPLETE` request it registers

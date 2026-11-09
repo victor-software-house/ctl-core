@@ -6,20 +6,20 @@
 //! directory tree:
 //!
 //! ```jinja
-//! {%- set path = "tasks/q" -%}
+//! {%- set path = "tasks/toy" -%}
 //! {%- set executable = true -%}
 //! #!/usr/bin/env bash
-//! #MISE tools = { "github:victor-software-house/qctl" = "{{ versions["qctl"] }}" }
+//! #MISE tools = { "github:example/toy" = "{{ versions["toy"] }}" }
 //! ```
 //!
-//! `path` is the directory, the repository root when unsaid. `name` is the
-//! file name, the template's own name without its suffix when unsaid, so most
+//! `path` is the directory, the repository root when omitted. `name` is the
+//! file name, the template's own name without its suffix when omitted, so most
 //! templates declare one line. `executable` is the one mode bit git records
-//! for a regular file: unsaid means 0644. Trim declarations with `{%- … -%}`
+//! for a regular file: when omitted, 0644. Trim declarations with `{%- … -%}`
 //! so a shebang stays on line one. Any other export is the template's own.
 //!
 //! Rendering uses [`crate::surface::environment`]: undefined names fail, the
-//! trailing newline is kept, and ctl-core's operator fragments are available.
+//! trailing newline is kept, and ctl-core's shared fragments are available.
 //! Which templates a repository has, and what context they see, stay with the
 //! CLI that serves them.
 
@@ -68,7 +68,7 @@ pub struct ServeError {
     /// The template, as the caller named it. A write error names the target
     /// path instead.
     pub template: String,
-    /// What went wrong, in words an operator can act on.
+    /// What went wrong, in words a user can act on.
     pub message: String,
 }
 
@@ -80,7 +80,8 @@ impl fmt::Display for ServeError {
 
 impl std::error::Error for ServeError {}
 
-/// Render one template with `context` and read the file it declares.
+/// Render one template with `context`, and read the target path, name, and
+/// mode it declares.
 ///
 /// `template` names the template, usually its path relative to the
 /// repository. Its file name minus `suffix` is the default target name.

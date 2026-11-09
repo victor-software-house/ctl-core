@@ -17,11 +17,11 @@ pub struct Indent<'a> {
 }
 
 impl<'a> Indent<'a> {
-    /// `child` moved right by `columns` cells.
+    /// `child` moved right by `cells` cells.
     #[must_use]
-    pub fn new(columns: u16, child: impl Renderable + 'a) -> Self {
+    pub fn new(cells: u16, child: impl Renderable + 'a) -> Self {
         Self {
-            columns,
+            columns: cells,
             child: Box::new(child),
         }
     }

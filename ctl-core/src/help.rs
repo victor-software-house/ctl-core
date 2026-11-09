@@ -37,6 +37,10 @@ const NARROW_HELP_WIDTH: u16 = 64;
 /// # Errors
 ///
 /// Returns the error from writing help to stdout.
+///
+/// # Panics
+///
+/// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     let raw = std::env::args_os().collect::<Vec<_>>();
     let color = crate::parser::parsed_output::<C>(&raw).color;
@@ -48,6 +52,10 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
 /// # Errors
 ///
 /// Returns the error from writing help to stdout.
+///
+/// # Panics
+///
+/// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<bool> {
     let args = std::env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
@@ -61,6 +69,10 @@ pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::R
 /// # Errors
 ///
 /// Returns the error from writing help to stdout.
+///
+/// # Panics
+///
+/// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     let raw = args
         .iter()
@@ -75,6 +87,10 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
 /// # Errors
 ///
 /// Returns the error from writing help to stdout.
+///
+/// # Panics
+///
+/// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,

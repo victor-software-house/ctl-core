@@ -1,4 +1,4 @@
-//! Warn on duplicate / contradictory chassis flags. Last value still wins.
+//! Warn on repeated or contradictory shared flags. The last value still wins.
 
 use std::fmt;
 use std::io::Write as _;
@@ -56,7 +56,7 @@ impl fmt::Display for FlagWarning {
     }
 }
 
-/// Find clashes among the shared chassis flags in `args`.
+/// Find clashes among ctl-core's shared flags in `args`.
 ///
 /// `args` excludes the program name. Scanning stops at `--`. The result lists
 /// a repeated `--color`, `--format`, `--quiet`, or `--no-color`, a `--color`

@@ -8,9 +8,9 @@ use crate::format::OutputFormat;
 /// `#[command(flatten)]`.
 ///
 /// The flags are global, so a subcommand accepts them too. [`Self::view`]
-/// builds the [`View`](crate::view::View) for the parsed flags. A consumer
-/// that already owns `-c` flattens [`super::ColorLong`] plus [`FormatArgs`]
-/// instead.
+/// builds the [`View`](crate::view::View) for the parsed flags. A CLI
+/// that already uses `-c` flattens [`ColorLong`](super::ColorLong) plus
+/// [`FormatArgs`] instead.
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct OutputArgs {
@@ -24,7 +24,7 @@ pub struct OutputArgs {
         help_heading = "Output"
     )]
     pub format: OutputFormat,
-    /// Pretty-output color policy. JSON never contains ANSI.
+    /// Pretty-output colour policy. JSON never contains ANSI.
     #[arg(
         short = 'c',
         long,
@@ -34,7 +34,7 @@ pub struct OutputArgs {
         help_heading = "Output"
     )]
     pub color: ColorMode,
-    /// Force colorless pretty output. Wins over `--color`.
+    /// Force colourless pretty output. Wins over `--color`.
     #[arg(long, global = true, help_heading = "Output")]
     pub no_color: bool,
     /// Suppress successful pretty output.

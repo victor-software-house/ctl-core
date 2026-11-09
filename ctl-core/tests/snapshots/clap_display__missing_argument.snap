@@ -1,5 +1,5 @@
 ---
-source: tests/clap_display.rs
+source: ctl-core/tests/clap_display.rs
 expression: stderr
 ---
 Usage: toy show [OPTIONS] <ID>
@@ -12,15 +12,15 @@ Arguments
 └──┴────┴──┴─────────────────┘
 
 Output
-┌────┬────────────┬─────────────────────┬─────────────────────────────────────┐
-│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:     │
-│    ┆            ┆                     ┆ pretty]                             │
-│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output color policy. JSON    │
-│    ┆            ┆                     ┆ never contains ANSI [default: auto] │
-│    ┆ --no-color ┆                     ┆ Force colorless pretty output. Wins │
-│    ┆            ┆                     ┆ over `--color`                      │
-│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output   │
-└────┴────────────┴─────────────────────┴─────────────────────────────────────┘
+┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:      │
+│    ┆            ┆                     ┆ pretty]                              │
+│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output colour policy. JSON    │
+│    ┆            ┆                     ┆ never contains ANSI [default: auto]  │
+│    ┆ --no-color ┆                     ┆ Force colourless pretty output. Wins │
+│    ┆            ┆                     ┆ over `--color`                       │
+│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output    │
+└────┴────────────┴─────────────────────┴──────────────────────────────────────┘
 
 Help
 ┌────┬────────┬──┬─────────────────────────────────────┐

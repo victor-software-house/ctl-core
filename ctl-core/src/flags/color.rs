@@ -10,7 +10,7 @@ use crate::flags::resolve_color;
 #[derive(Args, Clone, Debug, Default, Eq, PartialEq)]
 #[command(about = None, long_about = None)]
 pub struct ColorLong {
-    /// Pretty-output color policy. JSON never contains ANSI.
+    /// Pretty-output colour policy. JSON never contains ANSI.
     #[arg(
         long,
         global = true,
@@ -19,7 +19,7 @@ pub struct ColorLong {
         help_heading = "Output"
     )]
     pub color: ColorMode,
-    /// Force colorless pretty output. Wins over `--color`.
+    /// Force colourless pretty output. Wins over `--color`.
     #[arg(long, global = true, help_heading = "Output")]
     pub no_color: bool,
 }

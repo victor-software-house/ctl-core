@@ -56,6 +56,11 @@ Multiline Rust is `indoc!` / `formatdoc!` / `writedoc!` / `printdoc!` / `eprintd
 Doc comments carry the why, on the item.
 Inline `//` prose inside a function body is litter.
 
+## Spelling
+
+Prose in rustdoc and help text uses British spelling: "colour", "colourless".
+Rust identifiers and flags keep theirs: `ColorMode`, `--color`.
+
 ## Copier template
 
 The repository setup comes from the shared Copier template, the private `victor-software-house/templates` repository (project `rust-crate`).

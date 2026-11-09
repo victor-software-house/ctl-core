@@ -26,7 +26,7 @@ use crate::color::ColorMode;
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
 use crate::theme::Theme;
 
-/// Default columns reserved from an automatically detected terminal width.
+/// Default cells reserved from an automatically detected terminal width.
 #[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER: u16 = ctl_term::DEFAULT_COLUMN_BUFFER;
 /// Default environment variable for overriding the automatic-width buffer.
@@ -40,24 +40,33 @@ pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = ctl_term::DEFAULT_MINIMUM_WIDTH;
 /// Width used when neither the terminal nor `COLUMNS` gives one.
 pub const DEFAULT_FALLBACK_WIDTH: u16 = ctl_term::DEFAULT_FALLBACK_WIDTH;
-/// Default environment variable for the operator's record style.
+/// The environment variable that sets the record style when the CLI has not:
+/// `CTL_CORE_RECORD_STYLE`. Its values are the [`RecordStyle`] names
+/// `keys-right`, `keys-left`, and `boxed`.
 pub const DEFAULT_RECORD_STYLE_ENV: &str = "CTL_CORE_RECORD_STYLE";
-/// Default ordered environment lookup for the record style.
+/// The ordered list of variables read for the record style, holding only
+/// [`DEFAULT_RECORD_STYLE_ENV`].
 pub const DEFAULT_RECORD_STYLE_ENVS: &[&str] = &[DEFAULT_RECORD_STYLE_ENV];
-/// Default environment variable for the operator's list frame, a [`Frame`].
+/// The environment variable that sets the table frame of a list when the CLI
+/// has not: `CTL_CORE_LIST_STYLE`. Its values are the [`Frame`] names `grid`,
+/// `header-rule`, and `plain`.
 pub const DEFAULT_LIST_STYLE_ENV: &str = "CTL_CORE_LIST_STYLE";
-/// Default ordered environment lookup for the list frame.
+/// The ordered list of variables read for the table frame of a list, holding
+/// only [`DEFAULT_LIST_STYLE_ENV`].
 pub const DEFAULT_LIST_STYLE_ENVS: &[&str] = &[DEFAULT_LIST_STYLE_ENV];
-/// Default environment variable for the operator's row separation.
+/// The environment variable that sets the row separation when the CLI has not:
+/// `CTL_CORE_ROW_SEPARATION`. Its values are the [`RowSeparation`] names
+/// `none`, `rule`, and `blank`.
 pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
-/// Default ordered environment lookup for the row separation.
+/// The ordered list of variables read for the row separation, holding only
+/// [`DEFAULT_ROW_SEPARATION_ENV`].
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
 /// The width of a rule in a document laid out at its natural width. A rule has
 /// no natural width of its own, so it would otherwise fill that width.
 const NATURAL_RULE_WIDTH: u16 = 40;
 
-/// A style an operator can name in an environment variable.
+/// A style a user can name in an environment variable.
 pub(crate) trait EnvChoice: Copy + 'static {
     /// Accepted values, in the order a warning lists them.
     const VALUES: &'static [(&'static str, Self)];
@@ -132,7 +141,7 @@ fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
         .map(|(_, choice)| *choice)
 }
 
-/// Deterministic document rendering options.
+/// How a document renders: colour mode, width, theme, and styles.
 ///
 /// A setter takes the name of its setting and returns the options changed.
 /// The options have no getters, which would need the same names. A method that
@@ -161,12 +170,12 @@ impl RenderOptions {
     /// Build options with [`DEFAULT_FALLBACK_WIDTH`] when no width is
     /// detected. Record style, list frame, and row separation read
     /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
-    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the owner sets them. Roles are
+    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the CLI sets them. Roles are
     /// drawn in [`Theme::default`].
     ///
     /// With `view` or `help`, the width is detected for the stream written,
     /// with a `DEFAULT_COLUMN_BUFFER`-column buffer and
-    /// `DEFAULT_COLUMN_BUFFER_ENV` as the operator override.
+    /// `DEFAULT_COLUMN_BUFFER_ENV` as the user's override.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
         Self {
@@ -309,21 +318,21 @@ impl RenderOptions {
         self
     }
 
-    /// Record framing: the owner's choice, then the environment, then the
+    /// Record framing: the CLI's choice, then the environment, then the
     /// default. It reads the process environment.
     #[must_use]
     pub fn resolved_record_style(self) -> RecordStyle {
         self.record_style_with(process_env)
     }
 
-    /// List framing: the owner's choice, then the environment, then the
+    /// Table frame: the CLI's choice, then the environment, then the
     /// default. It reads the process environment.
     #[must_use]
     pub fn resolved_frame(self) -> Frame {
         self.frame_with(process_env)
     }
 
-    /// Row separation: the owner's choice, then the environment, then the
+    /// Row separation: the CLI's choice, then the environment, then the
     /// default. It reads the process environment.
     #[must_use]
     pub fn resolved_row_separation(self) -> RowSeparation {
@@ -349,7 +358,7 @@ impl RenderOptions {
     }
 
     /// One line per style variable whose value is not accepted. A style the
-    /// owner set never reads its variables, so it never warns.
+    /// CLI set never reads its variables, so it never warns.
     #[cfg(feature = "app")]
     pub(crate) fn style_env_warnings(self, value: impl Fn(&str) -> Option<String>) -> Vec<String> {
         let mut warnings = Vec::new();
@@ -565,7 +574,7 @@ impl Renderer {
 
     /// `text` with each span in its role's style. A plain span takes
     /// `default` when one is given, so a heading or a token column styles
-    /// the text a consumer left plain.
+    /// the text a CLI left plain.
     fn text(self, text: &Text, default: Option<Role>) -> StyledText {
         let mut styled = StyledText::new();
         self.push_spans(&mut styled, text, default);

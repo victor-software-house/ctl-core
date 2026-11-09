@@ -23,7 +23,12 @@ mod data {
         reason = "schemars' JsonSchema derive expands concat!"
     )]
 
-    /// Pretty-output color policy. JSON never contains ANSI.
+    /// The colour policy for styled output. JSON output never holds an escape
+    /// sequence.
+    ///
+    /// It converts into [`ctl_term::ColorMode`](crate::term::ColorMode) with
+    /// `From`, for a CLI that writes a widget through a
+    /// [`Console`](crate::term::Console).
     #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
@@ -31,11 +36,16 @@ mod data {
     #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
     pub enum ColorMode {
         #[default]
-        /// Honor the stream: color if it is a TTY.
+        /// Colour when the stream is a terminal and the environment allows it.
+        ///
+        /// The first rule that applies wins. A non-empty `NO_COLOR` turns
+        /// colour off. `CLICOLOR_FORCE` other than `0`, or `FORCE_COLOR` other
+        /// than `0` or `false`, turns it on. `CLICOLOR=0` or `TERM=dumb` turns
+        /// it off. Otherwise the stream decides: colour when it is a terminal.
         Auto,
-        /// Always emit ANSI.
+        /// Colour, whatever the environment holds.
         Always,
-        /// Never emit ANSI.
+        /// No colour, whatever the environment holds.
         Never,
     }
 }
