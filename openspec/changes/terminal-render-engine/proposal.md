@@ -100,9 +100,8 @@ The maintainer decided these on 2026-11-08 (UTC). Each is argued in
    `ctl-layout/`, `ctl-term/` at the root); `src/render.rs`,
    `src/layout.rs`, `src/style.rs` and `src/table.rs` are replaced; `view.rs`,
    `help.rs` and `app.rs` write through `ctl-term`.
-2. Dependencies: added `unicode-segmentation`, `terminal_size`,
-   `anstyle-query` (Windows only); removed `comfy-table`, `anstream`,
-   `unicode-general-category`.
+2. Dependencies: added `unicode-segmentation` and `terminal_size`; removed
+   `comfy-table`, `anstream`, `unicode-general-category`.
 3. Release: one version for the four crates, set by verctl from the
    changesets through its workspace package. The changeset states each break
    in item 6 of What Changes.

@@ -6,6 +6,8 @@ use crate::align::Align;
 
 /// A column of a table: its header, what it does with a cell wider than it
 /// gets, and which edge its cells sit against.
+///
+/// The overflow applies to the header as well as to the cells.
 #[derive(Clone, Debug)]
 pub struct Column {
     pub(crate) header: Option<Text>,
@@ -14,16 +16,11 @@ pub struct Column {
 }
 
 impl Column {
-    /// A column headed by `header`, in the default style.
+    /// A column headed by `header`. A `&str` or a `String` is in the default
+    /// style, and a [`Text`] keeps its own styles.
     #[must_use]
-    pub fn new(header: impl AsRef<str>) -> Self {
-        Self::headed(Some(Text::plain(header)))
-    }
-
-    /// A column headed by an already styled `header`.
-    #[must_use]
-    pub fn styled(header: Text) -> Self {
-        Self::headed(Some(header))
+    pub fn new(header: impl Into<Text>) -> Self {
+        Self::headed(Some(header.into()))
     }
 
     /// A column with no header. A table draws a header row only when at least

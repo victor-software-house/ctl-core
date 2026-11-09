@@ -1,6 +1,6 @@
 # ctl-layout
 
-Terminal widgets built on `ctl-text`: `Table`, `Record`, `Rule`, `Stack`, and `Indent`.
+Terminal widgets built on `ctl-text`: `Table`, `Record`, `Definitions`, `Breakpoint`, `Rule`, `Stack`, and `Indent`.
 This guide covers this crate only.
 The repository's [`AGENTS.md`](../AGENTS.md) holds the workspace-wide rules.
 
@@ -8,7 +8,7 @@ The repository's [`AGENTS.md`](../AGENTS.md) holds the workspace-wide rules.
 
 - The layout rules of the widgets.
   They cover how a table chooses column widths and how a record and a rule fill a width.
-  They also cover how a stack and an indent compose children.
+  They also cover how a stack and an indent compose children, and how a breakpoint picks the widget for a width.
 - The characters a frame is drawn with, for Unicode and for ASCII.
 
 It depends only on `ctl-text` and on nothing else in this repository.
@@ -68,7 +68,7 @@ Change the decision there before changing the code that follows it.
 
 - [8.
   Every widget measures, then renders](../openspec/changes/terminal-render-engine/design.md#8-every-widget-measures-then-renders): a widget returns a `Measurement` and lines no wider than the width, except a word kept whole.
-  The trait is object-safe, and a container holds `Box<dyn Renderable>`.
+  The trait is dyn compatible, and a container holds `Box<dyn Renderable + 'a>`, so it can borrow its children.
 - [9.
   The table chooses column widths in five steps](../openspec/changes/terminal-render-engine/design.md#9-the-table-chooses-column-widths-in-five-steps): the column algorithm, including the final narrowing of each column to its widest rendered line.
   `src/widths.rs` solves the widths, and `Table` documents the steps.

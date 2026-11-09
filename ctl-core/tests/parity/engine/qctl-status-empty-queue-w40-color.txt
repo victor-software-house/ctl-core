@@ -1,4 +1,4 @@
-\u{1b}[1m\u{1b}[32mledger\u{1b}[0m  tasks.yaml\u{1b}[0m
+\u{1b}[1m\u{1b}[32mledger\u{1b}[0m  tasks.yaml
 \u{1b}[1m\u{1b}[32mactive\u{1b}[0m  \u{1b}[1mnone\u{1b}[0m
 
 \u{1b}[1m\u{1b}[36mqueue\u{1b}[0m

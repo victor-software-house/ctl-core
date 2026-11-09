@@ -6,8 +6,8 @@
 #![cfg(feature = "view")]
 
 use ctl_core::{
-    ColorMode, Document, Envelope, ErrorBody, Fields, JsonLayout, MessageKind, OutputFormat,
-    Present, Stream, View,
+    ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, MessageKind,
+    OutputFormat, Present, View,
 };
 use serde::Serialize;
 
@@ -49,11 +49,11 @@ fn same_model_feeds_pretty_and_json() {
         .capture(&status)
         .unwrap();
 
-    assert_eq!(pretty.stream(), Stream::Stdout);
+    assert_eq!(pretty.stream(), Destination::Stdout);
     assert!(pretty.text().contains("pending"));
     assert!(pretty.text().contains('2'));
     assert!(!pretty.text().contains('\u{1b}'));
-    assert_eq!(json.stream(), Stream::Stdout);
+    assert_eq!(json.stream(), Destination::Stdout);
     assert_eq!(
         json.text(),
         "{\n  \"pending\": 2,\n  \"failed\": false\n}\n"
@@ -71,7 +71,7 @@ fn error_pretty_uses_stderr_and_failure_exit() {
         .width(60)
         .capture(&status)
         .unwrap();
-    assert_eq!(captured.stream(), Stream::Stderr);
+    assert_eq!(captured.stream(), Destination::Stderr);
     assert_eq!(captured.exit_code(), std::process::ExitCode::from(2));
 }
 
@@ -99,11 +99,11 @@ fn quiet_suppresses_only_successful_pretty_output() {
         .capture(&success)
         .unwrap();
 
-    assert_eq!(quiet_pretty.stream(), Stream::None);
+    assert_eq!(quiet_pretty.stream(), Destination::None);
     assert_eq!(quiet_pretty.bytes(), b"");
-    assert_eq!(quiet_error.stream(), Stream::Stderr);
+    assert_eq!(quiet_error.stream(), Destination::Stderr);
     assert_ne!(quiet_error.bytes(), b"");
-    assert_eq!(quiet_json.stream(), Stream::Stdout);
+    assert_eq!(quiet_json.stream(), Destination::Stdout);
     assert_ne!(quiet_json.bytes(), b"");
 }
 

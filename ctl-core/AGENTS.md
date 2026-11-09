@@ -68,6 +68,9 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
   Keep a helper `pub(crate)` until a consumer needs it.
 - Every public item has a doc that adds something beyond its name, and every fallible public function documents `# Errors`.
 - No engine widget type appears in `Document`'s API; a consumer reaches the engine crates through `ctl_core::{text, layout, term}`.
+- A setter on a builder type takes the name of its setting (`RenderOptions::width`, `View::quiet`, `Theme::style`), never a `with_` prefix.
+  A reader of the same setting gets another name, such as `Theme::role_style`, or no method at all.
+  A method that reads the environment starts with `resolved_`, so a caller sees which methods are not pure.
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
   CI runs `mise run semver` against the last release before packaging.
   The crate-docs rules under [Cargo features](#cargo-features) keep traits visible to that check.
@@ -107,7 +110,9 @@ These sections of [`design.md`](../openspec/changes/terminal-render-engine/desig
 
 Features are tree-shaking.
 `document` carries no terminal engine.
-`render` adds the private engine, `view` adds JSON, `help` adds Clap help, and `app` composes the lifecycle.
+`render` adds the engine and the `ctl-term` encoder, with no window query.
+`view` adds JSON, `help` adds Clap help, and each turns on `ctl-term`'s `detect` feature.
+`app` composes the lifecycle.
 
 `surface-model` adds only Clap/Usage operator metadata.
 `surface-serde` adds ctl-core's direct Serde edge without a template engine.
@@ -157,12 +162,16 @@ An explicit render width is exact and bypasses automatic-width buffering.
 The automatic terminal-width buffer defaults to two columns and reads `CTL_CORE_COLUMN_BUFFER`; the automatic minimum defaults to 20.
 When no width is detected, output lays out to a fallback width of 80, and `fallback_width(None)` disables it.
 `RenderOptions`, `View`, and `App` expose the buffer, ordered environment names, minimum, and fallback.
+`View` returns its settings as a `RenderOptions` from `render_options`.
+
+The buffer, its names, and the minimum exist only with `view` or `help`, since nothing reads them without a stream.
+The defaults are `ctl-term`'s constants, not second copies.
 
 Buffer zero disables subtraction; an empty environment slice disables lookup.
 Explicit widths remain exact.
 Public option-aware help entry points keep direct help callers under the same policy.
 
-The record style, list style, row separation, and JSON layout read `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and `CTL_CORE_JSON_LAYOUT` when the consumer has not set them.
+The record style, list frame, row separation, and JSON layout read `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and `CTL_CORE_JSON_LAYOUT` when the consumer has not set them.
 Each name list is replaceable, and an empty slice disables lookup.
 
 ## View contract
@@ -173,11 +182,11 @@ Each name list is replaceable, and an empty slice disables lookup.
    Colorless renders the same document.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`, `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI, width, or streams.
    - Verbatim is for preformatted Markdown or protocol text whose line boundaries must survive rendering.
-   - It removes what `verbatim::is_unsafe` refuses (every Cc control other than newline and tab, the 12 UAX #9 directional formatting characters, and U+2028 and U+2029).
+   - It removes what `unsafe_chars::is_unsafe` refuses (every Cc control other than newline and tab, the 12 UAX #9 directional formatting characters, and U+2028 and U+2029).
      It preserves the other format characters (Cf).
      Then it normalizes trailing newlines to the document.
    - A CLI that prints text it did not write filters with the same predicate.
-   - The predicate lives in `ctl-text` (`ctl_text::verbatim`) and `ctl_core::verbatim` re-exports it.
+   - The predicate and `strip_unsafe` live in `ctl-text` (`ctl_text::unsafe_chars`), and `ctl_core::unsafe_chars` re-exports them under the `unsafe-chars` feature.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
    Usage lines wrap without splitting tokens.

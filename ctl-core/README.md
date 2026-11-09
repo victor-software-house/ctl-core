@@ -81,7 +81,7 @@ Each feature turns on only what its code calls.
 | Feature | Adds |
 |:--|:--|
 | `document` | Semantic documents, with no terminal engine |
-| `render` | Renders documents to a `String` through `ctl-text` and `ctl-layout`, with a replaceable `Theme` |
+| `render` | Renders documents to a `String` through `ctl-text`, `ctl-layout`, and the `ctl-term` encoder, with a replaceable `Theme` |
 | `json` | Serde models and the JSON view |
 | `view` | Pretty, JSON, and colourless output over one model, with `ctl-term` deciding colour and width |
 | `cli` | Clap helpers (`OutputArgs`, `DryRunArgs`) and parser defaults |
@@ -89,7 +89,7 @@ Each feature turns on only what its code calls.
 | `app` | The whole lifecycle: parse, run, present, and exit |
 | `usage` | The mise Usage spec (`--usage-spec`) for a mounted task |
 | `surface-model`, `surface-serde`, `surface-templates`, `surface` | The operator model drawn from the Clap types, its serialization, and shared MiniJinja fragments |
-| `verbatim` | `verbatim::is_unsafe`, the characters never printed verbatim |
+| `unsafe-chars` | `unsafe_chars::is_unsafe` and `strip_unsafe`, the characters never printed as they are |
 | `schema` | JSON Schema for the envelope |
 | `validate`, `input`, `input-toml` | Shared garde rules and the declared-input loader |
 | `served` | Files rendered from templates that name their own target |

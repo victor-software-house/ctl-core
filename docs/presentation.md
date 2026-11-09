@@ -81,12 +81,16 @@ That keeps it copyable whole.
 Grid tables still split it, to keep their borders intact.
 
 `CTL_CORE_COLUMN_BUFFER` replaces the default buffer.
-Library consumers have full control through `RenderOptions`, `View`, and `App`:
+Library consumers have full control through `RenderOptions`, `View`, and `App`.
+`RenderOptions`, `View`, and `App` name a setter after its setting:
 
 - `automatic_width_buffer(n)` overrides the environment, including zero to disable buffering;
 - `automatic_width_buffer_envs(&[...])` replaces the ordered names, so a consumer can add aliases or disable lookup with an empty slice;
 - `minimum_automatic_width(n)` replaces the default preferred floor of 20, still capped by the detected terminal width;
 - `fallback_width(..)` sets or disables the undetected-width fallback.
+
+These settings exist with `view` or `help`, which detect a width.
+The `render` tier lays out to the explicit width or the fallback, so it has no buffer or minimum.
 
 Option-aware help entry points accept the same `RenderOptions`.
 An explicit `width(n)` is always exact and ignores every automatic-width setting.
@@ -94,10 +98,10 @@ An explicit `width(n)` is always exact and ignores every automatic-width setting
 ## Default look
 
 Records render borderless with keys right-aligned (`RecordStyle::KeysRight`).
-Lists keep the full grid (`ListStyle::Grid`) with rows together (`RowSeparation::None`).
+Lists keep the full grid (`Frame::Grid`) with rows together (`RowSeparation::None`).
 JSON is indented by two spaces (`JsonLayout::Pretty`).
 Identifiers render bold in the terminal foreground (`Role::Id`).
-Each is an option on `RenderOptions`, `View`, and `App` (`styles`, `json_layout`), so a consumer that needs the box or compact JSON sets it.
+Each is an option on `RenderOptions` (`record_style`, `frame`, `row_separation`), on `View` (`styles`, `json_layout`), and on `App` (`styles`, `json_layout`), so a consumer that needs the box or compact JSON sets it.
 
 An operator picks any option the consumer left open through these variables:
 
@@ -107,7 +111,7 @@ An operator picks any option the consumer left open through these variables:
 - `CTL_CORE_JSON_LAYOUT` (`pretty`, `compact`, `pretty-on-terminal`)
 
 The consumer's setter wins over the variable.
-`record_style_envs`, `list_style_envs`, `row_separation_envs`, and `json_layout_envs` replace each ordered name list, and an empty slice disables lookup.
+`record_style_envs`, `frame_envs`, `row_separation_envs`, and `json_layout_envs` replace each ordered name list, and an empty slice disables lookup.
 A value outside the list is ignored, and `App` prints one warning line that lists the accepted values.
 
 ## Output law

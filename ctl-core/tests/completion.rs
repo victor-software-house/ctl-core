@@ -167,7 +167,7 @@ fn bash_registers_a_function_that_calls_the_binary_by_name() {
 
 #[test]
 fn zsh_completes_on_the_first_tab_from_fpath() {
-    assert_script("zsh", Shell::Zsh, "state-sync", &[]);
+    assert_script("zsh", Shell::Zsh, "demo-cli", &[]);
 }
 
 #[test]

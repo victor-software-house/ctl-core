@@ -1,7 +1,7 @@
 //! One test per scenario of the `layout` spec, in the spec's order.
 
-use ctl_layout::{Column, Frame, Indent, Rule, Stack, Table};
-use ctl_text::{Context, Overflow, Renderable, Text};
+use ctl_layout::{Column, Definitions, Frame, Indent, Rule, Stack, Table};
+use ctl_text::{Context, Measurement, Overflow, Renderable, Text};
 
 use crate::common::{cells, flags, ledger, lines, paths, queue, releases, widest};
 
@@ -23,12 +23,6 @@ fn a_widget_draws_no_line_wider_than_its_width_but_a_kept_word() {
         .collect();
     assert_eq!(wide.len(), 1, "{rendered:?}");
     assert!(wide[0].ends_with(url), "{wide:?}");
-}
-
-#[test]
-fn two_renders_are_byte_identical() {
-    let table = queue(Frame::Grid, ctl_layout::RowSeparation::Rule);
-    assert_eq!(lines(&table, 80), lines(&table, 80));
 }
 
 #[test]
@@ -114,31 +108,40 @@ fn a_numeric_column_aligns_right() {
 }
 
 #[test]
-fn a_narrow_table_stacks() {
-    let table = Table::new([Column::untitled(), Column::untitled(), Column::untitled()])
-        .frame(Frame::Plain)
-        .stacked_below(64, 2)
-        .row(cells(["-f", "--format", "Output representation"]));
+fn definitions_put_labels_over_an_indented_description() {
+    let definitions = Definitions::new().entry(["-f", "--format"], ["Output representation"]);
     assert_eq!(
-        lines(&table, 40),
+        lines(&definitions, 40),
         ["  -f --format", "    Output representation"]
     );
 }
 
 #[test]
-fn a_table_at_or_above_the_threshold_does_not_stack() {
-    let rendered = lines(&flags(), 64);
-    assert_eq!(rendered[0], "-f  --format  Output representation");
+fn a_breakpoint_draws_its_narrow_widget_below_the_threshold() {
+    assert_eq!(lines(&flags(), 63)[0], "  -f --format");
 }
 
 #[test]
-fn stacked_labels_wrap_and_keep_their_indent() {
-    let table = Table::new([Column::untitled(), Column::untitled()])
-        .frame(Frame::Plain)
-        .stacked_below(64, 1)
-        .row(cells(["one two three four five", "description"]));
+fn a_breakpoint_draws_its_wide_widget_at_the_threshold() {
     assert_eq!(
-        lines(&table, 14),
+        lines(&flags(), 64)[0],
+        "-f  --format  Output representation"
+    );
+}
+
+#[test]
+fn a_breakpoint_measures_the_widget_that_applies() {
+    let narrow = flags().measure(&Context::new(63));
+    let wide = flags().measure(&Context::new(64));
+    assert_eq!(narrow.maximum(), 4 + 24);
+    assert_eq!(wide.maximum(), 2 + 2 + 8 + 2 + 24);
+}
+
+#[test]
+fn definition_labels_wrap_and_keep_their_indent() {
+    let definitions = Definitions::new().entry(["one two three four five"], ["description"]);
+    assert_eq!(
+        lines(&definitions, 14),
         ["  one two", "  three four", "  five", "    description"]
     );
 }
@@ -166,8 +169,52 @@ fn a_stack_puts_widgets_one_above_the_other_with_the_spacing_between() {
         .spacing(1)
         .push(Rule::new())
         .push(Text::plain("text").overflow(Overflow::Fold))
-        .push(Text::new());
+        .push(Text::new())
+        .push(Text::plain("\n"));
     assert_eq!(lines(&stack, 6), ["──────", "", "text"]);
+}
+
+#[test]
+fn a_stack_and_an_indent_can_borrow_their_children() {
+    let rule = Rule::new();
+    let stack = Stack::new().push(&rule);
+    let indent = Indent::new(1, &rule);
+    assert_eq!(lines(&stack, 5), ["─────"]);
+    assert_eq!(lines(&indent, 5), [" ────"]);
+    assert_eq!(lines(&rule, 5), ["─────"]);
+}
+
+#[test]
+fn an_empty_table_draws_nothing_and_measures_zero_in_every_frame() {
+    for frame in [Frame::Grid, Frame::HeaderRule, Frame::Plain] {
+        let table = Table::new([Column::untitled(), Column::untitled()]).frame(frame);
+        assert!(lines(&table, 80).is_empty(), "{frame:?}");
+        assert_eq!(
+            table.measure(&Context::new(80)),
+            Measurement::exact(0),
+            "{frame:?}"
+        );
+    }
+}
+
+#[test]
+fn a_row_of_empty_cells_still_draws_one_blank_line() {
+    let table = Table::new([Column::untitled(), Column::untitled()])
+        .frame(Frame::Plain)
+        .row(cells(["a", "b"]))
+        .row(cells(["", ""]))
+        .row(cells(["c", "d"]));
+    assert_eq!(lines(&table, 80), ["a  b", "", "c  d"]);
+}
+
+#[test]
+fn a_row_takes_str_string_and_text_cells() {
+    let table = Table::new([Column::new("a"), Column::new(String::from("b"))])
+        .frame(Frame::Plain)
+        .row(["1", "2"])
+        .row([String::from("3"), String::from("4")])
+        .row([Text::plain("5"), Text::plain("6")]);
+    assert_eq!(lines(&table, 80), ["a  b", "1  2", "3  4", "5  6"]);
 }
 
 #[test]

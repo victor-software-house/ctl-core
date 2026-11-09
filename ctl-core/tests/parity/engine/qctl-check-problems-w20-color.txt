@@ -1,6 +1,6 @@
 \u{1b}[1m\u{1b}[36mproblems\u{1b}[0m
 ┌──────────────────┐
-│ \u{1b}[1m\u{1b}[36mproblem\u{1b}[0m          │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[36mproblem\u{1b}[0m          │
 ╞══════════════════╡
 │ TSK-014: outcome │
 │ is empty         │
@@ -11,5 +11,5 @@
 │ (src/retry.rs)   │
 └──────────────────┘
 
-\u{1b}[1m\u{1b}[31merror\u{1b}[0m · 2 problem(s)\u{1b}[0m
+\u{1b}[1m\u{1b}[31merror\u{1b}[0m · 2 problem(s)
 in tasks.yaml

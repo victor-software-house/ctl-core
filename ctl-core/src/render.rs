@@ -5,14 +5,15 @@
 //! paragraph styled text, a rule a rule, and verbatim text its own lines. The
 //! [`Theme`] turns each [`Role`] into a style on the way, so the widgets never
 //! see a role. The widgets lay the document out as plain lines of styled
-//! spans; escape sequences are added only when the lines are written.
-
-use std::fmt;
+//! spans; escape sequences are added only when ctl-term's encoder writes the
+//! lines.
 
 use ctl_layout::{
-    Column, Frame, Record, RecordStyle as RecordFrame, RowSeparation as RowRule,
-    Rule as RuleWidget, Stack, Table as TableWidget,
+    Breakpoint, Column, Definitions, Record, Rule as RuleWidget, Stack, Table as TableWidget,
 };
+pub use ctl_layout::{Frame, RecordStyle, RowSeparation};
+use ctl_term::{ColorDepth, Encoder};
+use ctl_text::unsafe_chars::{Keep, strip_unsafe};
 use ctl_text::{
     Context, Line, Measurement, Overflow, Renderable, Span as StyledSpan, Style, Text as StyledText,
 };
@@ -22,74 +23,35 @@ use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Sectio
 use crate::theme::Theme;
 
 /// Default columns reserved from an automatically detected terminal width.
-pub const DEFAULT_COLUMN_BUFFER: u16 = 2;
+#[cfg(any(feature = "view", feature = "help"))]
+pub const DEFAULT_COLUMN_BUFFER: u16 = ctl_term::DEFAULT_COLUMN_BUFFER;
 /// Default environment variable for overriding the automatic-width buffer.
+#[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER_ENV: &str = "CTL_CORE_COLUMN_BUFFER";
 /// Default ordered environment lookup for the automatic-width buffer.
+#[cfg(any(feature = "view", feature = "help"))]
 pub const DEFAULT_COLUMN_BUFFER_ENVS: &[&str] = &[DEFAULT_COLUMN_BUFFER_ENV];
 /// Default floor for an automatically detected effective width.
-pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = 20;
+#[cfg(any(feature = "view", feature = "help"))]
+pub const DEFAULT_MINIMUM_AUTOMATIC_WIDTH: u16 = ctl_term::DEFAULT_MINIMUM_WIDTH;
 /// Width used when neither the terminal nor `COLUMNS` gives one.
-pub const DEFAULT_FALLBACK_WIDTH: u16 = 80;
+pub const DEFAULT_FALLBACK_WIDTH: u16 = ctl_term::DEFAULT_FALLBACK_WIDTH;
 /// Default environment variable for the operator's record style.
 pub const DEFAULT_RECORD_STYLE_ENV: &str = "CTL_CORE_RECORD_STYLE";
 /// Default ordered environment lookup for the record style.
 pub const DEFAULT_RECORD_STYLE_ENVS: &[&str] = &[DEFAULT_RECORD_STYLE_ENV];
-/// Default environment variable for the operator's list style.
+/// Default environment variable for the operator's list frame, a [`Frame`].
 pub const DEFAULT_LIST_STYLE_ENV: &str = "CTL_CORE_LIST_STYLE";
-/// Default ordered environment lookup for the list style.
+/// Default ordered environment lookup for the list frame.
 pub const DEFAULT_LIST_STYLE_ENVS: &[&str] = &[DEFAULT_LIST_STYLE_ENV];
 /// Default environment variable for the operator's row separation.
 pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// Default ordered environment lookup for the row separation.
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
-/// The width a document laid out at its natural width is given: wide enough
-/// that nothing wraps.
-const NATURAL_WIDTH: u16 = u16::MAX;
-
 /// The width of a rule in a document laid out at its natural width, which a
 /// rule, having no natural width of its own, would otherwise fill.
 const NATURAL_RULE_WIDTH: u16 = 40;
-
-/// The sequence that ends a styled run; see [`encode`].
-const RESET: &str = "\u{1b}[0m";
-
-/// How a [`Fields`] record is framed.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum RecordStyle {
-    /// A full box around every key and value.
-    Boxed,
-    /// No frame. Keys are right-aligned in one column.
-    #[default]
-    KeysRight,
-    /// No frame. Keys are left-aligned in one column.
-    KeysLeft,
-}
-
-/// How a [`Table`] of rows is framed.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum ListStyle {
-    /// Outer frame, column rules, and a header rule.
-    #[default]
-    Grid,
-    /// One rule under the header and nothing else.
-    HeaderRule,
-    /// No rules at all.
-    Plain,
-}
-
-/// What separates consecutive rows of a [`Table`].
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum RowSeparation {
-    /// Rows print on consecutive lines.
-    #[default]
-    None,
-    /// A horizontal rule between each pair of rows.
-    Rule,
-    /// A blank line between each pair of rows.
-    Blank,
-}
 
 /// A style an operator can name in an environment variable.
 pub(crate) trait EnvChoice: Copy + 'static {
@@ -105,7 +67,7 @@ impl EnvChoice for RecordStyle {
     ];
 }
 
-impl EnvChoice for ListStyle {
+impl EnvChoice for Frame {
     const VALUES: &'static [(&'static str, Self)] = &[
         ("grid", Self::Grid),
         ("header-rule", Self::HeaderRule),
@@ -167,48 +129,68 @@ fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
 }
 
 /// Deterministic document rendering options.
+///
+/// A setter takes the name of its setting and returns the options changed.
+/// The options have no getters, which would need the same names. A method that
+/// reads the environment starts with `resolved_`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RenderOptions {
     color: ColorMode,
     theme: Theme,
     width: Option<u16>,
+    #[cfg(any(feature = "view", feature = "help"))]
     automatic_width_buffer: Option<u16>,
+    #[cfg(any(feature = "view", feature = "help"))]
     automatic_width_buffer_envs: &'static [&'static str],
+    #[cfg(any(feature = "view", feature = "help"))]
     minimum_automatic_width: u16,
     fallback_width: Option<u16>,
     record_style: Option<RecordStyle>,
     record_style_envs: &'static [&'static str],
-    list_style: Option<ListStyle>,
-    list_style_envs: &'static [&'static str],
+    frame: Option<Frame>,
+    frame_envs: &'static [&'static str],
     row_separation: Option<RowSeparation>,
     row_separation_envs: &'static [&'static str],
 }
 
 impl RenderOptions {
-    /// Build options with automatic terminal width, a
-    /// [`DEFAULT_COLUMN_BUFFER`]-column buffer, [`DEFAULT_COLUMN_BUFFER_ENV`]
-    /// as the operator override, and [`DEFAULT_FALLBACK_WIDTH`] when no
-    /// width is detected. Record style, list style, and row separation read
+    /// Build options with [`DEFAULT_FALLBACK_WIDTH`] when no width is
+    /// detected. Record style, list frame, and row separation read
     /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
     /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the owner sets them. Roles are
     /// drawn in [`Theme::default`].
+    ///
+    /// With `view` or `help`, the width is detected for the stream written,
+    /// with a `DEFAULT_COLUMN_BUFFER`-column buffer and
+    /// `DEFAULT_COLUMN_BUFFER_ENV` as the operator override.
     #[must_use]
     pub const fn new(color: ColorMode) -> Self {
         Self {
             color,
             theme: Theme::new(),
             width: None,
+            #[cfg(any(feature = "view", feature = "help"))]
             automatic_width_buffer: None,
+            #[cfg(any(feature = "view", feature = "help"))]
             automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
+            #[cfg(any(feature = "view", feature = "help"))]
             minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
             fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
             record_style: None,
             record_style_envs: DEFAULT_RECORD_STYLE_ENVS,
-            list_style: None,
-            list_style_envs: DEFAULT_LIST_STYLE_ENVS,
+            frame: None,
+            frame_envs: DEFAULT_LIST_STYLE_ENVS,
             row_separation: None,
             row_separation_envs: DEFAULT_ROW_SEPARATION_ENVS,
         }
+    }
+
+    /// Write colour as `color` says, in place of the mode given to
+    /// [`Self::new`].
+    #[must_use]
+    pub const fn color(mut self, color: ColorMode) -> Self {
+        self.color = color;
+        self
     }
 
     /// Draw each [`Role`] in the style `theme` gives it, in place of
@@ -220,13 +202,6 @@ impl RenderOptions {
         self
     }
 
-    /// The theme roles are drawn in: the one [`Self::theme`] set, or
-    /// [`Theme::default`].
-    #[must_use]
-    pub const fn active_theme(self) -> Theme {
-        self.theme
-    }
-
     /// Frame [`Fields`] records in `style`. This beats the environment.
     #[must_use]
     pub const fn record_style(mut self, style: RecordStyle) -> Self {
@@ -234,10 +209,10 @@ impl RenderOptions {
         self
     }
 
-    /// Frame [`Table`] lists in `style`. This beats the environment.
+    /// Frame [`Table`] lists with `frame`. This beats the environment.
     #[must_use]
-    pub const fn list_style(mut self, style: ListStyle) -> Self {
-        self.list_style = Some(style);
+    pub const fn frame(mut self, frame: Frame) -> Self {
+        self.frame = Some(frame);
         self
     }
 
@@ -256,11 +231,11 @@ impl RenderOptions {
         self
     }
 
-    /// Replace the ordered environment names read for the list style.
+    /// Replace the ordered environment names read for the list frame.
     /// An empty slice disables lookup.
     #[must_use]
-    pub const fn list_style_envs(mut self, names: &'static [&'static str]) -> Self {
-        self.list_style_envs = names;
+    pub const fn frame_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.frame_envs = names;
         self
     }
 
@@ -272,40 +247,98 @@ impl RenderOptions {
         self
     }
 
-    /// Record framing: the owner's choice, then the environment, then the
-    /// default.
+    /// Force an explicit width. Tests and redirected renderers should use this.
     #[must_use]
-    pub fn record(self) -> RecordStyle {
-        self.record_with(process_env)
+    pub const fn width(mut self, width: u16) -> Self {
+        self.width = Some(width);
+        self
+    }
+
+    /// Override the automatic-width buffer. Zero explicitly disables it.
+    /// Explicit [`Self::width`] remains exact regardless of this value.
+    #[cfg(any(feature = "view", feature = "help"))]
+    #[must_use]
+    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
+        self.automatic_width_buffer = Some(columns);
+        self
+    }
+
+    /// Replace the ordered environment names used to configure the buffer.
+    /// Pass aliases in precedence order or an empty slice to disable lookup.
+    #[cfg(any(feature = "view", feature = "help"))]
+    #[must_use]
+    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.automatic_width_buffer_envs = names;
+        self
+    }
+
+    /// Set the floor for automatically detected effective widths.
+    #[cfg(any(feature = "view", feature = "help"))]
+    #[must_use]
+    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
+        self.minimum_automatic_width = columns;
+        self
+    }
+
+    /// Lay out to `width` when neither the terminal nor `COLUMNS` gives one.
+    /// `None` renders tables at their natural width instead. This does not
+    /// touch the minimum automatic width, which applies only to a detected
+    /// width.
+    #[must_use]
+    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
+        self.fallback_width = width;
+        self
+    }
+
+    /// Take the theme, record style, list frame, row separation, and the
+    /// variables they read from `styles`. Colour and width stay as they are.
+    #[cfg(feature = "view")]
+    #[must_use]
+    pub(crate) const fn styles(mut self, styles: Self) -> Self {
+        self.theme = styles.theme;
+        self.record_style = styles.record_style;
+        self.record_style_envs = styles.record_style_envs;
+        self.frame = styles.frame;
+        self.frame_envs = styles.frame_envs;
+        self.row_separation = styles.row_separation;
+        self.row_separation_envs = styles.row_separation_envs;
+        self
+    }
+
+    /// Record framing: the owner's choice, then the environment, then the
+    /// default. It reads the process environment.
+    #[must_use]
+    pub fn resolved_record_style(self) -> RecordStyle {
+        self.record_style_with(process_env)
     }
 
     /// List framing: the owner's choice, then the environment, then the
-    /// default.
+    /// default. It reads the process environment.
     #[must_use]
-    pub fn list(self) -> ListStyle {
-        self.list_with(process_env)
+    pub fn resolved_frame(self) -> Frame {
+        self.frame_with(process_env)
     }
 
     /// Row separation: the owner's choice, then the environment, then the
-    /// default.
+    /// default. It reads the process environment.
     #[must_use]
-    pub fn separation(self) -> RowSeparation {
-        self.separation_with(process_env)
+    pub fn resolved_row_separation(self) -> RowSeparation {
+        self.row_separation_with(process_env)
     }
 
-    fn record_with(self, value: impl Fn(&str) -> Option<String>) -> RecordStyle {
+    fn record_style_with(self, value: impl Fn(&str) -> Option<String>) -> RecordStyle {
         self.record_style
             .or_else(|| env_choice(self.record_style_envs, value))
             .unwrap_or_default()
     }
 
-    fn list_with(self, value: impl Fn(&str) -> Option<String>) -> ListStyle {
-        self.list_style
-            .or_else(|| env_choice(self.list_style_envs, value))
+    fn frame_with(self, value: impl Fn(&str) -> Option<String>) -> Frame {
+        self.frame
+            .or_else(|| env_choice(self.frame_envs, value))
             .unwrap_or_default()
     }
 
-    fn separation_with(self, value: impl Fn(&str) -> Option<String>) -> RowSeparation {
+    fn row_separation_with(self, value: impl Fn(&str) -> Option<String>) -> RowSeparation {
         self.row_separation
             .or_else(|| env_choice(self.row_separation_envs, value))
             .unwrap_or_default()
@@ -322,11 +355,8 @@ impl RenderOptions {
                 &value,
             ));
         }
-        if self.list_style.is_none() {
-            warnings.extend(env_choice_warnings::<ListStyle>(
-                self.list_style_envs,
-                &value,
-            ));
+        if self.frame.is_none() {
+            warnings.extend(env_choice_warnings::<Frame>(self.frame_envs, &value));
         }
         if self.row_separation.is_none() {
             warnings.extend(env_choice_warnings::<RowSeparation>(
@@ -337,95 +367,19 @@ impl RenderOptions {
         warnings
     }
 
-    /// Force an explicit width. Tests and redirected renderers should use this.
-    #[must_use]
-    pub const fn width(mut self, width: u16) -> Self {
-        self.width = Some(width);
-        self
-    }
-
-    /// Override the automatic-width buffer. Zero explicitly disables it.
-    /// Explicit [`Self::width`] remains exact regardless of this value.
-    #[must_use]
-    pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.automatic_width_buffer = Some(columns);
-        self
-    }
-
-    /// Replace the ordered environment names used to configure the buffer.
-    /// Pass aliases in precedence order or an empty slice to disable lookup.
-    #[must_use]
-    pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
-        self.automatic_width_buffer_envs = names;
-        self
-    }
-
-    /// Set the floor for automatically detected effective widths.
-    #[must_use]
-    pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.minimum_automatic_width = columns;
-        self
-    }
-
-    /// Lay out to `width` when neither the terminal nor `COLUMNS` gives one.
-    /// `None` renders tables at their natural width instead. This does not
-    /// touch [`Self::minimum_automatic_width`], which applies only to a
-    /// detected width.
-    #[must_use]
-    pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
-        self.fallback_width = width;
-        self
-    }
-
-    /// Width used when none is detected, if any.
-    #[must_use]
-    pub const fn fallback(self) -> Option<u16> {
-        self.fallback_width
-    }
-
-    /// Color policy.
-    #[must_use]
-    pub const fn color(self) -> ColorMode {
-        self.color
-    }
-
-    /// Explicit width, when set.
-    #[must_use]
-    pub const fn explicit_width(self) -> Option<u16> {
-        self.width
-    }
-
-    /// Explicit automatic-width buffer, when the library owner set one.
-    #[must_use]
-    pub const fn explicit_automatic_width_buffer(self) -> Option<u16> {
-        self.automatic_width_buffer
-    }
-
-    /// Ordered environment names used for the automatic-width buffer.
-    #[must_use]
-    pub const fn automatic_width_buffer_env_names(self) -> &'static [&'static str] {
-        self.automatic_width_buffer_envs
-    }
-
-    /// Floor applied only to automatically detected widths.
-    #[must_use]
-    pub const fn automatic_width_minimum(self) -> u16 {
-        self.minimum_automatic_width
-    }
-
     /// The width policy as ctl-term's detection options: the explicit width,
     /// the buffer and its variables, the minimum, and the fallback.
     #[cfg(any(feature = "view", feature = "help"))]
-    pub(crate) const fn detect_options(self) -> ctl_term::DetectOptions {
+    const fn detect_options(self) -> ctl_term::DetectOptions {
         let mut options = ctl_term::DetectOptions::new()
-            .buffer_envs(self.automatic_width_buffer_envs)
-            .minimum(self.minimum_automatic_width)
+            .column_buffer_envs(self.automatic_width_buffer_envs)
+            .minimum_width(self.minimum_automatic_width)
             .fallback_width(self.fallback_width);
         if let Some(width) = self.width {
             options = options.width(width);
         }
         if let Some(buffer) = self.automatic_width_buffer {
-            options = options.buffer(buffer);
+            options = options.column_buffer(buffer);
         }
         options
     }
@@ -433,52 +387,72 @@ impl RenderOptions {
     /// A writer for `stream` that decides colour and width for that stream:
     /// this colour mode, the process environment, and [`Self::detect_options`].
     #[cfg(any(feature = "view", feature = "help"))]
-    pub(crate) fn console(self, stream: ctl_term::Stream) -> ctl_term::Console {
-        ctl_term::Console::from_process_with(stream, self.color.into(), self.detect_options())
+    fn console(self, stream: ctl_term::Stream) -> ctl_term::Console {
+        ctl_term::Console::from_process(stream, self.color.into(), self.detect_options())
+    }
+
+    /// `document` as text in the colour and at the width decided for `stream`.
+    #[cfg(feature = "view")]
+    pub(crate) fn render_for(self, stream: ctl_term::Stream, document: &Document) -> String {
+        self.console(stream)
+            .render(&Renderer::new(self).widget(document))
+    }
+
+    /// Write `document` to `stream` in the colour and at the width decided for
+    /// it.
+    ///
+    /// The error keeps the kind of the failed write, so a closed pipe is still
+    /// [`std::io::ErrorKind::BrokenPipe`].
+    #[cfg(feature = "help")]
+    pub(crate) fn print_for(
+        self,
+        stream: ctl_term::Stream,
+        document: &Document,
+    ) -> std::io::Result<()> {
+        self.console(stream)
+            .print(&Renderer::new(self).widget(document))
+            .map_err(|error| {
+                let kind = std::error::Error::source(&error)
+                    .and_then(|source| source.downcast_ref::<std::io::Error>())
+                    .map_or(std::io::ErrorKind::Other, std::io::Error::kind);
+                std::io::Error::new(kind, error)
+            })
     }
 }
 
 /// Semantic document renderer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Renderer {
+pub(crate) struct Renderer {
     options: RenderOptions,
 }
 
 impl Renderer {
     /// Build a renderer.
-    #[must_use]
-    pub const fn new(options: RenderOptions) -> Self {
+    pub(crate) const fn new(options: RenderOptions) -> Self {
         Self { options }
     }
 
-    /// Render one document to a newline-terminated string.
-    ///
-    /// The string is a pure function of the document and the options: no
-    /// terminal is asked. The document lays out to the explicit width, else
-    /// the fallback width, else its natural width. Styles are written only
-    /// under [`ColorMode::Always`], as the theme gives them, at full colour
-    /// depth; [`ColorMode::Auto`] has no stream to look at here and writes
-    /// none. A [`View`](crate::View) or help, which know their stream, decide
-    /// width and colour for it instead.
-    #[must_use]
-    pub fn render(self, document: &Document) -> String {
-        let width = self
+    /// Render one document to a newline-terminated string, as
+    /// [`Document::render`] says.
+    pub(crate) fn render(self, document: &Document) -> String {
+        let context = self
             .options
-            .explicit_width()
-            .or(self.options.fallback())
-            .unwrap_or(NATURAL_WIDTH);
-        let lines = self.widget(document).render(&Context::new(width));
-        encode(&lines, self.options.color() == ColorMode::Always)
+            .width
+            .or(self.options.fallback_width)
+            .map_or_else(Context::unbounded, Context::new);
+        let lines = self.widget(document).render(&context);
+        let depth = (self.options.color == ColorMode::Always).then_some(ColorDepth::TrueColor);
+        Encoder::new(depth).encode(&lines)
     }
 
     /// The document as one widget, with every role resolved through the
     /// theme. The caller picks the width and writes the lines.
-    pub(crate) fn widget(self, document: &Document) -> Stack {
+    pub(crate) fn widget(self, document: &Document) -> Stack<'static> {
         document
             .blocks()
             .iter()
             .fold(Stack::new().spacing(1), |stack, block| {
-                stack.push(Visible(self.block(block)))
+                stack.push(self.block(block))
             })
     }
 
@@ -501,26 +475,17 @@ impl Renderer {
 
     /// The heading directly over the body, with no blank line between them
     /// and no indent, so a section's tables line up with the document's.
-    fn section(self, section: &Section) -> Stack {
+    fn section(self, section: &Section) -> Stack<'static> {
         Stack::new()
-            .push(Visible(Box::new(
-                self.text(section.title(), Some(Role::Heading)),
-            )))
-            .push(Visible(Box::new(self.widget(section.body()))))
+            .push(self.text(section.title(), Some(Role::Heading)))
+            .push(self.widget(section.body()))
     }
 
     fn fields(self, fields: &Fields) -> Record {
-        let style = match self.options.record() {
-            RecordStyle::Boxed => RecordFrame::Boxed,
-            RecordStyle::KeysRight => RecordFrame::KeysRight,
-            RecordStyle::KeysLeft => RecordFrame::KeysLeft,
-        };
-        fields
-            .rows()
-            .iter()
-            .fold(Record::new().style(style), |record, (label, value)| {
-                record.row(self.text(label, None), self.text(value, None))
-            })
+        fields.rows().iter().fold(
+            Record::new().style(self.options.resolved_record_style()),
+            |record, (label, value)| record.row(self.text(label, None), self.text(value, None)),
+        )
     }
 
     fn table(self, table: &Table) -> Box<dyn Renderable> {
@@ -529,22 +494,9 @@ impl Renderer {
             .iter()
             .map(Vec::len)
             .fold(table.headers().len(), usize::max);
-        let columns = (0..count)
-            .map(|index| self.column(table, index))
-            .collect::<Vec<_>>();
-        let frame = match self.options.list() {
-            ListStyle::Grid => Frame::Grid,
-            ListStyle::HeaderRule => Frame::HeaderRule,
-            ListStyle::Plain => Frame::Plain,
-        };
-        let separation = match self.options.separation() {
-            RowSeparation::None => RowRule::None,
-            RowSeparation::Rule => RowRule::Rule,
-            RowSeparation::Blank => RowRule::Blank,
-        };
-        let grid = TableWidget::new(columns.iter().cloned())
-            .frame(frame)
-            .row_separation(separation)
+        let grid = TableWidget::new((0..count).map(|index| self.column(table, index)))
+            .frame(self.options.resolved_frame())
+            .row_separation(self.options.resolved_row_separation())
             .rows(table.rows().iter().map(|row| {
                 row.iter()
                     .enumerate()
@@ -554,29 +506,24 @@ impl Renderer {
         let Some(policy) = table.stacked() else {
             return Box::new(grid);
         };
-        let stacked = TableWidget::new(columns)
-            .stacked_below(policy.width(), policy.label_columns())
-            .rows(table.rows().iter().map(|row| {
-                row.iter()
-                    .enumerate()
-                    .map(|(index, cell)| {
-                        let label = index < policy.label_columns();
-                        self.text(cell, label.then_some(Role::Token))
-                    })
-                    .collect::<Vec<_>>()
-            }));
-        Box::new(Stackable {
-            threshold: policy.width(),
-            grid,
-            stacked,
-        })
+        let definitions = table
+            .rows()
+            .iter()
+            .fold(Definitions::new(), |definitions, row| {
+                let (labels, description) = row.split_at(row.len().min(policy.label_columns()));
+                definitions.entry(
+                    labels.iter().map(|cell| self.text(cell, Some(Role::Token))),
+                    description.iter().map(|cell| self.text(cell, None)),
+                )
+            });
+        Box::new(Breakpoint::new(policy.width(), definitions, grid))
     }
 
     fn column(self, table: &Table, index: usize) -> Column {
         let column = if table.headers().is_empty() {
             Column::untitled()
         } else {
-            Column::styled(
+            Column::new(
                 table
                     .headers()
                     .get(index)
@@ -598,18 +545,19 @@ impl Renderer {
     }
 
     fn notice(self, notice: &Notice) -> StyledText {
-        let theme = self.options.active_theme();
+        let theme = self.options.theme;
         let label = match notice.level() {
             NoticeLevel::Success => "success",
             NoticeLevel::Warning => "warning",
             NoticeLevel::Error => "error",
         };
-        let mut text = StyledText::styled(label, theme.notice(notice.level()));
+        let separator = theme.role_style(Role::Plain);
+        let mut text = StyledText::styled(label, theme.label_style(notice.level()));
         if let Some(code) = notice.code_value() {
-            text.push(" · ", Style::new());
-            text.push(code, theme.role(Role::Muted));
+            text.push(" · ", separator);
+            text.push(code, theme.role_style(Role::Muted));
         }
-        text.push(" · ", Style::new());
+        text.push(" · ", separator);
         self.push_spans(&mut text, notice.message(), None);
         text
     }
@@ -624,13 +572,13 @@ impl Renderer {
     }
 
     fn push_spans(self, target: &mut StyledText, text: &Text, default: Option<Role>) {
-        let theme = self.options.active_theme();
+        let theme = self.options.theme;
         for span in text.spans() {
             let role = match (span.role(), default) {
                 (Role::Plain, Some(default)) => default,
                 (role, _) => role,
             };
-            target.push(span.value(), theme.role(role));
+            target.push(span.value(), theme.role_style(role));
         }
     }
 }
@@ -648,79 +596,26 @@ fn cell_role(table: &Table, index: usize) -> Option<Role> {
 }
 
 impl Document {
-    /// Render with explicit semantic options; see [`Renderer::render`].
+    /// Render with explicit semantic options; see [`RenderOptions`].
+    ///
+    /// The string is a pure function of the document and the options: no
+    /// terminal is asked. The document lays out to the explicit width, else
+    /// the fallback width, else its natural width. Styles are written only
+    /// under [`ColorMode::Always`], as the theme gives them, at full colour
+    /// depth; [`ColorMode::Auto`] has no stream to look at here and writes
+    /// none. A [`View`](crate::View) or help, which know their stream, decide
+    /// width and colour for it instead.
     #[must_use]
     pub fn render(&self, options: RenderOptions) -> String {
         Renderer::new(options).render(self)
     }
 }
 
-/// `lines` as text, each line ended by a newline, with styles written only
-/// when `color` is set.
-///
-/// This writes the bytes `ctl_term::Encoder` writes at full colour depth: a
-/// style sequence where the style changes, a reset before a change away from
-/// a style, and a reset at the end of every line that wrote a style. A
-/// [`Document::render`] string has no stream and so no depth to fit; the
-/// `render` tier stays free of the terminal crate. The parity test checks
-/// that this and the view's writer give the same bytes.
-fn encode(lines: &[Line], color: bool) -> String {
-    let mut out = String::new();
-    for line in lines {
-        let mut current = Style::new();
-        let mut wrote_style = false;
-        for span in line.spans() {
-            let style = if color { span.style() } else { Style::new() };
-            if style != current {
-                if !current.is_plain() {
-                    out.push_str(RESET);
-                }
-                if !style.is_plain() {
-                    out.push_str(&style.render().to_string());
-                    wrote_style = true;
-                }
-                current = style;
-            }
-            out.push_str(span.text());
-        }
-        if wrote_style {
-            out.push_str(RESET);
-        }
-        out.push('\n');
-    }
-    out
-}
-
-/// A block that draws nothing when every line it renders is empty, so an
-/// empty paragraph or an empty record leaves no blank lines in the stack.
-struct Visible(Box<dyn Renderable>);
-
-impl fmt::Debug for Visible {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.debug_struct("Visible").finish_non_exhaustive()
-    }
-}
-
-impl Renderable for Visible {
-    fn measure(&self, context: &Context) -> Measurement {
-        self.0.measure(context)
-    }
-
-    fn render(&self, context: &Context) -> Vec<Line> {
-        let lines = self.0.render(context);
-        if lines.iter().all(Line::is_empty) {
-            Vec::new()
-        } else {
-            lines
-        }
-    }
-}
-
 /// Preformatted lines, drawn as given at any width.
 ///
-/// The unsafe characters go, newline aside, and so do the newlines at the
-/// end. A tab expands to the next multiple of 8 cells from the start of its
-/// line, since a span holds no tab. Trailing spaces stay.
+/// The unsafe characters go, newline and tab aside, and so do the newlines at
+/// the end. A tab expands to the next multiple of 8 cells from the start of
+/// its line, since a span holds no tab. Trailing spaces stay.
 #[derive(Debug)]
 struct Verbatim {
     lines: Vec<Line>,
@@ -728,12 +623,7 @@ struct Verbatim {
 
 impl Verbatim {
     fn new(value: &str) -> Self {
-        let kept = value
-            .chars()
-            .filter(|character| {
-                matches!(*character, '\n' | '\t') || !ctl_text::verbatim::is_unsafe(*character)
-            })
-            .collect::<String>();
+        let kept = strip_unsafe(value, Keep::NewlineAndTab);
         let kept = kept.trim_end_matches('\n');
         let lines = if kept.is_empty() {
             Vec::new()
@@ -756,78 +646,51 @@ impl Renderable for Verbatim {
     }
 }
 
-/// A rule across the width, or across [`NATURAL_RULE_WIDTH`] cells in a
-/// document laid out at its natural width.
+/// A rule across the width, or across [`NATURAL_RULE_WIDTH`] cells in an
+/// unbounded context, which [`Context::is_unbounded`] reports. A rule has no
+/// natural width, so it would otherwise fill the largest width.
 #[derive(Debug)]
 struct Divider(RuleWidget);
 
 impl Divider {
-    fn context(context: Context) -> Context {
-        if context.width() == NATURAL_WIDTH {
-            context.with_width(NATURAL_RULE_WIDTH)
+    fn context(context: &Context) -> Context {
+        if context.is_unbounded() {
+            context.at_width(NATURAL_RULE_WIDTH)
         } else {
-            context
+            context.clone()
         }
     }
 }
 
 impl Renderable for Divider {
     fn measure(&self, context: &Context) -> Measurement {
-        self.0.measure(&Self::context(*context))
+        self.0.measure(&Self::context(context))
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        self.0.render(&Self::context(*context))
-    }
-}
-
-/// A table that stacks its rows below a width.
-///
-/// The two forms style their cells differently: a stacked row's label cells
-/// take the token style, as help's flags do, while the grid styles only its
-/// token and id columns. So each form is its own table, and the width picks
-/// one.
-#[derive(Debug)]
-struct Stackable {
-    threshold: u16,
-    grid: TableWidget,
-    stacked: TableWidget,
-}
-
-impl Stackable {
-    fn pick(&self, context: Context) -> &TableWidget {
-        if context.width() < self.threshold {
-            &self.stacked
-        } else {
-            &self.grid
-        }
-    }
-}
-
-impl Renderable for Stackable {
-    fn measure(&self, context: &Context) -> Measurement {
-        self.pick(*context).measure(context)
-    }
-
-    fn render(&self, context: &Context) -> Vec<Line> {
-        self.pick(*context).render(context)
+        self.0.render(&Self::context(context))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use ctl_text::Style;
+    use ctl_text::anstyle::Effects;
     use indoc::{formatdoc, indoc};
 
-    use super::{ListStyle, RecordStyle, RenderOptions, RowSeparation};
+    use super::{Frame, RecordStyle, RenderOptions, RowSeparation};
     use crate::color::ColorMode;
-    use crate::document::{Document, Fields, Notice, NoticeLevel, Section, Table, Text};
+    use crate::document::{Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
+    use crate::theme::Theme;
 
+    #[cfg(any(feature = "view", feature = "help"))]
     #[test]
     fn automatic_width_policy_is_explicit_and_overridable() {
         let defaults = RenderOptions::new(ColorMode::Never);
-        assert_eq!(defaults.explicit_automatic_width_buffer(), None);
+        assert_eq!(super::DEFAULT_COLUMN_BUFFER, 2);
+        assert_eq!(defaults.automatic_width_buffer, None);
         assert_eq!(
-            defaults.automatic_width_minimum(),
+            defaults.minimum_automatic_width,
             super::DEFAULT_MINIMUM_AUTOMATIC_WIDTH
         );
 
@@ -835,14 +698,15 @@ mod tests {
             .automatic_width_buffer(0)
             .automatic_width_buffer_envs(&["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"])
             .minimum_automatic_width(8);
-        assert_eq!(configured.explicit_automatic_width_buffer(), Some(0));
+        assert_eq!(configured.automatic_width_buffer, Some(0));
         assert_eq!(
-            configured.automatic_width_buffer_env_names(),
+            configured.automatic_width_buffer_envs,
             ["APP_COLUMNS_BUFFER", "LEGACY_BUFFER"]
         );
-        assert_eq!(configured.automatic_width_minimum(), 8);
+        assert_eq!(configured.minimum_automatic_width, 8);
     }
 
+    #[cfg(any(feature = "view", feature = "help"))]
     #[test]
     fn explicit_width_ignores_the_automatic_buffer() {
         let document = Document::new().paragraph("one two three four five six");
@@ -925,7 +789,7 @@ mod tests {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
                 .width(80)
-                .list_style(ListStyle::HeaderRule),
+                .frame(Frame::HeaderRule),
         );
         let rules = rendered
             .lines()
@@ -944,7 +808,7 @@ mod tests {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
                 .width(80)
-                .list_style(ListStyle::Plain)
+                .frame(Frame::Plain)
                 .row_separation(RowSeparation::Rule),
         );
         let lines = rendered.lines().collect::<Vec<_>>();
@@ -960,7 +824,7 @@ mod tests {
         let rendered = Document::new().table(queue()).render(
             RenderOptions::new(ColorMode::Never)
                 .width(80)
-                .list_style(ListStyle::Plain)
+                .frame(Frame::Plain)
                 .row_separation(RowSeparation::Blank),
         );
         let lines = rendered.lines().collect::<Vec<_>>();
@@ -971,12 +835,11 @@ mod tests {
     #[test]
     fn defaults_are_the_operator_picks() {
         let options = RenderOptions::new(ColorMode::Never);
-        assert_eq!(options.record(), RecordStyle::KeysRight);
-        assert_eq!(options.list(), ListStyle::Grid);
-        assert_eq!(options.separation(), RowSeparation::None);
-        assert_eq!(options.fallback(), Some(80));
-        assert_eq!(options.fallback_width(None).fallback(), None);
-        assert_eq!(super::DEFAULT_COLUMN_BUFFER, 2);
+        assert_eq!(options.resolved_record_style(), RecordStyle::KeysRight);
+        assert_eq!(options.resolved_frame(), Frame::Grid);
+        assert_eq!(options.resolved_row_separation(), RowSeparation::None);
+        assert_eq!(options.fallback_width, Some(80));
+        assert_eq!(options.fallback_width(None).fallback_width, None);
     }
 
     fn operator_env(name: &str) -> Option<String> {
@@ -992,17 +855,17 @@ mod tests {
     #[test]
     fn the_environment_picks_each_style_the_owner_left_open() {
         let open = RenderOptions::new(ColorMode::Never);
-        assert_eq!(open.record_with(operator_env), RecordStyle::Boxed);
-        assert_eq!(open.list_with(operator_env), ListStyle::HeaderRule);
-        assert_eq!(open.separation_with(operator_env), RowSeparation::Blank);
+        assert_eq!(open.record_style_with(operator_env), RecordStyle::Boxed);
+        assert_eq!(open.frame_with(operator_env), Frame::HeaderRule);
+        assert_eq!(open.row_separation_with(operator_env), RowSeparation::Blank);
 
         let owned = open
             .record_style(RecordStyle::KeysLeft)
-            .list_style(ListStyle::Plain)
+            .frame(Frame::Plain)
             .row_separation(RowSeparation::Rule);
-        assert_eq!(owned.record_with(operator_env), RecordStyle::KeysLeft);
-        assert_eq!(owned.list_with(operator_env), ListStyle::Plain);
-        assert_eq!(owned.separation_with(operator_env), RowSeparation::Rule);
+        assert_eq!(owned.record_style_with(operator_env), RecordStyle::KeysLeft);
+        assert_eq!(owned.frame_with(operator_env), Frame::Plain);
+        assert_eq!(owned.row_separation_with(operator_env), RowSeparation::Rule);
     }
 
     #[test]
@@ -1010,15 +873,21 @@ mod tests {
         let aliased = |name: &str| (name == "TOY_RECORD").then(|| "keys-left".to_owned());
         let replaced = RenderOptions::new(ColorMode::Never)
             .record_style_envs(&["TOY_RECORD", "CTL_CORE_RECORD_STYLE"]);
-        assert_eq!(replaced.record_with(aliased), RecordStyle::KeysLeft);
+        assert_eq!(replaced.record_style_with(aliased), RecordStyle::KeysLeft);
 
         let disabled = RenderOptions::new(ColorMode::Never)
             .record_style_envs(&[])
-            .list_style_envs(&[])
+            .frame_envs(&[])
             .row_separation_envs(&[]);
-        assert_eq!(disabled.record_with(operator_env), RecordStyle::KeysRight);
-        assert_eq!(disabled.list_with(operator_env), ListStyle::Grid);
-        assert_eq!(disabled.separation_with(operator_env), RowSeparation::None);
+        assert_eq!(
+            disabled.record_style_with(operator_env),
+            RecordStyle::KeysRight
+        );
+        assert_eq!(disabled.frame_with(operator_env), Frame::Grid);
+        assert_eq!(
+            disabled.row_separation_with(operator_env),
+            RowSeparation::None
+        );
     }
 
     #[cfg(feature = "app")]
@@ -1026,7 +895,7 @@ mod tests {
     fn an_unknown_style_value_is_ignored_and_the_warning_names_the_choices() {
         let typo = |name: &str| (name == "CTL_CORE_RECORD_STYLE").then(|| "boxy".to_owned());
         let options = RenderOptions::new(ColorMode::Never);
-        assert_eq!(options.record_with(typo), RecordStyle::KeysRight);
+        assert_eq!(options.record_style_with(typo), RecordStyle::KeysRight);
         assert_eq!(
             options.style_env_warnings(typo),
             ["CTL_CORE_RECORD_STYLE=boxy is ignored; use one of keys-right, keys-left, boxed"]
@@ -1044,6 +913,16 @@ mod tests {
         let document = Document::new().heading("status");
         let rendered = document.render(RenderOptions::new(ColorMode::Always).width(60));
         assert!(rendered.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn a_notice_separator_takes_the_plain_style() {
+        let underline = Style::new().effects(Effects::UNDERLINE);
+        let theme = Theme::new().style(Role::Plain, underline);
+        let rendered = Document::new()
+            .notice(Notice::new(NoticeLevel::Warning, "one stale row"))
+            .render(RenderOptions::new(ColorMode::Always).theme(theme).width(60));
+        assert!(rendered.contains("\u{1b}[4m · "), "{rendered}");
     }
 
     #[test]

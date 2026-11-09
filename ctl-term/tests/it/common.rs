@@ -8,10 +8,10 @@ use ctl_text::{Context, Line, Measurement, Renderable, Span};
 pub(crate) const ESC: char = '\u{1b}';
 
 /// A pipe, as stdout is under `| head`.
-pub(crate) const PIPE: Probe = Probe::Pipe;
+pub(crate) const PIPE: Probe = Probe::Redirected;
 
 /// A terminal 100 columns wide.
-pub(crate) const TERMINAL: Probe = Probe::Terminal { columns: Some(100) };
+pub(crate) const TERMINAL: Probe = Probe::terminal(Some(100));
 
 /// Variable names and values, as a test states an environment.
 pub(crate) type Variables = &'static [(&'static str, &'static str)];

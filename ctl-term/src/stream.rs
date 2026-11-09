@@ -1,8 +1,9 @@
 //! The output stream a colour and width decision is made for.
 
+#[cfg(feature = "detect")]
 use std::io::{self, IsTerminal};
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "detect", unix))]
 use terminal_size::{Width, terminal_size_of};
 
 /// A standard output stream.
@@ -18,8 +19,8 @@ pub enum Stream {
     Stderr,
 }
 
-/// What the operating system says about one stream: a pipe or file, or a
-/// terminal of some width.
+/// What the operating system says about one stream: redirected away from a
+/// terminal, or a terminal of some width.
 ///
 /// [`Terminal::from_probe`](crate::Terminal::from_probe) turns a probe into a
 /// decision without touching the process, so a test states the probe it
@@ -27,9 +28,10 @@ pub enum Stream {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Probe {
-    /// A pipe, a file, or a closed stream.
-    Pipe,
-    /// A terminal. `columns` is its width, when the system reports one.
+    /// A pipe, a file, or a closed stream: anything but a terminal.
+    Redirected,
+    /// A terminal. Build it with [`Probe::terminal`].
+    #[non_exhaustive]
     Terminal {
         /// The window width in cells, when the system reports a non-zero one.
         columns: Option<u16>,
@@ -37,28 +39,36 @@ pub enum Probe {
 }
 
 impl Probe {
-    /// What the system says about `stream` right now.
+    /// A terminal whose window is `columns` cells wide, or whose width the
+    /// system does not report, for `None`. A width of 0 counts as not reported.
+    #[must_use]
+    pub const fn terminal(columns: Option<u16>) -> Self {
+        match columns {
+            Some(0) => Self::Terminal { columns: None },
+            Some(_) | None => Self::Terminal { columns },
+        }
+    }
+
+    /// What the system says about `stream` right now. Needs the `detect`
+    /// feature.
+    #[cfg(feature = "detect")]
     #[must_use]
     pub fn of(stream: Stream) -> Self {
         match stream {
             Stream::Stdout => {
                 let handle = io::stdout();
                 if handle.is_terminal() {
-                    Self::Terminal {
-                        columns: columns_of(handle),
-                    }
+                    Self::terminal(columns_of(handle))
                 } else {
-                    Self::Pipe
+                    Self::Redirected
                 }
             }
             Stream::Stderr => {
                 let handle = io::stderr();
                 if handle.is_terminal() {
-                    Self::Terminal {
-                        columns: columns_of(handle),
-                    }
+                    Self::terminal(columns_of(handle))
                 } else {
-                    Self::Pipe
+                    Self::Redirected
                 }
             }
         }
@@ -74,23 +84,20 @@ impl Probe {
     #[must_use]
     pub fn columns(self) -> Option<u16> {
         match self {
-            Self::Pipe => None,
+            Self::Redirected => None,
             Self::Terminal { columns } => columns,
         }
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(feature = "detect", unix))]
 fn columns_of(stream: impl std::os::fd::AsFd) -> Option<u16> {
     terminal_size_of(stream).map(|(Width(columns), _)| columns)
 }
 
-#[cfg(windows)]
-fn columns_of(stream: impl std::os::windows::io::AsHandle) -> Option<u16> {
-    terminal_size_of(stream).map(|(Width(columns), _)| columns)
-}
-
-#[cfg(not(any(unix, windows)))]
+/// Only Unix reports a window width. The crate supports and tests Unix only,
+/// so another target gets no width from the window.
+#[cfg(all(feature = "detect", not(unix)))]
 fn columns_of<T>(_stream: T) -> Option<u16> {
     None
 }

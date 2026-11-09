@@ -1,6 +1,6 @@
 //! Helpers and fixtures shared by the test modules.
 
-use ctl_layout::{Column, Frame, Record, RowSeparation, Table};
+use ctl_layout::{Breakpoint, Column, Definitions, Frame, Record, RowSeparation, Table};
 use ctl_text::{Context, Overflow, Renderable, Text};
 
 /// The lines `widget` renders at `width`, as plain strings.
@@ -65,13 +65,18 @@ pub(crate) fn releases() -> Table {
         .row([Text::plain("QCTL-014"), Text::plain(url)])
 }
 
-/// The flags of a help screen, which stacks below 64 cells.
-pub(crate) fn flags() -> Table {
-    Table::new([Column::untitled(), Column::untitled(), Column::untitled()])
-        .frame(Frame::Plain)
-        .stacked_below(64, 2)
-        .row(cells(["-f", "--format", "Output representation"]))
-        .row(cells(["-q", "--quiet", "Print nothing on success"]))
+/// The flags of a help screen, which stack below 64 cells.
+pub(crate) fn flags() -> Breakpoint<Definitions, Table> {
+    Breakpoint::new(
+        64,
+        Definitions::new()
+            .entry(["-f", "--format"], ["Output representation"])
+            .entry(["-q", "--quiet"], ["Print nothing on success"]),
+        Table::new([Column::untitled(), Column::untitled(), Column::untitled()])
+            .frame(Frame::Plain)
+            .row(cells(["-f", "--format", "Output representation"]))
+            .row(cells(["-q", "--quiet", "Print nothing on success"])),
+    )
 }
 
 /// Two labelled values.

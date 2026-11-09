@@ -3,7 +3,7 @@
 //! `App` or its `--color` flag run here with the matching `ColorMode` and
 //! variables.
 
-use ctl_term::{ColorDepth, ColorMode, Console, DetectOptions, Error, Stream, Terminal};
+use ctl_term::{ColorDepth, ColorMode, Console, DetectOptions, Error, RESET, Stream, Terminal};
 use ctl_text::anstyle::{AnsiColor, RgbColor};
 use ctl_text::{Line, Text};
 
@@ -26,6 +26,13 @@ fn coloured_rows() -> Rows {
 
 fn has_sgr(text: &str) -> bool {
     text.contains("\u{1b}[")
+}
+
+/// Whether the last escape sequence in `line` is not a reset, so a style is
+/// still open at its end.
+fn leaves_style_open(line: &str) -> bool {
+    line.rfind(ESC)
+        .is_some_and(|start| !line[start..].starts_with(RESET))
 }
 
 #[test]
@@ -57,6 +64,28 @@ fn forced_colour_into_a_pipe() {
 fn force_color_zero_is_not_a_force() {
     let console = console(PIPE, ColorMode::Auto, &[("FORCE_COLOR", "0")]);
     assert!(!console.render(&coloured_rows()).contains(ESC));
+}
+
+#[test]
+fn force_color_zero_turns_nothing_off() {
+    let console = console(TERMINAL, ColorMode::Auto, &[("FORCE_COLOR", "0")]);
+    assert!(has_sgr(&console.render(&coloured_rows())));
+}
+
+#[test]
+fn always_still_follows_the_depth_variable() {
+    let console = console(PIPE, ColorMode::Always, &[("COLORTERM", "truecolor")]);
+    let text = Text::styled("alert", fg(RgbColor(255, 0, 0)));
+    assert_eq!(
+        console.render(&text),
+        "\u{1b}[38;2;255;0;0malert\u{1b}[0m\n"
+    );
+}
+
+#[test]
+fn never_still_follows_columns() {
+    let console = console(PIPE, ColorMode::Never, &[("COLUMNS", "100")]);
+    assert_eq!(console.terminal().width(), Some(98));
 }
 
 #[test]
@@ -116,10 +145,8 @@ fn a_coloured_table_cut_by_head_leaves_no_style_open() {
     let kept: Vec<&str> = output.lines().take(3).collect();
     assert_eq!(kept.len(), 3);
     for kept_line in kept {
-        assert!(
-            kept_line.ends_with("\u{1b}[0m") || !kept_line.contains(ESC),
-            "{kept_line:?}"
-        );
+        assert!(has_sgr(kept_line), "{kept_line:?}");
+        assert!(!leaves_style_open(kept_line), "{kept_line:?}");
     }
 }
 

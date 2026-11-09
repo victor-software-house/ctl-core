@@ -2,7 +2,7 @@
 
 use anstyle::Style;
 
-use crate::cells::prefix_len;
+use crate::cells::{prefix_len, text_width};
 use crate::line::{Line, Piece};
 
 /// The text an [`Overflow::Ellipsis`] cut ends with. One cell wide.
@@ -26,76 +26,102 @@ pub enum Overflow {
     Ellipsis,
 }
 
-/// The width of the widest part of `line` that `overflow` will not break.
-///
-/// This is the minimum width the line can be laid out in.
-pub(crate) fn minimum(line: &Line, overflow: Overflow) -> u16 {
-    let pieces = line.pieces();
-    match overflow {
-        Overflow::KeepWords => pieces
-            .split(|piece| piece.space)
-            .map(total_width)
-            .max()
-            .unwrap_or(0),
-        Overflow::Fold => pieces
-            .iter()
-            .filter(|piece| !piece.space)
-            .map(|piece| piece.width)
-            .max()
-            .unwrap_or(0),
-        Overflow::Ellipsis => u16::from(line.width() > 0),
-    }
-}
-
-/// `line` cut to `width` cells, ended with [`ELLIPSIS`]; see
-/// [`Line::truncate`].
-pub(crate) fn truncate(line: &Line, width: u16) -> Line {
-    if line.width() <= width {
-        return line.clone();
-    }
-    let Some(budget) = width.checked_sub(ELLIPSIS_WIDTH) else {
-        return Line::new();
-    };
-    let mut cut = Line::new();
-    let mut used: u16 = 0;
-    let mut style = Style::new();
-    for span in line.spans() {
-        style = span.style();
-        let span_width = span.width();
-        if used.saturating_add(span_width) <= budget {
-            cut.push(span.clone());
-            used = used.saturating_add(span_width);
-        } else {
-            let length = prefix_len(span.text(), budget.saturating_sub(used));
-            cut.append(&span.text()[..length], style);
-            break;
+impl Line {
+    /// The width of the widest part of the line that `overflow` will not
+    /// break: the minimum width it can be laid out in.
+    pub(crate) fn minimum_width(&self, overflow: Overflow) -> u16 {
+        let pieces = self.pieces();
+        match overflow {
+            Overflow::KeepWords => pieces
+                .split(|piece| piece.space)
+                .map(total_width)
+                .max()
+                .unwrap_or(0),
+            Overflow::Fold => pieces
+                .iter()
+                .filter(|piece| !piece.space)
+                .map(|piece| piece.width)
+                .max()
+                .unwrap_or(0),
+            Overflow::Ellipsis => u16::from(self.width() > 0),
         }
     }
-    cut.append(ELLIPSIS, style);
-    cut
+
+    /// The line cut to exactly `width` cells and ended with [`ELLIPSIS`], or
+    /// the line itself when it fits.
+    ///
+    /// The text is cut at a cluster boundary. A wide cluster that straddles
+    /// the cut is replaced by a space, so a cut line is never narrower than
+    /// `width`. The padding and the ellipsis take the style of the text they
+    /// replace. A width of 0 gives an empty line.
+    #[must_use]
+    pub fn truncate(&self, width: u16) -> Self {
+        if self.width() <= width {
+            return self.clone();
+        }
+        let Some(budget) = width.checked_sub(ELLIPSIS_WIDTH) else {
+            return Self::new();
+        };
+        let mut cut = Self::new();
+        let mut used: u16 = 0;
+        let mut style = Style::new();
+        for span in self.spans() {
+            style = span.style();
+            let span_width = span.width();
+            if used.saturating_add(span_width) <= budget {
+                cut.push(span.clone());
+                used = used.saturating_add(span_width);
+            } else {
+                let room = budget.saturating_sub(used);
+                let kept = &span.text()[..prefix_len(span.text(), room)];
+                let gap = usize::from(room.saturating_sub(text_width(kept)));
+                cut.append(kept, style);
+                cut.append(&" ".repeat(gap), style);
+                break;
+            }
+        }
+        cut.append(ELLIPSIS, style);
+        cut
+    }
+
+    /// The line fitted to `width` cells by `overflow`: wrapped into lines for
+    /// [`Overflow::KeepWords`] and [`Overflow::Fold`], or cut into one line
+    /// for [`Overflow::Ellipsis`].
+    ///
+    /// A wrapped line never ends in a space: the spaces at the end of the line
+    /// and at each break are dropped. An ellipsis line that fits keeps the
+    /// spaces it ends with, as [`Line::truncate`] does, so trim it first;
+    /// `Text` does. A width of 0 counts as 1 when wrapping.
+    #[must_use]
+    pub fn fit(&self, width: u16, overflow: Overflow) -> Vec<Self> {
+        match overflow {
+            Overflow::KeepWords | Overflow::Fold => self.wrap(width, overflow),
+            Overflow::Ellipsis => vec![self.truncate(width)],
+        }
+    }
+
+    /// The line broken into lines no wider than `width`, except where
+    /// `overflow` lets a word or a cluster run past it.
+    fn wrap(&self, width: u16, overflow: Overflow) -> Vec<Self> {
+        let pieces = self.pieces();
+        let mut wrapper = Wrapper::new(width.max(1), overflow);
+        let mut rest = pieces.as_slice();
+        while !rest.is_empty() {
+            let space_len = rest.iter().take_while(|piece| piece.space).count();
+            let (space, tail) = rest.split_at(space_len);
+            let word_len = tail.iter().take_while(|piece| !piece.space).count();
+            let (word, next) = tail.split_at(word_len);
+            if word.is_empty() {
+                break;
+            }
+            wrapper.place(space, word);
+            rest = next;
+        }
+        wrapper.finish()
+    }
 }
 
 const ELLIPSIS_WIDTH: u16 = 1;
-
-/// `line` broken into lines no wider than `width`, except where `overflow`
-/// lets a word or a cluster run past it; see [`Line::fit`].
-pub(crate) fn wrap(line: &Line, width: u16, overflow: Overflow) -> Vec<Line> {
-    let pieces = line.pieces();
-    let mut wrapper = Wrapper::new(width.max(1), overflow);
-    let mut rest = pieces.as_slice();
-    while !rest.is_empty() {
-        let space_len = rest.iter().take_while(|piece| piece.space).count();
-        let (space, tail) = rest.split_at(space_len);
-        let word_len = tail.iter().take_while(|piece| !piece.space).count();
-        let (word, next) = tail.split_at(word_len);
-        if word.is_empty() {
-            break;
-        }
-        wrapper.place(space, word);
-        rest = next;
-    }
-    wrapper.finish()
-}
 
 fn total_width(pieces: &[Piece<'_>]) -> u16 {
     pieces

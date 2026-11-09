@@ -249,7 +249,6 @@ name = "ctl-term"
 version = "0.6.28"
 dependencies = [
  "anstyle",
- "anstyle-query",
  "ctl-text",
  "proptest",
  "terminal_size",

@@ -1,7 +1,7 @@
 //! The frames ctl-core draws today, reproduced exactly on a small table.
 
 use ctl_layout::{Column, Frame, Record, RecordStyle, RowSeparation, Table};
-use ctl_text::{BoxChars, Context, Renderable, Text};
+use ctl_text::{BoxChars, Context, Measurement, Renderable, Text};
 
 use crate::common::{cells, lines};
 
@@ -102,7 +102,7 @@ fn a_header_rule_list_can_also_rule_between_rows() {
 
 #[test]
 fn ascii_box_characters_replace_the_unicode_ones() {
-    let context = Context::new(80).with_box_chars(BoxChars::Ascii);
+    let context = Context::new(80).using_box_chars(BoxChars::Ascii);
     let rendered: Vec<String> = small(Frame::Grid, RowSeparation::Rule)
         .render(&context)
         .iter()
@@ -175,4 +175,19 @@ fn a_boxed_record_draws_a_full_box() {
         lines(&record, 80),
         ["┌────┬───┐", "│ a  ┆ b │", "│ cc ┆ d │", "└────┴───┘"]
     );
+}
+
+#[test]
+fn an_empty_boxed_record_draws_no_box() {
+    let record = Record::new().style(RecordStyle::Boxed);
+    assert_eq!(lines(&record, 80), Vec::<String>::new());
+    assert_eq!(record.measure(&Context::new(80)), Measurement::exact(0));
+}
+
+#[test]
+fn changing_a_records_style_keeps_its_rows() {
+    let record = Record::new()
+        .row(Text::plain("a"), Text::plain("b"))
+        .style(RecordStyle::Boxed);
+    assert_eq!(lines(&record, 80), ["┌───┬───┐", "│ a ┆ b │", "└───┴───┘"]);
 }

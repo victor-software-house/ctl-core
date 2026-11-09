@@ -16,9 +16,11 @@ const TITLE_MARGIN: u16 = 4;
 /// ── Title ──────────────
 /// ```
 ///
-/// A rule has no natural width. It measures as its narrowest, and fills any
-/// width it is given. A title that does not fit ends in `…`, and only the
-/// first line of a multi-line title is drawn.
+/// A rule fills any width it is given. It measures 1 cell wide without a
+/// title. With one it measures the 4-cell margin plus the title: one cell of
+/// title at the narrowest, since a title that does not fit ends in `…`, and
+/// the title's widest line at the widest. Only the first non-empty line of a
+/// multi-line title is drawn.
 #[derive(Clone, Debug, Default)]
 pub struct Rule {
     title: Option<Text>,
@@ -36,20 +38,14 @@ impl Rule {
     pub fn titled(title: Text) -> Self {
         Self { title: Some(title) }
     }
-
-    fn title(&self) -> Option<Text> {
-        self.title
-            .clone()
-            .map(|title| title.overflow(Overflow::Ellipsis))
-    }
 }
 
 impl Renderable for Rule {
     fn measure(&self, context: &Context) -> Measurement {
-        let Some(title) = self.title() else {
+        let Some(title) = &self.title else {
             return Measurement::exact(1);
         };
-        let measured = title.measure(context);
+        let measured = title.measure_as(context, Overflow::Ellipsis);
         Measurement::new(
             measured.minimum().saturating_add(TITLE_MARGIN),
             measured.maximum().saturating_add(TITLE_MARGIN),
@@ -59,13 +55,13 @@ impl Renderable for Rule {
     fn render(&self, context: &Context) -> Vec<Line> {
         let rule_char = Glyphs::for_chars(context.box_chars()).rule;
         let width = context.width();
-        let titled = self.title().and_then(|title| {
+        let titled = self.title.as_ref().and_then(|title| {
             let room = width.saturating_sub(TITLE_MARGIN);
             if room == 0 {
                 return None;
             }
             title
-                .render(&context.with_width(room))
+                .render_as(&context.at_width(room), Overflow::Ellipsis)
                 .into_iter()
                 .find(|line| !line.is_empty())
         });
@@ -74,9 +70,7 @@ impl Renderable for Rule {
         };
         let mut line = Line::new();
         line.push(literal(&format!("{rule_char}{rule_char} ")));
-        for span in title.spans() {
-            line.push(span.clone());
-        }
+        line.extend(title.spans().iter().cloned());
         let fill = width.saturating_sub(title.width().saturating_add(TITLE_MARGIN));
         if fill > 0 {
             let tail: String = std::iter::once(' ')

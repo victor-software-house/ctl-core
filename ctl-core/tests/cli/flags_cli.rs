@@ -146,8 +146,8 @@ fn parser_debug_assert() {
 
 #[test]
 fn switch_follows_the_on_flag() {
-    assert!(switch(true, false));
-    assert!(!switch(false, true));
+    assert!(switch(true));
+    assert!(!switch(false));
 }
 
 #[test]

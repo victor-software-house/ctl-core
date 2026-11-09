@@ -1,10 +1,10 @@
 ┌─────────────────────┬────────────────┬───────┐
-│ \u{1b}[1m\u{1b}[36mfile\u{1b}[0m                ┆ \u{1b}[1m\u{1b}[36mpackage\u{1b}[0m        ┆ \u{1b}[1m\u{1b}[36mbump\u{1b}[0m  │\u{1b}[0m
+│ \u{1b}[1m\u{1b}[36mfile\u{1b}[0m                ┆ \u{1b}[1m\u{1b}[36mpackage\u{1b}[0m        ┆ \u{1b}[1m\u{1b}[36mbump\u{1b}[0m  │
 ╞═════════════════════╪════════════════╪═══════╡
-│ quiet-lions-sing.md ┆ \u{1b}[1mdemo-core\u{1b}[0m      ┆ minor │\u{1b}[0m
-│ quiet-lions-sing.md ┆ \u{1b}[1mdemo-cli\u{1b}[0m       ┆ patch │\u{1b}[0m
-│ tidy-owls-wave.md   ┆ \u{1b}[1mdemo-docs-site\u{1b}[0m ┆ major │\u{1b}[0m
+│ quiet-lions-sing.md ┆ \u{1b}[1mdemo-core\u{1b}[0m      ┆ minor │
+│ quiet-lions-sing.md ┆ \u{1b}[1mdemo-cli\u{1b}[0m       ┆ patch │
+│ tidy-owls-wave.md   ┆ \u{1b}[1mdemo-docs-site\u{1b}[0m ┆ major │
 └─────────────────────┴────────────────┴───────┘
 
-\u{1b}[1m\u{1b}[32mpending\u{1b}[0m  2\u{1b}[0m
-    \u{1b}[1m\u{1b}[32mmax\u{1b}[0m  major\u{1b}[0m
+\u{1b}[1m\u{1b}[32mpending\u{1b}[0m  2
+    \u{1b}[1m\u{1b}[32mmax\u{1b}[0m  major

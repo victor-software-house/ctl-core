@@ -11,7 +11,7 @@ const WIDTHS: [u16; 4] = [20, 40, 80, 120];
 
 fn check(name: &str, widget: &dyn Renderable, box_chars: BoxChars) {
     for width in WIDTHS {
-        let context = Context::new(width).with_box_chars(box_chars);
+        let context = Context::new(width).using_box_chars(box_chars);
         let lines: Vec<String> = widget
             .render(&context)
             .iter()

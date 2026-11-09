@@ -73,7 +73,7 @@
 //!
 //! A [`Document`] renders through three crates of this workspace, which a
 //! CLI can also use directly through the re-exports [`text`], [`layout`], and
-//! [`term`]:
+//! [`term`] (`term` with `view` or `help`):
 //!
 //! - `ctl-text`: styled spans, lines, and text, with widths counted in terminal
 //!   cells, wrapping, and truncation. Text from outside the program loses its
@@ -82,7 +82,8 @@
 //!   rules. They lay out plain lines of styled spans and never see an escape
 //!   sequence.
 //! - `ctl-term`: whether to write colour and how wide to lay out, decided for
-//!   the stream being written, and the one place an escape sequence is written.
+//!   the stream being written, and the one place an escape sequence is written,
+//!   its `Encoder`.
 //!
 //! A [`Theme`] maps each [`Role`] to a style on the way from the document to
 //! the widgets. `ctl_core::Text` holds roles and `ctl_core::text::Text` holds
@@ -92,12 +93,12 @@
 //!
 //! Features are additive. Unused ones do not compile `clap`, `schemars`, or
 //! the rendering crates. `document` builds documents with no engine;
-//! `render` adds `ctl-text` and `ctl-layout` and renders to a `String`
-//! without any terminal crate; `help` and `view` add `ctl-term`, which asks
-//! the stream for its width and decides colour for it.
+//! `render` adds `ctl-text`, `ctl-layout`, and `ctl-term`'s encoder and
+//! renders to a `String` without asking any terminal; `help` and `view` turn
+//! on `ctl-term`'s `detect` feature, which asks the stream for its width and
+//! decides colour for it.
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(missing_docs, rustdoc::broken_intra_doc_links)]
 
 #[cfg(feature = "app")]
 pub mod app;
@@ -144,8 +145,8 @@ pub use ctl_layout as layout;
 pub use ctl_term as term;
 #[cfg(feature = "render")]
 pub use ctl_text as text;
-#[cfg(feature = "verbatim")]
-pub use ctl_text::verbatim;
+#[cfg(feature = "unsafe-chars")]
+pub use ctl_text::unsafe_chars;
 #[cfg(feature = "view")]
 pub mod view;
 
@@ -173,14 +174,18 @@ pub use format::OutputFormat;
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 #[doc(hidden)]
 pub use model::{Envelope, ErrorBody, SCHEMA_VERSION};
-#[cfg(feature = "render")]
+#[cfg(any(feature = "view", feature = "help"))]
 #[doc(hidden)]
 pub use render::{
     DEFAULT_COLUMN_BUFFER, DEFAULT_COLUMN_BUFFER_ENV, DEFAULT_COLUMN_BUFFER_ENVS,
+    DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
+};
+#[cfg(feature = "render")]
+#[doc(hidden)]
+pub use render::{
     DEFAULT_FALLBACK_WIDTH, DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS,
-    DEFAULT_MINIMUM_AUTOMATIC_WIDTH, DEFAULT_RECORD_STYLE_ENV, DEFAULT_RECORD_STYLE_ENVS,
-    DEFAULT_ROW_SEPARATION_ENV, DEFAULT_ROW_SEPARATION_ENVS, ListStyle, RecordStyle, RenderOptions,
-    Renderer, RowSeparation,
+    DEFAULT_RECORD_STYLE_ENV, DEFAULT_RECORD_STYLE_ENVS, DEFAULT_ROW_SEPARATION_ENV,
+    DEFAULT_ROW_SEPARATION_ENVS, Frame, RecordStyle, RenderOptions, RowSeparation,
 };
 #[cfg(feature = "surface-model")]
 #[doc(hidden)]
@@ -195,8 +200,8 @@ pub use view::Present;
 #[cfg(feature = "view")]
 #[doc(hidden)]
 pub use view::{
-    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, JsonLayout, MessageKind, Stream,
-    View,
+    Captured, DEFAULT_JSON_LAYOUT_ENV, DEFAULT_JSON_LAYOUT_ENVS, Destination, JsonLayout,
+    MessageKind, View,
 };
 
 /// The README's example, compiled as a doctest. It needs the default `app`

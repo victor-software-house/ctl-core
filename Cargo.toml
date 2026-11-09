@@ -12,8 +12,6 @@ repository = "https://github.com/victor-software-house/ctl-core"
 [workspace.dependencies]
 anyhow = "1.0.104"
 anstyle = "1.0.14"
-# Enables ANSI escapes in the Windows console (ctl-term, Windows only).
-anstyle-query = "1.1.5"
 clap = { version = "4.6.6", default-features = false, features = [
   "std",
   "derive",
@@ -46,7 +44,9 @@ toml = { version = "1.1.8", default-features = false, features = [
 ] }
 yamled = { version = "0.0.8", default-features = false }
 ctl-layout = { path = "ctl-layout", version = "=0.6.28" }
-ctl-term = { path = "ctl-term", version = "=0.6.28" }
+# Without `detect`: ctl-core's `render` tier needs only the encoder, and its
+# `view` and `help` features turn `detect` on again.
+ctl-term = { path = "ctl-term", version = "=0.6.28", default-features = false }
 ctl-text = { path = "ctl-text", version = "=0.6.28" }
 usage-lib = { version = "6.0.0", default-features = false, features = ["clap"] }
 unicode-bidi = { version = "0.3.18", default-features = false }
@@ -127,17 +127,17 @@ multiple_crate_versions = "allow"
 # check:size builds ctl-core's `size` example with the release profile at each
 # tier on linux-x64 and fails when its `.text` exceeds the tier's budget by
 # more than tolerance-percent. A change that grows a tier on purpose raises the
-# budget in the same pull request. The budgets were measured on linux-x64
-# with rustc 1.99.1 (58cf8f9c3 2026-10-13) and GNU size 2.46, at 6b2be38
-# with the size example added.
+# budget in the same pull request, and one that shrinks a tier lowers it. The
+# budgets are the `.text` that CI measured on linux-x64 with rustc 1.99.1
+# (58cf8f9c3 2026-10-13) at b84f7a6, after the render engine review fixes.
 [workspace.metadata.size]
 tolerance-percent = 2
 
 [workspace.metadata.size.tiers]
 cli = { features = "cli", text = 343888 }
-help = { features = "help", text = 443676 }
-view = { features = "cli,view", text = 409362 }
-app = { features = "app", text = 469842 }
+help = { features = "help", text = 447878 }
+view = { features = "cli,view", text = 408998 }
+app = { features = "app", text = 472902 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

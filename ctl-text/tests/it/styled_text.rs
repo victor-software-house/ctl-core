@@ -1,12 +1,15 @@
 //! One test per scenario of the `styled-text` spec, in the spec's order.
 
+use std::num::NonZeroU16;
+
 use ctl_text::anstyle::AnsiColor;
 use ctl_text::{
-    Context, ELLIPSIS, Line, Overflow, Renderable, Span, Style, Text, cluster_width, prefix_len,
-    text_width,
+    Context, ELLIPSIS, Line, Measurement, Overflow, Renderable, Span, Style, Text, cluster_width,
+    prefix_len, text_width,
 };
 
 const FAMILY: &str = "\u{1f468}\u{200d}\u{1f469}\u{200d}\u{1f467}\u{200d}\u{1f466}";
+const LAM_ALEF: &str = "\u{644}\u{627}";
 
 fn render(text: &Text, width: u16) -> Vec<String> {
     text.render(&Context::new(width))
@@ -43,11 +46,6 @@ fn a_right_to_left_override_is_removed() {
 }
 
 #[test]
-fn the_line_and_paragraph_separators_are_removed() {
-    assert_eq!(render(&Text::plain("a\u{2028}b\u{2029}c"), 80), ["abc"]);
-}
-
-#[test]
 fn a_newline_starts_a_new_line() {
     assert_eq!(
         render(&Text::plain("first\nsecond"), 80),
@@ -63,7 +61,48 @@ fn a_blank_line_between_two_newlines_is_kept() {
 #[test]
 fn a_span_holds_one_line() {
     let span = Span::new("first\nsecond", Style::new());
-    assert_eq!(span.text(), "firstsecond");
+    assert_eq!(span.text(), "first second");
+}
+
+#[test]
+fn a_separator_in_a_span_becomes_a_space() {
+    let span = Span::new("a\u{2028}b\u{2029}c\rd\u{c}e\u{85}f\ng", Style::new());
+    assert_eq!(span.text(), "a b c d e f g");
+}
+
+#[test]
+fn a_break_in_a_paragraph_starts_a_new_line() {
+    let text = Text::plain("a\u{2028}b\u{2029}c\rd\u{c}e\u{85}f");
+    assert_eq!(render(&text, 80), ["a", "b", "c", "d", "e", "f"]);
+}
+
+#[test]
+fn a_carriage_return_and_a_line_feed_are_one_break() {
+    assert_eq!(
+        render(&Text::plain("first\r\nsecond"), 80),
+        ["first", "second"]
+    );
+}
+
+#[test]
+fn an_empty_string_renders_to_no_lines() {
+    assert_eq!(Text::plain(""), Text::new());
+    assert_eq!(render(&Text::plain(""), 80), Vec::<String>::new());
+    assert_eq!(
+        Text::plain("").measure(&Context::new(80)),
+        Measurement::default()
+    );
+}
+
+#[test]
+fn text_compares_by_content_however_it_was_pushed() {
+    let bold = Style::new().bold();
+    let mut pushed = Text::new();
+    pushed.push("ab", Style::new());
+    pushed.push("", bold);
+    pushed.push("cd", Style::new());
+    assert_eq!(pushed, Text::plain("abcd"));
+    assert_ne!(pushed, Text::styled("abcd", bold));
 }
 
 #[test]
@@ -82,7 +121,8 @@ fn a_tab_on_a_stop_moves_a_whole_stop() {
 
 #[test]
 fn a_caller_sets_another_tab_width() {
-    let context = Context::new(80).with_tab_width(4);
+    let tab = NonZeroU16::new(4).expect("4 is not zero");
+    let context = Context::new(80).at_tab_width(tab);
     let lines = Text::plain("ab\tc").render(&context);
     assert_eq!(lines[0].to_string(), "ab  c");
 }
@@ -102,6 +142,28 @@ fn a_tab_counts_the_width_of_wide_characters() {
 }
 
 #[test]
+fn a_tab_after_a_cluster_that_continues_from_an_earlier_push_lands_on_a_stop() {
+    let mut text = Text::new();
+    text.push("\u{2764}", Style::new());
+    text.push("\u{fe0f}\tx", Style::new().bold());
+    let rendered = render(&text, 80);
+    assert_eq!(rendered, [format!("\u{2764}\u{fe0f}{}x", " ".repeat(6))]);
+    assert_eq!(text_width(rendered[0].trim_end_matches('x')), 8);
+}
+
+#[test]
+fn a_tab_after_a_zwj_sequence_built_across_pushes_lands_on_a_stop() {
+    let mut text = Text::new();
+    text.push("\u{1f468}", Style::new());
+    text.push("\u{200d}\u{1f469}\tx", Style::new().italic());
+    let rendered = render(&text, 80);
+    assert_eq!(
+        rendered,
+        [format!("\u{1f468}\u{200d}\u{1f469}{}x", " ".repeat(6))]
+    );
+}
+
+#[test]
 fn a_family_emoji_is_two_cells() {
     assert_eq!(cluster_width(FAMILY), 2);
     assert_eq!(text_width(FAMILY), 2);
@@ -110,6 +172,13 @@ fn a_family_emoji_is_two_cells() {
 #[test]
 fn wide_characters_are_two_cells_each() {
     assert_eq!(text_width("日本"), 4);
+}
+
+#[test]
+fn letters_a_font_joins_count_one_cluster_each() {
+    assert_eq!(cluster_width("\u{644}"), 1);
+    assert_eq!(cluster_width("\u{627}"), 1);
+    assert_eq!(text_width(LAM_ALEF), 2);
 }
 
 #[test]
@@ -140,6 +209,14 @@ fn a_long_url_is_kept_whole() {
         .filter(|width| *width > 30)
         .collect();
     assert_eq!(wider, [text_width(url)]);
+}
+
+#[test]
+fn a_zero_width_space_is_a_place_to_break() {
+    let text = Text::plain("ab\u{200b}cd");
+    assert_eq!(render(&text, 2), ["ab", "cd"]);
+    assert_eq!(render(&text, 4), ["ab\u{200b}cd"]);
+    assert_eq!(text.measure(&Context::new(4)).minimum(), 2);
 }
 
 #[test]
@@ -191,9 +268,11 @@ fn truncation_leaves_text_that_fits_unchanged() {
 }
 
 #[test]
-fn truncation_drops_a_wide_cluster_that_does_not_fit() {
+fn truncation_pads_a_wide_cluster_that_does_not_fit() {
     let line = Line::from(Span::new("日本語", Style::new()));
-    assert_eq!(line.truncate(4).to_string(), format!("日{ELLIPSIS}"));
+    let cut = line.truncate(4);
+    assert_eq!(cut.to_string(), format!("日 {ELLIPSIS}"));
+    assert_eq!(cut.width(), 4);
 }
 
 #[test]
@@ -259,4 +338,24 @@ fn styles_survive_a_wrap() {
     assert_eq!(rendered, ["plain", "red", "words"]);
     assert_eq!(lines[0].spans()[0].style(), Style::new());
     assert_eq!(lines[1].spans()[0].style(), red);
+}
+
+#[test]
+fn render_as_matches_a_clone_with_that_overflow() {
+    let red = Style::new().fg_color(Some(AnsiColor::Red.into()));
+    let mut text = Text::new();
+    text.push("plain words ", Style::new());
+    text.push("redwordsthatrunlong and more", red);
+    text.push(" tail\nsecond line wide enough", Style::new());
+    for overflow in [Overflow::KeepWords, Overflow::Fold, Overflow::Ellipsis] {
+        for width in [1, 5, 9, 80] {
+            let context = Context::new(width);
+            let cloned = text.clone().overflow(overflow);
+            assert_eq!(text.render_as(&context, overflow), cloned.render(&context));
+            assert_eq!(
+                text.measure_as(&context, overflow),
+                cloned.measure(&context)
+            );
+        }
+    }
 }

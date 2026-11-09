@@ -9,10 +9,7 @@ use crate::color::ColorMode;
 use crate::document::{Document, Text};
 use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
-use crate::render::{
-    DEFAULT_COLUMN_BUFFER_ENVS, DEFAULT_FALLBACK_WIDTH, DEFAULT_MINIMUM_AUTOMATIC_WIDTH, EnvChoice,
-    RenderOptions, Renderer, env_choice, process_env,
-};
+use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
 use crate::theme::Theme;
 
 /// Default environment variable for the operator's JSON layout.
@@ -58,9 +55,13 @@ impl MessageKind {
     }
 }
 
-/// Destination selected by a view.
+/// Where a view sends rendered output.
+///
+/// It is not [`ctl_term::Stream`](crate::term::Stream): that one names a
+/// stream colour and width are decided for, and this one also names no
+/// output at all.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Stream {
+pub enum Destination {
     /// No output, used for quiet successful pretty output.
     None,
     /// Standard output.
@@ -72,7 +73,7 @@ pub enum Stream {
 /// Rendered bytes plus their destination and exit semantics.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Captured {
-    stream: Stream,
+    stream: Destination,
     content: String,
     exit_code: u8,
 }
@@ -80,7 +81,7 @@ pub struct Captured {
 impl Captured {
     /// Destination stream.
     #[must_use]
-    pub const fn stream(&self) -> Stream {
+    pub const fn stream(&self) -> Destination {
         self.stream
     }
 
@@ -105,6 +106,7 @@ impl Captured {
 
 /// Line layout of JSON output. No layout adds ANSI.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum JsonLayout {
     /// One line per document.
     Compact,
@@ -140,22 +142,19 @@ impl JsonLayout {
 /// terminal is coloured while a success piped to a file is not, and
 /// [`Self::capture`] under [`ColorMode::Auto`] holds no escape sequence when
 /// that stream is not a terminal.
+///
+/// The colour, width, and style settings are one [`RenderOptions`], which
+/// [`Self::render_options`] returns. A setter takes the name of its setting
+/// and returns the view changed, as on `RenderOptions`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct View {
     /// Pretty or JSON.
     pub format: OutputFormat,
-    /// ANSI policy for pretty output.
-    pub color: ColorMode,
     /// Suppress successful pretty output.
     pub quiet: bool,
-    width: Option<u16>,
-    automatic_width_buffer: Option<u16>,
-    automatic_width_buffer_envs: &'static [&'static str],
-    minimum_automatic_width: u16,
-    fallback_width: Option<u16>,
+    options: RenderOptions,
     json_layout: Option<JsonLayout>,
     json_layout_envs: &'static [&'static str],
-    styles: RenderOptions,
 }
 
 impl View {
@@ -164,16 +163,10 @@ impl View {
     pub const fn new(format: OutputFormat, color: ColorMode) -> Self {
         Self {
             format,
-            color,
             quiet: false,
-            width: None,
-            automatic_width_buffer: None,
-            automatic_width_buffer_envs: DEFAULT_COLUMN_BUFFER_ENVS,
-            minimum_automatic_width: DEFAULT_MINIMUM_AUTOMATIC_WIDTH,
-            fallback_width: Some(DEFAULT_FALLBACK_WIDTH),
+            options: RenderOptions::new(color),
             json_layout: None,
             json_layout_envs: DEFAULT_JSON_LAYOUT_ENVS,
-            styles: RenderOptions::new(color),
         }
     }
 
@@ -193,13 +186,13 @@ impl View {
     }
 
     /// JSON layout: the owner's choice, then the environment, then the
-    /// default.
+    /// default. It reads the process environment.
     #[must_use]
-    pub fn layout(self) -> JsonLayout {
-        self.layout_with(process_env)
+    pub fn resolved_json_layout(self) -> JsonLayout {
+        self.json_layout_with(process_env)
     }
 
-    pub(crate) fn layout_with(self, value: impl Fn(&str) -> Option<String>) -> JsonLayout {
+    pub(crate) fn json_layout_with(self, value: impl Fn(&str) -> Option<String>) -> JsonLayout {
         self.json_layout
             .or_else(|| env_choice(self.json_layout_envs, value))
             .unwrap_or_default()
@@ -209,7 +202,7 @@ impl View {
     /// accepted. `App` prints them before it runs.
     #[cfg(feature = "app")]
     pub(crate) fn env_warnings(self, value: impl Fn(&str) -> Option<String>) -> Vec<String> {
-        let mut warnings = self.styles.style_env_warnings(&value);
+        let mut warnings = self.options.style_env_warnings(&value);
         if self.json_layout.is_none() {
             warnings.extend(crate::render::env_choice_warnings::<JsonLayout>(
                 self.json_layout_envs,
@@ -219,22 +212,30 @@ impl View {
         warnings
     }
 
-    /// Take record style, list style, row separation, and the theme from
-    /// `styles`. Its color and width settings are ignored; the view owns
-    /// those.
+    /// Take the theme, record style, list frame, row separation, and the
+    /// variables they read from `styles`. Its colour and width settings are
+    /// ignored; the view owns those.
     #[must_use]
     pub const fn styles(mut self, styles: RenderOptions) -> Self {
-        self.styles = styles;
+        self.options = self.options.styles(styles);
         self
     }
 
     /// Draw each role in the style `theme` gives it, in place of
-    /// [`Theme::default`]. Colour is still [`Self::color`]'s choice:
+    /// [`Theme::default`]. Colour is still the colour mode's choice:
     /// [`ColorMode::Never`] writes no style. A later [`Self::styles`]
     /// replaces this theme with its own.
     #[must_use]
     pub const fn theme(mut self, theme: Theme) -> Self {
-        self.styles = self.styles.theme(theme);
+        self.options = self.options.theme(theme);
+        self
+    }
+
+    /// Write colour as `color` says, in place of the mode given to
+    /// [`Self::new`].
+    #[must_use]
+    pub const fn color(mut self, color: ColorMode) -> Self {
+        self.options = self.options.color(color);
         self
     }
 
@@ -248,7 +249,7 @@ impl View {
     /// Force an explicit presentation width.
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
-        self.width = Some(width);
+        self.options = self.options.width(width);
         self
     }
 
@@ -256,71 +257,43 @@ impl View {
     /// Zero disables buffering. Explicit [`Self::width`] remains exact.
     #[must_use]
     pub const fn automatic_width_buffer(mut self, columns: u16) -> Self {
-        self.automatic_width_buffer = Some(columns);
+        self.options = self.options.automatic_width_buffer(columns);
         self
     }
 
     /// Replace the ordered environment names used for the automatic buffer.
     #[must_use]
     pub const fn automatic_width_buffer_envs(mut self, names: &'static [&'static str]) -> Self {
-        self.automatic_width_buffer_envs = names;
+        self.options = self.options.automatic_width_buffer_envs(names);
         self
     }
 
     /// Set the floor for automatically detected effective widths.
     #[must_use]
     pub const fn minimum_automatic_width(mut self, columns: u16) -> Self {
-        self.minimum_automatic_width = columns;
+        self.options = self.options.minimum_automatic_width(columns);
         self
     }
 
     /// Lay out to `width` when no width is detected; `None` disables it.
     #[must_use]
     pub const fn fallback_width(mut self, width: Option<u16>) -> Self {
-        self.fallback_width = width;
+        self.options = self.options.fallback_width(width);
         self
     }
 
-    /// Explicit automatic-width buffer, when set.
+    /// The colour, width, and style settings pretty output renders with:
+    /// the buffer, its environment names, the minimum, the fallback, and the
+    /// styles.
     #[must_use]
-    pub const fn explicit_automatic_width_buffer(self) -> Option<u16> {
-        self.automatic_width_buffer
-    }
-
-    /// Ordered environment names used for the automatic-width buffer.
-    #[must_use]
-    pub const fn automatic_width_buffer_env_names(self) -> &'static [&'static str] {
-        self.automatic_width_buffer_envs
-    }
-
-    /// Floor applied only to automatically detected widths.
-    #[must_use]
-    pub const fn automatic_width_minimum(self) -> u16 {
-        self.minimum_automatic_width
-    }
-
-    pub(crate) fn render_options(self) -> RenderOptions {
-        let mut options = RenderOptions::new(self.color)
-            .automatic_width_buffer_envs(self.automatic_width_buffer_envs)
-            .minimum_automatic_width(self.minimum_automatic_width)
-            .fallback_width(self.fallback_width)
-            .theme(self.styles.active_theme())
-            .record_style(self.styles.record())
-            .list_style(self.styles.list())
-            .row_separation(self.styles.separation());
-        if let Some(width) = self.width {
-            options = options.width(width);
-        }
-        if let Some(buffer) = self.automatic_width_buffer {
-            options = options.automatic_width_buffer(buffer);
-        }
-        options
+    pub const fn render_options(self) -> RenderOptions {
+        self.options
     }
 
     /// One JSON document in this view's layout, newline-terminated. Successes
     /// and error envelopes share it, so both follow the same layout.
     fn json(self, value: &impl Serialize) -> io::Result<String> {
-        let mut content = if self.layout().pretty() {
+        let mut content = if self.resolved_json_layout().pretty() {
             serde_json::to_string_pretty(value)?
         } else {
             serde_json::to_string(value)?
@@ -331,10 +304,7 @@ impl View {
 
     /// `document` in the colour and at the width decided for `stream`.
     fn pretty(self, stream: ctl_term::Stream, document: &Document) -> String {
-        let options = self.render_options();
-        options
-            .console(stream)
-            .render(&Renderer::new(options).widget(document))
+        self.options.render_for(stream, document)
     }
 
     /// Render without writing. Tests and alternate transports use this path.
@@ -352,21 +322,21 @@ impl View {
         let exit_code = value.exit_code();
         if self.format.is_json() {
             return Ok(Captured {
-                stream: Stream::Stdout,
+                stream: Destination::Stdout,
                 content: self.json(value)?,
                 exit_code,
             });
         }
         if self.quiet && kind == MessageKind::Success {
             return Ok(Captured {
-                stream: Stream::None,
+                stream: Destination::None,
                 content: String::new(),
                 exit_code,
             });
         }
         let (stream, target) = match kind {
-            MessageKind::Success => (Stream::Stdout, ctl_term::Stream::Stdout),
-            MessageKind::Error => (Stream::Stderr, ctl_term::Stream::Stderr),
+            MessageKind::Success => (Destination::Stdout, ctl_term::Stream::Stdout),
+            MessageKind::Error => (Destination::Stderr, ctl_term::Stream::Stderr),
         };
         Ok(Captured {
             stream,
@@ -384,9 +354,9 @@ impl View {
     pub fn show(self, value: &impl Present) -> io::Result<ExitCode> {
         let captured = self.capture(value)?;
         match captured.stream() {
-            Stream::None => {}
-            Stream::Stdout => write_stdout(captured.bytes())?,
-            Stream::Stderr => write_stderr(captured.bytes())?,
+            Destination::None => {}
+            Destination::Stdout => write_stdout(captured.bytes())?,
+            Destination::Stderr => write_stderr(captured.bytes())?,
         }
         Ok(captured.exit_code())
     }
@@ -448,13 +418,14 @@ mod tests {
     fn the_environment_picks_the_json_layout_the_owner_left_open() {
         let compact = |name: &str| (name == "CTL_CORE_JSON_LAYOUT").then(|| "compact".to_owned());
         let view = View::new(OutputFormat::Json, ColorMode::Never);
-        assert_eq!(view.layout_with(compact), JsonLayout::Compact);
+        assert_eq!(view.json_layout_with(compact), JsonLayout::Compact);
         assert_eq!(
-            view.json_layout(JsonLayout::Pretty).layout_with(compact),
+            view.json_layout(JsonLayout::Pretty)
+                .json_layout_with(compact),
             JsonLayout::Pretty
         );
         assert_eq!(
-            view.json_layout_envs(&[]).layout_with(compact),
+            view.json_layout_envs(&[]).json_layout_with(compact),
             JsonLayout::Pretty
         );
     }

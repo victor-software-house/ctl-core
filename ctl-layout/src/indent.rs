@@ -7,31 +7,31 @@ use ctl_text::{Context, Line, Measurement, Renderable};
 use crate::lines::indent_lines;
 
 /// A widget moved right by a number of cells. The child gets the width that
-/// is left, and a blank line stays blank.
-pub struct Indent {
+/// is left, but never less than 1 cell, so a child still draws when the
+/// indent is as wide as the context. A blank line stays blank.
+///
+/// The child may be borrowed, as in `Indent::new(2, &widget)`.
+pub struct Indent<'a> {
     columns: u16,
-    child: Box<dyn Renderable>,
+    child: Box<dyn Renderable + 'a>,
 }
 
-impl Indent {
+impl<'a> Indent<'a> {
     /// `child` moved right by `columns` cells.
     #[must_use]
-    pub fn new(columns: u16, child: impl Renderable + 'static) -> Self {
-        Self::boxed(columns, Box::new(child))
+    pub fn new(columns: u16, child: impl Renderable + 'a) -> Self {
+        Self {
+            columns,
+            child: Box::new(child),
+        }
     }
 
-    /// An already boxed `child` moved right by `columns` cells.
-    #[must_use]
-    pub fn boxed(columns: u16, child: Box<dyn Renderable>) -> Self {
-        Self { columns, child }
-    }
-
-    fn inner(&self, context: Context) -> Context {
-        context.with_width(context.width().saturating_sub(self.columns).max(1))
+    fn inner(&self, context: &Context) -> Context {
+        context.at_width(context.width().saturating_sub(self.columns).max(1))
     }
 }
 
-impl fmt::Debug for Indent {
+impl fmt::Debug for Indent<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Indent")
@@ -40,9 +40,9 @@ impl fmt::Debug for Indent {
     }
 }
 
-impl Renderable for Indent {
+impl Renderable for Indent<'_> {
     fn measure(&self, context: &Context) -> Measurement {
-        let measured = self.child.measure(&self.inner(*context));
+        let measured = self.child.measure(&self.inner(context));
         Measurement::new(
             measured.minimum().saturating_add(self.columns),
             measured.maximum().saturating_add(self.columns),
@@ -50,6 +50,6 @@ impl Renderable for Indent {
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        indent_lines(self.child.render(&self.inner(*context)), self.columns)
+        indent_lines(self.child.render(&self.inner(context)), self.columns)
     }
 }

@@ -18,7 +18,7 @@ Whatever writes the lines to a terminal adds the styling after layout.
   It keeps words whole, folds inside a word, or ends with an ellipsis.
 - `Renderable`, `Context`, and `Measurement`, the protocol a widget follows.
   A widget reports its size, then draws itself at a width.
-- `verbatim::is_unsafe`, the rule for which characters never reach a terminal.
+- `unsafe_chars::is_unsafe` and `unsafe_chars::strip_unsafe`, the rule for which characters never reach a terminal, and the function that applies it.
 
 ## Example
 

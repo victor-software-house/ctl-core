@@ -157,7 +157,7 @@ fn auto_colour_follows_the_fixed_order() {
     for case in COLOR_CASES {
         let pipe = terminal(PIPE, ColorMode::Auto, case.variables);
         assert_eq!(pipe.color().is_some(), case.on_pipe, "pipe: {}", case.name);
-        assert!(!pipe.is_terminal(), "pipe: {}", case.name);
+        assert!(!pipe.is_attached(), "pipe: {}", case.name);
         let tty = terminal(TERMINAL, ColorMode::Auto, case.variables);
         assert_eq!(
             tty.color().is_some(),
@@ -165,12 +165,12 @@ fn auto_colour_follows_the_fixed_order() {
             "terminal: {}",
             case.name
         );
-        assert!(tty.is_terminal(), "terminal: {}", case.name);
+        assert!(tty.is_attached(), "terminal: {}", case.name);
     }
 }
 
 #[test]
-fn an_explicit_mode_reads_no_variable() {
+fn an_explicit_mode_ignores_the_colour_variables() {
     for case in COLOR_CASES {
         for probe in [PIPE, TERMINAL] {
             let always = terminal(probe, ColorMode::Always, case.variables);
@@ -284,21 +284,21 @@ fn a_forced_colour_takes_the_depth_the_variables_give() {
 }
 
 #[test]
-fn with_depth_replaces_the_depth_of_a_coloured_terminal() {
+fn at_depth_replaces_the_depth_of_a_coloured_terminal() {
     let coloured = terminal(PIPE, ColorMode::Always, &[("COLORTERM", "truecolor")]);
     for depth in [
         ColorDepth::Ansi16,
         ColorDepth::Ansi256,
         ColorDepth::TrueColor,
     ] {
-        assert_eq!(coloured.with_depth(depth).color(), Some(depth));
+        assert_eq!(coloured.at_depth(depth).color(), Some(depth));
     }
 }
 
 #[test]
-fn with_depth_does_not_turn_colour_on() {
+fn at_depth_does_not_turn_colour_on() {
     let plain = terminal(PIPE, ColorMode::Never, &[]);
-    assert_eq!(plain.with_depth(ColorDepth::TrueColor).color(), None);
+    assert_eq!(plain.at_depth(ColorDepth::TrueColor).color(), None);
 }
 
 #[test]
@@ -333,16 +333,18 @@ const fn width_case(
 }
 
 const fn window(columns: u16) -> Probe {
-    Probe::Terminal {
-        columns: Some(columns),
-    }
+    Probe::terminal(Some(columns))
 }
 
-const UNSIZED_WINDOW: Probe = Probe::Terminal { columns: None };
+const UNSIZED_WINDOW: Probe = Probe::terminal(None);
+
+/// The buffer variable ctl-core names, which `DetectOptions::new` does not
+/// read.
+const BUFFER_ENVS: &[&str] = &["CTL_CORE_COLUMN_BUFFER"];
 
 const COLUMNS_100: Variables = &[("COLUMNS", "100")];
 
-fn source_cases() -> Vec<WidthCase> {
+fn columns_cases() -> Vec<WidthCase> {
     let defaults = DetectOptions::new();
     vec![
         width_case(
@@ -396,6 +398,12 @@ fn source_cases() -> Vec<WidthCase> {
             defaults,
             Some(15),
         ),
+    ]
+}
+
+fn source_cases() -> Vec<WidthCase> {
+    let defaults = DetectOptions::new();
+    vec![
         width_case(
             "the window beats COLUMNS",
             window(120),
@@ -438,6 +446,20 @@ fn source_cases() -> Vec<WidthCase> {
             defaults.width(5),
             Some(5),
         ),
+        width_case(
+            "an explicit width of 0 counts as 1",
+            window(120),
+            &[],
+            defaults.width(0),
+            Some(1),
+        ),
+        width_case(
+            "a window of 0 columns is not reported",
+            window(0),
+            &[("COLUMNS", "60")],
+            defaults,
+            Some(58),
+        ),
     ]
 }
 
@@ -448,35 +470,35 @@ fn buffer_cases() -> Vec<WidthCase> {
             "no buffer",
             PIPE,
             COLUMNS_100,
-            defaults.buffer(0),
+            defaults.column_buffer(0),
             Some(100),
         ),
         width_case(
             "a buffer of 5",
             PIPE,
             COLUMNS_100,
-            defaults.buffer(5),
+            defaults.column_buffer(5),
             Some(95),
         ),
         width_case(
             "the buffer variable",
             PIPE,
             &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "4")],
-            defaults,
+            defaults.column_buffer_envs(BUFFER_ENVS),
             Some(96),
         ),
         width_case(
             "an explicit buffer beats the variable",
             PIPE,
             &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "4")],
-            defaults.buffer(1),
+            defaults.column_buffer_envs(BUFFER_ENVS).column_buffer(1),
             Some(99),
         ),
         width_case(
             "the buffer variable is not a number",
             PIPE,
             &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "many")],
-            defaults,
+            defaults.column_buffer_envs(BUFFER_ENVS),
             Some(98),
         ),
         width_case(
@@ -488,21 +510,30 @@ fn buffer_cases() -> Vec<WidthCase> {
                 ("SECOND", "3"),
                 ("THIRD", "9"),
             ],
-            defaults.buffer_envs(&["FIRST", "SECOND", "THIRD"]),
+            defaults.column_buffer_envs(&["FIRST", "SECOND", "THIRD"]),
             Some(97),
         ),
         width_case(
-            "replaced buffer names ignore the default name",
+            "buffer names do not read a variable they leave out",
             PIPE,
             &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "4")],
-            defaults.buffer_envs(&["OTHER"]),
+            defaults.column_buffer_envs(&["OTHER"]),
+            Some(98),
+        ),
+        width_case(
+            "the defaults read no buffer variable",
+            PIPE,
+            &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "4")],
+            defaults,
             Some(98),
         ),
         width_case(
             "an empty buffer name list reads no variable",
             PIPE,
             &[("COLUMNS", "100"), ("CTL_CORE_COLUMN_BUFFER", "4")],
-            defaults.buffer_envs(&[]),
+            defaults
+                .column_buffer_envs(BUFFER_ENVS)
+                .column_buffer_envs(&[]),
             Some(98),
         ),
     ]
@@ -515,21 +546,21 @@ fn limit_cases() -> Vec<WidthCase> {
             "no minimum",
             PIPE,
             &[("COLUMNS", "3")],
-            defaults.minimum(0),
+            defaults.minimum_width(0),
             Some(1),
         ),
         width_case(
             "a higher minimum",
             PIPE,
             COLUMNS_100,
-            defaults.minimum(99),
+            defaults.minimum_width(99),
             Some(99),
         ),
         width_case(
             "a minimum below the buffered width",
             PIPE,
             COLUMNS_100,
-            defaults.minimum(30),
+            defaults.minimum_width(30),
             Some(98),
         ),
         width_case(
@@ -538,6 +569,13 @@ fn limit_cases() -> Vec<WidthCase> {
             &[],
             defaults.fallback_width(Some(60)),
             Some(60),
+        ),
+        width_case(
+            "a fallback of 0 counts as 1",
+            PIPE,
+            &[],
+            defaults.fallback_width(Some(0)),
+            Some(1),
         ),
         width_case(
             "no fallback",
@@ -557,17 +595,22 @@ fn limit_cases() -> Vec<WidthCase> {
             "the fallback is not buffered",
             PIPE,
             &[],
-            defaults.fallback_width(Some(10)).buffer(5),
+            defaults.fallback_width(Some(10)).column_buffer(5),
             Some(10),
         ),
     ]
 }
 
 fn width_cases() -> Vec<WidthCase> {
-    [source_cases(), buffer_cases(), limit_cases()]
-        .into_iter()
-        .flatten()
-        .collect()
+    [
+        columns_cases(),
+        source_cases(),
+        buffer_cases(),
+        limit_cases(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 #[test]
