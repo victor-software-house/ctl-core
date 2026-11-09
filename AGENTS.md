@@ -427,6 +427,11 @@ its budget in `[workspace.metadata.size]` of the root `Cargo.toml`. The
 budgets are linux-x64 numbers, so the task runs on Linux x86-64 and skips
 elsewhere. A change that grows a tier on purpose raises its budget in the
 same pull request, measured with the pinned rustc.
+`lint:prose` runs Vale with the prose-style package over the files
+`.vale.ini` picks: `README.md`, `AGENTS.md`, `docs/` outside
+`docs/research/`, the crate docs in each `src/`, and the changesets.
+`vale sync` fetches the package into the ignored `.vale/`, so the first run
+needs the network.
 `check:repo`, `commit-msg`, `commits`, and the secrets scans are the
 template's files in `mise-tasks/`. `check:repo` runs taplo, rumdl, typos,
 actionlint, and OpenSpec validation, then `check:local`, which

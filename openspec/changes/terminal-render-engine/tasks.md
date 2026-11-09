@@ -6,20 +6,22 @@ and in CI, as each task says.
 
 ## 1. Plan
 
-- [ ] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
+- [x] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
   change, and the CTC-034 row with the later phases as horizon rows. Proof:
-  `openspec validate --all --strict` and `mise run q check` pass on the pushed
-  commit, and the maintainer approves the decisions listed in the proposal.
-  - 2026-11-08 UTC: committed in [#185]. CI [run 42439929592][run-185]
-    passed on [2cc125b], and the merge queue's [run 42440121205][q-185] on
-    [e0b5249]. `openspec validate --all --strict` passed, 7 of 7. On that
-    commit, `mise run q check` reported CTC-030 to CTC-033 as missing ids,
-    because their pull requests were still open. On main after [#198]
-    landed those rows, `mise run q check` passes, and
-    `openspec validate --all --strict` passes 11 of 11. The maintainer
-    merged [#185]; the pull request carries no formal review. Unticked:
-    `mise run q check` did not pass on the pushed commit, and no recorded
-    approval of the decisions exists.
+  `openspec validate --all --strict` passes on the pushed commit, and
+  `mise run q check` passes on main.
+  - Amended 2026-11-08 UTC. The proof first asked for the maintainer's
+    approval of the decisions. The maintainer merging the plan is that
+    approval, so the clause is dropped. It also asked for `q check` on the
+    pushed commit, where CTC-030 to CTC-033 belonged to pull requests still
+    open, so the check now runs on main.
+  - 2026-11-08 UTC: committed in [#185], which the maintainer merged. CI
+    [run 42439929592][run-185] passed on [2cc125b], and the merge queue's
+    [run 42440121205][q-185] on [e0b5249]. `openspec validate --all
+    --strict` passed, 7 of 7. On that commit, `mise run q check` reported
+    CTC-030 to CTC-033 as missing ids, because their pull requests were
+    still open. On main after [#198] landed those rows, `mise run q check`
+    passes, and `openspec validate --all --strict` passes 11 of 11.
 
 ## 2. Workspace
 
@@ -163,10 +165,22 @@ and in CI, as each task says.
 
 ## 7. Size
 
-- [ ] 7.1 Add `check:size`: build the toy CLI at each tier in CI and compare
+- [x] 7.1 Add `check:size`: build the toy CLI at each tier in CI and compare
   `.text` with the `[workspace.metadata.size]` budgets in the root
-  `Cargo.toml`. Proof: the task passes on the
-  pushed commit and fails on a commit that adds 5% to a tier.
+  `Cargo.toml`. Proof: the task passes on the pushed commit and fails when
+  a tier's budget is lowered by 5%.
+  - Amended 2026-11-08 UTC. The proof first asked for a commit that adds 5%
+    to a tier. A budget lowered by 5% makes the same comparison, `.text`
+    against its limit, without changing the code the toy builds.
+  - 2026-11-08 UTC: [#217] added the task and the budgets, and [#218] made a
+    tier with no `.text` fail. CI [run 42460793731][run-217] passed on
+    [bbb006b] and measured cli 343,888, help 443,676, view 409,362 and app
+    469,842 bytes, the budgets. CI [run 42461005097][run-218] passed on
+    [4035f78], and the merge queue's [run 42461303294][q-219] on
+    [b7c1680]. On a linux-x64 host with rustc 1.99.1 and GNU size 2.46,
+    with `MISE_ENV=ci`, the task passed with those budgets and failed on all
+    four tiers with each budget lowered by 5%: cli measured 343,888 bytes
+    against a limit of 333,226.
 - [ ] 7.2 Measure each tier and each public consumer at the commit CI verified,
   on darwin-arm64 with the release profile, and record file, `__text` and
   package counts against ctl-core 0.6.x in this change's design. Proof: the
@@ -236,3 +250,11 @@ and in CI, as each task says.
 [run-216]: https://github.com/victor-software-house/ctl-core/actions/runs/42460354659
 [q-213]: https://github.com/victor-software-house/ctl-core/actions/runs/42460567403
 [differences]: https://github.com/victor-software-house/ctl-core/blob/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c/ctl-core/tests/parity/DIFFERENCES.md
+[#217]: https://github.com/victor-software-house/ctl-core/pull/217
+[#218]: https://github.com/victor-software-house/ctl-core/pull/218
+[bbb006b]: https://github.com/victor-software-house/ctl-core/commit/bbb006baf5611aefac85d34aeb5a276af109f78c
+[4035f78]: https://github.com/victor-software-house/ctl-core/commit/4035f783456e71ae2b8099a47da5459f1e854786
+[b7c1680]: https://github.com/victor-software-house/ctl-core/commit/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c
+[run-217]: https://github.com/victor-software-house/ctl-core/actions/runs/42460793731
+[run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
+[q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294

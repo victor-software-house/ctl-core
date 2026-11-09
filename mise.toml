@@ -63,6 +63,14 @@ depends = [
   "check:repo",
 ]
 
+# Prose habits from the prose-style package; .vale.ini picks the files. `vale
+# sync` fetches the package named there, so the first run needs the network.
+[tasks."lint:prose"]
+description = "Prose habits in the docs, the crate docs, and the changesets"
+tools = { "aqua:vale-cli/vale" = "3.26.0" }
+usage = 'arg "[path]" var=#true default="." help="Files or directories to check"'
+run = ["vale sync", "vale ${usage_path}"]
+
 # mise-tasks/ holds this repository's task fragments and file tasks. An
 # includes list replaces the default task dirs, so mise-tasks comes first; add
 # pinned git:: catalogs after it.
