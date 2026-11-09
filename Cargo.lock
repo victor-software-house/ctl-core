@@ -818,9 +818,9 @@ checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
 
 [[package]]
 name = "vsh-serde-saphyr"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20f99ed76a53d5be310e16fd7492a057bc871252aea6df4212a34e700ac7d9fd"
+checksum = "5515ffe30379241c0d7d0e3a50c6b5eb3409f6f08cd37b992858b6fa7092d9c3"
 dependencies = [
  "annotate-snippets",
  "encoding_rs_io",
@@ -862,9 +862,9 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yamled"
-version = "0.0.11"
+version = "0.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd7920a414f426f106cfc01445c3c83c7e48d590a6a93a86b3ecba75f74c0a3e"
+checksum = "506b199d71e3c44d04290caa90bd6b4cccd6db78a8f186ba322d909aebae38bc"
 dependencies = [
  "granit-parser",
 ]
