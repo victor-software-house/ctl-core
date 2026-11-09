@@ -117,7 +117,7 @@ Features are tree-shaking.
 `surface-model` adds only the Clap and Usage metadata that the rendered documents read.
 `surface-serde` adds ctl-core's direct Serde edge without a template engine.
 `surface-templates` adds MiniJinja, and `surface` preserves the full legacy aggregate.
-`surface-model` still inherits Serde from `usage-lib`, whose KDL model requires it; that is not ctl-core serialization.
+`surface-model` pulls in no Serde: ctl-core writes the Usage KDL itself.
 
 Prefer the narrowest feature set a consumer needs.
 Never add serialization or rendering behaviour to a lower tier.

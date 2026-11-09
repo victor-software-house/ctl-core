@@ -4,7 +4,8 @@
 
 ctl-core SHALL declare `clap` with `default-features = false`. The `cli`
 feature SHALL turn on only Clap's `std`, `derive`, `env`, and `string`
-features, and `help` SHALL add only `usage`. No other ctl-core feature,
+features. `help` and `usage` SHALL each add only Clap's `usage`, which
+renders the usage line. No other ctl-core feature,
 and no dependency of ctl-core, SHALL turn on Clap's `default` feature.
 
 #### Scenario: A consumer with a minimal clap entry

@@ -48,7 +48,6 @@ ctl-layout = { path = "ctl-layout", version = "=0.6.28" }
 # `view` and `help` features turn `detect` on again.
 ctl-term = { path = "ctl-term", version = "=0.6.28", default-features = false }
 ctl-text = { path = "ctl-text", version = "=0.6.28" }
-usage-lib = { version = "7.3.0", default-features = false, features = ["clap"] }
 unicode-bidi = { version = "0.3.18", default-features = false }
 unicode-segmentation = { version = "1.13.3", default-features = false }
 # `cjk` stays off: East Asian ambiguous characters count 1 cell, and the
