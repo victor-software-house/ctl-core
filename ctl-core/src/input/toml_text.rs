@@ -8,25 +8,26 @@
 use std::ops::Range;
 
 use serde::de::DeserializeOwned;
-use serde_saphyr::Budget;
 use toml::Spanned;
 use toml::de::{DeTable, DeValue, Deserializer};
 
-use super::limits::{Exceeded, Raise};
-use super::{Input, InputError, Problem, Step, field_steps};
+use super::limits::{Bounds, Exceeded, Raise};
+use super::{Input, InputError, Problem};
+#[cfg(feature = "validate")]
+use super::{Step, field_steps};
 
 /// [`Input::parse`] for a TOML text: the tree, then the limits, then the
 /// typed value. The first problem found is the one reported.
 pub(super) fn parse<T: DeserializeOwned>(
     input: &Input,
-    budget: &Budget,
+    bounds: Bounds,
     raise: Raise,
 ) -> Result<T, InputError> {
     let root = DeTable::parse(&input.text)
         .map_err(|error| refusal(input, error.span(), error.message()))?;
     let mut measure = Measure {
-        max_depth: budget.max_depth,
-        max_nodes: budget.max_nodes,
+        max_depth: bounds.depth,
+        max_nodes: bounds.nodes,
         nodes: 0,
         raise,
     };
@@ -40,6 +41,7 @@ pub(super) fn parse<T: DeserializeOwned>(
 /// The 1-based line and column of each garde field in `text`, or of its
 /// nearest written ancestor. `None` for every field when `text` does not
 /// parse.
+#[cfg(feature = "validate")]
 pub(super) fn places(text: &str, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
     let root = DeTable::parse(text)
         .ok()
@@ -54,6 +56,7 @@ pub(super) fn places(text: &str, fields: &[&str]) -> Vec<Option<(usize, usize)>>
 }
 
 /// The span of the value `steps` reach, or of the last one that exists.
+#[cfg(feature = "validate")]
 fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step<'_>]) -> Range<usize> {
     let mut found = root;
     for step in steps {

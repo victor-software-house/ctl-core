@@ -27,7 +27,8 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   - Completion is its own `completion` feature, below.
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names, recursive commands, aliases, visibility, arguments, flags, Usage KDL, and optional audience notes.
   `surface-serde` adds serialization without a template engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains the compatibility aggregate enabling all three.
-- Declared input (`validate`, `input`, `input-toml` features): shared garde rules, and one loader that parses YAML or TOML, validates once, and places every problem on its file and line.
+- Declared input (`validate`, `input-yaml`, `input-toml`, `input` features): shared garde rules, and one loader for YAML or TOML.
+  It validates once with `validate`, and places every problem on its file and line.
 - Served files (`served` feature): render a template that declares its own target through `{%- set -%}` exports, check the declarations once, and write the file with its mode.
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a flattenable `CompletionCommand`, and the registration script for bash, zsh, and fish.
   - `App::completion` answers `COMPLETE=<shell>` before parsing; the feature enables `app` for it.
@@ -211,35 +212,50 @@ The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 
 ## Declared input
 
-`validate` holds the garde rules every schema shares.
-`input` reads a file, parses it with serde-saphyr (strict booleans, duplicate and merge keys refused), and validates it once with garde.
-It reports every problem with its file and line through yamled's location index.
+Each format is its own feature, and validation is a third:
 
-A message carries no position of its own, except that an alias error names where its value is defined, counted from the file.
+| Feature | Adds | Links |
+|:--|:--|:--|
+| `input-yaml` | YAML, with strict booleans and duplicate and merge keys refused | serde-saphyr, yamled |
+| `input-toml` | TOML, parsed into the span-carrying `DeTable` that also places each problem | toml |
+| `validate` | The shared garde rules, and with a format, `Input::check` and `Input::load` | garde |
+| `input` | `input-yaml` with `validate`, the set every current consumer enables | serde-saphyr, yamled, garde |
+
+`check:tree` fails when `input-toml` alone links serde-saphyr, yamled, or garde.
+
+A message carries no position of its own, except that a YAML alias error names where its value is defined, counted from the file.
 `Input::frontmatter` splits YAML frontmatter from a Markdown body.
 
-Limits are serde-saphyr's `Budget`, overridable field by field, in this order:
+`Limits` is ctl-core's own type, overridable field by field, in this order:
 
 1. the call (`Input::limits`);
-2. the repository (`limits:` in `.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup);
+2. the repository (`limits:` in `.ctl/input.yaml`, installed by `use_repo_limits(root)` at startup), with `input-yaml` only;
 3. the process (`set_default_limits` or `App::input_limits`);
-4. serde-saphyr's default.
+4. ctl-core's default.
+
+Three fields hold every format: `max_reader_input_bytes`, `max_depth`, and `max_nodes`.
+Their defaults are the `Limits::DEFAULT_*` constants, which a unit test holds to serde-saphyr's.
+The other fields name YAML syntax, exist only with `input-yaml`, and default to serde-saphyr's.
+The field set follows the enabled features, so a caller builds `Limits` with `..Limits::NONE`.
+
+ctl-core enforces depth and nodes on a TOML text itself, because the `toml` crate takes no depth or node limit from a caller.
+Its parser bounds nesting at a fixed 80 levels, which no limit raises.
 
 `enforce_alias_anchor_ratio` is not overridable and stays on.
 `use_repo_limits` returns each limit the repository raises above the default; the CLI prints each as a warning.
-A CLI parses config only through `input`; it keeps no `schema.rs` and no YAML crate of its own.
+Without `input-yaml`, a limit message ends "the tool sets this limit".
+
+A CLI parses config only through the input features; it keeps no `schema.rs` and no YAML crate of its own.
 `CTC-008` tracks the consumer moves and the template renderer.
 
-`input-toml` adds TOML on top of `input`, with the `toml` crate's span-carrying `DeTable` as parser and location index, so the same `Input` loads either format.
 The format is chosen, never guessed.
-`Input::open(path)` reads it from the extension (`.toml`, `.yaml`, `.yml`, any case) and refuses every other extension before reading.
-`Input::new` and `Input::read` stay YAML whatever the name is, and `Input::format(Format)` sets it for text in memory.
+`Input::open(path)` reads it from the extension (`.toml`, `.yaml`, `.yml`, any case).
+It refuses every other extension before reading, and names the feature a known extension needs.
 
-A TOML text reads three `Limits` fields, `max_reader_input_bytes`, `max_depth`, and `max_nodes`.
-Every other field names YAML syntax and has no effect on TOML.
-The `toml` parser also bounds nesting at 80 levels, which no limit raises.
+`Input::new` and `Input::read` need `input-yaml` and stay YAML whatever the name is.
+`Input::new_with_format` or `Input::format(Format)` names the format for text in memory.
 The repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
-`openspec/specs/declared-input` holds the contract and `CTC-021` the row.
+`openspec/specs/declared-input` holds the contract, and `CTC-021` and `CTC-025` the rows.
 
 ## Served files
 

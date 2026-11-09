@@ -26,7 +26,8 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
 - A reader that closes stdout early, such as `head -1`, leaves the exit code as the command set it.
   `App::broken_pipe(BrokenPipe::Fail)` turns every closed pipe into a failure.
 - `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and fish, behind the `completion` and `shell-init` features.
-- A loader for declared YAML or TOML input that validates once and reports every problem with its file and line, behind `input` and `input-toml`.
+- A loader for declared YAML or TOML input that validates once and reports every problem with its file and line, behind `input-yaml` and `input-toml`.
+  Validation with garde is behind `validate`, and `input` is `input-yaml` with `validate`.
 
 ## Example
 
@@ -91,7 +92,7 @@ Each feature turns on only what its code calls.
 | `surface-model`, `surface-serde`, `surface-templates`, `surface` | The operator model drawn from the Clap types, its serialization, and shared MiniJinja fragments |
 | `unsafe-chars` | `unsafe_chars::is_unsafe` and `strip_unsafe`, the characters never printed as they are |
 | `schema` | JSON Schema for the envelope |
-| `validate`, `input`, `input-toml` | Shared garde rules and the declared-input loader |
+| `validate`, `input-yaml`, `input-toml`, `input` | Shared garde rules, and the declared-input loader for each format; `input` is `input-yaml` with `validate` |
 | `served` | Files rendered from templates that name their own target |
 | `shell`, `completion`, `shell-init` | The shell verbs |
 | `fixture` | Temporary file trees for integration tests |

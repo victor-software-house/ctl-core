@@ -158,9 +158,13 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde. 91 below the last budget,
-# 1040869: yamled 0.0.11's location index, the one crate that changed.
-input = { features = "app,input", text = 1040778 }
+# app plus input: serde-saphyr, yamled, and garde. 624 above the last budget,
+# 1040778: Limits builds the serde-saphyr Budget from ctl-core's own defaults
+# (split-input-formats, decision 3).
+input = { features = "app,input", text = 1041402 }
+# app plus input-toml: the toml crate and ctl-core's depth and node walk, with
+# no YAML crate and no garde. 448,764 below input.
+input-toml = { features = "app,input-toml", text = 592638 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

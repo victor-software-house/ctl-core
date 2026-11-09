@@ -186,9 +186,9 @@ impl<C> App<C> {
     }
 
     /// Set the process-wide default input limits as soon as it is called, not
-    /// when the `App` runs. A repository's `.ctl/input.yaml` and the limits of
-    /// a single call both win over them.
-    #[cfg(feature = "input")]
+    /// when the `App` runs. The limits of a single call win over them, and so
+    /// does a repository's `.ctl/input.yaml` with `input-yaml`.
+    #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
     #[must_use]
     pub fn input_limits(self, limits: crate::input::Limits) -> Self {
         crate::input::set_default_limits(limits);

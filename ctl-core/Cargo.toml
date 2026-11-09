@@ -86,14 +86,19 @@ served = [
 ## Garde rules every declared schema shares (`validate`).
 validate = ["dep:garde"]
 
-## Declared input: read, parse with serde-saphyr, validate once with garde,
-## and place every problem on its file and line through yamled.
-input = ["validate", "dep:serde", "dep:serde-saphyr", "dep:yamled"]
+## Declared input from YAML, validated once with garde: `input-yaml` and
+## `validate`.
+input = ["input-yaml", "validate"]
+
+## Declared input from YAML: parse with serde-saphyr and place every problem
+## on its file and line through yamled. Adds the YAML-only `Limits` fields and
+## the repository's `.ctl/input.yaml`. Needs no garde without `validate`.
+input-yaml = ["dep:serde", "dep:serde-saphyr", "dep:yamled"]
 
 ## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
 ## crate's span-carrying tree places each problem on its line and column.
-## Enables `input`, whose `Limits` it shares.
-input-toml = ["input", "dep:toml"]
+## Needs no YAML crate, and no garde without `validate`.
+input-toml = ["dep:serde", "dep:toml"]
 
 ## Temporary file trees for integration tests: `Suite`, its scenarios,
 ## and one call per file.

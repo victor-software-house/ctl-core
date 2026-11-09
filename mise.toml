@@ -56,6 +56,7 @@ depends = [
   "test",
   "test:usage",
   "test:cli",
+  "test:input-toml",
   "test:doc",
   "doc",
   "check:docs",
