@@ -11,6 +11,9 @@ deny_bans:
         itself
     wrappers:
     - ctl-core
+-   crate: usage-lib
+    reason: ctl-core writes the Usage KDL itself, and usage-lib turns clap's default
+        features back on
 -   crate: winnow:<1.0
     reason: winnow 0.7 reaches the graph only through the test-only kdl
     wrappers:

@@ -28,6 +28,7 @@ deny = [
     { crate = "openssl", reason = "TLS is rustls" },
     { crate = "native-tls", reason = "TLS is rustls" },
     { crate = "kdl", wrappers = ["ctl-core"], reason = "a KDL v2 parser for the Usage spec tests only; ctl-core writes the spec itself" },
+    { crate = "usage-lib", reason = "ctl-core writes the Usage KDL itself, and usage-lib turns clap's default features back on" },
     { crate = "winnow:<1.0", wrappers = ["kdl"], reason = "winnow 0.7 reaches the graph only through the test-only kdl" },
 ]
 skip = [
