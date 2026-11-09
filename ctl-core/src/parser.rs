@@ -159,6 +159,7 @@ const HELP_ABOUT: &str = "Print this message or the help of the given subcommand
 
 /// Whether `command` is a `help` subcommand ctl-core generated, by its name
 /// and the text Clap gives its own.
+#[cfg(feature = "surface-model")]
 pub(crate) fn is_generated_help(command: &Command) -> bool {
     command.get_name() == "help"
         && command
