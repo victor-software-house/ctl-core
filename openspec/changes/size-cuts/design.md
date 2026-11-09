@@ -128,9 +128,15 @@ kdl 6.7.1's [`is_disallowed_unicode`][kdl-671-disallowed] and usage-lib
 their doc comments list it. So 7.3.0 judges `a<DEL>b` a plain identifier
 and writes it bare, and both parsers read it back.
 
+The omission is an upstream defect in kdl 6.7.1, which usage-lib copied.
+It is not reported upstream: a report needs the maintainer's approval.
+
 - The writer writes `default="a\u{7f}b"`.
-- Its test checks that the output holds no literal U+007F, beside the
-  parse.
+- Beside the parse, its tests check every output for two things:
+  - a literal code point from the whole disallowed set;
+  - a Newline inside a single-line string.
+
+  A later missed character then fails a test without a new row.
 - Every other bare default in the corpus is a valid identifier: `-x` and
   `--x` are signed identifiers.
 

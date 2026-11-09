@@ -105,11 +105,16 @@
   `usage`, covering every getter decision 4 lists. Verify: `usage::spec`
   no longer calls usage-lib, and the corpus snapshots pass unchanged
   except for the values decision 3 lists.
-- [ ] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and a test per row of
-  decision 3 that parses the output and compares the value. The DEL row's
-  test also checks that the output holds no literal U+007F. Verify: each
-  test fails against usage-lib 7.3.0's output and passes against the
-  writer's.
+- [ ] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and these tests:
+  - one per row of decision 3, which parses the output and compares the
+    value;
+  - one over every corpus output, which looks for a literal code point
+    from KDL v2's whole disallowed set, U+007F included;
+  - one over every corpus output, which looks for a Newline inside a
+    single-line string.
+
+  Verify: each test fails against usage-lib 7.3.0's output and passes
+  against the writer's.
 - [ ] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
   text, a leading dash, and the words `true`, `null`, and `inf`. Verify:
   each value reads back unchanged.
@@ -126,10 +131,16 @@
   `ctl-core/Cargo.toml`, and the machete ignore list. Verify:
   `Cargo.lock` holds no usage-lib, and holds kdl and winnow 0.7 only
   through the dev-dependency.
-- [ ] 4.2 Ban usage-lib in `deny.toml`. Ban kdl and winnow below 1.0 with
-  `wrappers`, as decision 5 describes. Give each ban a reason, in the
-  syntax the pinned cargo-deny accepts. Verify: `mise run deny` passes in
-  CI.
+- [ ] 4.2 Change `deny.toml`, giving each entry a reason in the syntax the
+  pinned cargo-deny accepts:
+  - ban usage-lib;
+  - ban kdl and winnow below 1.0 with `wrappers`, as decision 5
+    describes;
+  - skip `syn@2` in `[bans] skip`, and nothing else. garde_derive
+    0.23.0, the latest release, requires syn 2. serde, clap, thiserror,
+    and schemars use syn 3.
+
+  Verify: `mise run deny` passes in CI with no warning.
 - [ ] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
   1.0 in ctl-core's normal dependencies with every feature. Verify: CI's
   `check:tree` passes, and fails on a commit that adds usage-lib back.
