@@ -251,6 +251,20 @@ and in CI, as each task says.
 - [ ] 8.1 After release, each public consumer (verctl, qctl, forkctl, rawr)
   moves its pin in its own pull request and reviews its snapshot diff. Proof:
   each pull request's CI passes, linked here.
+  - The same pull request sets the consumer's own clap to
+    `default-features = false`. It keeps a default feature only where the
+    CLI needs it, and says why.
+  - Before 0.7.0 that change does nothing: released 0.6.x turns clap's
+    defaults on, and Cargo unifies features. 0.7.0 also brings the
+    `-h/--help` that ctl-core declares, which the CLI needs once clap's
+    `help` feature is gone.
+  - The pull request proves the CLI's output is unchanged. `--help`, a
+    subcommand's `--help`, an unknown-argument error, and a missing-argument
+    error match byte for byte before and after. The repository's snapshot
+    tests prove it, or one added test does. Its body records `.text` before and
+    after.
+  - [Design decision 16][d16] measured what this saves with ctl-core [4bc7862]:
+    54,160 bytes of `.text` in qctl and 80,672 in rawr.
 
 ## Workflow follow-up
 
@@ -330,3 +344,5 @@ and in CI, as each task says.
 [trusted publishing]: https://crates.io/docs/trusted-publishing
 [2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
 [ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587
+[4bc7862]: https://github.com/victor-software-house/ctl-core/commit/4bc7862089fc4a4956f69ea42c169cd033f1a9f5
+[d16]: design.md#16-feature-tiers-and-their-measured-sizes

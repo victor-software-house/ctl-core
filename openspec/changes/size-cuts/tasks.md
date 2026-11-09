@@ -415,8 +415,11 @@
   4. as 3, with its own clap's default features off.
 
   [Decision 16][d16-after] holds the table and links each `main` commit to
-  its CI run. The stack cut qctl's `.text` by 267,904 bytes, 6.7%. rawr
-  uses neither `usage` nor `input`, and grew 7,040 bytes, not attributed.
+  its CI run. The stack cut qctl's `.text` by 267,904 bytes, 6.7%.
+
+  rawr uses neither `usage` nor `input`, and grew 7,040 bytes. That growth
+  is the `-h/--help` flag and `help` subcommand ctl-core now declares,
+  linked beside clap's own help code while rawr keeps clap's defaults.
   With clap's defaults off in the consumer, qctl drops another 54,160
   bytes and rawr 80,672.
 
