@@ -1,25 +1,24 @@
 //! The Usage KDL that `--usage-spec` prints, for a fixed corpus of commands.
 //!
-//! Three kinds of command, each a reviewed snapshot in `tests/snapshots`:
+//! Five kinds of command, each a reviewed snapshot in `tests/snapshots`:
 //! one builder command that sets every attribute the spec reads, a toy
-//! [`App`] mounted as the mise task `toy`, and one command per hostile string,
-//! once as help text and once as a default value. The snapshots hold the
-//! bytes the writer must keep, so a change to the spec shows as a diff.
-#![allow(
-    missing_docs,
-    reason = "an integration test crate has no public API to document"
-)]
-#![cfg(all(feature = "usage", feature = "app"))]
+//! `App` mounted as the mise task `toy`, one command per hostile string,
+//! once as help text and once as a default value, one command per word the
+//! KDL v2 identifier grammar treats specially, as a default and a possible
+//! value, and one command per value name that reads as usage syntax. The
+//! snapshots hold the bytes the writer must keep, so a change to the spec shows
+//! as a diff.
+//!
+//! Everything but the toy runs with the `usage` feature alone, so the plain
+//! tier is held to the same bytes. The toy needs `app`.
+#![cfg(feature = "usage")]
 
-use std::cell::RefCell;
 use std::fmt::Write as _;
-use std::rc::Rc;
 
 use clap::builder::PossibleValue;
 use clap::{Arg, ArgAction, ArgGroup, Command, ValueHint};
-use ctl_core::prelude::*;
 use ctl_core::usage;
-use serde::Serialize;
+use kdl::{KdlDocument, KdlNode, KdlValue};
 
 /// Strings a spec writer must quote or escape, each with its snapshot label.
 const HOSTILE: &[(&str, &str)] = &[
@@ -42,6 +41,11 @@ const HOSTILE: &[(&str, &str)] = &[
     ("bidi-multi", "a\u{202e}b\nc"),
     ("bom", "a\u{feff}b"),
     ("esc", "a\u{1b}[1mb"),
+    (
+        "osc-link",
+        "\u{1b}]8;;https://example.com\u{1b}\\link\u{1b}]8;;\u{1b}\\",
+    ),
+    ("csi-newline", "a\u{1b}[1\nb"),
     ("cr", "a\rb"),
     ("del", "a\u{7f}b"),
     ("nel", "a\u{85}b"),
@@ -58,6 +62,40 @@ const HOSTILE: &[(&str, &str)] = &[
     ("braces", "{a}"),
     ("hash", "#a"),
     ("slash", "a//b"),
+];
+
+/// The help text clap's `Display` gives for each hostile string that holds a
+/// terminal control sequence or DEL, worked out by hand from the anstyle-parse
+/// 1.0.0 state table. Every other string is its own help text.
+const STRIPPED_HELP: &[(&str, &str)] = &[
+    ("esc", "ab"),
+    ("osc-link", "link"),
+    ("csi-newline", "a\nb"),
+    ("del", "ab"),
+];
+
+/// Words the KDL v2 identifier grammar treats specially, each used once as a
+/// default and as the only possible value. Each must read back as a string with
+/// the same text: number-like words, the reserved keywords bare and with `#`,
+/// and words holding a character no identifier may hold.
+const IDENTIFIER: &[&str] = &[
+    "1", "-1", "+1", ".5", "-.5", "+.5", "1e3", "0x1F", "1_000", "true", "false", "null", "inf",
+    "-inf", "nan", "#true", "#false", "#null", "#inf", "#-inf", "#nan", "", " ", "a b", "=", "a=b",
+    "(", ")", "{", "}", "[", "]", "/", "\\", ";", "\"", "'",
+];
+
+/// Value names that read as usage syntax, each with its snapshot label: a
+/// leading `--` and a space, two placeholders, brackets, two bracketed words,
+/// and a trailing `...` or `…`.
+/// clap means each literally, as the name of one value.
+const VALUE_NAMES: &[(&str, &str)] = &[
+    ("plain", "X"),
+    ("double-dash", "-- X"),
+    ("placeholders", "<A> <B>"),
+    ("brackets", "[x]"),
+    ("bracket-pair", "[A] [B]"),
+    ("dots", "x..."),
+    ("ellipsis", "x…"),
 ];
 
 /// Write each control, bidi, line or paragraph separator, and byte order mark
@@ -273,57 +311,85 @@ fn every_subcommands(command: Command) -> Command {
         )
 }
 
-/// A toy CLI as a consumer writes it, with the shared flags.
-#[derive(Parser)]
-#[expect(dead_code, reason = "only the spec is read, never a parsed value")]
-#[command(name = "toy", version = "1.0.0", about = "A toy CLI")]
-struct Toy {
-    #[command(flatten)]
-    output: OutputArgs,
-    #[command(subcommand)]
-    command: ToyCommand,
-}
+/// A toy [`App`](ctl_core::App) mounted as the mise task `toy`.
+#[cfg(feature = "app")]
+mod toy {
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
-#[derive(Subcommand)]
-#[expect(dead_code, reason = "only the spec is read, never a parsed value")]
-enum ToyCommand {
-    /// Show the queue.
-    Status,
-    /// Check one file.
-    Check {
-        /// The file to check.
-        path: std::path::PathBuf,
-        /// Stop at the first problem.
-        #[arg(long)]
-        strict: bool,
-    },
-}
+    use ctl_core::prelude::*;
+    use ctl_core::usage;
+    use serde::Serialize;
 
-#[derive(Serialize)]
-struct Done;
+    use super::visible;
 
-impl Present for Done {
-    fn present(&self) -> Document {
-        Document::new()
+    /// A toy CLI as a consumer writes it, with the shared flags.
+    #[derive(Parser)]
+    #[expect(dead_code, reason = "only the spec is read, never a parsed value")]
+    #[command(name = "toy", version = "1.0.0", about = "A toy CLI")]
+    struct Toy {
+        #[command(flatten)]
+        output: OutputArgs,
+        #[command(subcommand)]
+        command: ToyCommand,
+    }
+
+    #[derive(Subcommand)]
+    #[expect(dead_code, reason = "only the spec is read, never a parsed value")]
+    enum ToyCommand {
+        /// Show the queue.
+        Status,
+        /// Check one file.
+        Check {
+            /// The file to check.
+            path: std::path::PathBuf,
+            /// Stop at the first problem.
+            #[arg(long)]
+            strict: bool,
+        },
+    }
+
+    #[derive(Serialize)]
+    struct Done;
+
+    impl Present for Done {
+        fn present(&self) -> Document {
+            Document::new()
+        }
+    }
+
+    /// The spec `App` prints when mise asks the task `toy` for it. The
+    /// renderer records what `usage::spec` returns for the command `App` hands
+    /// it, and returns it unchanged, so `App` prints it too.
+    pub(super) fn mounted_toy() -> String {
+        let printed = Rc::new(RefCell::new(String::new()));
+        let recorded = Rc::clone(&printed);
+        let code = App::<Toy>::new("toy")
+            .mounted_as("toy")
+            .usage_spec(move |command, bin| {
+                let spec = usage::spec(command, bin);
+                recorded.replace(spec.clone());
+                spec
+            })
+            .run_from(["toy", "--usage-spec=toy"], |_| Ok(Done));
+        assert_eq!(code, ExitCode::SUCCESS);
+        printed.take()
+    }
+
+    #[test]
+    fn a_mounted_toy() {
+        insta::assert_snapshot!("toy", visible(&mounted_toy()));
     }
 }
 
-/// The spec `App` prints when mise asks the task `toy` for it. The renderer
-/// records what `usage::spec` returns for the command `App` hands it, and
-/// returns it unchanged, so `App` prints it too.
-fn mounted_toy() -> String {
-    let printed = Rc::new(RefCell::new(String::new()));
-    let recorded = Rc::clone(&printed);
-    let code = App::<Toy>::new("toy")
-        .mounted_as("toy")
-        .usage_spec(move |command, bin| {
-            let spec = usage::spec(command, bin);
-            recorded.replace(spec.clone());
-            spec
-        })
-        .run_from(["toy", "--usage-spec=toy"], |_| Ok(Done));
-    assert_eq!(code, ExitCode::SUCCESS);
-    printed.take()
+/// One command whose only flag is a switch with `text` as its help.
+fn help_command(id: &'static str, text: &'static str) -> Command {
+    Command::new("h").arg(Arg::new(id).long(id).help(text).action(ArgAction::SetTrue))
+}
+
+/// One command whose only flag takes a value, with `text` as its default.
+fn default_command(id: &'static str, text: &'static str) -> Command {
+    Command::new("h").arg(Arg::new(id).long(id).value_name("V").default_value(text))
 }
 
 /// Append one corpus entry: a `// id` comment line, then the spec and a
@@ -341,20 +407,9 @@ fn every_attribute() {
 }
 
 #[test]
-fn a_mounted_toy() {
-    insta::assert_snapshot!("toy", visible(&mounted_toy()));
-}
-
-#[test]
 fn hostile_help_text() {
     let corpus = HOSTILE.iter().fold(String::new(), |mut out, (id, text)| {
-        let command = Command::new("h").arg(
-            Arg::new(*id)
-                .long(*id)
-                .help(*text)
-                .action(ArgAction::SetTrue),
-        );
-        entry(&mut out, id, &usage::spec(command, "h"));
+        entry(&mut out, id, &usage::spec(help_command(id, text), "h"));
         out
     });
     insta::assert_snapshot!("hostile_help", visible(&corpus));
@@ -365,11 +420,168 @@ fn hostile_default_values() {
     let corpus = HOSTILE.iter().filter(|(_, text)| !text.is_empty()).fold(
         String::new(),
         |mut out, (id, text)| {
-            let command =
-                Command::new("h").arg(Arg::new(*id).long(*id).value_name("V").default_value(*text));
-            entry(&mut out, id, &usage::spec(command, "h"));
+            entry(&mut out, id, &usage::spec(default_command(id, text), "h"));
             out
         },
     );
     insta::assert_snapshot!("hostile_default", visible(&corpus));
+}
+
+#[test]
+fn identifier_grammar() {
+    let corpus = IDENTIFIER.iter().fold(String::new(), |mut out, word| {
+        entry(&mut out, &format!("{word:?}"), &identifier_spec(word));
+        out
+    });
+    insta::assert_snapshot!("identifier", visible(&corpus));
+}
+
+/// One command with a flag, a required positional, and an optional one, that
+/// each take one value named `name`. clap borrows a string only as
+/// `&'static str`.
+fn value_name_spec(name: &'static str) -> String {
+    let command = Command::new("h")
+        .arg(Arg::new("f").long("f").value_name(name))
+        .arg(Arg::new("v").value_name(name).required(true))
+        .arg(Arg::new("o").value_name(name));
+    usage::spec(command, "h")
+}
+
+#[test]
+fn value_names_that_read_as_usage_syntax() {
+    let corpus = VALUE_NAMES
+        .iter()
+        .fold(String::new(), |mut out, (id, name)| {
+            entry(&mut out, id, &value_name_spec(name));
+            out
+        });
+    insta::assert_snapshot!("value_names", visible(&corpus));
+}
+
+/// A character KDL v2 forbids literally anywhere in a spec, as the Newline
+/// and Disallowed Literal Code Points tables of
+/// [KDL 2.0.0](https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md) list them:
+/// every Newline but LF, which only breaks lines and sits in raw multi-line
+/// strings, and every disallowed literal code point but the surrogates, which
+/// no `char` holds. kdl 6.7.1 misses U+007F, so a parse alone cannot catch it.
+fn is_forbidden_literal(c: char) -> bool {
+    matches!(
+        c,
+        '\r' | '\u{85}'
+            | '\u{b}'
+            | '\u{c}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\0'..='\u{8}'
+            | '\u{e}'..='\u{1f}'
+            | '\u{7f}'
+            | '\u{200e}'
+            | '\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{feff}'
+    )
+}
+
+/// Every spec the corpus renders, with its label.
+fn corpus() -> Vec<(String, String)> {
+    let mut specs = vec![("every".to_owned(), usage::spec(every(), "every"))];
+    #[cfg(feature = "app")]
+    specs.push(("toy".to_owned(), toy::mounted_toy()));
+    for (id, text) in HOSTILE {
+        let help = usage::spec(help_command(id, text), "h");
+        specs.push((format!("help {id}"), help));
+        let default = usage::spec(default_command(id, text), "h");
+        specs.push((format!("default {id}"), default));
+    }
+    for word in IDENTIFIER {
+        specs.push((format!("identifier {word:?}"), identifier_spec(word)));
+    }
+    for (id, name) in VALUE_NAMES {
+        specs.push((format!("value name {id}"), value_name_spec(name)));
+    }
+    specs
+}
+
+/// One command whose only flag takes `word` as its default and its one
+/// possible value. clap borrows a string only as `&'static str`.
+fn identifier_spec(word: &'static str) -> String {
+    let command = Command::new("h").arg(
+        Arg::new("v")
+            .long("v")
+            .value_parser([PossibleValue::new(word)])
+            .default_value(word),
+    );
+    usage::spec(command, "h")
+}
+
+/// The first `flag` node of a parsed spec.
+fn flag(document: &KdlDocument) -> Option<&KdlNode> {
+    document.get("flag")
+}
+
+#[test]
+fn every_spec_parses_with_no_forbidden_literal() {
+    for (label, spec) in corpus() {
+        if let Err(error) = KdlDocument::parse_v2(&spec) {
+            panic!("{label}: the spec does not parse as KDL v2: {error:?}\n{spec}");
+        }
+        assert!(
+            !spec.chars().any(is_forbidden_literal),
+            "{label}: the spec holds a literal KDL v2 forbids: {}",
+            visible(&spec)
+        );
+    }
+}
+
+/// The help text clap's `Display` gives for the hostile string `id`.
+fn stripped_help(id: &str, text: &'static str) -> &'static str {
+    STRIPPED_HELP
+        .iter()
+        .find(|(stripped, _)| *stripped == id)
+        .map_or(text, |&(_, help)| help)
+}
+
+#[test]
+fn help_reads_back_as_clap_renders_it() {
+    for (id, text) in HOSTILE {
+        let spec = usage::spec(help_command(id, text), "h");
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let help = flag(&document)
+            .and_then(|node| node.get("help"))
+            .and_then(KdlValue::as_string);
+        let expected = stripped_help(id, text);
+        assert_eq!(help, Some(expected), "help {id}: {}", visible(&spec));
+    }
+}
+
+#[test]
+fn defaults_read_back_unchanged() {
+    for (id, text) in HOSTILE {
+        let spec = usage::spec(default_command(id, text), "h");
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let default = flag(&document)
+            .and_then(|node| node.get("default"))
+            .and_then(KdlValue::as_string);
+        assert_eq!(default, Some(*text), "default {id}: {}", visible(&spec));
+    }
+}
+
+#[test]
+fn identifier_words_read_back_as_strings() {
+    for word in IDENTIFIER {
+        let spec = identifier_spec(word);
+        let document = KdlDocument::parse_v2(&spec).expect("the spec parses");
+        let node = flag(&document).expect("the spec has a flag");
+        let default = node.get("default").and_then(KdlValue::as_string);
+        assert_eq!(default, Some(*word), "default {word:?}: {spec}");
+        let choice = node
+            .children()
+            .and_then(|children| children.get("arg"))
+            .and_then(KdlNode::children)
+            .and_then(|children| children.get("choices"))
+            .and_then(|choices| choices.entries().first())
+            .and_then(|entry| entry.value().as_string());
+        assert_eq!(choice, Some(*word), "choice {word:?}: {spec}");
+    }
 }

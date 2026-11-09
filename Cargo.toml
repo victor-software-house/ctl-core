@@ -65,9 +65,14 @@ insta = { version = "=1.49.0", default-features = false }
 # (ctl-core/tests/support/terminal.rs): an interactive shell draws no prompt,
 # and fish runs no typed line, when it reads a pipe. Pinned exactly like insta.
 pty-process = "=0.5.4"
+# A KDL v2 parser for the Usage spec tests (ctl-core/tests/usage_spec.rs),
+# which read every spec back. Test-only, so it never reaches a build. Without
+# defaults: the tests need neither spans nor serde. Pinned exactly like insta;
+# deny.toml lets only ctl-core depend on it.
+kdl = { version = "=6.7.1", default-features = false }
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 missing_docs = "deny"
 missing_debug_implementations = "deny"
 unreachable_pub = "deny"

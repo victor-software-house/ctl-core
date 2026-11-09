@@ -10,10 +10,13 @@
 //! [`App::mounted_as`](crate::App::mounted_as) answers the request for an
 //! [`App`](crate::App), and [`take`] does the same for a binary without one.
 
+mod kdl;
+mod nodes;
+mod plain;
+
 use std::io::Write as _;
 use std::process::ExitCode;
 
-use ::usage::Spec;
 use clap::Command;
 
 use crate::formatdoc;
@@ -21,14 +24,17 @@ use crate::formatdoc;
 /// Render the Usage KDL spec of `command` as a mise task named `bin`.
 ///
 /// Both the spec's `name` and `bin` are set to `bin`, so mise shows the task
-/// name and not the real binary name.
+/// name and not the real binary name. Every string reads back unchanged
+/// under KDL v2: a character KDL v2 forbids literally is written escaped.
+///
+/// # Panics
+///
+/// Panics when an argument conflicts with an id that is neither an argument
+/// nor a group of its command, as [`Command::get_arg_conflicts_with`] does.
 #[must_use]
 pub fn spec(mut command: Command, bin: &str) -> String {
     command.set_bin_name(bin);
-    let mut spec = Spec::from(&command);
-    spec.name = bin.to_string();
-    spec.bin = bin.to_string();
-    spec.to_string()
+    nodes::document(command, bin).to_string()
 }
 
 /// The `#USAGE mount` line a mise file task carries for the task named

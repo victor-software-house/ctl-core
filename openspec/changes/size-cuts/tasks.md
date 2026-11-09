@@ -101,22 +101,80 @@
 
 ## 3. The writer
 
-- [ ] 3.1 Write the KDL from the clap `Command` in a private module under
+- [x] 3.1 Write the KDL from the clap `Command` in a private module under
   `usage`, covering every getter decision 4 lists. Verify: `usage::spec`
   no longer calls usage-lib, and the corpus snapshots pass unchanged
   except for the values decision 3 lists.
-- [ ] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and a test per row of
-  decision 3 that parses the output and compares the value. The DEL row's
-  test also checks that the output holds no literal U+007F. Verify: each
-  test fails against usage-lib 7.3.0's output and passes against the
-  writer's.
-- [ ] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
+
+  2026-11-09 (-03:00), on the measurement host with rustc 1.99.1:
+  [`usage/kdl.rs`](../../../ctl-core/src/usage/kdl.rs) writes nodes and
+  strings, and [`usage/nodes.rs`](../../../ctl-core/src/usage/nodes.rs)
+  maps the `Command`. `usage::spec` calls neither usage-lib nor its types.
+  `INSTA_UPDATE=always`, then `INSTA_UPDATE=no`, on `--test usage_spec`
+  passed 10 of 10. `every` and `toy` kept their bytes. The changed entries
+  are decision 3's rows:
+  - the KDL v2 cases;
+  - `-.5` and `+.5` in `identifier`;
+  - the value names in `value_names`, whose 7.3.0 capture passed 6 of 6
+    on the same host first.
+- [x] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and these tests:
+  - one per row of decision 3, which parses the output and compares the
+    value;
+  - one over every corpus output, which looks for a literal code point
+    from KDL v2's whole disallowed set, U+007F included;
+  - one over every corpus output, which looks for a Newline inside a
+    single-line string.
+
+  Verify: each test fails against usage-lib 7.3.0's output and passes
+  against the writer's.
+
+  2026-11-09 (-03:00), same run: the parse-back and literal checks pass
+  against the writer's output.
+
+  2026-11-09 (-03:00), same host: the branch's `usage_spec.rs` over the
+  `src/` of [7f4e123][7f4e123], which calls usage-lib 7.3.0, failed all
+  four checks:
+  1. `defaults_read_back_unchanged`, on the U+2028 default;
+  2. `help_reads_back_as_clap_renders_it`, on the whitespace-only line,
+     read back empty;
+  3. `identifier_words_read_back_as_strings`, on `-.5`;
+  4. `every_spec_parses_with_no_forbidden_literal`, on the U+2028 help.
+
+  Each check stops at its first failing case. A row past it shows only
+  in the writer's pass.
+- [x] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
   text, a leading dash, and the words `true`, `null`, and `inf`. Verify:
   each value reads back unchanged.
-- [ ] 3.4 Build qctl, verctl, and forkctl against the branch. Verify: each
+
+  2026-11-09 (-03:00), same run: `defaults_read_back_unchanged` and
+  `help_reads_back_as_clap_renders_it` cover every hostile string, and
+  `identifier_words_read_back_as_strings` every identifier case. All pass.
+- [x] 3.4 Build qctl, verctl, and forkctl against the branch. Verify: each
   `--usage-spec` output equals its usage-lib 7.3.0 output.
-- [ ] 3.5 Repeat task 2.3 against the writer. Verify: the same result,
-  under the same mise version.
+
+  2026-11-09 (-03:00), same host: each CLI at its head
+  ([qctl][qctl-head], [verctl][verctl-head], [forkctl][forkctl-head]) was
+  built twice. Its ctl-core line pointed first at [7f4e123][7f4e123],
+  then at the branch. Each pair of `--usage-spec` outputs is
+  byte-identical, at 259, 131, and 289 lines.
+- [x] 3.5 Repeat task 2.3 against the writer. Also mount one task per
+  value-name form of decision 3, on a flag and on a positional. A
+  positional with two choices follows each. Verify:
+  - task 2.3's result, under the same mise version;
+  - for each form, zsh completion after one value offers the two
+    choices, and after two values offers only files.
+
+  2026-11-09 (-03:00), same host, mise 2026.11.4 macos-arm64 from its
+  release binary:
+  1. Task 2.3's toy under the writer: `mise run toy --help` printed
+     `status`, `check`, `help`, and the same flags, and
+     `mise run toy status` ran the verb. Completion offered the same
+     words as in task 2.3 after `mise run toy`, `mise run toy --`, and
+     `mise run toy check --`.
+  2. Each value-name form under the writer, on a flag and on a
+     positional: completion offered `p1` and `p2` after one value. After
+     two values it offered only files. Decision 3's table holds the 7.3.0
+     results.
 - [ ] 3.6 Verify: CI passes on the pushed commit, and the changeset lists
   each departure as a fix.
 
@@ -126,10 +184,17 @@
   `ctl-core/Cargo.toml`, and the machete ignore list. Verify:
   `Cargo.lock` holds no usage-lib, and holds kdl and winnow 0.7 only
   through the dev-dependency.
-- [ ] 4.2 Ban usage-lib in `deny.toml`. Ban kdl and winnow below 1.0 with
-  `wrappers`, as decision 5 describes. Give each ban a reason, in the
-  syntax the pinned cargo-deny accepts. Verify: `mise run deny` passes in
-  CI.
+- [ ] 4.2 Ban usage-lib in `deny.toml` through the `deny_bans` answer,
+  with a reason. Verify: `mise run deny` passes in CI with no warning.
+
+  The writer's change already applied the rest of decision 5 through
+  `copier update` at template v0.0.72. It added the kdl and winnow below
+  1.0 `wrappers` bans, and the `syn@2` skip. On 2026-11-09 (-03:00), with
+  cargo-deny 0.20.2:
+  1. `cargo deny check` reported advisories, bans, licenses, and sources
+     ok, with no warning.
+  2. With each ban's wrappers pointed elsewhere, it failed with `banned`
+     for kdl 6.7.1 and winnow 0.7.15.
 - [ ] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
   1.0 in ctl-core's normal dependencies with every feature. Verify: CI's
   `check:tree` passes, and fails on a commit that adds usage-lib back.
@@ -180,6 +245,7 @@
 [a1e2d43]: https://github.com/victor-software-house/ctl-core/commit/a1e2d438f2ce4abbd1f652f59d88cb245cd1fd76
 [9161cfc]: https://github.com/victor-software-house/ctl-core/commit/9161cfc74d150a9e9ad467b2ac1d2312261f49a2
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
+[7f4e123]: https://github.com/victor-software-house/ctl-core/commit/7f4e123d0caca6e4a9c87f5d1a0cc4fae33d88db
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5

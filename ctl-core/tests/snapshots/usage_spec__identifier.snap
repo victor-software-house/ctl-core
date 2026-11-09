@@ -1,0 +1,447 @@
+---
+source: ctl-core/tests/usage_spec.rs
+expression: visible(&corpus)
+---
+// "1"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="1" {
+    arg <v> {
+        choices "1"
+    }
+}
+
+// "-1"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="-1" {
+    arg <v> {
+        choices "-1"
+    }
+}
+
+// "+1"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="+1" {
+    arg <v> {
+        choices "+1"
+    }
+}
+
+// ".5"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default=".5" {
+    arg <v> {
+        choices ".5"
+    }
+}
+
+// "-.5"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="-.5" {
+    arg <v> {
+        choices "-.5"
+    }
+}
+
+// "+.5"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="+.5" {
+    arg <v> {
+        choices "+.5"
+    }
+}
+
+// "1e3"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="1e3" {
+    arg <v> {
+        choices "1e3"
+    }
+}
+
+// "0x1F"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="0x1F" {
+    arg <v> {
+        choices "0x1F"
+    }
+}
+
+// "1_000"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="1_000" {
+    arg <v> {
+        choices "1_000"
+    }
+}
+
+// "true"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="true" {
+    arg <v> {
+        choices "true"
+    }
+}
+
+// "false"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="false" {
+    arg <v> {
+        choices "false"
+    }
+}
+
+// "null"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="null" {
+    arg <v> {
+        choices "null"
+    }
+}
+
+// "inf"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="inf" {
+    arg <v> {
+        choices "inf"
+    }
+}
+
+// "-inf"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="-inf" {
+    arg <v> {
+        choices "-inf"
+    }
+}
+
+// "nan"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="nan" {
+    arg <v> {
+        choices "nan"
+    }
+}
+
+// "#true"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#true" {
+    arg <v> {
+        choices "#true"
+    }
+}
+
+// "#false"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#false" {
+    arg <v> {
+        choices "#false"
+    }
+}
+
+// "#null"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#null" {
+    arg <v> {
+        choices "#null"
+    }
+}
+
+// "#inf"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#inf" {
+    arg <v> {
+        choices "#inf"
+    }
+}
+
+// "#-inf"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#-inf" {
+    arg <v> {
+        choices "#-inf"
+    }
+}
+
+// "#nan"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="#nan" {
+    arg <v> {
+        choices "#nan"
+    }
+}
+
+// ""
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="" {
+    arg <v> {
+        choices ""
+    }
+}
+
+// " "
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default=" " {
+    arg <v> {
+        choices " "
+    }
+}
+
+// "a b"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="a b" {
+    arg <v> {
+        choices "a b"
+    }
+}
+
+// "="
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="=" {
+    arg <v> {
+        choices "="
+    }
+}
+
+// "a=b"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="a=b" {
+    arg <v> {
+        choices "a=b"
+    }
+}
+
+// "("
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="(" {
+    arg <v> {
+        choices "("
+    }
+}
+
+// ")"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default=")" {
+    arg <v> {
+        choices ")"
+    }
+}
+
+// "{"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="{" {
+    arg <v> {
+        choices "{"
+    }
+}
+
+// "}"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="}" {
+    arg <v> {
+        choices "}"
+    }
+}
+
+// "["
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="[" {
+    arg <v> {
+        choices "["
+    }
+}
+
+// "]"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="]" {
+    arg <v> {
+        choices "]"
+    }
+}
+
+// "/"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="/" {
+    arg <v> {
+        choices "/"
+    }
+}
+
+// "\\"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="\\" {
+    arg <v> {
+        choices "\\"
+    }
+}
+
+// ";"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default=";" {
+    arg <v> {
+        choices ";"
+    }
+}
+
+// "\""
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default="\"" {
+    arg <v> {
+        choices "\""
+    }
+}
+
+// "'"
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --v default=' {
+    arg <v> {
+        choices '
+    }
+}

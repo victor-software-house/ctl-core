@@ -97,7 +97,7 @@ The outputs differ in one case only: a multiline value that contains
 7.3.0's count is correct under KDL v2, so the writer follows it. The
 changeset lists it as a fix against today's output.
 
-### 3. The writer departs from 7.3.0 only where KDL v2 requires it
+### 3. The writer departs from 7.3.0 only where KDL v2 or mise requires it
 
 The same probe parsed each output back with kdl 6.7.1. In the cases
 below, 7.3.0's output fails that parse or reads back as a different
@@ -113,6 +113,7 @@ behaves the same in every one.
 | default | U+2028, U+2029, or U+0085 | a quoted string, character literal | all three are Newline | parse fails |
 | default | U+200E, U+202E, U+2066, U+FEFF, or ESC | a quoted string, character literal | disallowed literal code points | parse fails |
 | default | U+007F (DEL) | a bare identifier, character literal | a disallowed literal code point | parses only because both parsers miss it |
+| default, choice | `-.5` or `+.5` | a bare identifier | a sign, then `.` and a digit, starts a number, and no identifier may start that way | parse fails |
 
 In each case the writer uses the escaped quoted form. 7.3.0 already writes
 that form for a value with a control character. It is a quoted string
@@ -128,27 +129,131 @@ kdl 6.7.1's [`is_disallowed_unicode`][kdl-671-disallowed] and usage-lib
 their doc comments list it. So 7.3.0 judges `a<DEL>b` a plain identifier
 and writes it bare, and both parsers read it back.
 
+The omission is an upstream defect in kdl 6.7.1, which usage-lib copied.
+It is not reported upstream: a report needs the maintainer's approval.
+
 - The writer writes `default="a\u{7f}b"`.
-- Its test checks that the output holds no literal U+007F, beside the
-  parse.
+- Beside the parse, its tests check every output for two things:
+  - a literal code point from the whole disallowed set;
+  - a Newline inside a single-line string.
+
+  A later missed character then fails a test without a new row.
 - Every other bare default in the corpus is a valid identifier: `-x` and
   `--x` are signed identifiers.
+- The corpus also holds one default and possible value per case of the
+  identifier grammar:
+  - number-like words: `1`, `-1`, `+1`, `.5`, `-.5`, `+.5`, `1e3`,
+    `0x1F`, and `1_000`;
+  - the keywords and their `#` forms;
+  - the empty string, whitespace, `=`, brackets, `/`, `\`, `;`, and
+    quotes.
+
+  Each reads back as a string with the same text. 7.3.0 quotes all of
+  them except `-.5` and `+.5`, the row above, and `'`, which is a valid
+  identifier.
 
 7.3.0 strips terminal escape sequences and DEL from help text before
-writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that.
-Default values are not stripped, so they need the escapes.
+writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that,
+by its own code. Default values are not stripped, so they need the
+escapes.
+
+Two clap features decide those bytes, and only usage-lib turns them on,
+through clap's defaults:
+
+1. clap's `Display` strips help only with clap's `color` feature on. The
+   writer strips help itself, by the rules of anstream 1.0.0's
+   `strip_str`, which clap calls with `color` on. Text clap already
+   stripped comes through unchanged. So the spec holds the same bytes
+   whether or not another crate turns `color` on.
+2. clap's `render_usage` returns an empty string without clap's `usage`
+   feature. ctl-core's `usage` feature turns `clap/usage` on itself.
+
+`test:usage` runs the spec tests with only the `usage` feature, so the
+plain tier is held to the same snapshots.
 
 Alternative considered: reproduce 7.3.0 exactly, invalid cases included.
 It lost because mise refuses a spec that does not parse. And a spec that
 parses to other text shows the user something the CLI never said.
+
+#### Value names that read as usage syntax
+
+mise reads an `arg` node's name as usage syntax, through usage-lib's
+[`SpecArg::from`][usage-730-arg-from]. mise 2026.11.4 embeds usage-lib
+7.3.0 ([`Cargo.lock`][mise-lock]). clap gives a value name no syntax, so
+a name such as `x...` means one value named `x...`. The parser reads
+three things into the name:
+
+1. a label that splits into two or more `<…>` or `[…]` words reads as
+   that many values ([`fixed_placeholders`][usage-730-placeholders]);
+2. a name that ends in `...` or `…` reads as any number of values;
+3. a name that starts with `--` and a space reads as a value that only
+   follows `--`.
+
+The parser applies the node's properties after the name, so a property
+can state clap's meaning again. A `value_names` child replaces the name
+and its split.
+
+The probe ran under mise 2026.11.4 on macOS, with one file task per
+form. Each task mounted a spec with that value name on a flag or on a
+positional. A positional with the choices `p1` and `p2` came next.
+
+zsh completion (`mise __complete_word__ --shell zsh --line`) then shows
+how many values mise reads. When it offers `p1 p2` after one value, mise
+reads one, as clap does.
+
+| Where | Value name | 7.3.0 writes | mise reads | The writer writes | mise reads |
+|:--|:--|:--|:--|:--|:--|
+| flag | `-- X` | `"<-- X>"` | one value | the same | one value |
+| flag | `[x]` | `"[x]" required=#false` | one value | `"<[x]>"` | one value |
+| flag | `<A> <B>` | `"<<A> <B>> <<A> <B>>" var=#true var_min=2 var_max=2` | nothing: mise rejects the whole spec, and completion offers only files | `"<<A> <B>>" var=#false` and `value_names "<A> <B>"` | one value |
+| flag | `x...` or `x…` | `<x>… var=#true` | any number | `<x...> var=#false` | one value |
+| positional | `[x]` | `"<[x]>"` | one value | the same | one value |
+| positional | `-- X` | `"<-- X>"` | one value, only after `--` | `"<-- X>" double_dash=optional` | one value, before or after `--` |
+| positional | `<A> <B>` | `"<<A> <B>>"` | two values | `"<<A> <B>>" var=#false` and `value_names "<A> <B>"` | one value |
+| positional | `x...` or `x…` | `<x...>` | any number | `<x...> var=#false` | one value |
+
+So the writer keeps clap's value name as written and adds a property
+only where mise would read more into it:
+
+- `var=#false` for a name that splits into placeholders or ends in
+  `...` or `…`;
+- a `value_names` child holding the whole name, for a name that splits;
+- `double_dash=optional` for a positional's name that starts with `--`
+  and a space.
+  A flag's value keeps the prefix with no property: mise reads it as one
+  value either way.
+
+An optional positional is wrapped as `[…]` before mise reads it, and the
+parser strips that before the split. So `[<A> <B>]` reads as one value
+and gains nothing, while `[[A] [B]]` splits and gains both.
+
+The `value_names` snapshot holds one case per form, for a flag and a
+positional. Its first capture is 7.3.0's output, and the writer's
+commit shows the change.
+
+7.3.0 has three defects here, none reported upstream; a report needs the
+maintainer's approval:
+
+1. A flag's value name that splits into placeholders becomes two values
+   under a repeated label, and mise rejects the whole spec.
+2. A flag's value name that ends in `...` or `…` becomes variadic.
+3. A positional's value name gets no property, so mise misreads it.
+
+Alternatives considered:
+
+1. Write 7.3.0's bytes. It lost because mise rejects a spec with the
+   first defect, and the whole command loses completion.
+2. Write the literal name alone. It lost because mise reads the forms
+   above as syntax, and no quoting in the name prevents that.
 
 ### 4. The writer covers every attribute 7.3.0 reads, not only today's
 
 The writer maps every clap getter 7.3.0's bridge reads:
 
 1. command metadata, and the settings 7.3.0 writes as properties;
-2. flags, with their aliases, values, actions, defaults, environment
-   variables, and visibility;
+2. flags, with their aliases, values, actions, defaults, and visibility.
+   Environment variables are not read, as in 7.3.0. Writing `env=` would
+   be a separate decision;
 3. positional arguments, possible values, value hints, and groups.
 
 The corpus includes the every-attribute command from the probe, so each
@@ -161,19 +266,37 @@ spec that silently drops it.
 ### 5. A KDL v2 parser runs in tests only
 
 The tests parse the writer's output with [kdl 6.7.1][kdl-671], the KDL
-project's own KDL v2 parser. It is a dev-dependency, pinned with `=`. kdl
-pulls winnow 0.7 into the dev graph.
+project's own KDL v2 parser. It is a dev-dependency, pinned with `=`, and
+built without default features. kdl pulls winnow 0.7, miette, and
+unicode-width 0.1 into the dev graph.
 
 1. `deny.toml` bans usage-lib outright.
 2. It bans kdl and winnow below 1.0 with `wrappers`. Only ctl-core may
    depend on kdl, and only kdl on winnow 0.7.
-3. `check:tree` fails when either appears in ctl-core's normal
-   dependencies under any feature set. The dev-dependency is the one path
-   left.
+3. Neither second version needs a `skip`. cargo-deny 0.20.2 leaves a crate
+   reached only through dev-dependencies out of two checks:
+   - duplicates, by [`multiple-versions-include-dev`][deny-bans-0202],
+     default false;
+   - licences, by [`include-dev`][deny-licenses-0202], default false.
+
+   The advisory, ban, and source checks still cover it. A
+   dev-dependency never ships, so that default is the policy here.
+4. `syn@2` is the one `skip`: garde_derive 0.23.0, the latest release,
+   requires syn 2, while serde, clap, thiserror, and schemars use syn 3.
+5. The templates repository renders `deny.toml`. Each entry is an answer
+   in `.copier-answers.yml` (`deny_bans`, `deny_skip`), applied with
+   `copier update`, never a hand edit.
+6. `check:tree` fails when kdl or winnow below 1.0 appears in ctl-core's
+   normal dependencies under any feature set. The dev-dependency is the
+   one path left.
 
 Alternative considered: set `exclude-dev = true` in `deny.toml`'s
 `[graph]`. It lost because it would also drop every other dev-dependency
-from the licence, source, and advisory checks.
+from the advisory, ban, and source checks.
+
+Alternative considered: a `skip-tree` entry for kdl. It lost because the
+duplicate check never sees kdl's tree, and the template renders no
+`skip-tree`.
 
 ### 6. Nothing turns clap's defaults back on
 
@@ -282,12 +405,17 @@ tier carries its reason.
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
 [usage-730]: https://docs.rs/crate/usage-lib/7.3.0
 [usage-730-disallowed]: https://docs.rs/crate/usage-lib/7.3.0/source/src/kdl/v2_parser.rs#1239
+[usage-730-arg-from]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/arg.rs#804
+[usage-730-placeholders]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/arg.rs#914
+[mise-lock]: https://github.com/jdx/mise/blob/4dc53ec645558e448f7f36a7b1f02ccbd69446d1/Cargo.lock
 [usage-730-toml]: https://docs.rs/crate/usage-lib/7.3.0/source/Cargo.toml
 [usage-notice]: https://docs.rs/crate/usage-lib/7.3.0/source/NOTICE.md
 [helpers-600]: https://docs.rs/crate/usage-lib/6.0.0/source/src/spec/helpers.rs
 [helpers-730]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/helpers.rs
 [kdl-v2]: https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md
 [kdl-671]: https://docs.rs/crate/kdl/6.7.1
+[deny-bans-0202]: https://github.com/EmbarkStudios/cargo-deny/blob/bca0dde53651ee946720e4540b5ce2610bec8f06/docs/src/checks/bans/cfg.md#the-multiple-versions-include-dev-field-optional
+[deny-licenses-0202]: https://github.com/EmbarkStudios/cargo-deny/blob/bca0dde53651ee946720e4540b5ce2610bec8f06/docs/src/checks/licenses/cfg.md#the-include-dev-field-optional
 [kdl-671-disallowed]: https://docs.rs/crate/kdl/6.7.1/source/src/v2_parser.rs#1571
 [clap-467]: https://docs.rs/crate/clap/4.6.7/source/Cargo.toml
 [saphyr-211]: https://docs.rs/crate/serde-saphyr/2.1.1
