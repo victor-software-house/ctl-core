@@ -312,17 +312,49 @@
 
 ## 6. Gates and docs
 
-- [ ] 6.1 Move serde-saphyr to 2.1.1 and keep `deserialize` and
+- [x] 6.1 Move serde-saphyr to 2.1.1 and keep `deserialize` and
   `comments`. Verify: the input tests pass unchanged, and the note records
   what `comments` gates.
-- [ ] 6.2 Verify: `deny.toml`'s `[bans.workspace-dependencies]` check
+
+  In [run 42575754249][run-42575754249] on [9d25529][9d25529], the input
+  suites passed with no test or snapshot changed: `input` 8,
+  `input_limits` 3, and `input_toml` 16, with
+  `problem_reports_keep_their_wording` among them. `comments` gates
+  `Budget::max_total_comment_bytes` and `max_buffered_comment_events`
+  ([budget.rs][saphyr-budget-211]). The first is the `limits:` key that
+  `.ctl/input.yaml` exposes and that a limit error names. The lock moved
+  granit-parser from 2.0.0 to 2.1.0 with it.
+- [x] 6.2 Verify: `deny.toml`'s `[bans.workspace-dependencies]` check
   passes, so each dependency is declared once in
   `[workspace.dependencies]`.
+
+  On 2026-11-09 (-03:00), `cargo deny --all-features check bans` reported
+  bans ok on the branch, and CI's `deny` passed in
+  [run 42575754249][run-42575754249].
 - [ ] 6.3 Add the `usage` and `input` tiers to the `size` example and to
   `[workspace.metadata.size]`. Set every budget to the `.text` CI prints
   for the commit, with a reason per tier. Verify: a budget follows a
   measured, explained change and never rises to hide an unexplained one,
   and CI's `check:size` passes.
+
+  In [run 42575754249][run-42575754249] on [9d25529][9d25529], CI printed
+  these `.text` sizes. Each budget now equals CI's number:
+
+  | Tier | Features | Old budget | `.text` and new budget |
+  |:--|:--|--:|--:|
+  | `cli` | `cli` | 343,888 | 343,888 |
+  | `help` | `help` | 444,582 | 446,886 |
+  | `view` | `cli,view` | 408,998 | 408,998 |
+  | `app` | `app` | 469,654 | 471,974 |
+  | `usage` | `app,usage` | none | 525,798 |
+  | `input` | `app,input` | none | 1,141,709 |
+
+  `help` and `app` rose by 2,304 and 2,320 bytes. That is the cost of
+  declaring `-h`/`--help` and the `help` subcommand in ctl-core
+  ([decision 6](design.md#6-nothing-turns-claps-defaults-back-on)), which
+  [PR 238][ctl-core#238] already measured. A linux-x64 measurement with
+  1.99.1 set the first `usage` and `input` budgets, and it matched CI's
+  numbers to the byte.
 - [ ] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
   module docs, and the feature docs in `ctl-core/Cargo.toml` where they
   name usage-lib or its Serde edge. Verify: `rg usage-lib` finds only
@@ -348,5 +380,8 @@
 [b8c0b9a]: https://github.com/victor-software-house/ctl-core/commit/b8c0b9a271d4842ab1e006794abe822e31ebe033
 [ctl-core#238]: https://github.com/victor-software-house/ctl-core/pull/238
 [run-42568402969]: https://github.com/victor-software-house/ctl-core/actions/runs/42568402969
+[run-42575754249]: https://github.com/victor-software-house/ctl-core/actions/runs/42575754249
+[9d25529]: https://github.com/victor-software-house/ctl-core/commit/9d25529b4d73dd158b29e38bcbed0f50370cb1b7
+[saphyr-budget-211]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
