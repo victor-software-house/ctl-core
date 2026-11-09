@@ -367,11 +367,15 @@ fn collect_declarations(
             .map(|argument| argument.get_id().to_string())
             .collect(),
     );
+    let owns_help_flag = command
+        .get_arguments()
+        .any(|argument| argument.get_id() == "help");
+    let owns_help_subcommand = command.find_subcommand("help").is_some();
     help_settings.insert(
         path.to_owned(),
         HelpSettings {
-            flag_off: command.is_disable_help_flag_set(),
-            subcommand_off: command.is_disable_help_subcommand_set(),
+            flag_off: command.is_disable_help_flag_set() && !owns_help_flag,
+            subcommand_off: command.is_disable_help_subcommand_set() && !owns_help_subcommand,
         },
     );
     for child in command.get_subcommands() {
@@ -392,7 +396,8 @@ fn child_path(path: &str, name: &str) -> String {
 ///
 /// Clap's build turns both off on every command when its `help` feature is
 /// off. ctl-core turns them off where it declares its own. Only the command
-/// as declared holds what the CLI turned off.
+/// as declared holds what the CLI turned off. A command that already holds a
+/// `help` argument or subcommand did not turn that one off.
 #[derive(Clone, Copy, Debug)]
 struct HelpSettings {
     flag_off: bool,
@@ -619,6 +624,14 @@ mod tests {
         assert_eq!(
             help_lines(&applied.usage_kdl),
             (5, 4),
+            "{}",
+            applied.usage_kdl
+        );
+        assert!(
+            !applied
+                .usage_kdl
+                .lines()
+                .any(|line| line.starts_with("disable_help")),
             "{}",
             applied.usage_kdl
         );
