@@ -106,7 +106,8 @@
   no longer calls usage-lib, and the corpus snapshots pass unchanged
   except for the values decision 3 lists.
 - [ ] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and a test per row of
-  decision 3 that parses the output and compares the value. Verify: each
+  decision 3 that parses the output and compares the value. The DEL row's
+  test also checks that the output holds no literal U+007F. Verify: each
   test fails against usage-lib 7.3.0's output and passes against the
   writer's.
 - [ ] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
