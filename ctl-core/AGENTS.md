@@ -20,7 +20,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   When the reader closes stdout early, it keeps the command's own exit code and never reports success for a failure (`App::broken_pipe`).
 - `Document` and the fluent semantic primitives used by help and command output
 - Pretty / JSON / colorless `View` over one serializable domain model
-- The only terminal theme, width detection, wrapping, and table configuration
+- The one `Theme`, and the width, framing, and colour settings a CLI hands the engine (`RenderOptions`)
 - Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`
 - Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_directives`, and `App::usage_spec` enrichment, so consumers run `mise run q status` with no `--`.
   - `mount_directives` are `raw`, `raw_args`, and `mount_line`, the block every served CLI-proxy task carries, so piped output stays byte for byte what the CLI wrote.

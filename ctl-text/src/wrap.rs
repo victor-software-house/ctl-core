@@ -10,8 +10,8 @@ pub const ELLIPSIS: &str = "…";
 
 /// What to do with a line wider than its width.
 ///
-/// The variants are the three policies a layout offers a column or a
-/// paragraph. A policy never splits a grapheme cluster.
+/// Each variant is a policy a layout offers a column or a paragraph. No
+/// policy splits a grapheme cluster.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Overflow {

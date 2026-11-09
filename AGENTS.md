@@ -176,7 +176,7 @@ Measured on Linux and macOS with doc-tests included, cargo-nextest was 1.05 to 1
 mbx test scheduling or a `RUST_TEST_THREADS` cap slowed concurrent runs.
 Do not reintroduce them without new measurements.
 
-`mise.toml` pins stable 1.99.0 for build, lint, and test, with `mr_boxington = true`.
+`mise.toml` pins stable 1.99.1 for build, lint, and test, with `mr_boxington = true`.
 That routes Cargo through mr-boxington so worktrees share one build store.
 
 A dated nightly carries only rustfmt: `format` runs on it for `rustfmt.toml`'s unstable options, and `doc` builds on it as docs.rs does.
