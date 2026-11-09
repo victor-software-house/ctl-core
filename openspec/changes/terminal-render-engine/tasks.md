@@ -10,11 +10,15 @@ and in CI, as each task says.
   change, and the CTC-034 row with the later phases as horizon rows. Proof:
   `openspec validate --all --strict` passes on the pushed commit, and
   `mise run q check` passes on main.
-  - Amended 2026-11-08 UTC. The proof first asked for the maintainer's
-    approval of the decisions. The maintainer merging the plan is that
-    approval, so the clause is dropped. It also asked for `q check` on the
-    pushed commit, where CTC-030 to CTC-033 belonged to pull requests still
-    open, so the check now runs on main.
+  - Amended 2026-11-08 UTC in [89f907a]. The proof first read: "`openspec
+    validate --all --strict` and `mise run q check` pass on the pushed
+    commit, and the maintainer approves the decisions listed in the
+    proposal." On the pushed commit of [#185], `q check` reported CTC-030
+    to CTC-033 as missing, because the pull requests that add those rows
+    were still open, so the check now runs on main. [#185] carries no
+    formal review, so the approval clause is dropped. The sign-off on this
+    amendment is the maintainer's merge of [#222], which carries it; that
+    pull request has no formal review either.
   - 2026-11-08 UTC: committed in [#185], which the maintainer merged. CI
     [run 42439929592][run-185] passed on [2cc125b], and the merge queue's
     [run 42440121205][q-185] on [e0b5249]. `openspec validate --all
@@ -43,7 +47,9 @@ and in CI, as each task says.
     `--dry-run` prints the publish order. It also asked for `wrappers`
     entries in `deny.toml`, which allow a named crate to depend on a
     banned one. `deny.toml` bans only `openssl` and `native-tls`, which no
-    member uses, so no ban needs a wrapper and none was added.
+    member uses, so no ban needs a wrapper and none was added. The
+    sign-off is the maintainer's merge of [#221], which carries this
+    amendment in [253c007]; it has no formal review.
   - 2026-11-08 UTC: `.ctl/ver.yaml` reads the root `Cargo.toml`, the
     virtual manifest, and pins each member's `={version}` entry in
     `[workspace.dependencies]`. On main at [93c8642],
@@ -135,7 +141,9 @@ and in CI, as each task says.
     reason; [#206]'s description summarises them. [#208] changed
     difference 5 and updated that file. The parity test passed in
     [run 42458984812][q-209]. The committed file now carries the
-    per-difference list the proof asked of the pull request.
+    per-difference list the proof asked of the pull request. The sign-off
+    on that substitution is the maintainer's merge of [#223], which carries
+    this sentence in [ee51e4b]; it has no formal review.
 - [x] 6.3 Remove comfy-table, anstream, unicode-general-category, `kv` and
   `grid`; add `App::broken_pipe` and `App::theme`. Proof: `cargo tree` in CI
   lists none of comfy-table, crossterm, anstream, anstyle-parse or console
@@ -158,7 +166,8 @@ and in CI, as each task says.
   - Amended 2026-11-08 UTC. The proof first allowed only history. The
     `check:tree` task that 6.3 added must name the crates it refuses, and
     `AGENTS.md` describes that task, so a current rule naming them is
-    allowed too.
+    allowed too. The sign-off is the maintainer's merge of [#221], which
+    carries this amendment in [ae33a31]; it has no formal review.
   - 2026-11-08 UTC: [#212], in the same runs as 6.3; the pre-push hooks
     passed on its push. On this branch, `rg 'comfy|anstream'` over `docs`,
     `AGENTS.md` and `README.md` finds the research in
@@ -174,7 +183,9 @@ and in CI, as each task says.
   a tier's budget is lowered by 5%.
   - Amended 2026-11-08 UTC. The proof first asked for a commit that adds 5%
     to a tier. A budget lowered by 5% makes the same comparison, `.text`
-    against its limit, without changing the code the toy builds.
+    against its limit, without changing the code the toy builds. The
+    sign-off is the maintainer's merge of [#222], which carries this
+    amendment in [c3f6883]; it has no formal review.
   - 2026-11-08 UTC: [#217] added the task and the budgets, and [#218] made a
     tier with no `.text` fail. CI [run 42460793731][run-217] passed on
     [bbb006b] and measured cli 343,888, help 443,676, view 409,362 and app
@@ -271,6 +282,14 @@ and in CI, as each task says.
 [differences]: https://github.com/victor-software-house/ctl-core/blob/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c/ctl-core/tests/parity/DIFFERENCES.md
 [#217]: https://github.com/victor-software-house/ctl-core/pull/217
 [#218]: https://github.com/victor-software-house/ctl-core/pull/218
+[#221]: https://github.com/victor-software-house/ctl-core/pull/221
+[#222]: https://github.com/victor-software-house/ctl-core/pull/222
+[#223]: https://github.com/victor-software-house/ctl-core/pull/223
+[89f907a]: https://github.com/victor-software-house/ctl-core/commit/89f907a4e12763af0490bf373dc827220dbf0201
+[253c007]: https://github.com/victor-software-house/ctl-core/commit/253c007395405bd6c25f19a6c06fd24331a44bf2
+[ae33a31]: https://github.com/victor-software-house/ctl-core/commit/ae33a31d466e89c06610a337751cd3f3da980d83
+[c3f6883]: https://github.com/victor-software-house/ctl-core/commit/c3f6883b64d91e526bc06579446dd2e8636ece2b
+[ee51e4b]: https://github.com/victor-software-house/ctl-core/commit/ee51e4b8d829ab8dd94a0887c7af5257ea89bb37
 [bbb006b]: https://github.com/victor-software-house/ctl-core/commit/bbb006baf5611aefac85d34aeb5a276af109f78c
 [4035f78]: https://github.com/victor-software-house/ctl-core/commit/4035f783456e71ae2b8099a47da5459f1e854786
 [b7c1680]: https://github.com/victor-software-house/ctl-core/commit/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c
