@@ -74,7 +74,9 @@ depends = [
 # --workspace unifies features across the members, which adds none here:
 # ctl-core's defaults ask ctl-term only for detect, its own default, and
 # ctl-core without features depends on no member. They use doc's target
-# directory, so the three builds take turns on one lock.
+# directory, so the three builds take turns on one lock. No task reads the
+# HTML they write, so the docs left in target/rustdoc may come from any of
+# them; `mise run doc` writes the docs.rs build.
 [tasks."doc:default-features"]
 description = "rustdoc for every crate with its default features, warnings denied"
 run = 'cargo +${RUST_NIGHTLY} doc --no-deps --workspace --locked'
