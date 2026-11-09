@@ -93,7 +93,7 @@ The trait SHALL keep its path and its prelude export.
 
 ### Requirement: A closed enum says why it is closed
 
-These enums SHALL NOT be `#[non_exhaustive]`: `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, and `FlagClash`.
+These enums SHALL NOT be `#[non_exhaustive]`: `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, `FlagClash`, and `Shell`.
 Each one's rustdoc SHALL say in one sentence why its set is closed.
 
 #### Scenario: A consumer matches every outcome
