@@ -59,55 +59,6 @@ queue:
       - Every lock is regenerated whole with mise lock --platform linux-x64,macos-arm64, and its linux-x64 and macos-arm64 entries match main.
       - On a fresh linux-x64 machine, mise install leaves git status clean, and mise run verify passes.
 
-  - id: CTC-023
-    title: Crate docs on docs.rs
-    scope: ctl-core
-    outcome: docs.rs shows ctl-core as a landing page with a quick start, how output flows, and its Cargo features, lists modules and the prelude instead of every item twice, and every fallible public function documents its errors.
-    blocked_by: []
-    acceptance:
-      - 'src/lib.rs carries the landing page as //! sections: a summary, Quick start as a compiled no_run doctest, How output flows, and Cargo features from document_features.'
-      - 'Crate-root re-exports are #[doc(hidden)]; the prelude documents the flat surface, and its third-party re-exports are #[doc(no_inline)].'
-      - 'No missing_errors_doc expect remains; every fallible public function has a # Errors section.'
-      - package.metadata.docs.rs sets all-features and rustdoc-args --cap-lints warn, and the crate root enables doc_cfg under docsrs.
-      - Module summaries live once, in each module's //! docs.
-    notes:
-      - Prototype from the docs.rs standard review on 2026-10-15; the standard is the rust-projects skill's Crate docs on docs.rs section.
-      - 2026-11-09, in 0.7.0, operator decision.
-
-  - id: CTC-025
-    title: Read TOML input without the YAML and garde crates
-    scope: ctl-core/src/input.rs, ctl-core/src/input/, and the input features in ctl-core/Cargo.toml
-    outcome: A consumer that reads only TOML config compiles no YAML parser and no garde.
-    blocked_by: []
-    acceptance:
-      - With default features off and only input-toml enabled, cargo tree for ctl-core lists none of serde-saphyr, yamled, or garde.
-      - Input::check and Input::load exist only with the validate feature, and the YAML format, YAML limits, and REPO_FILE only with a YAML feature.
-      - qctl, verctl, and forkctl build unchanged on the release that ships it, and cargo semver-checks reports the change at the version the changeset declares.
-      - A TOML text is held to its own byte, depth, and node limits, with defaults ctl-core states; the call and process tiers apply without YAML, and the repository tier applies when a YAML feature reads REPO_FILE.
-    notes:
-      - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
-      - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
-      - 2026-11-09, in 0.7.0, operator decision.
-      - serde-saphyr is our fork, vsh-serde-saphyr, so a change that Limits or Budget needs can go into the fork.
-    plan: openspec/changes/split-input-formats/proposal.md
-
-  - id: CTC-034
-    title: A terminal rendering engine of our own in place of comfy-table
-    scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"
-    outcome: >-
-      ctl-core draws every view through its own engine, written once by the writer
-      after layout; comfy-table, crossterm and anstream leave every ctl CLI.
-    blocked_by: []
-    acceptance:
-      - The repository is a virtual workspace and the four crates release at one version.
-      - No ctl-core feature links comfy-table, crossterm, anstream or console.
-      - Every scenario of the styled-text, terminal-output and layout specs and the presentation delta passes in CI.
-      - The parity test lists every output difference from 0.6.x with its reason.
-      - Each tier and each public consumer is measured smaller on the commit CI verified.
-    plan: openspec/changes/terminal-render-engine/proposal.md
-    notes:
-      - 'Research: docs/research/terminal-rendering/. Decisions for the maintainer are listed in the proposal.'
-
   - id: CTC-042
     title: Measure a non-generic copy of the help subcommand tree
     scope: "ctl-core: parser"
@@ -136,19 +87,6 @@ queue:
       - "2026-11-07, operator, while adding rows to a private repository's queue with long qctl flag lists: qctl should take nicer input formats, such as JSON or from files; that is partly or even mostly a ctl-core thing; we need to support JSON inputs and from files, the same way as multiple output formats are."
       - CTC-008 owns the declared-input layer for config files; this row extends input to command arguments.
       - 2026-11-09, it ships as a patch after 0.7.0 (operator).
-
-  - id: CTC-044
-    title: Rename the public names that say kind
-    scope: "ctl-core: flags/warn.rs, view.rs, prelude"
-    outcome: Every public ctl-core name says what its value is, and none of them uses kind.
-    blocked_by: []
-    acceptance:
-      - WarningKind is FlagClash, and FlagWarning holds it in a field named clash.
-      - MessageKind is Outcome, and Present::message_kind is Present::outcome.
-      - rg finds none of WarningKind, MessageKind, or message_kind in ctl-core's code, tests, specs, or current docs; dated records keep the names of their time.
-      - 'A changeset marked ctl-core: patch names each old and new name, and CI passes with every snapshot unchanged or accepted through insta.'
-    notes:
-      - "2026-11-09, operator decision: 0.7.0 is ctl-core's one minor, so its public names stop using kind in it."
 
   - id: CTC-045
     title: Lock the public API before 0.7.0
@@ -267,6 +205,60 @@ horizon:
       - From decision 2 of the terminal-render-engine design. tempfile is its only dependency.
 
 archive:
+  - id: CTC-044
+    title: Rename the public names that say kind
+    scope: "ctl-core: flags/warn.rs, view.rs, prelude"
+    outcome: Every public ctl-core name says what its value is, and none of them uses kind.
+    notes:
+      - "2026-11-09, operator decision: 0.7.0 is ctl-core's one minor, so its public names stop using kind in it."
+    completed: 2026-11-09T12:45:32
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/250 and https://github.com/victor-software-house/ctl-core/pull/252, merged in main 8369343 and eb08db3
+    disposition: completed
+
+  - id: CTC-034
+    title: A terminal rendering engine of our own in place of comfy-table
+    scope: "workspace: ctl-core/, ctl-text/, ctl-layout/, ctl-term/"
+    outcome: >-
+      ctl-core draws every view through its own engine, written once by the writer
+      after layout; comfy-table, crossterm and anstream leave every ctl CLI.
+    plan: openspec/changes/terminal-render-engine/proposal.md
+    notes:
+      - 'Research: docs/research/terminal-rendering/. Decisions for the maintainer are listed in the proposal.'
+    completed: 2026-11-09T12:45:32
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/212 and its stack, https://github.com/victor-software-house/ctl-core/pull/211, https://github.com/victor-software-house/ctl-core/pull/214, https://github.com/victor-software-house/ctl-core/pull/215 and https://github.com/victor-software-house/ctl-core/pull/216, merged in main ce4c0a9, f8bcd0e, 684341c, 67ad1db and 93c8642
+    disposition: completed
+    keep_change_open: terminal-render-engine task 8.1 waits for consumer adoption
+
+  - id: CTC-023
+    title: Crate docs on docs.rs
+    scope: ctl-core
+    outcome: docs.rs shows ctl-core as a landing page with a quick start, how output flows, and its Cargo features, lists modules and the prelude instead of every item twice, and every fallible public function documents its errors.
+    notes:
+      - Prototype from the docs.rs standard review on 2026-10-15; the standard is the rust-projects skill's Crate docs on docs.rs section.
+      - 2026-11-09, in 0.7.0, operator decision.
+    completed: 2026-11-09T12:45:32
+    evidence:
+      - https://github.com/victor-software-house/ctl-core/pull/256 and https://github.com/victor-software-house/ctl-core/pull/257, merged in main 796f4bf and 4dbad4f
+    disposition: completed
+
+  - id: CTC-025
+    title: Read TOML input without the YAML and garde crates
+    scope: ctl-core/src/input.rs, ctl-core/src/input/, and the input features in ctl-core/Cargo.toml
+    outcome: A consumer that reads only TOML config compiles no YAML parser and no garde.
+    notes:
+      - Filed 2026-10-17 from infer-lab INF-074, which moves infer-machine onto ctl-core App and input-toml and reads only TOML. It takes serde-saphyr, yamled, and garde for now.
+      - 'Why it is not a small split: Limits is defined as overrides of serde-saphyr Budget, the TOML path reads max_depth and max_nodes from that Budget, the repository limits file .ctl/input.yaml is parsed as YAML, and check and load are garde.'
+      - 2026-11-09, in 0.7.0, operator decision.
+      - serde-saphyr is our fork, vsh-serde-saphyr, so a change that Limits or Budget needs can go into the fork.
+    plan: openspec/changes/archive/2026-11-09-split-input-formats/proposal.md
+    completed: 2026-11-09T12:45:20
+    evidence:
+      - openspec/changes/archive/2026-11-09-split-input-formats/
+      - https://github.com/victor-software-house/ctl-core/pull/253, merged in main 5df6b0e
+    disposition: completed
+
   - id: CTC-041
     title: Cut usage-lib, clap defaults, and annotate-snippets from the graph
     scope: "ctl-core: usage, input, manifests, deny.toml, size gates"
