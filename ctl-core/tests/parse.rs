@@ -46,15 +46,46 @@ fn parse(args: &[&str]) -> Cli {
     Cli::from_arg_matches(&matches).expect("from matches")
 }
 
+/// The error kind ctl-core's parser stops with for `args`.
+fn stops_with(args: &[&str]) -> Option<clap::error::ErrorKind> {
+    let mut words = vec!["toy"];
+    words.extend_from_slice(args);
+    apply_defaults(Cli::command())
+        .try_get_matches_from(&words)
+        .err()
+        .map(|error| error.kind())
+}
+
+/// `-h`, `--help`, and `-V` stop the parse with only the cli feature, so
+/// ctl-core declares them itself and does not lean on Clap's `help`
+/// feature.
 #[test]
 fn help_and_version_shorts() {
-    assert!(Cli::try_parse_from(["toy", "-h"]).is_err());
-    let err = Cli::try_parse_from(["toy", "-h"]).unwrap_err();
-    assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
-    let err = Cli::try_parse_from(["toy", "--help"]).unwrap_err();
-    assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
-    let err = Cli::try_parse_from(["toy", "-V"]).unwrap_err();
-    assert_eq!(err.kind(), clap::error::ErrorKind::DisplayVersion);
+    use clap::error::ErrorKind;
+
+    assert_eq!(stops_with(&["-h"]), Some(ErrorKind::DisplayHelp));
+    assert_eq!(stops_with(&["--help"]), Some(ErrorKind::DisplayHelp));
+    assert_eq!(stops_with(&["prepare", "-h"]), Some(ErrorKind::DisplayHelp));
+    assert_eq!(stops_with(&["-V"]), Some(ErrorKind::DisplayVersion));
+}
+
+/// `help <command>` selects ctl-core's `help` subcommand with only the cli
+/// feature.
+#[test]
+fn help_subcommand_names_the_command() {
+    let matches = apply_defaults(Cli::command())
+        .try_get_matches_from(["toy", "help", "prepare"])
+        .ok();
+    let named = matches.as_ref().and_then(|matches| {
+        let (help, below) = matches.subcommand()?;
+        Some((help.to_owned(), below.subcommand_name()?.to_owned()))
+    });
+    assert_eq!(named, Some(("help".to_owned(), "prepare".to_owned())));
+    let unknown = apply_defaults(Cli::command())
+        .try_get_matches_from(["toy", "help", "unknown"])
+        .err()
+        .map(|error| error.kind());
+    assert_eq!(unknown, Some(clap::error::ErrorKind::InvalidSubcommand));
 }
 
 #[test]

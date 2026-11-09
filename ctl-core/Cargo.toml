@@ -24,11 +24,13 @@ default = ["app"]
 app = ["cli", "view", "help", "dep:anyhow"]
 
 ## Clap derive helpers (`OutputArgs`, `DryRunArgs`) and parser defaults.
-## Turns on only the Clap features ctl-core needs: `std`, `derive`, `env`,
-## and `string`, and `help`, without which Clap drops the `-h`/`--help` flag
-## ctl-core owns. Clap's own `error-context`, `suggestions`, and `color`
-## features stay the CLI's choice.
-cli = ["dep:clap", "clap/help"]
+## Turns on only the Clap features ctl-core calls: `std`, `derive`, `env`,
+## and `string`. ctl-core declares `-h`/`--help` and the `help` subcommand
+## itself and renders the help, so Clap's `help` feature stays off. A plain
+## `Cli::parse()` outside ctl-core's entry point gets Clap's minimal output
+## and no `help` subcommand. Clap's own `error-context`, `suggestions`,
+## `help`, and `color` features stay the CLI's choice.
+cli = ["dep:clap"]
 
 ## Semantic presentation documents without a terminal engine.
 document = []

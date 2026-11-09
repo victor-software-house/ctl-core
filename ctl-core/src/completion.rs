@@ -212,7 +212,7 @@ fn registration(bin: &str, requested: &OsStr) -> ExitCode {
 
 fn candidates<C: CommandFactory>(bin: &str, args: &[OsString]) -> ExitCode {
     let current_dir = std::env::current_dir().ok();
-    match CompleteEnv::with_factory(C::command)
+    match CompleteEnv::with_factory(|| crate::parser::with_help(C::command()))
         .var(VAR)
         .bin(bin)
         .completer(bin)

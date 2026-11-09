@@ -128,9 +128,9 @@ Do not add `help` only to make the prelude compile.
 ctl-core asks a dependency only for the features its own code calls.
 Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
 
-`clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, `string`, and `help`, and `help` adds `usage`.
-Without Clap's `help` feature, Clap turns off the `-h`/`--help` flag ctl-core owns, so `cli` asks for it.
-Clap's `color`, `error-context`, and `suggestions` are the consumer's choice.
+`clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
+Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's choice.
+Without Clap's `help` feature, Clap turns off `-h`/`--help` and the `help` subcommand, so `parser::apply_defaults` and `help::document` declare both (`parser::with_help`), worded as Clap words them.
 ctl-core renders every help Clap stops for and never calls `Error::print` or `Command::color`.
 
 Measure a new dependency or feature with `cargo bloat` on a release build before adding it (`openspec/changes/archive/2026-11-08-narrow-clap-features/design.md`).

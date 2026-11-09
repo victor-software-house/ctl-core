@@ -6,11 +6,11 @@
 #
 # ctl-core writes the Usage KDL itself (size-cuts, decisions 5 and 6).
 # usage-lib, and kdl and winnow 0.x, which only the spec tests use, stay out
-# of the normal dependencies under every feature. The cli feature turns on
-# clap's help feature, without which clap drops the -h/--help flag. The usage
-# feature turns on clap's usage feature, which renders the spec's usage line.
-# With app, usage, and input, nothing turns on clap's defaults or the other
-# features they hold.
+# of the normal dependencies under every feature. ctl-core declares its own
+# -h/--help flag and help subcommand, so the cli feature leaves clap's help
+# feature off. The usage feature turns on clap's usage feature, which renders
+# the spec's usage line. With app, usage, and input, nothing turns on clap's
+# defaults or the features they hold.
 set -euo pipefail
 status=0
 app="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features app --target all --prefix none --format '{p}')"
@@ -32,8 +32,8 @@ if grep -q '^winnow v0\.' <<<"${every}"; then
   status=1
 fi
 cli="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features cli --target all --invert clap_builder --prefix none)"
-if ! grep -q 'clap_builder feature "help"' <<<"${cli}"; then
-  echo "ctl-core with cli does not turn on clap's help feature" >&2
+if grep -q 'clap_builder feature "help"' <<<"${cli}"; then
+  echo "ctl-core with cli turns on clap's help feature" >&2
   status=1
 fi
 usage="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features usage --target all --invert clap_builder --prefix none)"
@@ -42,7 +42,7 @@ if ! grep -q 'clap_builder feature "usage"' <<<"${usage}"; then
   status=1
 fi
 consumer="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features app,usage,input --target all --invert clap_builder --prefix none)"
-for feature in default color error-context suggestions; do
+for feature in default color help error-context suggestions; do
   if grep -q "clap_builder feature \"${feature}\"" <<<"${consumer}"; then
     echo "ctl-core with app, usage, and input turns on clap's ${feature} feature" >&2
     status=1

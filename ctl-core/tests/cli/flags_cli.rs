@@ -122,7 +122,9 @@ fn all_long_and_all_short() {
 #[test]
 fn help_and_version_are_clap_display() {
     for args in [["-h"], ["--help"], ["-V"], ["--version"]] {
-        let err = Toy::try_parse_from(["toy"].into_iter().chain(args)).unwrap_err();
+        let err = ctl_core::parser::apply_defaults(Toy::command())
+            .try_get_matches_from(["toy"].into_iter().chain(args))
+            .unwrap_err();
         assert!(matches!(
             err.kind(),
             clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion

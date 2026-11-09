@@ -322,15 +322,29 @@ overrides its help ([clap_builder 4.6.6, `Command::_build_self`][clap-help-gate]
 ctl-core owns that flag and renders the help itself.
 
 usage-lib had hidden the gap: the tests run with every feature, so
-usage-lib's defaults gave clap `help` there. The `cli` feature now turns on `clap/help`, and
-`test:cli` runs the parser tests with `cli` alone, so no other crate can
-hide the gap again.
+usage-lib's defaults gave clap `help` there. CI's first run without
+usage-lib failed 8 tests on it.
+
+Turning on `clap/help` fixed them and grew every size tier by 37 to 41 KB,
+8 to 12 percent. That is clap's help writer, which no ctl-core binary runs.
+So ctl-core declares both itself, as clap words them:
+
+- `parser::apply_defaults` and `help::document` add an `ArgAction::Help`
+  flag, `-h`/`--help`, which stops the parse with `DisplayHelp` without the
+  feature ([`ArgAction::Help`][clap-help-action]).
+- They add a `help` subcommand holding a copy of each subcommand name, as
+  clap's own does when a command is built. `App` answers it before the
+  derive's `from_arg_matches` sees it.
+
+A plain `Cli::parse()` outside ctl-core's entry point gets clap's minimal
+output for `--help` and no `help` subcommand. `test:cli` runs the parser
+tests with `cli` alone, so no other crate can hide a gap again.
 
 `check:tree` holds these results:
 
-1. With `cli`, clap's `help` feature is on.
+1. With `cli`, clap's `help` feature is off.
 2. With `usage`, clap's `usage` feature is on.
-3. With `app`, `usage`, and `input`, clap's `default`, `color`,
+3. With `app`, `usage`, and `input`, clap's `default`, `color`, `help`,
    `error-context`, and `suggestions` are off.
 
 `check:features` compiles `app,usage,input` warning-free.
@@ -426,6 +440,7 @@ tier carries its reason.
 [input-options-0624]: https://github.com/victor-software-house/ctl-core/blob/v0.6.24/src/input.rs#L262-L279
 [d05500f]: https://github.com/victor-software-house/ctl-core/commit/d05500fa0a1689038dc16b58d5c1fa2227c68b78
 [clap-help-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/builder/command.rs#4415
+[clap-help-action]: https://docs.rs/crate/clap_builder/4.6.6/source/src/parser/parser.rs#1302
 [d16]: ../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
