@@ -6,7 +6,7 @@ and in CI, as each task says.
 
 ## 1. Plan
 
-- [x] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
+- [ ] 1.1 Commit the research in `docs/research/terminal-rendering/`, this
   change, and the CTC-034 row with the later phases as horizon rows. Proof:
   `openspec validate --all --strict` and `mise run q check` pass on the pushed
   commit, and the maintainer approves the decisions listed in the proposal.
@@ -17,7 +17,9 @@ and in CI, as each task says.
     because their pull requests were still open. On main after [#198]
     landed those rows, `mise run q check` passes, and
     `openspec validate --all --strict` passes 11 of 11. The maintainer
-    merged [#185]; the pull request carries no formal review.
+    merged [#185]; the pull request carries no formal review. Unticked:
+    `mise run q check` did not pass on the pushed commit, and no recorded
+    approval of the decisions exists.
 
 ## 2. Workspace
 
@@ -32,19 +34,21 @@ and in CI, as each task says.
     shows 0 changed lines in them). The run's Package step packaged and
     verified `ctl-core v0.6.28`, the version before the move.
 - [x] 2.2 Point `.ctl/ver.yaml` at the virtual manifest so verctl releases the
-  workspace as one package, and add the `wrappers` entries for the new crates
-  to `deny.toml`. Proof: `verctl publish --plan` lists the members in
-  dependency order, and `mise run deny` passes in CI.
+  workspace as one package. Proof: `verctl publish --dry-run` lists the
+  members in dependency order, and `mise run deny` passes in CI.
+  - Amended 2026-11-08 UTC. The task first named `verctl publish --plan`,
+    which now lists only version commits whose release is incomplete;
+    `--dry-run` prints the publish order. It also asked for `wrappers`
+    entries in `deny.toml`, which allow a named crate to depend on a
+    banned one. `deny.toml` bans only `openssl` and `native-tls`, which no
+    member uses, so no ban needs a wrapper and none was added.
   - 2026-11-08 UTC: `.ctl/ver.yaml` reads the root `Cargo.toml`, the
     virtual manifest, and pins each member's `={version}` entry in
     `[workspace.dependencies]`. On main at [93c8642], `ver publish --dry-run`
     listed `ctl-text`, `ctl-layout`, `ctl-term`, then `ctl-core`, all at
-    0.6.28 through cargo, and published nothing. verctl's `--plan` now
-    lists only version commits whose release is incomplete; `--dry-run`
-    prints the publish order. `cargo deny --locked check licenses bans
-    sources` passed in the merge queue's [run 42460567403][q-213]. No `wrappers` entry was added:
-    `deny.toml` bans only `openssl` and `native-tls`, which no member uses,
-    so no ban needs a member listed as an allowed wrapper.
+    0.6.28 through cargo, and published nothing.
+    `cargo deny --locked check licenses bans sources` passed in the merge
+    queue's [run 42460567403][q-213].
 
 ## 3. `ctl-text`
 
@@ -123,9 +127,11 @@ and in CI, as each task says.
   - 2026-11-08 UTC: [#203] committed the 0.6.x baselines and [#204] fixed
     its lint; CI [run 42456492298][run-204] passed on [5b31f40], and the
     merge queue's [run 42456761995][q-203] on [39e6f88]. [#206] added the
-    engine renders and `ctl-core/tests/parity/DIFFERENCES.md`, and its
-    description lists each kind of difference with its reason. [#208]
-    changed difference 5. The parity test passed in [run 42458984812][q-209].
+    engine renders and [`ctl-core/tests/parity/DIFFERENCES.md`][differences],
+    which lists each of the eight differences with an example and its
+    reason; [#206]'s description summarises them. [#208] changed
+    difference 5 and updated that file. The parity test passed in
+    [run 42458984812][q-209].
 - [x] 6.3 Remove comfy-table, anstream, unicode-general-category, `kv` and
   `grid`; add `App::broken_pipe` and `App::theme`. Proof: `cargo tree` in CI
   lists none of comfy-table, crossterm, anstream, anstyle-parse or console
@@ -142,12 +148,18 @@ and in CI, as each task says.
     `CLICOLOR_FORCE=1`.
 - [x] 6.4 Replace the rule in `docs/presentation.md` with design decision 18,
   update `AGENTS.md`, `README.md`, crate docs and the feature list, and add
-  the changeset, which states each break. Proof: `rg 'comfy|anstream'` over `docs`,
-  `AGENTS.md` and `README.md` finds only history, and the pre-push hooks pass.
+  the changeset, which states each break. Proof: `rg 'comfy|anstream'` over
+  `docs`, `AGENTS.md` and `README.md` finds only history, or a rule that
+  names the crates as removed, and the pre-push hooks pass.
+  - Amended 2026-11-08 UTC. The proof first allowed only history. The
+    `check:tree` task that 6.3 added must name the crates it refuses, and
+    `AGENTS.md` describes that task, so a current rule naming them is
+    allowed too.
   - 2026-11-08 UTC: [#212], in the same runs as 6.3; the pre-push hooks
     passed on its push. On this branch, `rg 'comfy|anstream'` over `docs`,
-    `AGENTS.md` and `README.md` finds `docs/research/terminal-rendering/`
-    and one `AGENTS.md` line on what `check:tree` refuses.
+    `AGENTS.md` and `README.md` finds the research in
+    `docs/research/terminal-rendering/`, which is history, and one
+    `AGENTS.md` line listing the crates `check:tree` refuses.
 
 ## 7. Size
 
@@ -223,3 +235,4 @@ and in CI, as each task says.
 [q-209]: https://github.com/victor-software-house/ctl-core/actions/runs/42458984812
 [run-216]: https://github.com/victor-software-house/ctl-core/actions/runs/42460354659
 [q-213]: https://github.com/victor-software-house/ctl-core/actions/runs/42460567403
+[differences]: https://github.com/victor-software-house/ctl-core/blob/b7c168096d8f5556ff59de6f31e64e8ab7a0ed8c/ctl-core/tests/parity/DIFFERENCES.md
