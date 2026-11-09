@@ -1,8 +1,10 @@
 ---
 ctl-core: patch
+"verctl:group": changed
 ---
 
 `--usage-spec` writes the Usage KDL with ctl-core's own writer, built from the clap `Command`.
+
 It keeps usage-lib 7.3.0's bytes except in the cases below, each now a fix.
 They are output that was not valid KDL v2 or read back as other text, and value names that mise read as usage syntax:
 

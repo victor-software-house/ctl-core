@@ -1,11 +1,13 @@
 ---
 ctl-core: patch
+"verctl:group": changed
 ---
 
 Ask Clap only for the features ctl-core calls.
 `clap` is now declared with `default-features = false`: `cli` turns on `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
 
-- A consumer that keeps Clap's default features sees no change.
+- In 0.6 usage-lib turned Clap's default features on for every consumer, and nothing in ctl-core turns them on now.
+  A consumer whose own `clap` entry keeps the default features sees no change.
 - A consumer that wants Clap's error context or suggestions turns them on in its own `clap` entry: `clap = { version = "4", default-features = false, features = ["std", "derive", "error-context", "suggestions"] }`.
 - When a command misses a required argument or subcommand, `App` renders the help Clap stops for.
   It writes that help on stderr with exit code 2, in place of Clap's own.

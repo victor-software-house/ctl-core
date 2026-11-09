@@ -1,9 +1,11 @@
 ---
 ctl-core: patch
+"verctl:group": added
 ---
 
 Add a shared shell integration verb.
 The new `shell-init` feature gives a ctl CLI `<bin> init <SHELL>` for bash, zsh, and fish.
+
 To use it:
 
 - declare `shell_init::Hook::new("<bin>", "<subcommand>", "<VARIABLE>")`;

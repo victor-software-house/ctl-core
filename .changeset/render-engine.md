@@ -1,5 +1,6 @@
 ---
 ctl-core: minor
+"verctl:group": changed
 ---
 
 Render every document through the workspace's own engine in place of comfy-table and anstream.

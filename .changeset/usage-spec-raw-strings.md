@@ -1,5 +1,6 @@
 ---
 ctl-core: patch
+"verctl:group": fixed
 ---
 
 Fix `--usage-spec` for help text that holds four quotes and a hash, `""""#`.
