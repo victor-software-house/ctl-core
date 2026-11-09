@@ -436,9 +436,9 @@ impl Input {
 /// It takes the text from [`MessageFormatter::format_message`] and never calls
 /// the renderer, whose snippet code would otherwise stay in every binary that
 /// loads input. The loader turns snippets off, so the renderer writes the same
-/// line ([serde-saphyr 2.0.0][plain]).
+/// line ([vsh-serde-saphyr 0.0.1][plain]).
 ///
-/// [plain]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/error.rs#1911
+/// [plain]: https://docs.rs/crate/vsh-serde-saphyr/0.0.2/source/src/de/error.rs#1970
 fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
     while let Error::AliasError { error: inner, .. } | Error::WithSnippet { error: inner, .. } =
         error
