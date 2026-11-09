@@ -100,8 +100,9 @@ changeset lists it as a fix against today's output.
 ### 3. The writer departs from 7.3.0 only where KDL v2 requires it
 
 The same probe parsed each output back with kdl 6.7.1. In the cases
-below, 7.3.0's output does not parse, or parses to a different value.
-6.0.0 behaves the same in every one.
+below, 7.3.0's output fails that parse or reads back as a different
+value. In the DEL row, it breaks a KDL v2 rule both parsers miss. 6.0.0
+behaves the same in every one.
 
 | Field | Value holds | 7.3.0 writes | KDL v2 rule | Result |
 |:--|:--|:--|:--|:--|
@@ -111,12 +112,27 @@ below, 7.3.0's output does not parse, or parses to a different value.
 | help | a whitespace-only line, and LF | a raw multiline string | a whitespace-only line reads back empty | the spaces are lost |
 | default | U+2028, U+2029, or U+0085 | a quoted string, character literal | all three are Newline | parse fails |
 | default | U+200E, U+202E, U+2066, U+FEFF, or ESC | a quoted string, character literal | disallowed literal code points | parse fails |
+| default | U+007F (DEL) | a bare identifier, character literal | a disallowed literal code point | parses only because both parsers miss it |
 
 In each case the writer uses the escaped quoted form. 7.3.0 already writes
 that form for a value with a control character. It is a quoted string
 with `\n`, `\t`, `\r`, `\"`, and `\\`, and `\u{…}` for every other Newline
 or disallowed code point. Each departure has a test that parses the
 output with kdl 6.7.1 and compares the value.
+
+The DEL row is the one case a parse cannot catch. The [KDL v2 spec][kdl-v2]
+lists U+007F among the disallowed literal code points.
+
+kdl 6.7.1's [`is_disallowed_unicode`][kdl-671-disallowed] and usage-lib
+7.3.0's [copy][usage-730-disallowed] leave it out of the match, although
+their doc comments list it. So 7.3.0 judges `a<DEL>b` a plain identifier
+and writes it bare, and both parsers read it back.
+
+- The writer writes `default="a\u{7f}b"`.
+- Its test checks that the output holds no literal U+007F, beside the
+  parse.
+- Every other bare default in the corpus is a valid identifier: `-x` and
+  `--x` are signed identifiers.
 
 7.3.0 strips terminal escape sequences and DEL from help text before
 writing it: help `a<ESC>[1mb` is written as `ab`. The writer keeps that.
@@ -265,12 +281,14 @@ tier carries its reason.
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5
 [usage-730]: https://docs.rs/crate/usage-lib/7.3.0
+[usage-730-disallowed]: https://docs.rs/crate/usage-lib/7.3.0/source/src/kdl/v2_parser.rs#1239
 [usage-730-toml]: https://docs.rs/crate/usage-lib/7.3.0/source/Cargo.toml
 [usage-notice]: https://docs.rs/crate/usage-lib/7.3.0/source/NOTICE.md
 [helpers-600]: https://docs.rs/crate/usage-lib/6.0.0/source/src/spec/helpers.rs
 [helpers-730]: https://docs.rs/crate/usage-lib/7.3.0/source/src/spec/helpers.rs
 [kdl-v2]: https://github.com/kdl-org/kdl/blob/2.0.0/SPEC.md
 [kdl-671]: https://docs.rs/crate/kdl/6.7.1
+[kdl-671-disallowed]: https://docs.rs/crate/kdl/6.7.1/source/src/v2_parser.rs#1571
 [clap-467]: https://docs.rs/crate/clap/4.6.7/source/Cargo.toml
 [saphyr-211]: https://docs.rs/crate/serde-saphyr/2.1.1
 [saphyr-211-toml]: https://docs.rs/crate/serde-saphyr/2.1.1/source/Cargo.toml

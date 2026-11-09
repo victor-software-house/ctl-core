@@ -1,0 +1,343 @@
+---
+source: ctl-core/tests/usage_spec.rs
+expression: visible(&corpus)
+---
+// quote
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --quote default="say \"hi\"" {
+    arg <V>
+}
+
+// backslash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --backslash default="a\\b\\\\c" {
+    arg <V>
+}
+
+// newline
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --newline default="one\ntwo" {
+    arg <V>
+}
+
+// tab
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --tab default="a\tb" {
+    arg <V>
+}
+
+// tab-multi
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --tab-multi default="a\tb\nc" {
+    arg <V>
+}
+
+// unicode
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --unicode default="café 日本 é" {
+    arg <V>
+}
+
+// triple-hash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --triple-hash default="x\n\"\"\"#\ny" {
+    arg <V>
+}
+
+// quad-hash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --quad-hash default="x\n\"\"\"\"#\ny" {
+    arg <V>
+}
+
+// triple-two-hash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --triple-two-hash default="x\n\"\"\"##\ny" {
+    arg <V>
+}
+
+// ws-only-line
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --ws-only-line default="a\n   \nb" {
+    arg <V>
+}
+
+// trailing-nl
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --trailing-nl default="a\n" {
+    arg <V>
+}
+
+// leading-nl
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --leading-nl default="\na" {
+    arg <V>
+}
+
+// line-sep
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --line-sep default="a<U+2028>b" {
+    arg <V>
+}
+
+// line-sep-multi
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --line-sep-multi default="a<U+2028>b\nc" {
+    arg <V>
+}
+
+// para-sep
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --para-sep default="a<U+2029>b" {
+    arg <V>
+}
+
+// bidi
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --bidi default="a<U+200E>b<U+202E>c<U+2066>d" {
+    arg <V>
+}
+
+// bidi-multi
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --bidi-multi default="a<U+202E>b\nc" {
+    arg <V>
+}
+
+// bom
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --bom default="a<U+FEFF>b" {
+    arg <V>
+}
+
+// esc
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --esc default="a<U+001B>[1mb" {
+    arg <V>
+}
+
+// cr
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --cr default="a\rb" {
+    arg <V>
+}
+
+// del
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --del default=a<U+007F>b {
+    arg <V>
+}
+
+// nel
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --nel default="a<U+0085>b" {
+    arg <V>
+}
+
+// dash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --dash default=-x {
+    arg <V>
+}
+
+// dashdash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --dashdash default=--x {
+    arg <V>
+}
+
+// true
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --true default="true" {
+    arg <V>
+}
+
+// null
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --null default="null" {
+    arg <V>
+}
+
+// inf
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --inf default="inf" {
+    arg <V>
+}
+
+// digit
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --digit default="1abc" {
+    arg <V>
+}
+
+// negnum
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --negnum default="-1" {
+    arg <V>
+}
+
+// space
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --space default="a b" {
+    arg <V>
+}
+
+// equals
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --equals default="a=b" {
+    arg <V>
+}
+
+// braces
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --braces default="{a}" {
+    arg <V>
+}
+
+// hash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --hash default="#a" {
+    arg <V>
+}
+
+// slash
+name h
+bin h
+unknown_flags error
+args_override_self #false
+usage "Usage: h [OPTIONS]"
+flag --slash default="a//b" {
+    arg <V>
+}
