@@ -42,12 +42,14 @@ impl Line {
     /// with the same text and styles are equal however their spans were
     /// pushed.
     ///
-    /// When `span` starts with characters that continue the line's last
-    /// grapheme cluster, such as a combining mark or the rest of a ZWJ emoji
-    /// sequence, they join the previous span and take its style, since a
-    /// terminal cannot style part of a cluster. So no cluster crosses a span
-    /// boundary and every width counts the cluster once. An empty span adds
-    /// nothing, so none can sit between a cluster's parts.
+    /// The start of `span` can continue the line's last grapheme cluster, as
+    /// a combining mark or the rest of a ZWJ emoji sequence does. Those
+    /// characters join the previous span and take its style, because a
+    /// terminal cannot style part of a cluster.
+    ///
+    /// So no cluster crosses a span boundary, and every width counts the
+    /// cluster once. An empty span adds nothing, so none can sit between a
+    /// cluster's parts.
     pub fn push(&mut self, span: Span) {
         if span.text.is_empty() {
             return;

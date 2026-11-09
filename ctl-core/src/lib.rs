@@ -107,10 +107,10 @@
 //! ## Cargo features
 //!
 //! Features are additive. Unused ones do not compile `clap`, `schemars`, or
-//! the rendering crates. `document` builds documents with no engine;
-//! `render` adds `ctl-text`, `ctl-layout`, and `ctl-term`'s encoder and
-//! renders to a `String` without asking any terminal; `help` and `view` turn
-//! on `ctl-term`'s `detect` feature, which asks the stream for its width and
+//! the rendering crates. `document` builds documents with no engine.
+//! `render` adds `ctl-text`, `ctl-layout`, and `ctl-term`'s encoder, and
+//! renders to a `String` without reading any terminal. `help` and `view` turn
+//! on `ctl-term`'s `detect` feature, which reads the stream's width and
 //! decides colour for it.
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]

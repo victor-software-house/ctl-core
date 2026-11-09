@@ -121,10 +121,10 @@ impl Text {
 
 /// Adds `part`, which holds no newline, to `line`, with each tab expanded.
 ///
-/// The text before the first tab goes in first, so the width a tab counts
-/// from is the line's own: a cluster that the new text continues from the
-/// line's last span, such as a variation selector after a heart, widens the
-/// line before the tab is measured.
+/// The text before the first tab goes in first, so a tab counts from the
+/// line's own width. That text can continue the line's last cluster, as a
+/// variation selector after a heart does, and so widen the line before the
+/// tab is measured.
 fn append_expanded(line: &mut Line, part: &str, style: Style, tab_width: NonZeroU16) {
     let (head, tabbed) = part.split_at(part.find('\t').unwrap_or(part.len()));
     line.append(head, style);

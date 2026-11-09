@@ -263,7 +263,7 @@ impl RenderOptions {
         self
     }
 
-    /// Replace the ordered environment names used to configure the buffer.
+    /// Replace the ordered environment names that set the buffer.
     /// Pass aliases in precedence order or an empty slice to disable lookup.
     #[cfg(any(feature = "view", feature = "help"))]
     #[must_use]
@@ -597,11 +597,12 @@ impl Document {
     ///
     /// The string is a pure function of the document and the options: no
     /// terminal is asked. The document lays out to the explicit width, else
-    /// the fallback width, else its natural width. Styles are written only
-    /// under [`ColorMode::Always`], as the theme gives them, at full colour
-    /// depth; [`ColorMode::Auto`] has no stream to look at here and writes
-    /// none. A [`View`](crate::View) or help, which know their stream, decide
-    /// width and colour for it instead.
+    /// the fallback width, else its natural width.
+    ///
+    /// Styles are written only under [`ColorMode::Always`], as the theme gives
+    /// them, at full colour depth. [`ColorMode::Auto`] has no stream to look
+    /// at here and writes none. A [`View`](crate::View) and help write to a
+    /// stream, so they decide width and colour for it instead.
     #[must_use]
     pub fn render(&self, options: RenderOptions) -> String {
         Renderer::new(options).render(self)
