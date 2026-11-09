@@ -74,7 +74,7 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
   CI runs `mise run semver` against the last release before packaging.
   The crate-docs rules under [Cargo features](#cargo-features) keep traits visible to that check.
-- A change to what an operator sees moves each CLI's skill and instructions in the pull request that adopts the release.
+- A change to what a user sees moves each CLI's skill and instructions in the pull request that adopts the release.
   Examples are help text, a variable name, or an error's wording.
 
 ## Tests
@@ -114,12 +114,13 @@ Features are tree-shaking.
 `view` adds JSON, `help` adds Clap help, and each turns on `ctl-term`'s `detect` feature.
 `app` composes the lifecycle.
 
-`surface-model` adds only Clap/Usage operator metadata.
+`surface-model` adds only the Clap and Usage metadata that the rendered documents read.
 `surface-serde` adds ctl-core's direct Serde edge without a template engine.
 `surface-templates` adds MiniJinja, and `surface` preserves the full legacy aggregate.
 `surface-model` still inherits Serde from `usage-lib`, whose KDL model requires it; that is not ctl-core serialization.
+
 Prefer the narrowest feature set a consumer needs.
-Never add serialization or rendering behavior to a lower tier.
+Never add serialization or rendering behaviour to a lower tier.
 
 `features = ["usage"]` does not pull `help`.
 Do not add `help` only to make the prelude compile.
