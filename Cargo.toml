@@ -35,7 +35,7 @@ serde_json = "1.0.151"
 # plain message. So the snippet renderer stays out of every binary that loads
 # input (size-cuts task 5.3). Drop the fork when upstream stops calling
 # Display in both places.
-serde-saphyr = { package = "vsh-serde-saphyr", version = "=0.0.2", default-features = false, features = [
+serde-saphyr = { package = "vsh-serde-saphyr", version = "=0.0.3", default-features = false, features = [
   "deserialize",
   "comments",
 ] }
@@ -47,7 +47,7 @@ toml = { version = "1.1.8", default-features = false, features = [
   "parse",
   "serde",
 ] }
-yamled = { version = "=0.0.11", default-features = false }
+yamled = { version = "=0.0.12", default-features = false }
 ctl-layout = { path = "ctl-layout", version = "=0.6.28" }
 # Without `detect`: ctl-core's `render` tier needs only the encoder, and its
 # `view` and `help` features turn `detect` on again.
