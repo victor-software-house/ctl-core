@@ -100,20 +100,20 @@ The sections [Snapshots](#snapshots) and [Parity corpus](#parity-corpus) hold th
 
 ## Decisions that bind it
 
-These sections of [`design.md`](../openspec/changes/terminal-render-engine/design.md) state the reasons; change the code and the decision together.
+These sections of [`design.md`](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md) state the reasons; change the code and the decision together.
 
 - [12.
-  Roles map to styles through a public theme](../openspec/changes/terminal-render-engine/design.md#12-roles-map-to-styles-through-a-public-theme)
+  Roles map to styles through a public theme](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#12-roles-map-to-styles-through-a-public-theme)
 - [13.
-  A closed pipe ends the program quietly](../openspec/changes/terminal-render-engine/design.md#13-a-closed-pipe-ends-the-program-quietly)
+  A closed pipe ends the program quietly](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#13-a-closed-pipe-ends-the-program-quietly)
 - [15.
-  Public API](../openspec/changes/terminal-render-engine/design.md#15-public-api)
+  Public API](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#15-public-api)
 - [16.
-  Feature tiers and their measured sizes](../openspec/changes/terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes)
+  Feature tiers and their measured sizes](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes)
 - [17.
-  Tests](../openspec/changes/terminal-render-engine/design.md#17-tests)
+  Tests](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#17-tests)
 - [18.
-  The rule against writing these from scratch is replaced](../openspec/changes/terminal-render-engine/design.md#18-the-rule-against-writing-these-from-scratch-is-replaced)
+  The rule against writing these from scratch is replaced](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#18-the-rule-against-writing-these-from-scratch-is-replaced)
 
 ## Cargo features
 

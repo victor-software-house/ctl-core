@@ -234,6 +234,9 @@ and in CI, as each task says.
 
   The maintainer owns these steps. Nothing changes before the release is
   approved.
+  - 2026-11-10 (UTC), done. [#264] published the three crates with the
+    token, and [#265] turned trusted publishing back on. The repository
+    holds no secret now.
 - The release waits on a prose check in CI. `mise run lint:prose` runs Vale
   over the Markdown, the Rust comments, and the changesets. The docs
   reach it with 0 findings. It stays out of `verify`, which runs only
@@ -242,9 +245,13 @@ and in CI, as each task says.
   2. If that piece is not out when the rest of the release is ready, a pull
      request runs `lint:prose` as its own CI step, as `deny:advisories`
      runs. `verify` stays offline.
+  - 2026-11-10 (UTC), still open: no workflow on main [56ec3d0] runs
+    `lint:prose`. It moved to [CTC-047][ledger].
 - After `ctl-text` publishes, open one `ctl-layout` page on docs.rs and
   confirm that its links to `ctl-text` resolve. Until then those links
   return 404, because docs.rs has no `ctl-text` page to link to.
+  - 2026-11-10 (UTC), done. The ctl-layout 0.7.0 pages on docs.rs hold 11
+    distinct links into ctl-text 0.7.0, and each one answers 200.
 
 ## 8. Integration
 
@@ -265,12 +272,25 @@ and in CI, as each task says.
     after.
   - [Design decision 16][d16] measured what this saves with ctl-core [4bc7862]:
     54,160 bytes of `.text` in qctl and 80,672 in rawr.
+  - 2026-11-10 (UTC), verctl [#267][verctl#267], qctl [#179][qctl#179] and
+    forkctl [#165][forkctl#165] merged. Each sets clap's
+    `default-features = false` and records `.text` before and after. Both
+    errors match byte for byte. Help changes only where ctl-core 0.7.0
+    changed it.
+  - In forkctl, usage-lib 6.1.1 still turns clap's defaults on, for
+    forkctl's own completion.
+  - rawr still pins ctl-core `=0.6.28` with clap's defaults on. Its
+    adoption moved to [CTC-048][ledger] when this change was archived.
 
 ## Workflow follow-up
 
 - Archive the change after the release and the four consumer pull requests
   merge, then fold the specs into `openspec/specs/`.
 - Open one change per later phase from its horizon row.
+- 2026-11-10 (UTC), archived before rawr's adoption. The change went over
+  the `specs:budget` word limits, and the operator ruled that an oversized
+  change is split, never cut down. The open work moved to [CTC-047][ledger]
+  and [CTC-048][ledger].
 
 [#185]: https://github.com/victor-software-house/ctl-core/pull/185
 [#192]: https://github.com/victor-software-house/ctl-core/pull/192
@@ -340,9 +360,15 @@ and in CI, as each task says.
 [run-217]: https://github.com/victor-software-house/ctl-core/actions/runs/42460793731
 [run-218]: https://github.com/victor-software-house/ctl-core/actions/runs/42461005097
 [q-219]: https://github.com/victor-software-house/ctl-core/actions/runs/42461303294
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml
 [trusted publishing]: https://crates.io/docs/trusted-publishing
 [2f23725]: https://github.com/victor-software-house/ctl-core/commit/2f2372540862de53f1160ad247631a3ec1248ffb
 [ci-2f23725]: https://github.com/victor-software-house/ctl-core/actions/runs/42542525587
 [4bc7862]: https://github.com/victor-software-house/ctl-core/commit/4bc7862089fc4a4956f69ea42c169cd033f1a9f5
 [d16]: design.md#16-feature-tiers-and-their-measured-sizes
+[#264]: https://github.com/victor-software-house/ctl-core/pull/264
+[#265]: https://github.com/victor-software-house/ctl-core/pull/265
+[56ec3d0]: https://github.com/victor-software-house/ctl-core/commit/56ec3d098ee4c5d19f44dea9fd96192dbf24f5e8
+[verctl#267]: https://github.com/victor-software-house/verctl/pull/267
+[qctl#179]: https://github.com/victor-software-house/qctl/pull/179
+[forkctl#165]: https://github.com/victor-software-house/forkctl/pull/165

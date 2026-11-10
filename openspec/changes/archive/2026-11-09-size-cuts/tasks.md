@@ -500,7 +500,7 @@
 [saphyr-budget-211]: https://docs.rs/crate/serde-saphyr/2.1.1/source/src/de/budget.rs
 [qctl-7d4e2ed]: https://github.com/victor-software-house/qctl/commit/7d4e2ed8cfec82f640812a5cf1cd121b9824db0e
 [saphyr-deserializer]: https://docs.rs/crate/serde-saphyr/2.0.0/source/src/de/deserializer.rs
-[d16-after]: ../../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[d16-after]: ../2026-11-10-terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [vsh-002]: https://github.com/victor-software-house/serde-saphyr/releases/tag/v0.0.2
 [d2fd6c8]: https://github.com/victor-software-house/ctl-core/commit/d2fd6c84b63a64a2f11d36da51c632d344dbd47d
 [d987bf4]: https://github.com/victor-software-house/ctl-core/commit/d987bf4a37da36a342b43cb1786ccc69ab16b439

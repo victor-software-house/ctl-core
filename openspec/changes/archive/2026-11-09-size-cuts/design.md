@@ -474,7 +474,7 @@ unexplained one. Each tier carries its reason.
 [clap-help-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/builder/command.rs#4415
 [clap-std-gate]: https://docs.rs/crate/clap_builder/4.6.6/source/src/lib.rs#14
 [clap-help-action]: https://docs.rs/crate/clap_builder/4.6.6/source/src/parser/parser.rs#1302
-[d16]: ../../terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
+[d16]: ../2026-11-10-terminal-render-engine/design.md#16-feature-tiers-and-their-measured-sizes
 [qctl-head]: https://github.com/victor-software-house/qctl/commit/cd06a58610646d6ebd9e2ec3ce2bdc1a7a59e4b7
 [verctl-head]: https://github.com/victor-software-house/verctl/commit/d087741fd60190757141761eb8410a1a73875c53
 [forkctl-head]: https://github.com/victor-software-house/forkctl/commit/7b987070f9069842c2e9afdd17fca28353b81bc5

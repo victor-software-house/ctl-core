@@ -63,18 +63,18 @@ A snapshot is the review evidence for a layout change.
 
 ## Decisions that bind it
 
-These are in [`design.md`](../openspec/changes/terminal-render-engine/design.md) of the terminal render engine change.
+These are in [`design.md`](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md) of the terminal render engine change.
 Change the decision there before changing the code that follows it.
 
 - [8.
-  Every widget measures, then renders](../openspec/changes/terminal-render-engine/design.md#8-every-widget-measures-then-renders): a widget returns a `Measurement` and lines no wider than the width, except a word kept whole.
+  Every widget measures, then renders](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#8-every-widget-measures-then-renders): a widget returns a `Measurement` and lines no wider than the width, except a word kept whole.
   The trait is dyn compatible, and a container holds `Box<dyn Renderable + 'a>`, so it can borrow its children.
 - [9.
-  The table chooses column widths in six steps](../openspec/changes/terminal-render-engine/design.md#9-the-table-chooses-column-widths-in-six-steps): the column algorithm, including the final narrowing of each column to its widest rendered line.
+  The table chooses column widths in six steps](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#9-the-table-chooses-column-widths-in-six-steps): the column algorithm, including the final narrowing of each column to its widest rendered line.
   `src/widths.rs` solves the widths, and `Table` documents the steps.
 - [5.
-  Escape sequences are written once, by the sink](../openspec/changes/terminal-render-engine/design.md#5-escape-sequences-are-written-once-by-the-sink): no escape byte exists before `ctl-term`'s encoder.
+  Escape sequences are written once, by the sink](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#5-escape-sequences-are-written-once-by-the-sink): no escape byte exists before `ctl-term`'s encoder.
 - [15.
-  Public API](../openspec/changes/terminal-render-engine/design.md#15-public-api): the rules every public item follows.
+  Public API](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#15-public-api): the rules every public item follows.
 - [17.
-  Tests](../openspec/changes/terminal-render-engine/design.md#17-tests): snapshots at four widths, and the properties every widget keeps.
+  Tests](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#17-tests): snapshots at four widths, and the properties every widget keeps.

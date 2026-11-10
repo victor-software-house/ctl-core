@@ -116,9 +116,9 @@ The maintainer decided these on 2026-11-08 (UTC). Each is argued in
    and review their snapshot diffs. None is expected to change code.
 5. Template: the copier answer `layout` moves to `workspace`.
 
-[needs-d2]: ../../../docs/research/terminal-rendering/consumer-needs.md#d2-hand-rolled-gaps-that-the-library-could-obviously-offer
+[needs-d2]: ../../../../docs/research/terminal-rendering/consumer-needs.md#d2-hand-rolled-gaps-that-the-library-could-obviously-offer
 [design]: design.md
 [design-18]: design.md#18-the-rule-against-writing-these-from-scratch-is-replaced
-[measurements]: ../../../docs/research/terminal-rendering/measurements.md
-[ledger]: ../../../tasks.yaml
+[measurements]: ../../../../docs/research/terminal-rendering/measurements.md
+[ledger]: ../../../../tasks.yaml
 [ctc-032]: https://github.com/victor-software-house/ctl-core/pull/183

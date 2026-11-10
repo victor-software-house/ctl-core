@@ -7,7 +7,7 @@ Every way a file in `engine/` differs from its file of the same name in `baselin
 Each kind names one example as case, width, and mode, and the design decision of the `terminal-render-engine` change that produces it.
 No kind is an unfixable regression.
 
-Decision numbers refer to `openspec/changes/terminal-render-engine/design.md`.
+Decision numbers refer to `openspec/changes/archive/2026-11-10-terminal-render-engine/design.md`.
 
 ## 1. A run of one style is written once
 

@@ -47,7 +47,7 @@ The Rust style survey recommends anstream as the output adapter. The design
 does not take it: once colour is decided before rendering, the adapter would
 parse output in which it never finds an escape to strip (design, decision 5).
 
-[terminal-render-engine]: ../../../openspec/changes/terminal-render-engine/proposal.md
+[terminal-render-engine]: ../../../openspec/changes/archive/2026-11-10-terminal-render-engine/proposal.md
 [rich-and-typer.md]: rich-and-typer.md
 [charm.md]: charm.md
 [rust-layout-crates.md]: rust-layout-crates.md
