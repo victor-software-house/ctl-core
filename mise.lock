@@ -147,6 +147,23 @@ checksum_source = "mise-versions"
 url = "https://github.com/victor-software-house/verctl/releases/download/v0.7.4/verctl_0.7.4_macos_arm64.tar.gz"
 url_api = "https://api.github.com/repos/victor-software-house/verctl/releases/assets/727887955"
 
+[[tools.jactionlint]]
+version = "2.5.0"
+backend = "packslip:github.com/jdx/jactionlint"
+specifiers = ["2.5.0"]
+
+[tools.jactionlint."platforms.linux-x64"]
+checksum = "sha256:5ac307b0499bb0eab45ae99c23e8e0790874fbc667c75224410954e0e3c6e0f5"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.5.0/jactionlint_2.5.0_linux_amd64.tar.gz"
+signer = "sigstore-oidc:https://github.com/jdx/jactionlint/.github/workflows/release.yaml"
+repository_ids = { repository = "1404951382" }
+
+[tools.jactionlint."platforms.macos-arm64"]
+checksum = "sha256:15b47d53e3b1aafbd674cca0e8fff0d5952f3cf2a7d7501a8f67576ef76397b4"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.5.0/jactionlint_2.5.0_darwin_arm64.tar.gz"
+signer = "sigstore-oidc:https://github.com/jdx/jactionlint/.github/workflows/release.yaml"
+repository_ids = { repository = "1404951382" }
+
 [[tools.jq]]
 version = "1.8.2"
 backend = "aqua:jqlang/jq"
