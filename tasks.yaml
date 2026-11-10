@@ -115,6 +115,21 @@ queue:
       - 'Moved from task 8.1 of openspec/changes/archive/2026-11-10-terminal-render-engine/tasks.md when the change was archived. verctl #267, qctl #179 and forkctl #165 did the same for the other three consumers.'
       - 2026-11-10, rawr's main pins ctl-core =0.6.28 with clap's default features on.
       - Design decision 16 measured 80,672 bytes of .text saved in rawr with ctl-core 4bc7862.
+
+  - id: CTC-049
+    title: Place a problem under a flattened map on its own line
+    scope: "ctl-core: input"
+    outcome: >-
+      A garde problem inside a map that serde flattens into its parent names the path
+      the file holds and lands on that line.
+    blocked_by: []
+    acceptance:
+      - A garde problem whose path passes through a `#[serde(flatten)]` map field lands on the line of its own key in the file, such as the `files:` line under `assets.linux-x64`, not on the parent mapping.
+      - The printed field is the path the file holds, `assets.linux-x64.files`, with no segment for the Rust field that the map flattens.
+      - A field path with no flattened segment prints and lands exactly as before, and the problem-report snapshot shows no other change.
+    notes:
+      - 'Triggered by verctl #313 (VER-107). There a target under `assets` is a `#[serde(flatten)]` map entry, so garde reports `assets.targets.linux-x64.files` and `places` lands on the `assets:` line, because the file has no `targets` key.'
+      - garde_derive 0.23 parses `#[garde(rename)]` into an alias it never emits, so a struct cannot drop the segment itself, and a hand-written Validate would replace the declared rules.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
