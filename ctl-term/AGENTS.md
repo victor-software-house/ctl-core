@@ -78,15 +78,15 @@ cargo test --locked -p ctl-term --all-features
 ## Design decisions
 
 These bind the crate.
-They live in [`design.md`](../openspec/changes/terminal-render-engine/design.md).
+They live in [`design.md`](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md).
 
 - [Escape sequences are written once, by the sink][escape]: layout produces lines, and the encoder adds every escape.
 - [Terminal facts are a pure function of an environment snapshot][facts]: the colour table and the width order.
 - [Colour depth is detected and every colour is downgraded to it][depth].
 - [A closed pipe ends the program quietly][pipe]: the crate reports `BrokenPipe`.
 
-[escape]: ../openspec/changes/terminal-render-engine/design.md#5-escape-sequences-are-written-once-by-the-sink
-[facts]: ../openspec/changes/terminal-render-engine/design.md#10-terminal-facts-are-a-pure-function-of-an-environment-snapshot
-[depth]: ../openspec/changes/terminal-render-engine/design.md#11-colour-depth-is-detected-and-every-colour-is-downgraded-to-it
-[unix]: ../openspec/changes/terminal-render-engine/design.md#19-ctl-term-supports-and-tests-unix-only-for-now
-[pipe]: ../openspec/changes/terminal-render-engine/design.md#13-a-closed-pipe-ends-the-program-quietly
+[escape]: ../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#5-escape-sequences-are-written-once-by-the-sink
+[facts]: ../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#10-terminal-facts-are-a-pure-function-of-an-environment-snapshot
+[depth]: ../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#11-colour-depth-is-detected-and-every-colour-is-downgraded-to-it
+[unix]: ../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#19-ctl-term-supports-and-tests-unix-only-for-now
+[pipe]: ../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#13-a-closed-pipe-ends-the-program-quietly

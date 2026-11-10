@@ -56,8 +56,8 @@ print to stderr and exit 2.
 
 ### Requirement: One predicate decides which characters are unsafe to print verbatim
 
-`ctl_core::verbatim::is_unsafe` SHALL return true for each of these
-characters:
+`ctl_core::unsafe_chars::is_unsafe`, with the `unsafe-chars` feature, SHALL
+return true for each of these characters:
 
 - Every member of general category Cc.
 - All 12 directional formatting characters of UAX #9 at Unicode 16.0.0.
@@ -86,7 +86,8 @@ It SHALL return false for every other character.
 ### Requirement: Verbatim document text uses the shared predicate
 
 `Document::verbatim` text SHALL keep newlines and tabs and SHALL drop every
-other character `verbatim::is_unsafe` refuses.
+other character `unsafe_chars::is_unsafe` refuses, through
+`unsafe_chars::strip_unsafe`.
 
 #### Scenario: Terminal controls in verbatim text
 

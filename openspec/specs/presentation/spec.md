@@ -24,12 +24,12 @@ ctl-core SHALL render a `Fields` record in the record style set on
 
 ### Requirement: List style is a public option
 
-ctl-core SHALL render a `Table` list in the list style set on `RenderOptions`,
-and SHALL use `Grid` when none is set.
+ctl-core SHALL render a `Table` list in the frame set on `RenderOptions`
+(`frame`), and SHALL use `Frame::Grid` when none is set.
 
 #### Scenario: Header rule
 
-- **WHEN** a consumer renders a three-row list with the `HeaderRule` style
+- **WHEN** a consumer renders a three-row list with the `HeaderRule` frame
 - **THEN** exactly one horizontal rule appears, directly under the header
 - **AND** no vertical rule appears
 
@@ -79,7 +79,9 @@ It SHALL keep the token style for flags and commands.
 ### Requirement: Automatic width keeps a two-column buffer
 
 ctl-core SHALL subtract 2 columns from an automatically detected width by
-default, and SHALL keep an explicit width exact.
+default, and SHALL keep an explicit width exact. The detected width SHALL come
+from the stream being written, stdout for a result and stderr for help printed
+after a usage error.
 
 #### Scenario: Detected width
 
@@ -91,11 +93,17 @@ default, and SHALL keep an explicit width exact.
 - **WHEN** a consumer sets an explicit width of 100
 - **THEN** the renderer lays out to 100 columns with no buffer
 
+#### Scenario: Help on a narrow stderr
+
+- **WHEN** stdout is a pipe, stderr is a terminal 50 columns wide, and a usage error prints help to stderr
+- **THEN** no line of the help is wider than 48 columns
+
 ### Requirement: Undetected width uses a fallback width
 
-ctl-core SHALL lay out to the fallback width when neither stdout nor
-`COLUMNS` gives a width, and SHALL let a consumer change or disable it. The
-fallback SHALL NOT change the minimum applied to a detected width.
+ctl-core SHALL lay out to the fallback width when neither the stream being
+written nor `COLUMNS` gives a width.
+It SHALL let a consumer change or disable the fallback width.
+The fallback SHALL NOT change the minimum applied to a detected width.
 
 #### Scenario: Everything piped
 
@@ -143,3 +151,13 @@ SHALL print one warning line to stderr that names the accepted values.
 - **WHEN** `CTL_CORE_LIST_STYLE=boxes` is set and a consumer runs through `App`
 - **THEN** stderr contains `CTL_CORE_LIST_STYLE=boxes is ignored; use one of grid, header-rule, plain`
 - **AND** lists render in the default grid
+
+### Requirement: A notice separator takes the plain role's style
+
+ctl-core SHALL draw the separators of a notice in the style the theme gives
+`Role::Plain`, as it draws the plain text of a paragraph.
+
+#### Scenario: A styled plain role
+
+- **WHEN** a theme gives `Role::Plain` an underline and a document holds a warning notice, rendered with colour at width 60
+- **THEN** the ` · ` after the label is written inside an underline sequence

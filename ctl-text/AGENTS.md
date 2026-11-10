@@ -70,20 +70,20 @@ Run them alone with `cargo test --locked -p ctl-text`; `mise run verify` runs th
 
 ## Decisions that bind this crate
 
-These sections of [`design.md`](../openspec/changes/terminal-render-engine/design.md) state the reasons; change the code and the decision together.
+These sections of [`design.md`](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md) state the reasons; change the code and the decision together.
 
 - [4.
-  The style type is `anstyle::Style`](../openspec/changes/terminal-render-engine/design.md#4-the-style-type-is-anstylestyle)
+  The style type is `anstyle::Style`](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#4-the-style-type-is-anstylestyle)
 - [6.
-  Width is counted in terminal cells per grapheme cluster](../openspec/changes/terminal-render-engine/design.md#6-width-is-counted-in-terminal-cells-per-grapheme-cluster)
+  Width is counted in terminal cells per grapheme cluster](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#6-width-is-counted-in-terminal-cells-per-grapheme-cluster)
 - [7.
-  Text from outside the program is filtered when a span is built](../openspec/changes/terminal-render-engine/design.md#7-text-from-outside-the-program-is-filtered-when-a-span-is-built)
+  Text from outside the program is filtered when a span is built](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#7-text-from-outside-the-program-is-filtered-when-a-span-is-built)
 - [8.
-  Every widget measures, then renders](../openspec/changes/terminal-render-engine/design.md#8-every-widget-measures-then-renders)
+  Every widget measures, then renders](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#8-every-widget-measures-then-renders)
 - [15.
-  Public API](../openspec/changes/terminal-render-engine/design.md#15-public-api)
+  Public API](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#15-public-api)
 - [17.
-  Tests](../openspec/changes/terminal-render-engine/design.md#17-tests)
+  Tests](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#17-tests)
 
 Where the code and `design.md` differ, the code is current.
 For example, `Span` carries no link.
