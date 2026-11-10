@@ -227,6 +227,18 @@ horizon:
     notes:
       - From decision 2 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md. tempfile is its only dependency.
 
+  - id: CTC-050
+    title: Keep operator docs in headed sections of bounded size
+    scope: docs
+    outcome: >-
+      Every ctl operator document stays in headed sections a reader can scan, and a
+      check fails one that grows past a set size.
+    kind: research
+    open: "Choose the mechanism: a prose-style Vale rule on section length, the shared operator templates, or instructions held as structured data that ctl-core renders."
+    notes:
+      - verctl instructions held a 473-line Version PR section with no subheading, and its skill held 170 lines under one heading, until a hand split into sections of 22 lines or fewer.
+      - The operator asked for oversized sections and headless prose blocks to be forbidden in every operator document, and for the mechanism to be analysed first (operator, 2026-11-10).
+
 archive:
   - id: CTC-046
     title: Keep the shell_init bash tests off the system bashrc
