@@ -24,8 +24,9 @@ mise run {{ surface.mount }} {{ example }}
 {% endfor -%}
 ```
 
-Never `mise run {{ surface.mount }} --`. The `--` in `#USAGE mount` is mise's
-completion bootstrap.
+Never `mise run {{ surface.mount }} --`.
+
+The `--` in `#USAGE mount` is mise's completion bootstrap.
 {%- endmacro %}";
 
 /// Template source for `ctl/commands.md.jinja`: the macro

@@ -709,8 +709,9 @@ mod tests {
             mise run t item add demo
             ```
 
-            Never `mise run t --`. The `--` in `#USAGE mount` is mise's
-            completion bootstrap.
+            Never `mise run t --`.
+
+            The `--` in `#USAGE mount` is mise's completion bootstrap.
 
             ## Commands
 
