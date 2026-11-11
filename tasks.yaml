@@ -162,6 +162,21 @@ queue:
     notes:
       - 2026-11-10, ctl-core main 1d6746b writes hidden commands with hide=#true (usage/nodes.rs line 282) and has no option to drop them.
       - verctl lists its removed verbs prepare and pin in its usage spec, marked hidden, and its command-names spec says so.
+
+  - id: CTC-053
+    title: Place a problem under a key that holds dots on its own line
+    scope: "ctl-core: input"
+    outcome: >-
+      A garde problem under a mapping key that holds dots, stars or slashes lands on
+      that key's own line, not on its parent.
+    blocked_by: []
+    acceptance:
+      - A garde problem whose path passes through a mapping key such as 'docs/**/*.md' lands on the line of that key's own entry, with a test for YAML and one for TOML.
+      - The printed field is unchanged, and a field path with no such key prints and lands exactly as before, with no other change in the problem-report snapshot.
+    notes:
+      - 2026-11-11, ctl-core main 1cbad5c, input.rs line 411 field_steps splits garde's printed field on '.' and '[', so files.docs/**/*.md.vocab[0] reads as the keys files, docs/**/*, md and vocab, and the lookup stops at files. Its comment at line 405 says a key holding '.' or '[' cannot be told apart from nesting.
+      - 'garde 0.23.0 keeps the steps: Path holds (Kind, key) components (src/error.rs line 97), reached through the doc-hidden __iter, root last. yamled already addresses any key string (Segment::Key in src/path.rs line 7), so the change is in ctl-core only: build the steps from the garde path, hand them to places in yaml_text.rs and toml_text.rs, and drop field_steps.'
+      - Related to CTC-049, which also starts from garde's printed path. Found 2026-11-11 while a consumer placed its own glob-level faults with a text search.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
