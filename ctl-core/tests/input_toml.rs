@@ -526,6 +526,18 @@ fn a_problem_under_a_key_that_holds_dots_stars_and_slashes_lands_on_that_key() {
 }
 
 #[test]
+fn a_text_over_the_size_limit_is_not_placed() {
+    let limit = Limits {
+        max_reader_input_bytes: Some(10),
+        ..Limits::NONE
+    };
+    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml).limits(limit);
+    assert_eq!(input.place(&glob_label("src/lib.rs")), None);
+    let problem = input.problem_at(&glob_label("src/lib.rs"), "is not a known label");
+    assert_eq!((problem.line, problem.column), (None, None));
+}
+
+#[test]
 fn a_later_check_is_placed_through_place() {
     let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml);
     let at = input.place(&glob_label("src/lib.rs")).unwrap();

@@ -25,5 +25,9 @@ The usual build host did not answer on 2026-11-11, so the box was a cloud one (4
 - [x] 6. Add the changeset.
   Proof: `mise run semver` reports no break.
   - 2026-11-11 (UTC), `semver` passed in the box against the last release with the patch changeset.
+- [x] 7. Keep placing within the input's limits: a text past `max_reader_input_bytes` is not placed, and a YAML text is read under the effective budget before yamled gets it.
+  Proof: the tests for an oversize YAML text, a YAML text past `max_depth` or `max_nodes`, and an oversize TOML text pass, and none of them builds a document.
+  - 2026-11-11 (UTC), `test`, `test:input-toml`, `lint`, `check:features`, `doc` and `check:size` passed in the box.
+    The tests are `a_text_over_the_size_limit_builds_no_document` and `a_text_over_the_depth_or_node_limit_keeps_no_document` in `yaml_text.rs`, and `a_text_over_the_size_limit_is_not_placed` in `tests/input_toml.rs`.
 
 [ledger]: ../../../tasks.yaml

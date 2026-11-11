@@ -77,6 +77,17 @@ It is `#[non_exhaustive]` and built inside ctl-core, as the other public structs
 `problem_at` prints the path as garde prints it (`files.docs/**/*.md.vocab[1]`), so `Problem.field` reads the same for a CLI's problem and a garde problem.
 The printed form is for people only, and nothing parses it.
 
+### 7. Placing keeps to the limits parse keeps to
+
+yamled's parse has no budget, so `place` on a YAML text that `Input::parse` refuses for size, depth or node count would build an index as large as the text allows, and keep it for the input's life.
+`place` returns `None` for such a text, and for a YAML text it first reads the text through serde-saphyr into `IgnoredAny` under the effective budget, with the options `parse` uses, and gives it to yamled only when that read succeeds.
+The read builds no value, and runs once per input because the outcome is kept with the document.
+A TOML text is checked against `max_reader_input_bytes`, and `place` builds the same span tree `parse` builds first, so its depth and node limits are not read before the tree exists, as in `parse`.
+Alternative: check `max_reader_input_bytes` only, as the review suggested.
+It lost for YAML because a text inside the size limit can still hold a node for every byte or two, and yamled keeps a record for each, which the serde-saphyr budget refuses.
+Alternative: walk yamled's index and count depth and nodes after the parse.
+It lost because the index is the allocation the limit is meant to prevent.
+
 ## Risks
 
 - A garde release changes `__iter`: the exact pin turns it into a deliberate bump, and a test of the conversion fails first.

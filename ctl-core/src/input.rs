@@ -386,6 +386,13 @@ impl Input {
     /// exists, and a caller that needs an exact hit compares the result with
     /// the place of the path's parent. `None` when the text does not parse.
     ///
+    /// `None` too when the text goes past the limits in force, as
+    /// [`Input::parse`] would refuse it, so placing never parses a text the
+    /// limits keep out. A YAML input checks `max_reader_input_bytes`,
+    /// `max_depth` and `max_nodes` before it hands the text to yamled, which
+    /// has no budget. A TOML input checks `max_reader_input_bytes`, and
+    /// the parse of its tree is the one [`Input::parse`] does first.
+    ///
     /// A YAML input parses its text for the first placing and keeps the
     /// result, so [`Input::check`] and later calls read one document. A TOML
     /// input parses its text on each call.
@@ -427,9 +434,13 @@ impl Input {
 
     /// The place of each path, with the frontmatter lines added.
     fn places(&self, paths: &[FieldPath]) -> Vec<Option<Place>> {
+        let limits = limits::effective(&self.limits);
+        if self.text.len() > limits.bounds().input_bytes {
+            return vec![None; paths.len()];
+        }
         let found = match self.format {
             #[cfg(feature = "input-yaml")]
-            Format::Yaml => yaml_text::places(self, paths),
+            Format::Yaml => yaml_text::places(self, &limits, paths),
             #[cfg(feature = "input-toml")]
             Format::Toml => toml_text::places(&self.text, paths),
         };

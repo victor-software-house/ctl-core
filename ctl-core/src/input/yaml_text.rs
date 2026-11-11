@@ -5,13 +5,13 @@
 use std::borrow::Cow;
 use std::sync::OnceLock;
 
-use serde::de::DeserializeOwned;
+use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
     Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
-    MergeKeyPolicy, MessageFormatter,
+    MergeKeyPolicy, MessageFormatter, Options,
 };
 
-use super::limits::{Exceeded, Raise};
+use super::limits::{Exceeded, Limits, Raise};
 use super::{FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a YAML text, once the text's size is known to fit.
@@ -20,14 +20,7 @@ pub(super) fn parse<T: DeserializeOwned>(
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    let options = serde_saphyr::options! {
-        budget: Some(budget.clone()),
-        strict_booleans: true,
-        duplicate_keys: DuplicateKeyPolicy::Error,
-        merge_keys: MergeKeyPolicy::Error,
-        with_snippet: false,
-    };
-    serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
+    serde_saphyr::from_str_with_options(&input.text, options(budget)).map_err(|error| {
         let location = error.location();
         InputError::of(
             input.name.clone(),
@@ -41,6 +34,17 @@ pub(super) fn parse<T: DeserializeOwned>(
             }],
         )
     })
+}
+
+/// What every read of a YAML text uses, under `budget`.
+fn options(budget: &Budget) -> Options {
+    serde_saphyr::options! {
+        budget: Some(budget.clone()),
+        strict_booleans: true,
+        duplicate_keys: DuplicateKeyPolicy::Error,
+        merge_keys: MergeKeyPolicy::Error,
+        with_snippet: false,
+    }
 }
 
 /// serde-saphyr's wording for `error`.
@@ -140,15 +144,25 @@ impl PartialEq for Located {
 impl Eq for Located {}
 
 /// The 1-based line and column, in the text, of each path or of its nearest
-/// written ancestor. `None` for every path when the text does not parse.
+/// written ancestor. `None` for every path when the text does not parse or
+/// goes past `limits`.
 ///
 /// The document is built by the first call on `input` and read by every call
-/// after it.
-pub(super) fn places(input: &Input, paths: &[FieldPath]) -> Vec<Option<(usize, usize)>> {
+/// after it. A text `limits` refuse is never handed to yamled, whose parse has
+/// no budget of its own, and the refusal is kept like a document would be.
+pub(super) fn places(
+    input: &Input,
+    limits: &Limits,
+    paths: &[FieldPath],
+) -> Vec<Option<(usize, usize)>> {
     let document = input
         .yaml_document
         .0
-        .get_or_init(|| yamled::Document::parse(&input.text).ok())
+        .get_or_init(|| {
+            within(input, &limits.budget())
+                .then(|| yamled::Document::parse(&input.text).ok())
+                .flatten()
+        })
         .as_ref();
     paths
         .iter()
@@ -158,6 +172,12 @@ pub(super) fn places(input: &Input, paths: &[FieldPath]) -> Vec<Option<(usize, u
                 .map(|at| (at.line, at.column))
         })
         .collect()
+}
+
+/// Whether serde-saphyr reads the whole text under `budget`, depth and node
+/// count included, as [`parse`] would, without building any value.
+fn within(input: &Input, budget: &Budget) -> bool {
+    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options(budget)).is_ok()
 }
 
 /// `path` as a yamled path.
@@ -185,6 +205,46 @@ mod tests {
         assert_eq!(input.place(&path).map(|at| at.line), Some(3));
         let second = input.yaml_document.0.get().unwrap();
         assert!(std::ptr::eq(first, second));
+    }
+
+    /// `text` with the call tier's `limits`, placed at its first key.
+    fn placed_with(text: &str, limits: Limits) -> (Input, Option<(usize, usize)>) {
+        let input = Input::new("a.yaml", text).limits(limits);
+        let at = input
+            .place(&FieldPath::root().key("a"))
+            .map(|at| (at.line, at.column));
+        (input, at)
+    }
+
+    #[test]
+    fn a_text_over_the_size_limit_builds_no_document() {
+        let limits = Limits {
+            max_reader_input_bytes: Some(4),
+            ..Limits::NONE
+        };
+        let (input, at) = placed_with("a: 1\nb: 2\n", limits);
+        assert_eq!(at, None);
+        assert!(input.yaml_document.0.get().is_none());
+    }
+
+    #[test]
+    fn a_text_over_the_depth_or_node_limit_keeps_no_document() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        assert_eq!(placed_with(text, Limits::NONE).1, Some((1, 4)));
+        for limits in [
+            Limits {
+                max_depth: Some(2),
+                ..Limits::NONE
+            },
+            Limits {
+                max_nodes: Some(3),
+                ..Limits::NONE
+            },
+        ] {
+            let (input, at) = placed_with(text, limits);
+            assert_eq!(at, None);
+            assert!(matches!(input.yaml_document.0.get(), Some(None)));
+        }
     }
 
     #[test]

@@ -38,6 +38,21 @@ It SHALL exist with `input-yaml` or `input-toml`, and not need `validate`.
 - **WHEN** the path names a key the file does not hold under `files`
 - **THEN** `place` returns the place of `files`
 
+### Requirement: Placing keeps to the limits in force
+
+`Input::place` SHALL return `None` for a text that goes past the limits in force, as `parse` would refuse it.  
+It SHALL NOT give such a text to a parser that has no budget of its own.
+
+#### Scenario: A text over the size limit
+
+- **WHEN** a YAML or TOML input is longer than `max_reader_input_bytes` and `place` is called
+- **THEN** `place` returns `None`, and a YAML input has built no document
+
+#### Scenario: A YAML text over the depth or node limit
+
+- **WHEN** a YAML input nests deeper than `max_depth`, or holds more nodes than `max_nodes`, and `place` is called
+- **THEN** `place` returns `None`, and the input keeps no document
+
 ### Requirement: A caller builds a placed problem
 
 `Input::problem_at` SHALL take a `FieldPath` and a message and return a `Problem` with the place of the path, the path printed as garde prints a field, and the message.
