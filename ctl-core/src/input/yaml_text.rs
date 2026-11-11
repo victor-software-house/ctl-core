@@ -3,7 +3,7 @@
 //! places each problem through yamled's location index.
 
 use std::borrow::Cow;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock, PoisonError};
 
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
@@ -126,14 +126,30 @@ impl Localizer for Unplaced {
     }
 }
 
-/// The yamled document of one input, built when it is first placed on and kept
-/// after that.
+/// What one input keeps for placing: whether the text passed the limits, and
+/// the yamled document built after it did.
 ///
-/// It is derived from the text, so a clone starts with the same contents,
-/// `Debug` shows them, and two inputs with the same fields are equal whether
-/// or not either has been placed on.
-#[derive(Clone, Debug, Default)]
-pub(super) struct Located(OnceLock<Option<yamled::Document>>);
+/// The document is derived from the text alone, so a clone starts with the
+/// same contents, `Debug` shows them, and two inputs with the same fields are
+/// equal whether or not either has been placed on. The verdict depends on the
+/// limits, which a later repository file, process default or [`Input::limits`]
+/// can change, so it is kept with the limits it was computed under.
+#[derive(Debug, Default)]
+pub(super) struct Located {
+    /// The limits the last check ran under, and whether the text passed them.
+    verdict: Mutex<Option<(Limits, bool)>>,
+    /// The document, built the first time the text passes.
+    document: OnceLock<Option<yamled::Document>>,
+}
+
+impl Clone for Located {
+    fn clone(&self) -> Self {
+        Self {
+            verdict: Mutex::new(self.verdict()),
+            document: self.document.clone(),
+        }
+    }
+}
 
 impl PartialEq for Located {
     fn eq(&self, _: &Self) -> bool {
@@ -143,27 +159,53 @@ impl PartialEq for Located {
 
 impl Eq for Located {}
 
+impl Located {
+    fn verdict(&self) -> Option<(Limits, bool)> {
+        self.verdict
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Whether `input` passes `limits`, read again when `limits` differ from
+    /// the ones the kept verdict was computed under.
+    fn passes(&self, input: &Input, limits: &Limits) -> bool {
+        let mut verdict = self.verdict.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some((seen, passed)) = verdict.as_ref()
+            && seen == limits
+        {
+            return *passed;
+        }
+        let passed = within(input, &limits.budget());
+        *verdict = Some((limits.clone(), passed));
+        passed
+    }
+}
+
 /// The 1-based line and column, in the text, of each path or of its nearest
 /// written ancestor. `None` for every path when the text does not parse or
 /// goes past `limits`.
 ///
-/// The document is built by the first call on `input` and read by every call
-/// after it. A text `limits` refuse is never handed to yamled, whose parse has
-/// no budget of its own, and the refusal is kept like a document would be.
+/// The document is built by the first call on `input` whose limits the text
+/// passes, and read by every call after it. A text `limits` refuse is never
+/// handed to yamled, whose parse has no budget of its own. The verdict is kept
+/// with the limits it was computed under and read again when they change, so
+/// the result follows the limits in force, for the input and for its clones.
 pub(super) fn places(
     input: &Input,
     limits: &Limits,
     paths: &[FieldPath],
 ) -> Vec<Option<(usize, usize)>> {
-    let document = input
-        .yaml_document
-        .0
-        .get_or_init(|| {
-            within(input, &limits.budget())
-                .then(|| yamled::Document::parse(&input.text).ok())
-                .flatten()
+    let located = &input.yaml_document;
+    let document = located
+        .passes(input, limits)
+        .then(|| {
+            located
+                .document
+                .get_or_init(|| yamled::Document::parse(&input.text).ok())
+                .as_ref()
         })
-        .as_ref();
+        .flatten();
     paths
         .iter()
         .map(|path| {
@@ -198,12 +240,12 @@ mod tests {
     fn a_second_placing_reuses_the_document() {
         let input = Input::new("a.yaml", "files:\n  'a.b':\n    label: ''\n");
         let path = FieldPath::root().key("files").key("a.b").key("label");
-        assert!(input.yaml_document.0.get().is_none());
+        assert!(input.yaml_document.document.get().is_none());
         assert_eq!(input.place(&path).map(|at| at.line), Some(3));
-        let first = input.yaml_document.0.get().unwrap();
+        let first = input.yaml_document.document.get().unwrap();
         assert!(first.is_some());
         assert_eq!(input.place(&path).map(|at| at.line), Some(3));
-        let second = input.yaml_document.0.get().unwrap();
+        let second = input.yaml_document.document.get().unwrap();
         assert!(std::ptr::eq(first, second));
     }
 
@@ -224,11 +266,11 @@ mod tests {
         };
         let (input, at) = placed_with("a: 1\nb: 2\n", limits);
         assert_eq!(at, None);
-        assert!(input.yaml_document.0.get().is_none());
+        assert!(input.yaml_document.document.get().is_none());
     }
 
     #[test]
-    fn a_text_over_the_depth_or_node_limit_keeps_no_document() {
+    fn a_text_over_the_depth_or_node_limit_builds_no_document() {
         let text = "a: {b: {c: {d: 1}}}\n";
         assert_eq!(placed_with(text, Limits::NONE).1, Some((1, 4)));
         for limits in [
@@ -243,8 +285,37 @@ mod tests {
         ] {
             let (input, at) = placed_with(text, limits);
             assert_eq!(at, None);
-            assert!(matches!(input.yaml_document.0.get(), Some(None)));
+            assert!(input.yaml_document.document.get().is_none());
         }
+    }
+
+    fn tight() -> Limits {
+        Limits {
+            max_depth: Some(2),
+            ..Limits::NONE
+        }
+    }
+
+    #[test]
+    fn a_clone_tightened_after_the_document_was_built_is_refused() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        let first = FieldPath::root().key("a");
+        let loose = Input::new("a.yaml", text);
+        assert!(loose.place(&first).is_some());
+        let tightened = loose.clone().limits(tight());
+        assert!(tightened.place(&first).is_none());
+        assert!(loose.place(&first).is_some());
+    }
+
+    #[test]
+    fn a_refusal_ends_when_the_limits_that_gave_it_do() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        let first = FieldPath::root().key("a");
+        let refused = Input::new("a.yaml", text).limits(tight());
+        assert!(refused.place(&first).is_none());
+        let freed = refused.clone().limits(Limits::NONE);
+        assert!(freed.place(&first).is_some());
+        assert!(refused.place(&first).is_none());
     }
 
     #[test]

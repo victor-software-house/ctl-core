@@ -83,6 +83,10 @@ yamled's parse has no budget, so `place` on a YAML text that `Input::parse` refu
 `place` returns `None` for such a text, and for a YAML text it first reads the text through serde-saphyr into `IgnoredAny` under the effective budget, with the options `parse` uses, and gives it to yamled only when that read succeeds.
 The read builds no value, and runs once per input because the outcome is kept with the document.
 A TOML text is checked against `max_reader_input_bytes`, and `place` builds the same span tree `parse` builds first, so its depth and node limits are not read before the tree exists, as in `parse`.
+The verdict is kept with the limits it was computed under and read again when the limits in force differ, since the repository file, the process default and `Input::limits` on a clone can change them.
+The document is built the first time the text passes, and a later refusal leaves it unused.
+Alternative: keep the verdict for the input's life.
+It lost because a refusal made before the repository limits loaded, or a document placed before a clone was tightened, would then outlive the limits that decided it.
 Alternative: check `max_reader_input_bytes` only, as the review suggested.
 It lost for YAML because a text inside the size limit can still hold a node for every byte or two, and yamled keeps a record for each, which the serde-saphyr budget refuses.
 Alternative: walk yamled's index and count depth and nodes after the parse.

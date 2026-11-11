@@ -48,6 +48,11 @@ It SHALL NOT give such a text to a parser that has no budget of its own.
 - **WHEN** a YAML or TOML input is longer than `max_reader_input_bytes` and `place` is called
 - **THEN** `place` returns `None`, and a YAML input has built no document
 
+#### Scenario: Limits that change after a placing
+
+- **WHEN** an input was placed under one set of limits, then the repository file, the process default or `Input::limits` on a clone gives it a set the text goes past, or a set it passes after a refusal
+- **THEN** `place` gives the result of the limits in force at that call
+
 #### Scenario: A YAML text over the depth or node limit
 
 - **WHEN** a YAML input nests deeper than `max_depth`, or holds more nodes than `max_nodes`, and `place` is called
