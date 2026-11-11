@@ -130,6 +130,36 @@ queue:
     notes:
       - 'Triggered by verctl #313 (VER-107). There a target under `assets` is a `#[serde(flatten)]` map entry, so garde reports `assets.targets.linux-x64.files` and `places` lands on the `assets:` line, because the file has no `targets` key.'
       - garde_derive 0.23 parses `#[garde(rename)]` into an alias it never emits, so a struct cannot drop the segment itself, and a hand-written Validate would replace the declared rules.
+
+  - id: CTC-051
+    title: Complete every shell clap_complete supports, with run-time candidates
+    scope: "ctl-core: completion, usage"
+    outcome: >-
+      Every ctl CLI takes its whole completion from ctl-core, and forkctl drops its
+      own copy.
+    blocked_by: []
+    acceptance:
+      - ctl-core completion prints a registration for bash, zsh, fish, elvish, PowerShell, and Nushell.
+      - The usage KDL writer emits complete run= entries for arguments whose candidates are computed at run time.
+      - forkctl main has no clap_complete import outside ctl-core.
+    notes:
+      - 2026-11-10, ctl-core main 1d6746b, completion.rs line 84 lists Bash, Zsh, and Fish only, and the KDL writer emits no run= entries.
+      - 2026-11-10, forkctl main writes its own elvish and PowerShell registrations in src/main.rs line 266 and lists six shells in src/instructions.md line 131.
+      - Found 2026-11-09 during the forkctl adoption of ctl-core 0.7.0.
+
+  - id: CTC-052
+    title: Let the usage spec leave hidden commands out
+    scope: "ctl-core: usage"
+    outcome: >-
+      A ctl CLI can publish a usage spec that lists only the commands an operator may
+      run.
+    blocked_by: []
+    acceptance:
+      - ctl-core has an option that leaves every hidden command out of the usage KDL, with a test.
+      - verctl drops its removed verbs from its usage spec once it adopts the release that ships the option.
+    notes:
+      - 2026-11-10, ctl-core main 1d6746b writes hidden commands with hide=#true (usage/nodes.rs line 282) and has no option to drop them.
+      - verctl lists its removed verbs prepare and pin in its usage spec, marked hidden, and its command-names spec says so.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
