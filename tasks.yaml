@@ -178,9 +178,9 @@ queue:
       - 2026-11-11, ctl-core main 1cbad5c, input.rs line 411 field_steps splits garde's printed field on '.' and '[', so files.docs/**/*.md.vocab[0] reads as the keys files, docs/**/*, md and vocab, and the lookup stops at files. Its comment at line 405 says a key holding '.' or '[' cannot be told apart from nesting.
       - 'garde 0.23.0 keeps the steps: Path holds (Kind, key) components (src/error.rs line 97), reached through the doc-hidden __iter, root last. yamled already addresses any key string (Segment::Key in src/path.rs line 7), so the change is in ctl-core only: build the steps from the garde path, hand them to places in yaml_text.rs and toml_text.rs, and drop field_steps.'
       - Related to CTC-049, which also starts from garde's printed path. Found 2026-11-11 while a consumer placed its own glob-level faults with a text search.
-      - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. Of the candidates in the location design, this is the one that keeps ctl-core's own FieldPath, yamled for YAML, and the existing walk for TOML."
       - garde 0.23.0 is pinned exactly, because the path parts come from its doc-hidden Path::__iter and Kind.
       - "Leaves open from CTC-049: a garde path with a segment the file lacks, such as assets.targets.linux-x64.files under a flattened map, still stops at the last segment that resolves, because this row adds no rule to skip an unresolved segment. Its printed field also stays garde's string, not the path the file holds."
+      - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. ctl-core keeps its own FieldPath, uses yamled for YAML, and keeps its existing walk for TOML."
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
