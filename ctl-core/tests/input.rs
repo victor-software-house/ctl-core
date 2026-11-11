@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ctl_core::indoc;
-use ctl_core::input::{Input, Problem};
+use ctl_core::input::{FieldPath, Input, Problem};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
@@ -350,4 +350,89 @@ fn problem_reports_keep_their_wording() {
         ),
     ];
     insta::assert_snapshot!("problem_reports", reports.join("\n"));
+}
+
+#[derive(Debug, Deserialize, Validate, PartialEq)]
+struct Globs {
+    #[garde(dive)]
+    files: BTreeMap<String, Entry>,
+}
+
+#[derive(Debug, Deserialize, Validate, PartialEq)]
+struct Entry {
+    #[garde(custom(cannot_be_empty("it names the label")))]
+    label: String,
+}
+
+const GLOBS: &str = "\
+files:
+  'docs/**/*.md':
+    label: ''
+  src/lib.rs:
+    label: ''
+  a[b]:
+    label: ''
+";
+
+fn glob_label(glob: &str) -> FieldPath {
+    FieldPath::root().key("files").key(glob).key("label")
+}
+
+#[test]
+fn a_problem_under_a_key_that_holds_dots_stars_and_slashes_lands_on_that_key() {
+    let error = Input::new("globs.yaml", GLOBS).load::<Globs>().unwrap_err();
+    let message = "cannot be empty — it names the label";
+    let mut problems = error.problems.clone();
+    problems.sort_by_key(|problem| problem.line);
+    assert_eq!(
+        problems,
+        [
+            problem(3, 12, "files.docs/**/*.md.label", message),
+            problem(5, 12, "files.src/lib.rs.label", message),
+            problem(7, 12, "files.a[b].label", message),
+        ]
+    );
+}
+
+#[test]
+fn a_later_check_is_placed_through_place() {
+    let input = Input::new("globs.yaml", GLOBS);
+    let at = input.place(&glob_label("docs/**/*.md")).unwrap();
+    assert_eq!((at.line, at.column), (3, 12));
+    let at = input.place(&glob_label("a[b]")).unwrap();
+    assert_eq!((at.line, at.column), (7, 12));
+    assert_eq!(
+        input.problem_at(&glob_label("docs/**/*.md"), "is not a known label"),
+        problem(3, 12, "files.docs/**/*.md.label", "is not a known label")
+    );
+}
+
+#[test]
+fn a_path_the_file_lacks_is_placed_at_its_nearest_ancestor() {
+    let input = Input::new("globs.yaml", GLOBS);
+    let files = input.place(&FieldPath::root().key("files")).unwrap();
+    assert_eq!(input.place(&glob_label("docs/**/*.rs")), Some(files));
+    assert_eq!(
+        input.place(&FieldPath::root().key("files").key("missing")),
+        Some(files)
+    );
+}
+
+#[test]
+fn a_text_that_does_not_parse_places_nothing() {
+    let input = Input::new("bad.yaml", "files: [\n");
+    assert_eq!(input.place(&glob_label("docs/**/*.md")), None);
+    let problem = input.problem_at(&glob_label("docs/**/*.md"), "is not a known label");
+    assert_eq!((problem.line, problem.column), (None, None));
+}
+
+#[test]
+fn a_frontmatter_place_keeps_the_line_of_the_whole_file() {
+    let file = Input::new(
+        "note.md",
+        "---\nfiles:\n  'a.b':\n    label: x\n---\nbody\n",
+    );
+    let (matter, _) = file.frontmatter().unwrap();
+    let at = matter.place(&glob_label("a.b")).unwrap();
+    assert_eq!((at.line, at.column), (4, 12));
 }

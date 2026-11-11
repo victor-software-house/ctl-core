@@ -77,7 +77,8 @@
 //!   policy, the record and table framing, and the style of each role.
 //! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
 //! - [`input::Input`] loads a CLI's declared config from YAML or TOML, and
-//!   reports every problem on its file and line.
+//!   reports every problem on its file and line. [`input::FieldPath`] and
+//!   [`input::Input::place`] place a problem of the CLI's own the same way.
 //!
 //! ## How output flows
 //!
@@ -181,7 +182,9 @@
 #![cfg_attr(
     not(any(feature = "input-yaml", feature = "input-toml")),
     doc = "",
-    doc = "[`input::Input`]: crate#cargo-features"
+    doc = "[`input::Input`]: crate#cargo-features",
+    doc = "[`input::FieldPath`]: crate#cargo-features",
+    doc = "[`input::Input::place`]: crate#cargo-features"
 )]
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]

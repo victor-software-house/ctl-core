@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ctl_core::fixture::Suite;
-use ctl_core::input::{Format, Input, Limits, Problem};
+use ctl_core::input::{FieldPath, Format, Input, Limits, Problem};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use ctl_core::{formatdoc, indoc};
 use garde::Validate;
@@ -482,4 +482,58 @@ fn nesting_past_the_parsers_own_bound_is_refused_on_a_line() {
     let error = input.parse::<IgnoredAny>().unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, Some(1), "{error}");
+}
+
+#[derive(Debug, Deserialize, Validate, PartialEq)]
+struct Globs {
+    #[garde(dive)]
+    files: BTreeMap<String, Entry>,
+}
+
+#[derive(Debug, Deserialize, Validate, PartialEq)]
+struct Entry {
+    #[garde(custom(cannot_be_empty("it names the label")))]
+    label: String,
+}
+
+const GLOBS: &str = "\
+[files.\"docs/**/*.md\"]
+label = ''
+
+[files.\"src/lib.rs\"]
+label = ''
+";
+
+fn glob_label(glob: &str) -> FieldPath {
+    FieldPath::root().key("files").key(glob).key("label")
+}
+
+#[test]
+fn a_problem_under_a_key_that_holds_dots_stars_and_slashes_lands_on_that_key() {
+    let error = Input::new_with_format("globs.toml", GLOBS, Format::Toml)
+        .load::<Globs>()
+        .unwrap_err();
+    let message = "cannot be empty — it names the label";
+    let mut problems = error.problems.clone();
+    problems.sort_by_key(|problem| problem.line);
+    assert_eq!(
+        problems,
+        [
+            problem(2, 9, "files.docs/**/*.md.label", message),
+            problem(5, 9, "files.src/lib.rs.label", message),
+        ]
+    );
+}
+
+#[test]
+fn a_later_check_is_placed_through_place() {
+    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml);
+    let at = input.place(&glob_label("src/lib.rs")).unwrap();
+    assert_eq!((at.line, at.column), (5, 9));
+    assert_eq!(
+        input.problem_at(&glob_label("docs/**/*.md"), "is not a known label"),
+        problem(2, 9, "files.docs/**/*.md.label", "is not a known label")
+    );
+    let files = input.place(&FieldPath::root().key("files")).unwrap();
+    assert_eq!(input.place(&glob_label("docs/**/*.rs")), Some(files));
 }

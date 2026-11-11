@@ -12,9 +12,7 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue, Deserializer};
 
 use super::limits::{Bounds, Exceeded, Raise};
-use super::{Input, InputError, Problem};
-#[cfg(feature = "validate")]
-use super::{Step, field_steps};
+use super::{FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a TOML text: the tree, then the limits, then the
 /// typed value. The first problem found is the one reported.
@@ -38,30 +36,27 @@ pub(super) fn parse<T: DeserializeOwned>(
         .map_err(|error| refusal(input, error.span(), error.message()))
 }
 
-/// The 1-based line and column of each garde field in `text`, or of its
-/// nearest written ancestor. `None` for every field when `text` does not
-/// parse.
-#[cfg(feature = "validate")]
-pub(super) fn places(text: &str, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
+/// The 1-based line and column of each path in `text`, or of its nearest
+/// written ancestor. `None` for every path when `text` does not parse.
+pub(super) fn places(text: &str, paths: &[FieldPath]) -> Vec<Option<(usize, usize)>> {
     let root = DeTable::parse(text)
         .ok()
         .map(|table| Spanned::new(table.span(), DeValue::Table(table.into_inner())));
-    fields
+    paths
         .iter()
-        .map(|field| {
+        .map(|path| {
             root.as_ref()
-                .map(|root| position(text, nearest(root, &field_steps(field)).start))
+                .map(|root| position(text, nearest(root, path.steps()).start))
         })
         .collect()
 }
 
 /// The span of the value `steps` reach, or of the last one that exists.
-#[cfg(feature = "validate")]
-fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step<'_>]) -> Range<usize> {
+fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step]) -> Range<usize> {
     let mut found = root;
     for step in steps {
         let next = match step {
-            Step::Key(key) => found.get_ref().get(*key),
+            Step::Key(key) => found.get_ref().get(key.as_str()),
             Step::Index(index) => found.get_ref().get(*index),
         };
         let Some(next) = next else { break };

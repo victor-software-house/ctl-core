@@ -8,6 +8,10 @@
 //! the one boundary where a CLI's config enters. Downstream code keeps the
 //! validated type and never checks it again.
 //!
+//! A check that runs after the read, such as one that needs a file the config
+//! names, places its problem with a [`FieldPath`] and [`Input::problem_at`],
+//! the way the loader places garde's.
+//!
 //! A text's [`Format`] is chosen, never guessed. [`Input::open`] reads it from
 //! the file's extension, and [`Input::new_with_format`] takes it for text in
 //! memory. With `input-yaml`, `Input::new` and `Input::read` are YAML.
@@ -41,12 +45,14 @@ use std::{fmt, io};
 use garde::Validate;
 use serde::de::DeserializeOwned;
 
+mod field_path;
 mod limits;
 #[cfg(feature = "input-toml")]
 mod toml_text;
 #[cfg(feature = "input-yaml")]
 mod yaml_text;
 
+pub use field_path::{FieldPath, Place, Step};
 use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "input-yaml")]
@@ -131,6 +137,9 @@ pub struct Input {
     lines_before: usize,
     limits: Limits,
     format: Format,
+    /// The YAML document that placing reads, built on first use.
+    #[cfg(feature = "input-yaml")]
+    yaml_document: yaml_text::Located,
 }
 
 /// Why an input was refused: every problem found, each placed on a line when
@@ -191,6 +200,8 @@ impl Input {
             lines_before: 0,
             limits: Limits::NONE,
             format,
+            #[cfg(feature = "input-yaml")]
+            yaml_document: yaml_text::Located::default(),
         }
     }
 
@@ -260,6 +271,7 @@ impl Input {
                     lines_before: self.lines_before + 1,
                     limits: self.limits.clone(),
                     format: Format::Yaml,
+                    yaml_document: yaml_text::Located::default(),
                 };
                 return Some((matter, &rest[offset + line.len()..]));
             }
@@ -324,7 +336,10 @@ impl Input {
     /// Validate a parsed `value` against `context`.
     ///
     /// Each of garde's problems lands on the line of the field it names, or
-    /// of its nearest written ancestor.
+    /// of its nearest written ancestor. The place comes from the parts of
+    /// garde's path through [`Input::place`], so a key that holds a `.` is
+    /// found as one key. `Problem::field` is garde's printed path, for display
+    /// only.
     ///
     /// # Errors
     ///
@@ -340,16 +355,22 @@ impl Input {
         };
         let reported: Vec<_> = report
             .iter()
-            .map(|(path, error)| (path.to_string(), error.message().to_owned()))
+            .map(|(path, error)| {
+                (
+                    path.to_string(),
+                    FieldPath::from(path),
+                    error.message().to_owned(),
+                )
+            })
             .collect();
-        let fields: Vec<_> = reported.iter().map(|(field, _)| field.as_str()).collect();
-        let places = self.places(&fields);
+        let paths: Vec<_> = reported.iter().map(|(_, path, _)| path.clone()).collect();
+        let places = self.places(&paths);
         let problems = reported
             .into_iter()
             .zip(places)
-            .map(|((field, message), place)| Problem {
-                line: place.map(|(line, _)| line + self.lines_before),
-                column: place.map(|(_, column)| column),
+            .map(|((field, _, message), place)| Problem {
+                line: place.map(|at| at.line),
+                column: place.map(|at| at.column),
                 field,
                 message,
             })
@@ -357,16 +378,65 @@ impl Input {
         Err(InputError::of(self.name.clone(), problems))
     }
 
-    /// The 1-based line and column in the text of each garde field, or of its
-    /// nearest written ancestor, counted in the text itself.
-    #[cfg(feature = "validate")]
-    fn places(&self, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
-        match self.format {
-            #[cfg(feature = "input-yaml")]
-            Format::Yaml => yaml_text::places(&self.text, fields),
-            #[cfg(feature = "input-toml")]
-            Format::Toml => toml_text::places(&self.text, fields),
+    /// Where `path` is written in the text, or where its nearest written
+    /// ancestor is.
+    ///
+    /// The line counts the whole file, so a frontmatter input adds the lines
+    /// before it. A path the text lacks gives the place of the last step that
+    /// exists, and a caller that needs an exact hit compares the result with
+    /// the place of the path's parent. `None` when the text does not parse.
+    ///
+    /// A YAML input parses its text for the first placing and keeps the
+    /// result, so [`Input::check`] and later calls read one document. A TOML
+    /// input parses its text on each call.
+    ///
+    /// ```
+    /// # #[cfg(feature = "input-yaml")]
+    /// # {
+    /// use ctl_core::input::{FieldPath, Input};
+    ///
+    /// let input = Input::new("app.yaml", "files:\n  'docs/**/*.md':\n    label: ''\n");
+    /// let path = FieldPath::root()
+    ///     .key("files")
+    ///     .key("docs/**/*.md")
+    ///     .key("label");
+    /// let at = input.place(&path).map(|at| (at.line, at.column));
+    /// assert_eq!(at, Some((3, 12)));
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn place(&self, path: &FieldPath) -> Option<Place> {
+        self.places(std::slice::from_ref(path)).pop().flatten()
+    }
+
+    /// A [`Problem`] for `path` with `message`, placed as [`Input::place`]
+    /// places it, with the path printed as garde prints a field.
+    ///
+    /// A CLI uses it for a check that runs after the read, such as one that
+    /// needs a file the config names.
+    #[must_use]
+    pub fn problem_at(&self, path: &FieldPath, message: impl Into<String>) -> Problem {
+        let place = self.place(path);
+        Problem {
+            line: place.map(|at| at.line),
+            column: place.map(|at| at.column),
+            field: path.to_string(),
+            message: message.into(),
         }
+    }
+
+    /// The place of each path, with the frontmatter lines added.
+    fn places(&self, paths: &[FieldPath]) -> Vec<Option<Place>> {
+        let found = match self.format {
+            #[cfg(feature = "input-yaml")]
+            Format::Yaml => yaml_text::places(self, paths),
+            #[cfg(feature = "input-toml")]
+            Format::Toml => toml_text::places(&self.text, paths),
+        };
+        found
+            .into_iter()
+            .map(|at| at.map(|(line, column)| Place::new(line + self.lines_before, column)))
+            .collect()
     }
 
     /// Parse the text into `T`, then validate it with `T`'s default context.
@@ -393,37 +463,6 @@ fn read_text(path: &Path) -> Result<(String, String), InputError> {
         Ok(text) => Ok((name, text)),
         Err(error) => Err(InputError::unread(name, &error)),
     }
-}
-
-/// One step down a garde field path.
-#[cfg(feature = "validate")]
-enum Step<'field> {
-    /// A key of a mapping or table.
-    Key(&'field str),
-    /// An item of a sequence or array.
-    Index(usize),
-}
-
-/// A garde field path (`packages[1].name`) as the steps down to it. A key
-/// holding `.` or `[` cannot be told apart from nesting, so such a problem
-/// lands on the nearest ancestor that resolves.
-#[cfg(feature = "validate")]
-fn field_steps(field: &str) -> Vec<Step<'_>> {
-    let mut steps = Vec::new();
-    for part in field.split('.') {
-        let mut pieces = part.split('[');
-        if let Some(key) = pieces.next().filter(|key| !key.is_empty()) {
-            steps.push(Step::Key(key));
-        }
-        for index in pieces {
-            let index = index.trim_end_matches(']');
-            steps.push(match index.parse::<usize>() {
-                Ok(index) => Step::Index(index),
-                Err(_) => Step::Key(index),
-            });
-        }
-    }
-    steps
 }
 
 impl InputError {

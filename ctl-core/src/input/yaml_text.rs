@@ -1,8 +1,9 @@
 //! The YAML half of [`Input`]. It parses with serde-saphyr under the limits in
 //! force, and words each problem without serde-saphyr's own position. It
-//! places each garde problem through yamled's location index.
+//! places each problem through yamled's location index.
 
 use std::borrow::Cow;
+use std::sync::OnceLock;
 
 use serde::de::DeserializeOwned;
 use serde_saphyr::{
@@ -11,9 +12,7 @@ use serde_saphyr::{
 };
 
 use super::limits::{Exceeded, Raise};
-use super::{Input, InputError, Problem};
-#[cfg(feature = "validate")]
-use super::{Step, field_steps};
+use super::{FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a YAML text, once the text's size is known to fit.
 pub(super) fn parse<T: DeserializeOwned>(
@@ -123,30 +122,76 @@ impl Localizer for Unplaced {
     }
 }
 
-/// The 1-based line and column of each garde field in `text`, or of its
-/// nearest written ancestor. `None` for every field when `text` does not
-/// parse.
-#[cfg(feature = "validate")]
-pub(super) fn places(text: &str, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
-    let document = yamled::Document::parse(text).ok();
-    fields
+/// The yamled document of one input, built when it is first placed on and kept
+/// after that.
+///
+/// It is derived from the text, so a clone starts with the same contents,
+/// `Debug` shows them, and two inputs with the same fields are equal whether
+/// or not either has been placed on.
+#[derive(Clone, Debug, Default)]
+pub(super) struct Located(OnceLock<Option<yamled::Document>>);
+
+impl PartialEq for Located {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Located {}
+
+/// The 1-based line and column, in the text, of each path or of its nearest
+/// written ancestor. `None` for every path when the text does not parse.
+///
+/// The document is built by the first call on `input` and read by every call
+/// after it.
+pub(super) fn places(input: &Input, paths: &[FieldPath]) -> Vec<Option<(usize, usize)>> {
+    let document = input
+        .yaml_document
+        .0
+        .get_or_init(|| yamled::Document::parse(&input.text).ok())
+        .as_ref();
+    paths
         .iter()
-        .map(|field| {
+        .map(|path| {
             document
-                .as_ref()
-                .and_then(|document| document.locate_nearest(&path(&field_steps(field))))
+                .and_then(|document| document.locate_nearest(&yamled_path(path)))
                 .map(|at| (at.line, at.column))
         })
         .collect()
 }
 
-/// `steps` as a yamled path.
-#[cfg(feature = "validate")]
-fn path(steps: &[Step<'_>]) -> yamled::Path {
-    steps
+/// `path` as a yamled path.
+fn yamled_path(path: &FieldPath) -> yamled::Path {
+    path.steps()
         .iter()
         .fold(yamled::Path::root(), |path, step| match step {
-            Step::Key(key) => path.key(*key),
+            Step::Key(key) => path.key(key.as_str()),
             Step::Index(index) => path.index(*index),
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_second_placing_reuses_the_document() {
+        let input = Input::new("a.yaml", "files:\n  'a.b':\n    label: ''\n");
+        let path = FieldPath::root().key("files").key("a.b").key("label");
+        assert!(input.yaml_document.0.get().is_none());
+        assert_eq!(input.place(&path).map(|at| at.line), Some(3));
+        let first = input.yaml_document.0.get().unwrap();
+        assert!(first.is_some());
+        assert_eq!(input.place(&path).map(|at| at.line), Some(3));
+        let second = input.yaml_document.0.get().unwrap();
+        assert!(std::ptr::eq(first, second));
+    }
+
+    #[test]
+    fn an_input_equals_its_clone_whether_or_not_it_was_placed_on() {
+        let input = Input::new("a.yaml", "a: 1\n");
+        let fresh = input.clone();
+        assert!(input.place(&FieldPath::root().key("a")).is_some());
+        assert_eq!(input, fresh);
+    }
 }
