@@ -1,19 +1,18 @@
 //! The YAML half of [`Input`]. It parses with serde-saphyr under the limits in
 //! force, and words each problem without serde-saphyr's own position. It
-//! places each garde problem through yamled's location index.
+//! places each problem through yamled's location index.
 
 use std::borrow::Cow;
+use std::sync::{Mutex, OnceLock, PoisonError};
 
-use serde::de::DeserializeOwned;
+use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
     Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
-    MergeKeyPolicy, MessageFormatter,
+    MergeKeyPolicy, MessageFormatter, Options,
 };
 
-use super::limits::{Exceeded, Raise};
-use super::{Input, InputError, Problem};
-#[cfg(feature = "validate")]
-use super::{Step, field_steps};
+use super::limits::{Exceeded, Limits, Raise};
+use super::{FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a YAML text, once the text's size is known to fit.
 pub(super) fn parse<T: DeserializeOwned>(
@@ -21,14 +20,7 @@ pub(super) fn parse<T: DeserializeOwned>(
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    let options = serde_saphyr::options! {
-        budget: Some(budget.clone()),
-        strict_booleans: true,
-        duplicate_keys: DuplicateKeyPolicy::Error,
-        merge_keys: MergeKeyPolicy::Error,
-        with_snippet: false,
-    };
-    serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
+    serde_saphyr::from_str_with_options(&input.text, options(budget)).map_err(|error| {
         let location = error.location();
         InputError::of(
             input.name.clone(),
@@ -42,6 +34,17 @@ pub(super) fn parse<T: DeserializeOwned>(
             }],
         )
     })
+}
+
+/// What every read of a YAML text uses, under `budget`.
+fn options(budget: &Budget) -> Options {
+    serde_saphyr::options! {
+        budget: Some(budget.clone()),
+        strict_booleans: true,
+        duplicate_keys: DuplicateKeyPolicy::Error,
+        merge_keys: MergeKeyPolicy::Error,
+        with_snippet: false,
+    }
 }
 
 /// serde-saphyr's wording for `error`.
@@ -123,30 +126,203 @@ impl Localizer for Unplaced {
     }
 }
 
-/// The 1-based line and column of each garde field in `text`, or of its
-/// nearest written ancestor. `None` for every field when `text` does not
-/// parse.
-#[cfg(feature = "validate")]
-pub(super) fn places(text: &str, fields: &[&str]) -> Vec<Option<(usize, usize)>> {
-    let document = yamled::Document::parse(text).ok();
-    fields
-        .iter()
-        .map(|field| {
-            document
+/// What one input keeps for placing: whether the text passed the limits, and
+/// the yamled document built after it did.
+///
+/// The document is derived from the text alone, so a clone starts with the
+/// same contents, `Debug` shows them, and two inputs with the same fields are
+/// equal whether or not either has been placed on. The verdict depends on the
+/// limits, which a later repository file, process default or [`Input::limits`]
+/// can change, so it is kept with the limits it was computed under.
+#[derive(Debug, Default)]
+pub(super) struct Located {
+    /// The limits the last check ran under, and whether the text passed them.
+    verdict: Mutex<Option<(Limits, bool)>>,
+    /// The document, built the first time the text passes.
+    document: OnceLock<Option<yamled::Document>>,
+}
+
+impl Clone for Located {
+    fn clone(&self) -> Self {
+        Self {
+            verdict: Mutex::new(self.verdict()),
+            document: self.document.clone(),
+        }
+    }
+}
+
+impl PartialEq for Located {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Located {}
+
+impl Located {
+    fn verdict(&self) -> Option<(Limits, bool)> {
+        self.verdict
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Whether `input` passes `limits`, read again when `limits` differ from
+    /// the ones the kept verdict was computed under.
+    fn passes(&self, input: &Input, limits: &Limits) -> bool {
+        let mut verdict = self.verdict.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some((seen, passed)) = verdict.as_ref()
+            && seen == limits
+        {
+            return *passed;
+        }
+        let passed = within(input, &limits.budget());
+        *verdict = Some((limits.clone(), passed));
+        passed
+    }
+}
+
+/// The 1-based line and column, in the text, of each path or of its nearest
+/// written ancestor. `None` for every path when the text does not parse or
+/// goes past `limits`.
+///
+/// The document is built by the first call on `input` whose limits the text
+/// passes, and read by every call after it. A text `limits` refuse is never
+/// handed to yamled, whose parse has no budget of its own. The verdict is kept
+/// with the limits it was computed under and read again when they change, so
+/// the result follows the limits in force, for the input and for its clones.
+pub(super) fn places(
+    input: &Input,
+    limits: &Limits,
+    paths: &[FieldPath],
+) -> Vec<Option<(usize, usize)>> {
+    let located = &input.yaml_document;
+    let document = located
+        .passes(input, limits)
+        .then(|| {
+            located
+                .document
+                .get_or_init(|| yamled::Document::parse(&input.text).ok())
                 .as_ref()
-                .and_then(|document| document.locate_nearest(&path(&field_steps(field))))
+        })
+        .flatten();
+    paths
+        .iter()
+        .map(|path| {
+            document
+                .and_then(|document| document.locate_nearest(&yamled_path(path)))
                 .map(|at| (at.line, at.column))
         })
         .collect()
 }
 
-/// `steps` as a yamled path.
-#[cfg(feature = "validate")]
-fn path(steps: &[Step<'_>]) -> yamled::Path {
-    steps
+/// Whether serde-saphyr reads the whole text under `budget`, depth and node
+/// count included, as [`parse`] would, without building any value.
+fn within(input: &Input, budget: &Budget) -> bool {
+    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options(budget)).is_ok()
+}
+
+/// `path` as a yamled path.
+fn yamled_path(path: &FieldPath) -> yamled::Path {
+    path.steps()
         .iter()
         .fold(yamled::Path::root(), |path, step| match step {
-            Step::Key(key) => path.key(*key),
+            Step::Key(key) => path.key(key.as_str()),
             Step::Index(index) => path.index(*index),
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_second_placing_reuses_the_document() {
+        let input = Input::new("a.yaml", "files:\n  'a.b':\n    label: ''\n");
+        let path = FieldPath::root().key("files").key("a.b").key("label");
+        assert!(input.yaml_document.document.get().is_none());
+        assert_eq!(input.place(&path).map(|at| at.line), Some(3));
+        let first = input.yaml_document.document.get().unwrap();
+        assert!(first.is_some());
+        assert_eq!(input.place(&path).map(|at| at.line), Some(3));
+        let second = input.yaml_document.document.get().unwrap();
+        assert!(std::ptr::eq(first, second));
+    }
+
+    /// `text` with the call tier's `limits`, placed at its first key.
+    fn placed_with(text: &str, limits: Limits) -> (Input, Option<(usize, usize)>) {
+        let input = Input::new("a.yaml", text).limits(limits);
+        let at = input
+            .place(&FieldPath::root().key("a"))
+            .map(|at| (at.line, at.column));
+        (input, at)
+    }
+
+    #[test]
+    fn a_text_over_the_size_limit_builds_no_document() {
+        let limits = Limits {
+            max_reader_input_bytes: Some(4),
+            ..Limits::NONE
+        };
+        let (input, at) = placed_with("a: 1\nb: 2\n", limits);
+        assert_eq!(at, None);
+        assert!(input.yaml_document.document.get().is_none());
+    }
+
+    #[test]
+    fn a_text_over_the_depth_or_node_limit_builds_no_document() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        assert_eq!(placed_with(text, Limits::NONE).1, Some((1, 4)));
+        for limits in [
+            Limits {
+                max_depth: Some(2),
+                ..Limits::NONE
+            },
+            Limits {
+                max_nodes: Some(3),
+                ..Limits::NONE
+            },
+        ] {
+            let (input, at) = placed_with(text, limits);
+            assert_eq!(at, None);
+            assert!(input.yaml_document.document.get().is_none());
+        }
+    }
+
+    fn tight() -> Limits {
+        Limits {
+            max_depth: Some(2),
+            ..Limits::NONE
+        }
+    }
+
+    #[test]
+    fn a_clone_tightened_after_the_document_was_built_is_refused() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        let first = FieldPath::root().key("a");
+        let loose = Input::new("a.yaml", text);
+        assert!(loose.place(&first).is_some());
+        let tightened = loose.clone().limits(tight());
+        assert!(tightened.place(&first).is_none());
+        assert!(loose.place(&first).is_some());
+    }
+
+    #[test]
+    fn a_refusal_ends_when_the_limits_that_gave_it_do() {
+        let text = "a: {b: {c: {d: 1}}}\n";
+        let first = FieldPath::root().key("a");
+        let refused = Input::new("a.yaml", text).limits(tight());
+        assert!(refused.place(&first).is_none());
+        let freed = refused.clone().limits(Limits::NONE);
+        assert!(freed.place(&first).is_some());
+        assert!(refused.place(&first).is_none());
+    }
+
+    #[test]
+    fn an_input_equals_its_clone_whether_or_not_it_was_placed_on() {
+        let input = Input::new("a.yaml", "a: 1\n");
+        let fresh = input.clone();
+        assert!(input.place(&FieldPath::root().key("a")).is_some());
+        assert_eq!(input, fresh);
+    }
 }

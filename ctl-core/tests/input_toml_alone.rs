@@ -15,7 +15,7 @@
 use std::path::Path;
 
 use ctl_core::indoc;
-use ctl_core::input::{Format, Input, Limits, Problem, set_default_limits};
+use ctl_core::input::{FieldPath, Format, Input, Limits, Problem, set_default_limits};
 use serde::Deserialize;
 use serde::de::IgnoredAny;
 
@@ -185,4 +185,18 @@ fn the_default_then_the_process_then_the_call_decide_each_limit() {
     );
     assert_eq!(refusal(&six.limits(depth(6))), None);
     set_default_limits(Limits::NONE);
+}
+
+#[test]
+fn a_path_is_placed_without_yaml_and_without_garde() {
+    let input = toml("a.toml", "[files.\"docs/**/*.md\"]\nlabel = ''\n");
+    let path = FieldPath::root()
+        .key("files")
+        .key("docs/**/*.md")
+        .key("label");
+    let at = input.place(&path).map(|at| (at.line, at.column));
+    assert_eq!(at, Some((2, 9)));
+    let problem = input.problem_at(&path, "is not a known label");
+    assert_eq!(problem.field, "files.docs/**/*.md.label");
+    assert_eq!((problem.line, problem.column), (Some(2), Some(9)));
 }

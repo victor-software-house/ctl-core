@@ -12,7 +12,9 @@
 
 use ctl_core::fixture::Suite;
 use ctl_core::indoc;
-use ctl_core::input::{Input, Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits};
+use ctl_core::input::{
+    FieldPath, Input, Limits, Loosened, REPO_FILE, set_default_limits, use_repo_limits,
+};
 use serde::de::IgnoredAny;
 
 /// Mappings nested `depth` deep, one key per level.
@@ -73,8 +75,19 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
     let six = Input::new("six.yaml", nested(6));
 
     assert_eq!(refusal(&six), None, "serde-saphyr's depth 64 admits six");
+    let first = FieldPath::root().key("a");
+    assert!(six.place(&first).is_some(), "placed under the defaults");
 
     set_default_limits(depth(4));
+    assert!(
+        six.place(&first).is_none(),
+        "the process default tightened after the document was built"
+    );
+    let late = Input::new("late.yaml", nested(6));
+    assert!(
+        late.place(&first).is_none(),
+        "refused under the process default"
+    );
     assert_eq!(
         refusal(&six).as_deref(),
         Some("exceeds max_depth (4); raise limits.max_depth in .ctl/input.yaml"),
@@ -95,6 +108,10 @@ fn the_call_then_the_repository_then_the_process_decide_each_field() {
         "a limit at or below the default is not loosened"
     );
     assert_eq!(refusal(&six), None, "the repository beats the process");
+    assert!(
+        six.place(&first).is_some() && late.place(&first).is_some(),
+        "a repository that raises the limit later frees a refused input and a placed one"
+    );
 
     let five = Input::new("six.yaml", nested(6)).limits(depth(5));
     assert!(

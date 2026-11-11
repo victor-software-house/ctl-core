@@ -29,6 +29,11 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   `surface-serde` adds serialization without a template engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains the compatibility aggregate enabling all three.
 - Declared input (`validate`, `input-yaml`, `input-toml`, `input` features): shared garde rules, and one loader for YAML or TOML.
   It validates once with `validate`, and places every problem on its file and line.
+  - A public `FieldPath` names a field by its steps, and `Input::place` and `Input::problem_at` place it, for garde's problems and for a CLI's own.
+    `FieldPath::from(&garde::Path)` reads garde's path parts and never its printed string, so a key that holds a `.` is one step.
+  - garde is pinned exactly in the root `Cargo.toml`, because that conversion calls the doc-hidden `Path::__iter`.
+    A bump is a reviewed change, and `a_garde_path_converts_from_its_parts` fails first if the iteration order moves.
+  - A YAML `Input` builds its yamled document on the first placing and keeps it.
 - Served files (`served` feature): render a template that declares its own target through `{%- set -%}` exports, check the declarations once, and write the file with its mode.
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a flattenable `CompletionCommand`, and the registration script for bash, zsh, and fish.
   - `App::completion` answers `COMPLETE=<shell>` before parsing; the feature enables `app` for it.
