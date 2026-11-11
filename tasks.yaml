@@ -164,19 +164,23 @@ queue:
       - verctl lists its removed verbs prepare and pin in its usage spec, marked hidden, and its command-names spec says so.
 
   - id: CTC-053
-    title: Place a problem under a key that holds dots on its own line
+    title: Place every problem through one public field path
     scope: "ctl-core: input"
     outcome: >-
-      A garde problem under a mapping key that holds dots, stars or slashes lands on
-      that key's own line, not on its parent.
+      A garde problem, and a problem a CLI raises itself, land on the line of the field they name through one public path type, including under a mapping key that holds dots, stars or slashes.
     blocked_by: []
     acceptance:
-      - A garde problem whose path passes through a mapping key such as 'docs/**/*.md' lands on the line of that key's own entry, with a test for YAML and one for TOML.
-      - The printed field is unchanged, and a field path with no such key prints and lands exactly as before, with no other change in the problem-report snapshot.
+      - ctl-core has a public FieldPath, a public Input::place that returns the line and column of a path or of its nearest written ancestor, and Input::problem_at that builds a Problem from them, for YAML and for TOML.
+      - FieldPath is built from garde's path parts, with no split of its printed string, and check places each garde problem through place, so field_steps is gone. Problem.field stays garde's printed string, for display only.
+      - A garde problem under a mapping key such as 'docs/**/*.md' lands on that key's own entry, and place on the same path returns the same line, with a test for YAML and one for TOML.
+      - A second place on one Input reuses the parsed yamled document, with a test. A field path with no such key prints and lands exactly as before, with no other change in the problem-report snapshot.
     notes:
       - 2026-11-11, ctl-core main 1cbad5c, input.rs line 411 field_steps splits garde's printed field on '.' and '[', so files.docs/**/*.md.vocab[0] reads as the keys files, docs/**/*, md and vocab, and the lookup stops at files. Its comment at line 405 says a key holding '.' or '[' cannot be told apart from nesting.
       - 'garde 0.23.0 keeps the steps: Path holds (Kind, key) components (src/error.rs line 97), reached through the doc-hidden __iter, root last. yamled already addresses any key string (Segment::Key in src/path.rs line 7), so the change is in ctl-core only: build the steps from the garde path, hand them to places in yaml_text.rs and toml_text.rs, and drop field_steps.'
       - Related to CTC-049, which also starts from garde's printed path. Found 2026-11-11 while a consumer placed its own glob-level faults with a text search.
+      - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. Of the candidates in the location design, this is the one that keeps ctl-core's own FieldPath, yamled for YAML, and the existing walk for TOML."
+      - garde 0.23.0 is pinned exactly, because the path parts come from its doc-hidden Path::__iter and Kind.
+      - "Leaves open from CTC-049: a garde path with a segment the file lacks, such as assets.targets.linux-x64.files under a flattened map, still stops at the last segment that resolves, because this row adds no rule to skip an unresolved segment. Its printed field also stays garde's string, not the path the file holds."
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
