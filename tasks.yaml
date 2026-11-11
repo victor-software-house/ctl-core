@@ -141,13 +141,13 @@ queue:
     acceptance:
       - The usage KDL writer emits complete run= entries for arguments whose candidates are computed at run time.
       - forkctl main has no clap_complete import outside ctl-core.
-      - ctl-core completion prints a registration for bash, zsh, fish, elvish, and PowerShell through clap_complete env, and for Nushell through the usage crate, as forkctl does today.
+      - ctl-core completion prints a registration for bash, zsh, fish, elvish, and PowerShell through clap_complete env, and for Nushell a registration ctl-core writes itself that takes run-time candidates from its Usage spec, the script usage-lib writes for forkctl today.
     notes:
       - 2026-11-10, ctl-core main 1d6746b, completion.rs line 84 lists Bash, Zsh, and Fish only, and the KDL writer emits no run= entries.
       - 2026-11-10, forkctl main writes its own elvish and PowerShell registrations in src/main.rs line 266 and lists six shells in src/instructions.md line 131.
       - Found 2026-11-09 during the forkctl adoption of ctl-core 0.7.0.
       - 2026-11-11, clap_complete 4.6 Shells::builtins() lists Bash, Elvish, Fish, Powershell, and Zsh only, and clap_complete_nushell writes static scripts, so Nushell run-time candidates come from usage::complete with shell nu (forkctl src/main.rs line 279).
-      - 2026-11-11, ctl-core has no usage-lib dependency, and its usage feature only gates its own KDL writer (ctl-core/Cargo.toml line 121), so the Nushell path adds usage-lib behind that feature.
+      - 2026-11-11, deny.toml line 31 bans usage-lib and check:tree rejects it (archived size-cuts change), so ctl-core writes the Nushell registration itself, as it writes the Usage KDL; lifting that ban is a separate decision with its clap-defaults size cost.
 
   - id: CTC-052
     title: Let the usage spec leave hidden commands out
