@@ -168,19 +168,20 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde. 2,096 above the last budget,
+# app plus input: serde-saphyr, yamled, and garde. 2,335 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
-# flattened field (flattened-field-place). Input::top_level (top-level-entries)
-# measured 3,361 below 1051134 on its own, since yamled 0.0.13 takes more out
-# than it puts in; the two are not yet measured together. The one before, 8,001
-# above 1043133, was place_key (key-place) and the limits check of placing, a
-# serde-saphyr read before yamled and the kept verdict (field-path-place).
-input = { features = "app,input", text = 1053230 }
+# flattened field (flattened-field-place), 2,096, and Input::top_level with
+# yamled 0.0.13 (top-level-entries), 239, each measured on its own from a clean
+# release build. The one before it, 8,001 above 1043133, was place_key
+# (key-place) and the limits check of placing, a serde-saphyr read before
+# yamled and the kept verdict (field-path-place), measured together.
+input = { features = "app,input", text = 1053469 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
-# no YAML crate and no garde. 453,599 below input. 352 below the last budget,
-# 594526, which place_key (key-place) set: Input::top_level over the toml tree
-# (top-level-entries) adds less than the pinned dependencies removed.
-input-toml = { features = "app,input-toml", text = 594174 }
+# no YAML crate and no garde. 456,847 below input. 320 above the last budget,
+# 594206: Input::top_level over the toml tree (top-level-entries). The one
+# before it, 1,568 above 592638, was FieldPath, Input::place and problem_at
+# (field-path-place).
+input-toml = { features = "app,input-toml", text = 594526 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
