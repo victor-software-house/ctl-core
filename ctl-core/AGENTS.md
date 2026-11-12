@@ -34,6 +34,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   - garde is pinned exactly in the root `Cargo.toml`, because that conversion calls the doc-hidden `Path::__iter`.
     A bump is a reviewed change, and `a_garde_path_converts_from_its_parts` fails first if the iteration order moves.
   - A YAML `Input` builds its yamled document on the first placing and keeps it.
+  - `Input::place_key` places the key of the last step where `place` places its value, for a fault about the key itself. An item and the root give their value.
 - Served files (`served` feature): render a template that declares its own target through `{%- set -%}` exports, check the declarations once, and write the file with its mode.
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a flattenable `CompletionCommand`, and the registration script for bash, zsh, and fish.
   - `App::completion` answers `COMPLETE=<shell>` before parsing; the feature enables `app` for it.

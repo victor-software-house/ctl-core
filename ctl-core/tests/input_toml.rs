@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ctl_core::fixture::Suite;
-use ctl_core::input::{FieldPath, Format, Input, Limits, Problem};
+use ctl_core::input::{FieldPath, Format, Input, Limits, Place, Problem};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use ctl_core::{formatdoc, indoc};
 use garde::Validate;
@@ -525,6 +525,37 @@ fn a_problem_under_a_key_that_holds_dots_stars_and_slashes_lands_on_that_key() {
     );
 }
 
+fn pair(place: Option<Place>) -> Option<(usize, usize)> {
+    place.map(|at| (at.line, at.column))
+}
+
+#[test]
+fn a_key_is_placed_where_it_is_written_and_its_value_where_it_starts() {
+    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml);
+    let label = glob_label("src/lib.rs");
+    assert_eq!(pair(input.place(&label)), Some((5, 9)));
+    assert_eq!(pair(input.place_key(&label)), Some((5, 1)));
+    let glob = FieldPath::root().key("files").key("docs/**/*.md");
+    assert_eq!(pair(input.place_key(&glob)), Some((1, 8)));
+    let missing = FieldPath::root().key("files").key("missing");
+    assert_eq!(pair(input.place_key(&missing)), Some((1, 2)));
+    assert_eq!(
+        pair(input.place_key(&FieldPath::root())),
+        pair(input.place(&FieldPath::root()))
+    );
+}
+
+#[test]
+fn an_array_item_has_no_key() {
+    let text = "[[items]]\nname = 'a'\n[[items]]\nname = 'b'\n";
+    let input = Input::new_with_format("items.toml", text, Format::Toml);
+    let items = FieldPath::root().key("items");
+    assert_eq!(pair(input.place_key(&items)), Some((1, 3)));
+    let second = items.clone().index(1);
+    assert_eq!(input.place_key(&second), input.place(&second));
+    assert_eq!(pair(input.place_key(&second.key("name"))), Some((4, 1)));
+}
+
 #[test]
 fn a_text_over_the_size_limit_is_not_placed() {
     let limit = Limits {
@@ -533,6 +564,7 @@ fn a_text_over_the_size_limit_is_not_placed() {
     };
     let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml).limits(limit);
     assert_eq!(input.place(&glob_label("src/lib.rs")), None);
+    assert_eq!(input.place_key(&glob_label("src/lib.rs")), None);
     let problem = input.problem_at(&glob_label("src/lib.rs"), "is not a known label");
     assert_eq!((problem.line, problem.column), (None, None));
 }

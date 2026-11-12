@@ -12,7 +12,7 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue, Deserializer};
 
 use super::limits::{Bounds, Exceeded, Raise};
-use super::{FieldPath, Input, InputError, Problem, Step};
+use super::{At, FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a TOML text: the tree, then the limits, then the
 /// typed value. The first problem found is the one reported.
@@ -38,7 +38,7 @@ pub(super) fn parse<T: DeserializeOwned>(
 
 /// The 1-based line and column of each path in `text`, or of its nearest
 /// written ancestor. `None` for every path when `text` does not parse.
-pub(super) fn places(text: &str, paths: &[FieldPath]) -> Vec<Option<(usize, usize)>> {
+pub(super) fn places(text: &str, paths: &[FieldPath], at: At) -> Vec<Option<(usize, usize)>> {
     let root = DeTable::parse(text)
         .ok()
         .map(|table| Spanned::new(table.span(), DeValue::Table(table.into_inner())));
@@ -46,23 +46,33 @@ pub(super) fn places(text: &str, paths: &[FieldPath]) -> Vec<Option<(usize, usiz
         .iter()
         .map(|path| {
             root.as_ref()
-                .map(|root| position(text, nearest(root, path.steps()).start))
+                .map(|root| position(text, nearest(root, path.steps(), at).start))
         })
         .collect()
 }
 
-/// The span of the value `steps` reach, or of the last one that exists.
-fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step]) -> Range<usize> {
+/// The span of the value `steps` reach, or of the last one that exists, or with
+/// [`At::Key`] the span of the key that names it. An item and the root have no
+/// key, so they give their value.
+fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step], at: At) -> Range<usize> {
     let mut found = root;
+    let mut key = None;
     for step in steps {
-        let next = match step {
-            Step::Key(key) => found.get_ref().get(key.as_str()),
-            Step::Index(index) => found.get_ref().get(*index),
+        let next = match (found.get_ref(), step) {
+            (DeValue::Table(table), Step::Key(name)) => table
+                .iter()
+                .find(|(entry, _)| entry.get_ref().as_ref() == name.as_str())
+                .map(|(entry, value)| (value, Some(entry.span()))),
+            (value, Step::Key(name)) => value.get(name.as_str()).map(|value| (value, None)),
+            (value, Step::Index(index)) => value.get(*index).map(|value| (value, None)),
         };
-        let Some(next) = next else { break };
-        found = next;
+        let Some((next, named)) = next else { break };
+        (found, key) = (next, named);
     }
-    found.span()
+    match at {
+        At::Value => found.span(),
+        At::Key => key.unwrap_or_else(|| found.span()),
+    }
 }
 
 /// A problem with the whole input, placed at `span` when the parser gave one.

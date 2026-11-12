@@ -196,6 +196,8 @@ fn a_path_is_placed_without_yaml_and_without_garde() {
         .key("label");
     let at = input.place(&path).map(|at| (at.line, at.column));
     assert_eq!(at, Some((2, 9)));
+    let key = input.place_key(&path).map(|at| (at.line, at.column));
+    assert_eq!(key, Some((2, 1)));
     let problem = input.problem_at(&path, "is not a known label");
     assert_eq!(problem.field, "files.docs/**/*.md.label");
     assert_eq!((problem.line, problem.column), (Some(2), Some(9)));
