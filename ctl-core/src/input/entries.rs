@@ -50,7 +50,8 @@ pub enum Written {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Entry {
-    /// The key, as the parser read it: quotes and escapes resolved.
+    /// The key, as the parser read it: quotes and escapes resolved. A YAML key
+    /// that is a number, a boolean or a null is its text as written.
     pub key: String,
     /// The bytes of the value in [`Input::text`], as written. A quoted string
     /// includes its quotes and a block scalar its header. An anchor or a tag
@@ -69,14 +70,15 @@ impl Input {
     /// The entries of the text's top-level mapping or table, in the order
     /// written.
     ///
-    /// An entry whose key is not a string, such as a YAML key that is a
-    /// number, a sequence or an alias, is left out, and the entries around it
-    /// keep their own ranges. A text whose root is no mapping, such
-    /// as a sequence or a scalar, has no entries. The text must pass the limits
-    /// in force, as [`Input::parse`] holds it to, and a YAML input builds the
-    /// document that [`Input::place`] keeps. A YAML `.inf`, `-.inf` or `.NaN`
-    /// is a value that is no string, where [`Input::parse`] refuses a typeless
-    /// read of it.
+    /// An entry whose key is a YAML sequence, mapping or alias is left out, and
+    /// the entries around it keep their own ranges. A text whose root is no
+    /// mapping, such as a sequence or a scalar, has no entries.
+    ///
+    /// The listing refuses nothing that YAML allows, so a key written twice,
+    /// a merge key (`<<`) and a `.inf` or `.NaN` are entries like the rest,
+    /// where [`Input::parse`] refuses them. The text must pass the limits in
+    /// force, as [`Input::parse`] holds it to, and a YAML input builds the
+    /// document that [`Input::place`] keeps.
     ///
     /// ```
     /// # #[cfg(feature = "input-yaml")]
@@ -97,8 +99,8 @@ impl Input {
     /// # Errors
     ///
     /// An [`InputError`] with the parser's problem and its line, as
-    /// [`Input::parse`] gives, including a duplicate key, a YAML merge key and
-    /// a text past a limit.
+    /// [`Input::parse`] gives, for a text that is no YAML or TOML or goes past
+    /// a limit.
     pub fn top_level(&self) -> Result<Vec<Entry>, InputError> {
         match self.format {
             #[cfg(feature = "input-yaml")]

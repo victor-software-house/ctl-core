@@ -14,10 +14,12 @@ use super::entries::{Entry, Written};
 use super::limits::Raise;
 use super::{Input, InputError, limits, yaml_text};
 
-/// What the parser reads a value or a key as: a string, or anything else.
+/// What the parser reads a value or a key as: a string, a number, a boolean or
+/// a null, or a sequence or a mapping.
 enum Typed {
     Text(String),
-    Other,
+    Scalar,
+    Collection,
 }
 
 impl<'de> Deserialize<'de> for Typed {
@@ -44,27 +46,27 @@ impl<'de> Visitor<'de> for TypedVisitor {
     }
 
     fn visit_bool<E: de::Error>(self, _: bool) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_i64<E: de::Error>(self, _: i64) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_u64<E: de::Error>(self, _: u64) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_f64<E: de::Error>(self, _: f64) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_unit<E: de::Error>(self) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_none<E: de::Error>(self) -> Result<Typed, E> {
-        Ok(Typed::Other)
+        Ok(Typed::Scalar)
     }
 
     fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Typed, D::Error> {
@@ -73,18 +75,20 @@ impl<'de> Visitor<'de> for TypedVisitor {
 
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Typed, A::Error> {
         while seq.next_element::<IgnoredAny>()?.is_some() {}
-        Ok(Typed::Other)
+        Ok(Typed::Collection)
     }
 
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Typed, A::Error> {
         while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
-        Ok(Typed::Other)
+        Ok(Typed::Collection)
     }
 }
 
-/// The entries of the root mapping with a string key, as the parser read
-/// them, each with the place of its key, or none when the root is no mapping.
-struct Root(Vec<(String, Location, Typed)>);
+/// The entries of the root mapping with a string or a scalar key, as the
+/// parser read them, each with the place of its key, or none when the root is
+/// no mapping. A scalar key that is no string has no text yet: it is the
+/// text as written.
+struct Root(Vec<(Option<String>, Location, Typed)>);
 
 impl<'de> Deserialize<'de> for Root {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
@@ -104,8 +108,10 @@ impl<'de> Visitor<'de> for RootVisitor {
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Root, A::Error> {
         let mut entries = Vec::new();
         while let Some((key, value)) = map.next_entry::<Spanned<Typed>, Typed>()? {
-            if let Typed::Text(text) = key.value {
-                entries.push((text, key.referenced, value));
+            match key.value {
+                Typed::Text(text) => entries.push((Some(text), key.referenced, value)),
+                Typed::Scalar => entries.push((None, key.referenced, value)),
+                Typed::Collection => {}
             }
         }
         Ok(Root(entries))
@@ -159,8 +165,8 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
     // read it. Both start a key at its scalar, so an anchor or a tag before it
     // moves neither.
     // A key written twice in different types, such as `1` and `'1'`, cannot
-    // take the other's span, and a key yamled leaves out, such as an alias,
-    // shifts no pair after it.
+    // take the other's span, a key written twice in one type has two places,
+    // and a key yamled leaves out, such as an alias, shifts no pair after it.
     let by_place: HashMap<(usize, usize), _> = root
         .entries()
         .filter_map(|(_, node)| node.key().map(|at| ((at.line, at.column), node)))
@@ -175,13 +181,25 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
             continue;
         };
         let at = node.value();
+        // A key that is a number, a boolean or a null is its text as written,
+        // and a null written as nothing has no text to list.
+        let Some(key) = key.or_else(|| {
+            let written = node.key()?;
+            input
+                .text()
+                .get(written.start..written.end)
+                .filter(|text| !text.is_empty())
+                .map(str::to_owned)
+        }) else {
+            continue;
+        };
         found.push(Entry {
             key,
             value: at.start..at.end,
             written: written_as(node.style()),
             string: match value {
                 Typed::Text(text) => Some(text),
-                Typed::Other => None,
+                Typed::Scalar | Typed::Collection => None,
             },
         });
     }

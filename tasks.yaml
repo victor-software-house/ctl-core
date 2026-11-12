@@ -205,12 +205,12 @@ queue:
     blocked_by: []
     acceptance:
       - A test lists the entries of a YAML text with every way a value is written, an anchor, an alias and a tag, and one of a TOML text, with the exact value ranges.
-      - A key that is no string is left out, a root that is no mapping gives none, and a text past a limit gives the error parse gives.
-      - A YAML text with .inf, -.inf and .NaN as values lists every entry, where parse still refuses a typeless read of one, with tests.
+      - A YAML text with a repeated key, a merge key, .inf, -.inf and .NaN lists every entry, where parse refuses each, and a number, boolean or null key is listed by its text, with tests.
+      - A key that is a sequence, mapping or alias is left out, a root that is no mapping gives none, and a text past a limit gives the error parse gives.
     plan: openspec/changes/top-level-entries/proposal.md
     notes:
       - "2026-11-11, hakkiri HKR-049 needs it for front matter: yamled 0.0.13 lists a mapping's entries, serde-saphyr types each value, and the TOML tree holds the spans."
-      - '2026-11-12, found by the hakkiri HKR-049 front matter probe: top_level gave the parse error for one .inf or .NaN value, so a front matter block with one lost every other value. It reads under its own serde-saphyr options now.'
+      - '2026-11-12, found by the hakkiri HKR-049 front matter probe against Vale 66bbb85: top_level gave the parse error for a repeated key, a merge key or a .inf or .NaN value, and left out a number or null key, where Vale lints the values of all of them. It reads under its own serde-saphyr options now, and lists a scalar key by its text.'
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker

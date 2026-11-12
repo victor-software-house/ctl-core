@@ -30,7 +30,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 - Declared input (`validate`, `input-yaml`, `input-toml`, `input` features): shared garde rules, and one loader for YAML or TOML.
   It validates once with `validate`, and places every problem on its file and line.
   - A public `FieldPath` names a field by its steps, and `Input::place` and `Input::problem_at` place it, for garde's problems and for a CLI's own.
-  - `Input::top_level` lists the root's entries with each value's byte range, style and string. A YAML input types them through serde-saphyr and takes the spans from the yamled document that `place` keeps, and a TOML input reads the root of the `toml` tree. It reads under its own serde-saphyr options, which leave a `.inf` or `.NaN` a value that is no string where `parse` refuses it, so one such value hides no other.
+  - `Input::top_level` lists the root's entries with each value's byte range, style and string. A YAML input types them through serde-saphyr and takes the spans from the yamled document that `place` keeps, and a TOML input reads the root of the `toml` tree. It reads under its own serde-saphyr options, so a repeated key, a merge key and a `.inf` or `.NaN` are entries where `parse` refuses them, and a key that is a number, a boolean or a null is listed by its text as written.
     `FieldPath::from(&garde::Path)` reads garde's path parts and never its printed string, so a key that holds a `.` is one step.
   - garde is pinned exactly in the root `Cargo.toml`, because that conversion calls the doc-hidden `Path::__iter`.
     A bump is a reviewed change, and `a_garde_path_converts_from_its_parts` fails first if the iteration order moves.

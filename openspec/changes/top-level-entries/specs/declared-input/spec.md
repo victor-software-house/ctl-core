@@ -4,7 +4,8 @@
 
 `Input::top_level` SHALL list the entries of the root mapping or table in the order written.
 Each entry SHALL hold the key, the byte range of the value in the text, how the value is written and, when the parser reads it as a string, its text.
-A key that is not a string SHALL be left out, and a root that is no mapping SHALL give no entries.
+A key that is a sequence, a mapping or an alias SHALL be left out, and a root that is no mapping SHALL give no entries.  
+A YAML key that is a number, a boolean or a null SHALL be listed by its text as written.
 It SHALL exist with `input-yaml` or `input-toml`, and not need `validate`.
 
 #### Scenario: Each way a YAML value is written
@@ -12,10 +13,10 @@ It SHALL exist with `input-yaml` or `input-toml`, and not need `validate`.
 - **WHEN** `plain: a plain value`, `single: 'it''s'`, a folded and a literal scalar, `number: 12`, `flag: true`, `nothing: null`, `yes_text: yes`, a list and a mapping are the entries
 - **THEN** the written styles are plain, single-quoted, folded, literal, plain, plain, plain, plain, collection and collection, and only the strings and `yes` hold a string
 
-#### Scenario: A key that is no string and a root that is no mapping
+#### Scenario: A key that is no scalar and a root that is no mapping
 
-- **WHEN** a YAML text has the keys `1`, `'two'` and `z`, or a root that is a sequence, a scalar or empty
-- **THEN** the entries are `two` and `z` for the first, and none for the others
+- **WHEN** a YAML text has the keys `1`, `'two'`, a sequence and `z`, or a root that is a sequence, a scalar or empty
+- **THEN** the entries are `1`, `two` and `z` for the first, and none for the others
 
 #### Scenario: A TOML text
 
@@ -34,18 +35,18 @@ The value range SHALL exclude an anchor and a tag before a YAML value, SHALL inc
 ### Requirement: Listing follows the limits of parsing
 
 The text SHALL pass the limits in force, and a refusal SHALL be the error that `Input::parse` gives, with the same wording.
-A YAML `.inf`, `-.inf` or `.NaN` SHALL be a value that is no string, and SHALL NOT refuse the text.  
+A YAML repeated key, merge key, `.inf`, `-.inf` and `.NaN` SHALL be entries and SHALL NOT refuse the text.  
 A YAML input SHALL share the yamled document with `Input::place`.
 
 #### Scenario: A refusal is the parse refusal
 
-- **WHEN** a YAML text holds a duplicate key or a merge key, or goes past `max_depth`
-- **THEN** `top_level` gives the error `parse` gives, and for the depth it names `max_depth`
+- **WHEN** a YAML text goes past `max_depth`
+- **THEN** `top_level` gives the error `parse` gives, and it names `max_depth`
 
-#### Scenario: A non-finite float
+#### Scenario: What parse refuses and the listing does not
 
-- **WHEN** a YAML text holds `.inf`, `-.inf` and `.NaN` as values beside a string
-- **THEN** `top_level` lists all four entries, with no string for the first three, and `Input::parse` still refuses a typeless read of one
+- **WHEN** a YAML text holds a repeated key, a merge key, or `.inf`, `-.inf` and `.NaN` as values
+- **THEN** `top_level` lists every entry, and `Input::parse` still refuses each
 
 #### Scenario: One document for placing and listing
 

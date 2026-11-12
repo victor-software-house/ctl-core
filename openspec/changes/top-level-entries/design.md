@@ -11,8 +11,8 @@
    `Node::entries` is a method of the index, so ctl-core adds no walk of its own.
    The alternative was a walk over `Path` segments in ctl-core, which cannot list the keys of a mapping it does not know.
 3. **YAML reads the root once through `Input::parse`.**
-   A `Root` type implements `Deserialize` with a visitor that keeps each entry with a string key and what its value reads as.
-   The limits, the wording of every problem and the duplicate-key and merge-key refusals are those of `parse`, not a second copy.
+   A `Root` type implements `Deserialize` with a visitor that keeps each entry with a string or scalar key and what its value reads as.
+   The limits and the wording of every problem are those of `parse`, not a second copy, and a repeated key, a merge key and a non-finite float are no refusal, since the text is one the caller did not write.
 4. **The yamled document is shared with `place`.**
    `yaml_text::document` is the helper both use, with the verdict kept under the limits it was computed under.
    Listing a text and placing a problem in it parse it once.

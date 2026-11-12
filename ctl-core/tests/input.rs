@@ -780,21 +780,31 @@ fn parse_still_refuses_a_non_finite_float_it_cannot_type() {
 }
 
 #[test]
-fn a_key_that_is_no_string_is_left_out() {
+fn a_key_that_is_a_number_or_a_null_is_listed_by_its_text() {
     let input = Input::new(
         "page.yaml",
         indoc! {"
         1: one
         'two': 2
+        null: n
+        true: t
         z: w
         "},
     );
-    let keys: Vec<_> = listing(&input).into_iter().map(|row| row.0).collect();
-    assert_eq!(keys, ["two", "z"]);
+    assert_eq!(
+        listing(&input),
+        [
+            row("1", "one", Written::Plain, Some("one")),
+            row("two", "2", Written::Plain, None),
+            row("null", "n", Written::Plain, Some("n")),
+            row("true", "t", Written::Plain, Some("t")),
+            row("z", "w", Written::Plain, Some("w")),
+        ]
+    );
 }
 
 #[test]
-fn a_key_of_another_type_does_not_take_the_span_of_a_string_key() {
+fn a_key_of_another_type_takes_its_own_span_beside_a_string_key() {
     let input = Input::new(
         "page.yaml",
         indoc! {"
@@ -802,13 +812,14 @@ fn a_key_of_another_type_does_not_take_the_span_of_a_string_key() {
         '1': two
         null: n
         'null': m
-        true: t
         "},
     );
     assert_eq!(
         listing(&input),
         [
+            row("1", "one", Written::Plain, Some("one")),
             row("1", "two", Written::Plain, Some("two")),
+            row("null", "n", Written::Plain, Some("n")),
             row("null", "m", Written::Plain, Some("m")),
         ]
     );
@@ -864,12 +875,27 @@ fn a_root_that_is_no_mapping_has_no_entries() {
 }
 
 #[test]
-fn a_duplicate_key_and_a_merge_key_are_refused_as_parse_refuses_them() {
-    for text in ["a: 1\na: 2\n", "base: &b {x: 1}\n<<: *b\n"] {
-        let input = Input::new("page.yaml", text);
-        let refused = input.top_level().unwrap_err();
-        let parsed = input.parse::<serde::de::IgnoredAny>().unwrap_err();
-        assert_eq!(refused, parsed);
+fn a_duplicate_key_and_a_merge_key_are_entries_that_parse_refuses() {
+    let duplicate = Input::new("page.yaml", "a: one\na: two\nb: three\n");
+    assert_eq!(
+        listing(&duplicate),
+        [
+            row("a", "one", Written::Plain, Some("one")),
+            row("a", "two", Written::Plain, Some("two")),
+            row("b", "three", Written::Plain, Some("three")),
+        ]
+    );
+    let merge = Input::new("page.yaml", "base: &b {x: 1}\n<<: *b\nt: text\n");
+    assert_eq!(
+        listing(&merge),
+        [
+            row("base", "{x: 1}", Written::Collection, None),
+            row("<<", "*b", Written::Alias, None),
+            row("t", "text", Written::Plain, Some("text")),
+        ]
+    );
+    for input in [&duplicate, &merge] {
+        assert!(input.parse::<serde::de::IgnoredAny>().is_err());
     }
 }
 

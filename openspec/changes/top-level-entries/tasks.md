@@ -5,15 +5,15 @@ Compile, format, lint and test steps run in an ephemeral build box, given a git 
 - [ ] 1. Plan: this change, validated, with the ledger row [CTC-055][ledger] pointing at it.
   Proof: `openspec validate top-level-entries --strict` and `mise run q check` pass.
 - [ ] 2. Add `Entry`, `Written` and `Input::top_level`, with the YAML half over serde-saphyr and yamled and the TOML half over the `toml` tree.
-  Proof: the tests for YAML and TOML in `tests/input.rs`, `tests/input_toml.rs` and `tests/input_toml_alone.rs` pass, and none lists a key that is no string.
+  Proof: the tests for YAML and TOML in `tests/input.rs`, `tests/input_toml.rs` and `tests/input_toml_alone.rs` pass, and none lists a key that is a sequence, mapping or alias.
 - [ ] 3. Share the yamled document between listing and placing.
   Proof: `listing_the_top_level_builds_the_document_that_placing_reuses` in `yaml_text.rs` passes.
 - [ ] 4. Move yamled to 0.0.13 and the `input` and `input-toml` budgets.
   Proof: `check:size` passes with the budgets at the measured sizes.
 - [ ] 5. Move the docs and add the changeset.
   Proof: `check:docs`, `doc` and `lint:prose` pass, and `semver` reports no break.
-- [ ] 6. Read a YAML `.inf`, `-.inf` or `.NaN` as a value that is no string, under the options of the listing alone.
-  Proof: `a_non_finite_float_is_a_value_that_is_no_string` and `parse_still_refuses_a_non_finite_float_it_cannot_type` in `tests/input.rs` pass.
+- [ ] 6. List what parse refuses, under the options of the listing alone: a repeated key, a merge key, a `.inf` or `.NaN`, and a key that is a number, a boolean or a null.
+  Proof: `a_non_finite_float_is_a_value_that_is_no_string`, `a_duplicate_key_and_a_merge_key_are_entries_that_parse_refuses`, `a_key_that_is_a_number_or_a_null_is_listed_by_its_text` and `parse_still_refuses_a_non_finite_float_it_cannot_type` in `tests/input.rs` pass.
 - [ ] 7. Verify the pull request's CI passes.
 
 [ledger]: ../../../tasks.yaml

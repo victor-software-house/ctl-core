@@ -20,28 +20,18 @@ pub(super) fn parse<T: DeserializeOwned>(
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    read(
-        input,
-        options(budget, NonFiniteFloatPolicy::Default),
-        budget,
-        raise,
-    )
+    read(input, options(budget, Reading::Config), budget, raise)
 }
 
 /// [`parse`] for a read that only sorts each value by its type, as
-/// [`Input::top_level`] does, so a `.inf` or a `.NaN` is a number and no
-/// refusal.
+/// [`Input::top_level`] does, so a repeated key, a merge key, a `.inf` and a
+/// `.NaN` are no refusal.
 pub(super) fn parse_types<T: DeserializeOwned>(
     input: &Input,
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    read(
-        input,
-        options(budget, NonFiniteFloatPolicy::PassThrough),
-        budget,
-        raise,
-    )
+    read(input, options(budget, Reading::Listing), budget, raise)
 }
 
 /// Reads the text of `input` under `options`, and words each problem.
@@ -67,17 +57,37 @@ fn read<T: DeserializeOwned>(
     })
 }
 
+/// What a read of a YAML text refuses.
+#[derive(Clone, Copy)]
+enum Reading {
+    /// A config or any text the caller validates: a repeated key, a merge key
+    /// and a non-finite float with no type named for it are refused.
+    Config,
+    /// A listing of a text the caller did not write, such as the front matter
+    /// of a Markdown file: it refuses nothing that YAML allows, so a repeated
+    /// key, a merge key and a non-finite float are values like the rest.
+    Listing,
+}
+
 /// What every read of a YAML text uses, under `budget`.
-///
-/// `floats` says what a `.inf`, `-.inf` or `.NaN` becomes when the caller names
-/// no type for it: `Default` refuses it, and `PassThrough` hands it on as a
-/// float.
-fn options(budget: &Budget, floats: NonFiniteFloatPolicy) -> Options {
+fn options(budget: &Budget, reading: Reading) -> Options {
+    let (duplicates, merges, floats) = match reading {
+        Reading::Config => (
+            DuplicateKeyPolicy::Error,
+            MergeKeyPolicy::Error,
+            NonFiniteFloatPolicy::Default,
+        ),
+        Reading::Listing => (
+            DuplicateKeyPolicy::PassThrough,
+            MergeKeyPolicy::AsOrdinary,
+            NonFiniteFloatPolicy::PassThrough,
+        ),
+    };
     serde_saphyr::options! {
         budget: Some(budget.clone()),
         strict_booleans: true,
-        duplicate_keys: DuplicateKeyPolicy::Error,
-        merge_keys: MergeKeyPolicy::Error,
+        duplicate_keys: duplicates,
+        merge_keys: merges,
         non_finite_float_policy: floats,
         with_snippet: false,
     }
@@ -268,10 +278,10 @@ pub(super) fn document<'a>(input: &'a Input, limits: &Limits) -> Option<&'a yaml
 /// Whether serde-saphyr reads the whole text under `budget`, depth and node
 /// count included, as [`parse`] would, without building any value.
 ///
-/// A non-finite float passes, since it takes no budget and the caller decides
-/// what to make of it.
+/// What [`parse`] refuses for its own sake, such as a repeated key, passes,
+/// since it takes no budget and the caller decides what to make of it.
 fn within(input: &Input, budget: &Budget) -> bool {
-    let options = options(budget, NonFiniteFloatPolicy::PassThrough);
+    let options = options(budget, Reading::Listing);
     serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options).is_ok()
 }
 
