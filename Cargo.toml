@@ -176,9 +176,11 @@ usage = { features = "app,usage", text = 525798 }
 # (field-path-place), measured together.
 input = { features = "app,input", text = 1053230 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
-# no YAML crate and no garde. 448,927 below input. 1,568 above the last budget,
-# 592638: FieldPath, Input::place and problem_at (field-path-place).
-input-toml = { features = "app,input-toml", text = 594206 }
+# no YAML crate and no garde. 457,054 below input. 320 above the last budget,
+# 594206: Input::top_level over the toml tree (top-level-entries). The one
+# before it, 1,568 above 592638, was FieldPath, Input::place and problem_at
+# (field-path-place).
+input-toml = { features = "app,input-toml", text = 594526 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
