@@ -70,7 +70,8 @@ impl Input {
     /// written.
     ///
     /// An entry whose key is not a string, such as a YAML key that is a
-    /// sequence or a number, is left out. A text whose root is no mapping, such
+    /// number, a sequence or an alias, is left out, and the entries around it
+    /// keep their own ranges. A text whose root is no mapping, such
     /// as a sequence or a scalar, has no entries. The text must pass the limits
     /// in force, as [`Input::parse`] holds it to, and a YAML input builds the
     /// document that [`Input::place`] keeps.

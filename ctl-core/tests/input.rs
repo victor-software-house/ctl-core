@@ -716,6 +716,48 @@ fn a_key_that_is_no_string_is_left_out() {
 }
 
 #[test]
+fn a_key_of_another_type_does_not_take_the_span_of_a_string_key() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        1: one
+        '1': two
+        true: x
+        'true': y
+        null: n
+        'null': m
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("1", "two", Written::Plain, Some("two")),
+            row("true", "y", Written::Plain, Some("y")),
+            row("null", "m", Written::Plain, Some("m")),
+        ]
+    );
+}
+
+#[test]
+fn an_alias_as_a_key_is_left_out_and_drops_nothing_after_it() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        k: &k key
+        *k : v
+        z: w
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("k", "key", Written::Plain, Some("key")),
+            row("z", "w", Written::Plain, Some("w")),
+        ]
+    );
+}
+
+#[test]
 fn a_root_that_is_no_mapping_has_no_entries() {
     for text in ["- a\n- b\n", "just text\n", "", "12\n"] {
         let input = Input::new("page.yaml", text);

@@ -3,9 +3,11 @@
 //! parser, and yamled gives each value's span and style from the document
 //! that [`Input::place`] keeps.
 
+use std::collections::HashMap;
 use std::fmt;
 
 use serde::de::{self, Deserialize, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
+use serde_saphyr::{Location, Spanned};
 use yamled::Style;
 
 use super::entries::{Entry, Written};
@@ -80,8 +82,8 @@ impl<'de> Visitor<'de> for TypedVisitor {
 }
 
 /// The entries of the root mapping with a string key, as the parser read
-/// them, or none when the root is no mapping.
-struct Root(Vec<(String, Typed)>);
+/// them, each with the place of its key, or none when the root is no mapping.
+struct Root(Vec<(String, Location, Typed)>);
 
 impl<'de> Deserialize<'de> for Root {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
@@ -100,9 +102,9 @@ impl<'de> Visitor<'de> for RootVisitor {
 
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Root, A::Error> {
         let mut entries = Vec::new();
-        while let Some((key, value)) = map.next_entry::<Typed, Typed>()? {
-            if let Typed::Text(key) = key {
-                entries.push((key, value));
+        while let Some((key, value)) = map.next_entry::<Spanned<Typed>, Typed>()? {
+            if let Typed::Text(text) = key.value {
+                entries.push((text, key.referenced, value));
             }
         }
         Ok(Root(entries))
@@ -151,12 +153,22 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
     else {
         return Ok(Vec::new());
     };
-    let mut written = root.entries().peekable();
+    // Each entry pairs with the yamled entry whose key sits where the parser
+    // read it, so a key written twice in different types, such as `1` and
+    // `'1'`, and a key yamled leaves out, such as an alias, cannot shift the
+    // pairs after them.
+    let by_place: HashMap<(usize, usize), _> = root
+        .entries()
+        .filter_map(|(_, node)| node.key().map(|at| ((at.line, at.column), node)))
+        .collect();
     let mut found = Vec::with_capacity(typed.len());
-    for (key, value) in typed {
-        while written.next_if(|(seen, _)| *seen != key.as_str()).is_some() {}
-        let Some((_, node)) = written.next() else {
-            break;
+    for (key, at, value) in typed {
+        let place = (
+            usize::try_from(at.line()).unwrap_or_default(),
+            usize::try_from(at.column()).unwrap_or_default(),
+        );
+        let Some(node) = by_place.get(&place) else {
+            continue;
         };
         let at = node.value();
         found.push(Entry {
