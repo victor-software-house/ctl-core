@@ -1,5 +1,17 @@
 # Changelog
 
+## ctl-core 0.7.3
+
+- `Input::flattened` declares a schema field that `#[serde(flatten)]` puts directly under its parent in the file.
+  `Input::check` drops that field's step from each garde path, so a problem prints as the file holds it, such as `assets.linux-x64.files`, and sits on that line.
+  A path through no declared field prints and sits as before ([#284](https://github.com/victor-software-house/ctl-core/pull/284)).
+- `Input::top_level` lists the entries of a YAML or TOML text's root mapping or table in the order written.
+  Each `Entry` holds the key, the byte range of the value, a `Written` style and the string the parser reads, if any.
+  A caller that reads a mapping it did not write, such as the front matter of a Markdown file, needs no scanner of its own.
+  serde-saphyr resolves anchors, aliases and tags, yamled gives the spans, and the `toml` tree holds the TOML ones.
+  A key that is not a string is left out, a root that is no mapping gives no entries, and a text past a limit gives the error `Input::parse` gives.
+  yamled is now 0.0.13 ([#282](https://github.com/victor-software-house/ctl-core/pull/282)).
+
 ## ctl-core 0.7.2
 
 - `Input::place_key` returns where the last step of a `FieldPath` is written as a key, where `Input::place` returns where its value starts.

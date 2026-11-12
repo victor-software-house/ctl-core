@@ -3,7 +3,7 @@ members = ["ctl-core", "ctl-layout", "ctl-term", "ctl-text"]
 resolver = "3"
 
 [workspace.package]
-version = "0.7.2"
+version = "0.7.3"
 edition = "2024"
 rust-version = "1.99.1"
 license = "MIT"
@@ -50,11 +50,11 @@ toml = { version = "1.1.8", default-features = false, features = [
   "serde",
 ] }
 yamled = { version = "=0.0.13", default-features = false }
-ctl-layout = { path = "ctl-layout", version = "=0.7.2" }
+ctl-layout = { path = "ctl-layout", version = "=0.7.3" }
 # Without `detect`: ctl-core's `render` tier needs only the encoder, and its
 # `view` and `help` features turn `detect` on again.
-ctl-term = { path = "ctl-term", version = "=0.7.2", default-features = false }
-ctl-text = { path = "ctl-text", version = "=0.7.2" }
+ctl-term = { path = "ctl-term", version = "=0.7.3", default-features = false }
+ctl-text = { path = "ctl-text", version = "=0.7.3" }
 unicode-bidi = { version = "0.3.18", default-features = false }
 unicode-segmentation = { version = "1.13.3", default-features = false }
 # `cjk` stays off: East Asian ambiguous characters count 1 cell, and the
