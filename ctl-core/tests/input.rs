@@ -702,6 +702,42 @@ fn an_anchor_an_alias_and_a_tag_leave_the_span_of_the_value() {
 }
 
 #[test]
+fn a_key_with_an_anchor_or_a_tag_keeps_its_entry() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {r#"
+        &a plain: 1
+        &b 'single': 2
+        !!str "double": 3
+        !!str 4: 4
+        &c !!str both: 5
+        !!str &d reversed: 6
+        ? &e explicit
+        : 7
+        "#},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("plain", "1", Written::Plain, None),
+            row("single", "2", Written::Plain, None),
+            row("double", "3", Written::Plain, None),
+            row("4", "4", Written::Plain, None),
+            row("both", "5", Written::Plain, None),
+            row("reversed", "6", Written::Plain, None),
+            row("explicit", "7", Written::Plain, None),
+        ]
+    );
+}
+
+#[test]
+fn a_flow_root_key_with_an_anchor_or_a_tag_keeps_its_entry() {
+    let input = Input::new("page.yaml", "{ &a x: 1, !!str y: 2, &b !!str 'z': 3 }\n");
+    let keys: Vec<_> = listing(&input).into_iter().map(|row| row.0).collect();
+    assert_eq!(keys, ["x", "y", "z"]);
+}
+
+#[test]
 fn a_key_that_is_no_string_is_left_out() {
     let input = Input::new(
         "page.yaml",

@@ -154,7 +154,8 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
         return Ok(Vec::new());
     };
     // Each entry pairs with the yamled entry whose key sits where the parser
-    // read it.
+    // read it. Both start a key at its scalar, so an anchor or a tag before it
+    // moves neither.
     // A key written twice in different types, such as `1` and `'1'`, cannot
     // take the other's span, and a key yamled leaves out, such as an alias,
     // shifts no pair after it.
