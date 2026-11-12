@@ -58,6 +58,14 @@ pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "input-yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
 
+/// What a placing answers with for a key of the path: where its value starts,
+/// or where the key itself is written.
+#[derive(Clone, Copy)]
+enum At {
+    Value,
+    Key,
+}
+
 /// How a text is written.
 ///
 /// Non-exhaustive: each variant exists only with its format's feature.
@@ -364,7 +372,7 @@ impl Input {
             })
             .collect();
         let paths: Vec<_> = reported.iter().map(|(_, path, _)| path.clone()).collect();
-        let places = self.places(&paths);
+        let places = self.places(&paths, At::Value);
         let problems = reported
             .into_iter()
             .zip(places)
@@ -413,7 +421,43 @@ impl Input {
     /// ```
     #[must_use]
     pub fn place(&self, path: &FieldPath) -> Option<Place> {
-        self.places(std::slice::from_ref(path)).pop().flatten()
+        self.places(std::slice::from_ref(path), At::Value)
+            .pop()
+            .flatten()
+    }
+
+    /// Where the last step of `path` is written as a key, or where its nearest
+    /// written ancestor's key is.
+    ///
+    /// [`Input::place`] gives where a value starts. For a scalar or a flow
+    /// value that is the line of the key, and for a block mapping or a block
+    /// list it is the first line below it. A fault about the key itself, such
+    /// as a key that names nothing, belongs on the key, and this finds it.
+    ///
+    /// A step that is an index has no key, and neither has the root, so they
+    /// give the place of their value, as `place` does. A path the text lacks
+    /// gives the key of the last step that exists. The line counts the whole
+    /// file, `None` is for a text that does not parse or goes past the limits,
+    /// and a YAML document is built once and shared with [`Input::place`].
+    ///
+    /// ```
+    /// # #[cfg(feature = "input-yaml")]
+    /// # {
+    /// use ctl_core::input::{FieldPath, Input};
+    ///
+    /// let input = Input::new("app.yaml", "files:\n  'docs/**/*.md':\n    label: ''\n");
+    /// let glob = FieldPath::root().key("files").key("docs/**/*.md");
+    /// let value = input.place(&glob).map(|at| (at.line, at.column));
+    /// let key = input.place_key(&glob).map(|at| (at.line, at.column));
+    /// assert_eq!(value, Some((3, 5)));
+    /// assert_eq!(key, Some((2, 3)));
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn place_key(&self, path: &FieldPath) -> Option<Place> {
+        self.places(std::slice::from_ref(path), At::Key)
+            .pop()
+            .flatten()
     }
 
     /// A [`Problem`] for `path` with `message`, placed as [`Input::place`]
@@ -433,16 +477,16 @@ impl Input {
     }
 
     /// The place of each path, with the frontmatter lines added.
-    fn places(&self, paths: &[FieldPath]) -> Vec<Option<Place>> {
+    fn places(&self, paths: &[FieldPath], at: At) -> Vec<Option<Place>> {
         let limits = limits::effective(&self.limits);
         if self.text.len() > limits.bounds().input_bytes {
             return vec![None; paths.len()];
         }
         let found = match self.format {
             #[cfg(feature = "input-yaml")]
-            Format::Yaml => yaml_text::places(self, &limits, paths),
+            Format::Yaml => yaml_text::places(self, &limits, paths, at),
             #[cfg(feature = "input-toml")]
-            Format::Toml => toml_text::places(&self.text, paths),
+            Format::Toml => toml_text::places(&self.text, paths, at),
         };
         found
             .into_iter()

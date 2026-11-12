@@ -181,6 +181,19 @@ queue:
       - garde 0.23.0 is pinned exactly, because the path parts come from its doc-hidden Path::__iter and Kind.
       - "Leaves open from CTC-049: a garde path with a segment the file lacks, such as assets.targets.linux-x64.files under a flattened map, still stops at the last segment that resolves, because this row adds no rule to skip an unresolved segment. Its printed field also stays garde's string, not the path the file holds."
       - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. ctl-core keeps its own FieldPath, uses yamled for YAML, and keeps its existing walk for TOML."
+
+  - id: CTC-054
+    title: Place a key as well as a value
+    scope: "ctl-core: input"
+    outcome: >-
+      A CLI places a fault on the key it is about, and on the item of a list it is
+      about, through one public call.
+    blocked_by: []
+    acceptance:
+      - Input::place_key returns where the last step of a FieldPath is written as a key, for YAML and TOML, and the root and an index step give their value, with tests.
+    plan: openspec/changes/key-place/proposal.md
+    notes:
+      - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker

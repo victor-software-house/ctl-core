@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Input, Problem};
+use ctl_core::input::{FieldPath, Input, Place, Problem};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
@@ -405,6 +405,58 @@ fn a_later_check_is_placed_through_place() {
         input.problem_at(&glob_label("docs/**/*.md"), "is not a known label"),
         problem(3, 12, "files.docs/**/*.md.label", "is not a known label")
     );
+}
+
+fn pair(place: Option<Place>) -> Option<(usize, usize)> {
+    place.map(|at| (at.line, at.column))
+}
+
+#[test]
+fn a_key_is_placed_where_it_is_written_and_its_value_where_it_starts() {
+    let input = Input::new("globs.yaml", GLOBS);
+    let glob = FieldPath::root().key("files").key("docs/**/*.md");
+    assert_eq!(
+        pair(input.place(&glob)),
+        Some((3, 5)),
+        "a block mapping starts below its key"
+    );
+    assert_eq!(pair(input.place_key(&glob)), Some((2, 3)));
+    let label = glob_label("docs/**/*.md");
+    assert_eq!(pair(input.place(&label)), Some((3, 12)));
+    assert_eq!(pair(input.place_key(&label)), Some((3, 5)));
+    let bracket = FieldPath::root().key("files").key("a[b]");
+    assert_eq!(pair(input.place_key(&bracket)), Some((6, 3)));
+}
+
+#[test]
+fn a_path_the_file_lacks_gives_the_key_of_its_nearest_ancestor() {
+    let input = Input::new("globs.yaml", GLOBS);
+    let missing = FieldPath::root().key("files").key("missing").key("label");
+    assert_eq!(pair(input.place_key(&missing)), Some((1, 1)));
+    assert_eq!(
+        pair(input.place_key(&FieldPath::root())),
+        pair(input.place(&FieldPath::root()))
+    );
+}
+
+#[test]
+fn an_item_has_no_key_and_a_flow_mapping_is_placed_on_its_line() {
+    let input = Input::new(
+        "list.yaml",
+        "vocab:\n  - a\n  - b\nflow: {styles: [x], vocab: []}\n",
+    );
+    let list = FieldPath::root().key("vocab");
+    assert_eq!(pair(input.place_key(&list)).map(|at| at.0), Some(1));
+    assert_eq!(pair(input.place(&list)).map(|at| at.0), Some(2));
+    let later = list.index(1);
+    assert_eq!(pair(input.place_key(&later)).map(|at| at.0), Some(3));
+    assert_eq!(input.place_key(&later), input.place(&later));
+    let flow = FieldPath::root().key("flow");
+    assert_eq!(
+        pair(input.place_key(&flow.clone().key("styles"))),
+        Some((4, 8))
+    );
+    assert_eq!(pair(input.place_key(&flow.key("vocab"))), Some((4, 21)));
 }
 
 #[test]

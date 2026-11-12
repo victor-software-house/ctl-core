@@ -12,7 +12,7 @@ use serde_saphyr::{
 };
 
 use super::limits::{Exceeded, Limits, Raise};
-use super::{FieldPath, Input, InputError, Problem, Step};
+use super::{At, FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a YAML text, once the text's size is known to fit.
 pub(super) fn parse<T: DeserializeOwned>(
@@ -195,6 +195,7 @@ pub(super) fn places(
     input: &Input,
     limits: &Limits,
     paths: &[FieldPath],
+    at: At,
 ) -> Vec<Option<(usize, usize)>> {
     let located = &input.yaml_document;
     let document = located
@@ -210,8 +211,11 @@ pub(super) fn places(
         .iter()
         .map(|path| {
             document
-                .and_then(|document| document.locate_nearest(&yamled_path(path)))
-                .map(|at| (at.line, at.column))
+                .and_then(|document| match at {
+                    At::Value => document.locate_nearest(&yamled_path(path.steps())),
+                    At::Key => nearest_key(document, path.steps()),
+                })
+                .map(|place| (place.line, place.column))
         })
         .collect()
 }
@@ -222,9 +226,24 @@ fn within(input: &Input, budget: &Budget) -> bool {
     serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options(budget)).is_ok()
 }
 
-/// `path` as a yamled path.
-fn yamled_path(path: &FieldPath) -> yamled::Path {
-    path.steps()
+/// Where the last step of `steps` is written as a key, or where the last step
+/// that exists is. An item and the root have no key, so they give their value.
+fn nearest_key(document: &yamled::Document, mut steps: &[Step]) -> Option<yamled::Location> {
+    loop {
+        let path = yamled_path(steps);
+        if let Some(node) = document.node(&path) {
+            return Some(node.key().unwrap_or_else(|| node.value()));
+        }
+        match steps.split_last() {
+            Some((_, rest)) => steps = rest,
+            None => return document.locate_nearest(&path),
+        }
+    }
+}
+
+/// `steps` as a yamled path.
+fn yamled_path(steps: &[Step]) -> yamled::Path {
+    steps
         .iter()
         .fold(yamled::Path::root(), |path, step| match step {
             Step::Key(key) => path.key(key.as_str()),
@@ -266,6 +285,7 @@ mod tests {
         };
         let (input, at) = placed_with("a: 1\nb: 2\n", limits);
         assert_eq!(at, None);
+        assert_eq!(input.place_key(&FieldPath::root().key("a")), None);
         assert!(input.yaml_document.document.get().is_none());
     }
 
