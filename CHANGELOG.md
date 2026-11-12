@@ -1,5 +1,16 @@
 # Changelog
 
+## ctl-core 0.7.1
+
+- `Input::place` turns a `FieldPath`, the steps down to a field, into the line and column where it is written, and `Input::problem_at` builds a placed `Problem` from one.
+  A CLI places a problem of its own with them, as the loader places garde's.
+  `FieldPath::from(&garde::Path)` reads garde's path parts, so a problem under a key that holds `.`, `*` or `/`, such as a glob `docs/**/*.md`, lands on that key's line and not on its parent's.
+  `Problem::field` is still garde's printed path.
+  A YAML `Input` parses its text once for placing, where each failing `check` parsed it again.
+  garde is now pinned to exactly 0.23.0, because the conversion reads a doc-hidden item of its `Path` ([#278](https://github.com/victor-software-house/ctl-core/pull/278)).
+- The `ctl/invocation.md.jinja` fragment writes the rule against `mise run <mount> --` and its reason as two paragraphs.
+  A consumer's rendered skill and instructions then keep one sentence per line ([#269](https://github.com/victor-software-house/ctl-core/pull/269)).
+
 ## ctl-core 0.7.0
 
 ### Added
