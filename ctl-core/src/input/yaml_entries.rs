@@ -1,0 +1,190 @@
+//! The YAML half of [`Input::top_level`]. serde-saphyr reads the keys and the
+//! types under the limits, so anchors, aliases and tags are resolved by the
+//! parser, and yamled gives each value's span and style from the document
+//! that [`Input::place`] keeps.
+
+use std::fmt;
+
+use serde::de::{self, Deserialize, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
+use yamled::Style;
+
+use super::entries::{Entry, Written};
+use super::{Input, InputError, limits, yaml_text};
+
+/// What the parser reads a value or a key as: a string, or anything else.
+enum Typed {
+    Text(String),
+    Other,
+}
+
+impl<'de> Deserialize<'de> for Typed {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(TypedVisitor)
+    }
+}
+
+struct TypedVisitor;
+
+impl<'de> Visitor<'de> for TypedVisitor {
+    type Value = Typed;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a YAML value")
+    }
+
+    fn visit_str<E: de::Error>(self, value: &str) -> Result<Typed, E> {
+        Ok(Typed::Text(value.to_owned()))
+    }
+
+    fn visit_string<E: de::Error>(self, value: String) -> Result<Typed, E> {
+        Ok(Typed::Text(value))
+    }
+
+    fn visit_bool<E: de::Error>(self, _: bool) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_i64<E: de::Error>(self, _: i64) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_u64<E: de::Error>(self, _: u64) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_f64<E: de::Error>(self, _: f64) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_unit<E: de::Error>(self) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_none<E: de::Error>(self) -> Result<Typed, E> {
+        Ok(Typed::Other)
+    }
+
+    fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Typed, D::Error> {
+        deserializer.deserialize_any(self)
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Typed, A::Error> {
+        while seq.next_element::<IgnoredAny>()?.is_some() {}
+        Ok(Typed::Other)
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Typed, A::Error> {
+        while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
+        Ok(Typed::Other)
+    }
+}
+
+/// The entries of the root mapping with a string key, as the parser read
+/// them, or none when the root is no mapping.
+struct Root(Vec<(String, Typed)>);
+
+impl<'de> Deserialize<'de> for Root {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(RootVisitor)
+    }
+}
+
+struct RootVisitor;
+
+impl<'de> Visitor<'de> for RootVisitor {
+    type Value = Root;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a YAML document")
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Root, A::Error> {
+        let mut entries = Vec::new();
+        while let Some((key, value)) = map.next_entry::<Typed, Typed>()? {
+            if let Typed::Text(key) = key {
+                entries.push((key, value));
+            }
+        }
+        Ok(Root(entries))
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Root, A::Error> {
+        while seq.next_element::<IgnoredAny>()?.is_some() {}
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_str<E: de::Error>(self, _: &str) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_bool<E: de::Error>(self, _: bool) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_i64<E: de::Error>(self, _: i64) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_u64<E: de::Error>(self, _: u64) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_f64<E: de::Error>(self, _: f64) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_unit<E: de::Error>(self) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+
+    fn visit_none<E: de::Error>(self) -> Result<Root, E> {
+        Ok(Root(Vec::new()))
+    }
+}
+
+/// [`Input::top_level`] for a YAML text.
+pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
+    let Root(typed) = input.parse::<Root>()?;
+    let limits = limits::effective(&input.limits);
+    let Some(root) = yaml_text::document(input, &limits)
+        .and_then(|document| document.node(&yamled::Path::root()))
+    else {
+        return Ok(Vec::new());
+    };
+    let mut written = root.entries().peekable();
+    let mut found = Vec::with_capacity(typed.len());
+    for (key, value) in typed {
+        while written.next_if(|(seen, _)| *seen != key.as_str()).is_some() {}
+        let Some((_, node)) = written.next() else {
+            break;
+        };
+        let at = node.value();
+        found.push(Entry {
+            key,
+            value: at.start..at.end,
+            written: written_as(node.style()),
+            string: match value {
+                Typed::Text(text) => Some(text),
+                Typed::Other => None,
+            },
+        });
+    }
+    Ok(found)
+}
+
+/// How yamled's `style` is written.
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "Style is non-exhaustive: a later yamled style is a collection or unknown"
+)]
+const fn written_as(style: Style) -> Written {
+    match style {
+        Style::Plain => Written::Plain,
+        Style::SingleQuoted => Written::SingleQuoted,
+        Style::DoubleQuoted => Written::DoubleQuoted,
+        Style::Literal => Written::Literal,
+        Style::Folded => Written::Folded,
+        Style::Alias => Written::Alias,
+        _ => Written::Collection,
+    }
+}
