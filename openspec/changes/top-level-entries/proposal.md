@@ -17,7 +17,7 @@ The belonging queue row is [CTC-055][ledger].
   An `Entry` holds the key, the `value` byte range, a `Written` style and the `string` the parser reads, if any.
 - A YAML input types each value through serde-saphyr under the limits in force, takes the spans from the yamled document that `Input::place` keeps, and shares both with `place`.
 - A TOML input checks the text through `Input::parse`, then reads the root table of the `toml` tree, whose keys and values carry their spans.
-- A root that is no mapping lists nothing, and a key that is no string is left out.
+- A root that is no mapping lists nothing, and a key that is a sequence, mapping or alias is left out, and a key that is a number, a boolean or a null is listed by its text.
 - yamled moves to 0.0.13.
 
 Nothing is **BREAKING**: every item is new.

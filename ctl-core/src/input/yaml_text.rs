@@ -8,7 +8,7 @@ use std::sync::{Mutex, OnceLock, PoisonError};
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
     Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
-    MergeKeyPolicy, MessageFormatter, Options,
+    MergeKeyPolicy, MessageFormatter, NonFiniteFloatPolicy, Options,
 };
 
 use super::limits::{Exceeded, Limits, Raise};
@@ -20,7 +20,28 @@ pub(super) fn parse<T: DeserializeOwned>(
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    serde_saphyr::from_str_with_options(&input.text, options(budget)).map_err(|error| {
+    read(input, options(budget, Reading::Config), budget, raise)
+}
+
+/// [`parse`] for a read that only sorts each value by its type, as
+/// [`Input::top_level`] does, so a repeated key, a merge key, a `.inf` and a
+/// `.NaN` are no refusal.
+pub(super) fn parse_types<T: DeserializeOwned>(
+    input: &Input,
+    budget: &Budget,
+    raise: Raise,
+) -> Result<T, InputError> {
+    read(input, options(budget, Reading::Listing), budget, raise)
+}
+
+/// Reads the text of `input` under `options`, and words each problem.
+fn read<T: DeserializeOwned>(
+    input: &Input,
+    options: Options,
+    budget: &Budget,
+    raise: Raise,
+) -> Result<T, InputError> {
+    serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
         let location = error.location();
         InputError::of(
             input.name.clone(),
@@ -36,13 +57,38 @@ pub(super) fn parse<T: DeserializeOwned>(
     })
 }
 
+/// What a read of a YAML text refuses.
+#[derive(Clone, Copy)]
+enum Reading {
+    /// A config or any text the caller validates: a repeated key, a merge key
+    /// and a non-finite float with no type named for it are refused.
+    Config,
+    /// A listing of a text the caller did not write, such as the front matter
+    /// of a Markdown file: it refuses nothing that YAML allows, so a repeated
+    /// key, a merge key and a non-finite float are values like the rest.
+    Listing,
+}
+
 /// What every read of a YAML text uses, under `budget`.
-fn options(budget: &Budget) -> Options {
+fn options(budget: &Budget, reading: Reading) -> Options {
+    let (duplicates, merges, floats) = match reading {
+        Reading::Config => (
+            DuplicateKeyPolicy::Error,
+            MergeKeyPolicy::Error,
+            NonFiniteFloatPolicy::Default,
+        ),
+        Reading::Listing => (
+            DuplicateKeyPolicy::PassThrough,
+            MergeKeyPolicy::AsOrdinary,
+            NonFiniteFloatPolicy::PassThrough,
+        ),
+    };
     serde_saphyr::options! {
         budget: Some(budget.clone()),
         strict_booleans: true,
-        duplicate_keys: DuplicateKeyPolicy::Error,
-        merge_keys: MergeKeyPolicy::Error,
+        duplicate_keys: duplicates,
+        merge_keys: merges,
+        non_finite_float_policy: floats,
         with_snippet: false,
     }
 }
@@ -231,8 +277,12 @@ pub(super) fn document<'a>(input: &'a Input, limits: &Limits) -> Option<&'a yaml
 
 /// Whether serde-saphyr reads the whole text under `budget`, depth and node
 /// count included, as [`parse`] would, without building any value.
+///
+/// What [`parse`] refuses for its own sake, such as a repeated key, passes,
+/// since it takes no budget and the caller decides what to make of it.
 fn within(input: &Input, budget: &Budget) -> bool {
-    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options(budget)).is_ok()
+    let options = options(budget, Reading::Listing);
+    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options).is_ok()
 }
 
 /// Where the last step of `steps` is written as a key, or where the last step
