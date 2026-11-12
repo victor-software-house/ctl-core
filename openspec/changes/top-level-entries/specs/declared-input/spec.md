@@ -4,8 +4,6 @@
 
 `Input::top_level` SHALL list the entries of the root mapping or table in the order written.
 Each entry SHALL hold the key, the byte range of the value in the text, how the value is written and, when the parser reads it as a string, its text.
-A key that is a sequence, a mapping or an alias SHALL be left out, and a root that is no mapping SHALL give no entries.  
-A YAML key that is a number, a boolean or a null SHALL be listed by its text as written.
 It SHALL exist with `input-yaml` or `input-toml`, and not need `validate`.
 
 #### Scenario: Each way a YAML value is written
@@ -13,15 +11,20 @@ It SHALL exist with `input-yaml` or `input-toml`, and not need `validate`.
 - **WHEN** `plain: a plain value`, `single: 'it''s'`, a folded and a literal scalar, `number: 12`, `flag: true`, `nothing: null`, `yes_text: yes`, a list and a mapping are the entries
 - **THEN** the written styles are plain, single-quoted, folded, literal, plain, plain, plain, plain, collection and collection, and only the strings and `yes` hold a string
 
-#### Scenario: A key that is no scalar and a root that is no mapping
-
-- **WHEN** a YAML text has the keys `1`, `'two'`, a sequence and `z`, or a root that is a sequence, a scalar or empty
-- **THEN** the entries are `1`, `two` and `z` for the first, and none for the others
-
 #### Scenario: A TOML text
 
 - **WHEN** a TOML text has a basic string, a literal string, a multi-line basic and a multi-line literal string, a number, a date, an array and a table
 - **THEN** the written styles are double-quoted, single-quoted, multi-line basic, multi-line literal, plain, plain, collection and collection, and a string under the table is not listed
+
+### Requirement: A key is listed by its text unless it is a collection
+
+A YAML key that is a number, a boolean or a null SHALL be listed by its text as written.
+A key that is a sequence, a mapping or an alias SHALL be left out, and a root that is no mapping SHALL give no entries.
+
+#### Scenario: A key that is no scalar and a root that is no mapping
+
+- **WHEN** a YAML text has the keys `1`, `'two'`, a sequence and `z`, or a root that is a sequence, a scalar or empty
+- **THEN** the entries are `1`, `two` and `z` for the first, and none for the others
 
 ### Requirement: A listed value range excludes what is not the value
 
