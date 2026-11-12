@@ -154,9 +154,10 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
         return Ok(Vec::new());
     };
     // Each entry pairs with the yamled entry whose key sits where the parser
-    // read it, so a key written twice in different types, such as `1` and
-    // `'1'`, and a key yamled leaves out, such as an alias, cannot shift the
-    // pairs after them.
+    // read it.
+    // A key written twice in different types, such as `1` and `'1'`, cannot
+    // take the other's span, and a key yamled leaves out, such as an alias,
+    // shifts no pair after it.
     let by_place: HashMap<(usize, usize), _> = root
         .entries()
         .filter_map(|(_, node)| node.key().map(|at| ((at.line, at.column), node)))
