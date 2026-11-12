@@ -164,38 +164,6 @@ queue:
       - 2026-11-10, ctl-core main 1d6746b writes hidden commands with hide=#true (usage/nodes.rs line 282) and has no option to drop them.
       - verctl lists its removed verbs prepare and pin in its usage spec, marked hidden, and its command-names spec says so.
 
-  - id: CTC-053
-    title: Place every problem through one public field path
-    scope: "ctl-core: input"
-    outcome: >-
-      A garde problem, and a problem a CLI raises itself, land on the line of the field they name through one public path type, including under a mapping key that holds dots, stars or slashes.
-    blocked_by: []
-    acceptance:
-      - ctl-core has a public FieldPath, a public Input::place that returns the line and column of a path or of its nearest written ancestor, and Input::problem_at that builds a Problem from them, for YAML and for TOML.
-      - FieldPath is built from garde's path parts, with no split of its printed string, and check places each garde problem through place, so field_steps is gone. Problem.field stays garde's printed string, for display only.
-      - A garde problem under a mapping key such as 'docs/**/*.md' lands on that key's own entry, and place on the same path returns the same line, with a test for YAML and one for TOML.
-      - A second place on one Input reuses the parsed yamled document, with a test. A field path with no such key prints and lands exactly as before, with no other change in the problem-report snapshot.
-    notes:
-      - 2026-11-11, ctl-core main 1cbad5c, input.rs line 411 field_steps splits garde's printed field on '.' and '[', so files.docs/**/*.md.vocab[0] reads as the keys files, docs/**/*, md and vocab, and the lookup stops at files. Its comment at line 405 says a key holding '.' or '[' cannot be told apart from nesting.
-      - 'garde 0.23.0 keeps the steps: Path holds (Kind, key) components (src/error.rs line 97), reached through the doc-hidden __iter, root last. yamled already addresses any key string (Segment::Key in src/path.rs line 7), so the change is in ctl-core only: build the steps from the garde path, hand them to places in yaml_text.rs and toml_text.rs, and drop field_steps.'
-      - Related to CTC-049, which also starts from garde's printed path. Found 2026-11-11 while a consumer placed its own glob-level faults with a text search.
-      - garde 0.23.0 is pinned exactly, because the path parts come from its doc-hidden Path::__iter and Kind.
-      - "Leaves open from CTC-049: a garde path with a segment the file lacks, such as assets.targets.linux-x64.files under a flattened map, still stops at the last segment that resolves, because this row adds no rule to skip an unresolved segment. Its printed field also stays garde's string, not the path the file holds."
-      - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. ctl-core keeps its own FieldPath, uses yamled for YAML, and keeps its existing walk for TOML."
-
-  - id: CTC-054
-    title: Place a key as well as a value
-    scope: "ctl-core: input"
-    outcome: >-
-      A CLI places a fault on the key it is about, and on the item of a list it is
-      about, through one public call.
-    blocked_by: []
-    acceptance:
-      - Input::place_key returns where the last step of a FieldPath is written as a key, for YAML and TOML, and the root and an index step give their value, with tests.
-    plan: openspec/changes/key-place/proposal.md
-    notes:
-      - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
-
   - id: CTC-055
     title: List the top-level entries of a YAML or TOML text
     scope: input
@@ -319,6 +287,39 @@ horizon:
       - The operator asked for oversized sections and headless prose blocks to be forbidden in every operator document, and for the mechanism to be analysed first (operator, 2026-11-10).
 
 archive:
+  - id: CTC-054
+    title: Place a key as well as a value
+    scope: "ctl-core: input"
+    outcome: >-
+      A CLI places a fault on the key it is about, and on the item of a list it is
+      about, through one public call.
+    plan: openspec/changes/archive/2026-11-11-key-place/proposal.md
+    notes:
+      - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
+    completed: 2026-11-11T22:04:53
+    evidence:
+      - '2026-11-12 (UTC): PR 280 merged as 60e91fa. Input::place_key places the key of the last step of a FieldPath for YAML and TOML, and the root and an index step give their value, with tests.'
+    disposition: completed
+
+  - id: CTC-053
+    title: Place every problem through one public field path
+    scope: "ctl-core: input"
+    outcome: >-
+      A garde problem, and a problem a CLI raises itself, land on the line of the field they name through one public path type, including under a mapping key that holds dots, stars or slashes.
+    notes:
+      - 2026-11-11, ctl-core main 1cbad5c, input.rs line 411 field_steps splits garde's printed field on '.' and '[', so files.docs/**/*.md.vocab[0] reads as the keys files, docs/**/*, md and vocab, and the lookup stops at files. Its comment at line 405 says a key holding '.' or '[' cannot be told apart from nesting.
+      - 'garde 0.23.0 keeps the steps: Path holds (Kind, key) components (src/error.rs line 97), reached through the doc-hidden __iter, root last. yamled already addresses any key string (Segment::Key in src/path.rs line 7), so the change is in ctl-core only: build the steps from the garde path, hand them to places in yaml_text.rs and toml_text.rs, and drop field_steps.'
+      - Related to CTC-049, which also starts from garde's printed path. Found 2026-11-11 while a consumer placed its own glob-level faults with a text search.
+      - garde 0.23.0 is pinned exactly, because the path parts come from its doc-hidden Path::__iter and Kind.
+      - "Leaves open from CTC-049: a garde path with a segment the file lacks, such as assets.targets.linux-x64.files under a flattened map, still stops at the last segment that resolves, because this row adds no rule to skip an unresolved segment. Its printed field also stays garde's string, not the path the file holds."
+      - "2026-11-11, decided by the operator: ctl-core owns placing a problem, through a public call, with one path type from garde's path parts to the lookup, and no consumer takes a direct yamled dependency. ctl-core keeps its own FieldPath, uses yamled for YAML, and keeps its existing walk for TOML."
+    plan: openspec/changes/archive/2026-11-11-field-path-place/proposal.md
+    completed: 2026-11-11T21:52:37
+    evidence:
+      - '2026-11-11 (UTC): PRs 277 and 278 merged. FieldPath, Input::place and Input::problem_at place a problem for YAML and TOML, check places through place, and field_steps is gone.'
+      - A key that holds dots, stars or slashes lands on its own line, with tests for YAML and TOML, and a second place reuses the document. Input::place_key (CTC-054) places the key itself.
+    disposition: completed
+
   - id: CTC-046
     title: Keep the shell_init bash tests off the system bashrc
     scope: ctl-core/tests/shell_init.rs
