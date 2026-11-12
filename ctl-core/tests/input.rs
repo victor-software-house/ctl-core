@@ -722,18 +722,38 @@ fn a_key_of_another_type_does_not_take_the_span_of_a_string_key() {
         indoc! {"
         1: one
         '1': two
-        true: x
-        'true': y
         null: n
         'null': m
+        true: t
         "},
     );
     assert_eq!(
         listing(&input),
         [
             row("1", "two", Written::Plain, Some("two")),
-            row("true", "y", Written::Plain, Some("y")),
             row("null", "m", Written::Plain, Some("m")),
+        ]
+    );
+}
+
+#[test]
+fn a_sequence_or_mapping_as_a_key_is_left_out_and_drops_nothing_after_it() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        ? [a, b]
+        : v
+        z: w
+        ? {c: d}
+        : u
+        y: x
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("z", "w", Written::Plain, Some("w")),
+            row("y", "x", Written::Plain, Some("x")),
         ]
     );
 }
