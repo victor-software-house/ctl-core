@@ -416,12 +416,11 @@ impl Input {
         raise: Raise,
     ) -> Result<T, InputError> {
         self.fits(limits, raise)?;
-        let bounds = limits.bounds();
         match self.format {
             #[cfg(feature = "input-yaml")]
             Format::Yaml => yaml_text::parse(self, &limits.budget(), raise),
             #[cfg(feature = "input-toml")]
-            Format::Toml => toml_text::parse(self, bounds, raise),
+            Format::Toml => toml_text::parse(self, limits.bounds(), raise),
         }
     }
 
