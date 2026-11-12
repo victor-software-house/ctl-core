@@ -51,9 +51,10 @@ This file holds what applies to this crate alone.
 - `tests/it/detection.rs`: tables over every variable that decides colour, depth, and width, each alone and in conflicting pairs.
 - `tests/it/scenarios.rs`: the `terminal-output` spec scenarios this crate owns, each through a `Console`.
 - `tests/it/encoding.rs`, `palette.rs`, and `properties.rs`: the encoder, the colour conversion, and proptest properties of escape output.
-- `tests/closed_pipe.rs`: a real child process piped to `head -1`.
+- `tests/closed_pipe.rs`: a real child process writing to a pipe that the test reads one line from and then closes.
+  The test reads the line itself instead of starting `head`, because how much a system `head` reads before it quits differs between implementations.
   It needs the `detect` feature, and on a target that is not Unix it prints a skip line.
-  It runs without libtest, because libtest prints its own banner to stdout, and `head -1` quits after the first line.
+  It runs without libtest, because libtest prints its own banner to stdout, and the test closes the pipe after the first line.
   The next libtest write would then fail before the code under test ran.
   Keep that target at `harness = false` in `Cargo.toml`.
 - `tests/non_utf8_no_color.rs`: a child process whose `NO_COLOR` is not valid UTF-8.
