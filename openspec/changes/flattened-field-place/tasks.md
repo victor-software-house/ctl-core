@@ -12,8 +12,11 @@ Every compile, lint and test step runs in a box or the pull request's CI, not on
   Verify the OpenSpec validation and `check:docs` pass.  
   Evidence, 2026-11-11 (UTC): `mise run -c verify` passes in a box, `specs`, `check:docs` and `check:size` included.  
   The `input` tier measured 1,053,230 bytes, 2,096 above its budget of 1,051,134.  
-  That is inside the limit of 1,072,156, so the budget stays.
+  The budget moved to that number.
 
 ## 2. Integration
 
-- [ ] 2.1 Verify the pull request's CI passes.
+- [x] 2.1 Verify the pull request's CI passes.  
+  Evidence, 2026-11-11 (UTC): the [CI run][ci] on `31268ec` passed: Static checks, Build and test, Publish checks and Verify.
+
+[ci]: https://github.com/victor-software-house/ctl-core/actions/runs/43130768052

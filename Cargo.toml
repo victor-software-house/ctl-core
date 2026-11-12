@@ -168,12 +168,13 @@ view = { features = "cli,view", text = 408998 }
 app = { features = "app", text = 471974 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer.
 usage = { features = "app,usage", text = 525798 }
-# app plus input: serde-saphyr, yamled, and garde. 8,001 above the last budget,
-# 1043133: place_key (key-place) and the limits check of placing that followed
-# that budget, a serde-saphyr read before yamled and the kept verdict
-# (field-path-place), measured together. The one before it, 1,731 above 1041402,
-# was FieldPath, Input::place and problem_at, and the kept yamled document.
-input = { features = "app,input", text = 1051134 }
+# app plus input: serde-saphyr, yamled, and garde. 2,096 above the last budget,
+# 1051134: Input::flattened and the rewrite of a garde path through a declared
+# flattened field (flattened-field-place). The one before it, 8,001 above
+# 1043133, was place_key (key-place) and the limits check of placing that
+# followed that budget, a serde-saphyr read before yamled and the kept verdict
+# (field-path-place), measured together.
+input = { features = "app,input", text = 1053230 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 448,927 below input. 1,568 above the last budget,
 # 592638: FieldPath, Input::place and problem_at (field-path-place).
