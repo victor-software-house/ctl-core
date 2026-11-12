@@ -197,16 +197,7 @@ pub(super) fn places(
     paths: &[FieldPath],
     at: At,
 ) -> Vec<Option<(usize, usize)>> {
-    let located = &input.yaml_document;
-    let document = located
-        .passes(input, limits)
-        .then(|| {
-            located
-                .document
-                .get_or_init(|| yamled::Document::parse(&input.text).ok())
-                .as_ref()
-        })
-        .flatten();
+    let document = document(input, limits);
     paths
         .iter()
         .map(|path| {
@@ -218,6 +209,24 @@ pub(super) fn places(
                 .map(|place| (place.line, place.column))
         })
         .collect()
+}
+
+/// The yamled document of `input`, when the text passes `limits`.
+///
+/// It is built by the first call whose limits the text passes, and read by
+/// every call after it, so placing and listing the top-level entries share one
+/// parse.
+pub(super) fn document<'a>(input: &'a Input, limits: &Limits) -> Option<&'a yamled::Document> {
+    let located = &input.yaml_document;
+    located
+        .passes(input, limits)
+        .then(|| {
+            located
+                .document
+                .get_or_init(|| yamled::Document::parse(&input.text).ok())
+                .as_ref()
+        })
+        .flatten()
 }
 
 /// Whether serde-saphyr reads the whole text under `budget`, depth and node
@@ -275,6 +284,17 @@ mod tests {
             .place(&FieldPath::root().key("a"))
             .map(|at| (at.line, at.column));
         (input, at)
+    }
+
+    #[test]
+    fn listing_the_top_level_builds_the_document_that_placing_reuses() {
+        let input = Input::new("a.yaml", "a: 1\n");
+        assert!(input.yaml_document.document.get().is_none());
+        input.top_level().unwrap();
+        let first = input.yaml_document.document.get().unwrap();
+        assert!(input.place(&FieldPath::root().key("a")).is_some());
+        let second = input.yaml_document.document.get().unwrap();
+        assert!(std::ptr::eq(first, second));
     }
 
     #[test]

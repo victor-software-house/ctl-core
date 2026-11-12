@@ -862,9 +862,9 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yamled"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "506b199d71e3c44d04290caa90bd6b4cccd6db78a8f186ba322d909aebae38bc"
+checksum = "7b14d78267e0b0268009fa9faf8f87bd37368d77aecd2efc277fd67beb51900b"
 dependencies = [
  "granit-parser",
 ]

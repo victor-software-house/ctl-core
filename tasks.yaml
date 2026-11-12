@@ -195,6 +195,20 @@ queue:
     plan: openspec/changes/key-place/proposal.md
     notes:
       - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
+
+  - id: CTC-055
+    title: List the top-level entries of a YAML or TOML text
+    scope: input
+    outcome: >-
+      Input::top_level gives each top-level entry's key, the byte range and style of
+      its value and its string, for a caller that reads a mapping it did not write.
+    blocked_by: []
+    acceptance:
+      - A test lists the entries of a YAML text with every way a value is written, an anchor, an alias and a tag, and one of a TOML text, with the exact value ranges.
+      - A key that is no string is left out, a root that is no mapping gives none, and a text past a limit gives the error parse gives.
+    plan: openspec/changes/top-level-entries/proposal.md
+    notes:
+      - "2026-11-11, hakkiri HKR-049 needs it for front matter: yamled 0.0.13 lists a mapping's entries, serde-saphyr types each value, and the TOML tree holds the spans."
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker

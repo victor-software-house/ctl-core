@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Input, Place, Problem};
+use ctl_core::input::{FieldPath, Input, Limits, Place, Problem, Written};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
@@ -590,4 +590,262 @@ fn an_undeclared_or_unmatched_flattened_field_places_as_garde_names_it() {
             .problems,
     );
     assert_eq!(unmatched, undeclared);
+}
+
+/// The key, the value as written, how it is written and the string, of each
+/// top-level entry.
+fn listing(input: &Input) -> Vec<(String, String, Written, Option<String>)> {
+    input
+        .top_level()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|entry| {
+            (
+                entry.key,
+                input.text()[entry.value].to_owned(),
+                entry.written,
+                entry.string,
+            )
+        })
+        .collect()
+}
+
+fn row(
+    key: &str,
+    value: &str,
+    written: Written,
+    string: Option<&str>,
+) -> (String, String, Written, Option<String>) {
+    (
+        key.to_owned(),
+        value.to_owned(),
+        written,
+        string.map(str::to_owned),
+    )
+}
+
+#[test]
+fn the_top_level_lists_each_entry_with_its_span_style_and_string() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {r#"
+        plain: a plain value
+        single: 'it''s'
+        double: "tab\there"
+        folded: >
+          one
+          two
+        literal: |
+          line
+        number: 12
+        flag: true
+        nothing: null
+        yes_text: yes
+        list: [a, b]
+        map:
+          k: v
+        "#},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row(
+                "plain",
+                "a plain value",
+                Written::Plain,
+                Some("a plain value")
+            ),
+            row("single", "'it''s'", Written::SingleQuoted, Some("it's")),
+            row(
+                "double",
+                r#""tab\there""#,
+                Written::DoubleQuoted,
+                Some("tab\there")
+            ),
+            row(
+                "folded",
+                ">\n  one\n  two",
+                Written::Folded,
+                Some("one two\n")
+            ),
+            row("literal", "|\n  line", Written::Literal, Some("line\n")),
+            row("number", "12", Written::Plain, None),
+            row("flag", "true", Written::Plain, None),
+            row("nothing", "null", Written::Plain, None),
+            row("yes_text", "yes", Written::Plain, Some("yes")),
+            row("list", "[a, b]", Written::Collection, None),
+            row("map", "k: v", Written::Collection, None),
+        ]
+    );
+}
+
+#[test]
+fn an_anchor_an_alias_and_a_tag_leave_the_span_of_the_value() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        a: &x text
+        b: *x
+        c: !!str 12
+        d: &y !!str t
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("a", "text", Written::Plain, Some("text")),
+            row("b", "*x", Written::Alias, Some("text")),
+            row("c", "12", Written::Plain, Some("12")),
+            row("d", "t", Written::Plain, Some("t")),
+        ]
+    );
+}
+
+#[test]
+fn a_key_with_an_anchor_or_a_tag_keeps_its_entry() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {r#"
+        &a plain: 1
+        &b 'single': 2
+        !!str "double": 3
+        !!str 4: 4
+        &c !!str both: 5
+        !!str &d reversed: 6
+        ? &e explicit
+        : 7
+        "#},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("plain", "1", Written::Plain, None),
+            row("single", "2", Written::Plain, None),
+            row("double", "3", Written::Plain, None),
+            row("4", "4", Written::Plain, None),
+            row("both", "5", Written::Plain, None),
+            row("reversed", "6", Written::Plain, None),
+            row("explicit", "7", Written::Plain, None),
+        ]
+    );
+}
+
+#[test]
+fn a_flow_root_key_with_an_anchor_or_a_tag_keeps_its_entry() {
+    let input = Input::new("page.yaml", "{ &a x: 1, !!str y: 2, &b !!str 'z': 3 }\n");
+    let keys: Vec<_> = listing(&input).into_iter().map(|row| row.0).collect();
+    assert_eq!(keys, ["x", "y", "z"]);
+}
+
+#[test]
+fn a_key_that_is_no_string_is_left_out() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        1: one
+        'two': 2
+        z: w
+        "},
+    );
+    let keys: Vec<_> = listing(&input).into_iter().map(|row| row.0).collect();
+    assert_eq!(keys, ["two", "z"]);
+}
+
+#[test]
+fn a_key_of_another_type_does_not_take_the_span_of_a_string_key() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        1: one
+        '1': two
+        null: n
+        'null': m
+        true: t
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("1", "two", Written::Plain, Some("two")),
+            row("null", "m", Written::Plain, Some("m")),
+        ]
+    );
+}
+
+#[test]
+fn a_sequence_or_mapping_as_a_key_is_left_out_and_drops_nothing_after_it() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        ? [a, b]
+        : v
+        z: w
+        ? {c: d}
+        : u
+        y: x
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("z", "w", Written::Plain, Some("w")),
+            row("y", "x", Written::Plain, Some("x")),
+        ]
+    );
+}
+
+#[test]
+fn an_alias_as_a_key_is_left_out_and_drops_nothing_after_it() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        k: &k key
+        *k : v
+        z: w
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("k", "key", Written::Plain, Some("key")),
+            row("z", "w", Written::Plain, Some("w")),
+        ]
+    );
+}
+
+#[test]
+fn a_root_that_is_no_mapping_has_no_entries() {
+    for text in ["- a\n- b\n", "just text\n", "", "12\n"] {
+        let input = Input::new("page.yaml", text);
+        assert_eq!(input.top_level().unwrap(), []);
+    }
+}
+
+#[test]
+fn a_duplicate_key_and_a_merge_key_are_refused_as_parse_refuses_them() {
+    for text in ["a: 1\na: 2\n", "base: &b {x: 1}\n<<: *b\n"] {
+        let input = Input::new("page.yaml", text);
+        let refused = input.top_level().unwrap_err();
+        let parsed = input.parse::<serde::de::IgnoredAny>().unwrap_err();
+        assert_eq!(refused, parsed);
+    }
+}
+
+#[test]
+fn a_text_past_a_limit_is_refused_with_the_limit_named() {
+    let limits = Limits {
+        max_depth: Some(2),
+        ..Limits::NONE
+    };
+    let input = Input::new("page.yaml", "a: {b: {c: {d: 1}}}\n").limits(limits);
+    let refused = input.top_level().unwrap_err();
+    assert!(refused.to_string().contains("max_depth"), "{refused}");
+}
+
+#[test]
+fn a_frontmatter_entry_is_placed_in_the_whole_file() {
+    let file = Input::new("note.md", "---\ntitle: A page\n---\nbody\n");
+    let (matter, _) = file.frontmatter().unwrap();
+    let entries = matter.top_level().unwrap();
+    assert_eq!(&matter.text()[entries[0].value.clone()], "A page");
 }

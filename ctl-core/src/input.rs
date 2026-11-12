@@ -45,13 +45,19 @@ use std::{fmt, io};
 use garde::Validate;
 use serde::de::DeserializeOwned;
 
+mod entries;
 mod field_path;
 mod limits;
 #[cfg(feature = "input-toml")]
+mod toml_entries;
+#[cfg(feature = "input-toml")]
 mod toml_text;
+#[cfg(feature = "input-yaml")]
+mod yaml_entries;
 #[cfg(feature = "input-yaml")]
 mod yaml_text;
 
+pub use entries::{Entry, Written};
 pub use field_path::{FieldPath, Place, Step};
 use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};

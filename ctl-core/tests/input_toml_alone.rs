@@ -202,3 +202,13 @@ fn a_path_is_placed_without_yaml_and_without_garde() {
     assert_eq!(problem.field, "files.docs/**/*.md.label");
     assert_eq!((problem.line, problem.column), (Some(2), Some(9)));
 }
+
+#[test]
+fn the_top_level_of_a_toml_text_lists_its_entries_without_yaml() {
+    let input = toml("page.toml", "title = \"A page\"\nyear = 2026\n");
+    let entries = input.top_level().unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(&input.text()[entries[0].value.clone()], "\"A page\"");
+    assert_eq!(entries[0].string.as_deref(), Some("A page"));
+    assert_eq!(entries[1].string, None);
+}

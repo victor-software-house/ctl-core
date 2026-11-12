@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ctl_core::fixture::Suite;
-use ctl_core::input::{FieldPath, Format, Input, Limits, Place, Problem};
+use ctl_core::input::{FieldPath, Format, Input, Limits, Place, Problem, Written};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use ctl_core::{formatdoc, indoc};
 use garde::Validate;
@@ -620,4 +620,78 @@ fn a_problem_under_a_declared_flattened_field_sits_on_its_toml_value() {
             "must declare at least one file"
         )]
     );
+}
+
+#[test]
+fn the_top_level_lists_each_entry_with_its_span_style_and_string() {
+    let input = Input::new_with_format(
+        "page.toml",
+        indoc! {r#"
+        title = 'Basic'
+        quoted = "double"
+        multi = """
+        a
+        b"""
+        literal = '''x'''
+        number = 12
+        date = 2001-01-01
+        list = [1, 2]
+        [table]
+        inner = "x"
+        "#},
+        Format::Toml,
+    );
+    let rows: Vec<_> = input
+        .top_level()
+        .unwrap()
+        .into_iter()
+        .map(|entry| (entry.key, entry.written, entry.string))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            (
+                "title".to_owned(),
+                Written::SingleQuoted,
+                Some("Basic".to_owned())
+            ),
+            (
+                "quoted".to_owned(),
+                Written::DoubleQuoted,
+                Some("double".to_owned())
+            ),
+            (
+                "multi".to_owned(),
+                Written::MultilineBasic,
+                Some("a\nb".to_owned())
+            ),
+            (
+                "literal".to_owned(),
+                Written::MultilineLiteral,
+                Some("x".to_owned())
+            ),
+            ("number".to_owned(), Written::Plain, None),
+            ("date".to_owned(), Written::Plain, None),
+            ("list".to_owned(), Written::Collection, None),
+            ("table".to_owned(), Written::Collection, None),
+        ]
+    );
+}
+
+#[test]
+fn a_toml_value_span_holds_its_quotes() {
+    let input = Input::new_with_format("page.toml", "a = \"x\"\nb = 'y'\n", Format::Toml);
+    let spans: Vec<_> = input
+        .top_level()
+        .unwrap()
+        .into_iter()
+        .map(|entry| input.text()[entry.value].to_owned())
+        .collect();
+    assert_eq!(spans, ["\"x\"", "'y'"]);
+}
+
+#[test]
+fn a_toml_text_that_does_not_parse_lists_nothing() {
+    let input = Input::new_with_format("page.toml", "a = \n", Format::Toml);
+    assert!(input.top_level().is_err());
 }
