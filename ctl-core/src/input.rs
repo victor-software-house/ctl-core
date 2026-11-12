@@ -415,6 +415,18 @@ impl Input {
         limits: &Limits,
         raise: Raise,
     ) -> Result<T, InputError> {
+        self.fits(limits, raise)?;
+        let bounds = limits.bounds();
+        match self.format {
+            #[cfg(feature = "input-yaml")]
+            Format::Yaml => yaml_text::parse(self, &limits.budget(), raise),
+            #[cfg(feature = "input-toml")]
+            Format::Toml => toml_text::parse(self, bounds, raise),
+        }
+    }
+
+    /// Whether the text is within the size `limits` allow.
+    fn fits(&self, limits: &Limits, raise: Raise) -> Result<(), InputError> {
         let bounds = limits.bounds();
         if self.text.len() > bounds.input_bytes {
             return Err(InputError::whole(
@@ -426,12 +438,7 @@ impl Input {
                 ),
             ));
         }
-        match self.format {
-            #[cfg(feature = "input-yaml")]
-            Format::Yaml => yaml_text::parse(self, &limits.budget(), raise),
-            #[cfg(feature = "input-toml")]
-            Format::Toml => toml_text::parse(self, bounds, raise),
-        }
+        Ok(())
     }
 
     /// Validate a parsed `value` against `context`.

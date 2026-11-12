@@ -12,6 +12,8 @@ Compile, format, lint and test steps run in an ephemeral build box, given a git 
   Proof: `check:size` passes with the budgets at the measured sizes.
 - [ ] 5. Move the docs and add the changeset.
   Proof: `check:docs`, `doc` and `lint:prose` pass, and `semver` reports no break.
-- [ ] 6. Verify the pull request's CI passes.
+- [ ] 6. Read a YAML `.inf`, `-.inf` or `.NaN` as a value that is no string, under the options of the listing alone.
+  Proof: `a_non_finite_float_is_a_value_that_is_no_string` and `parse_still_refuses_a_non_finite_float_it_cannot_type` in `tests/input.rs` pass.
+- [ ] 7. Verify the pull request's CI passes.
 
 [ledger]: ../../../tasks.yaml

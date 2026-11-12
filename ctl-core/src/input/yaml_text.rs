@@ -8,7 +8,7 @@ use std::sync::{Mutex, OnceLock, PoisonError};
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
     Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
-    MergeKeyPolicy, MessageFormatter, Options,
+    MergeKeyPolicy, MessageFormatter, NonFiniteFloatPolicy, Options,
 };
 
 use super::limits::{Exceeded, Limits, Raise};
@@ -20,7 +20,38 @@ pub(super) fn parse<T: DeserializeOwned>(
     budget: &Budget,
     raise: Raise,
 ) -> Result<T, InputError> {
-    serde_saphyr::from_str_with_options(&input.text, options(budget)).map_err(|error| {
+    read(
+        input,
+        options(budget, NonFiniteFloatPolicy::Default),
+        budget,
+        raise,
+    )
+}
+
+/// [`parse`] for a read that only sorts each value by its type, as
+/// [`Input::top_level`] does, so a `.inf` or a `.NaN` is a number and no
+/// refusal.
+pub(super) fn parse_types<T: DeserializeOwned>(
+    input: &Input,
+    budget: &Budget,
+    raise: Raise,
+) -> Result<T, InputError> {
+    read(
+        input,
+        options(budget, NonFiniteFloatPolicy::PassThrough),
+        budget,
+        raise,
+    )
+}
+
+/// Reads the text of `input` under `options`, and words each problem.
+fn read<T: DeserializeOwned>(
+    input: &Input,
+    options: Options,
+    budget: &Budget,
+    raise: Raise,
+) -> Result<T, InputError> {
+    serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
         let location = error.location();
         InputError::of(
             input.name.clone(),
@@ -37,12 +68,17 @@ pub(super) fn parse<T: DeserializeOwned>(
 }
 
 /// What every read of a YAML text uses, under `budget`.
-fn options(budget: &Budget) -> Options {
+///
+/// `floats` says what a `.inf`, `-.inf` or `.NaN` becomes when the caller names
+/// no type for it: `Default` refuses it, and `PassThrough` hands it on as a
+/// float.
+fn options(budget: &Budget, floats: NonFiniteFloatPolicy) -> Options {
     serde_saphyr::options! {
         budget: Some(budget.clone()),
         strict_booleans: true,
         duplicate_keys: DuplicateKeyPolicy::Error,
         merge_keys: MergeKeyPolicy::Error,
+        non_finite_float_policy: floats,
         with_snippet: false,
     }
 }
@@ -231,8 +267,12 @@ pub(super) fn document<'a>(input: &'a Input, limits: &Limits) -> Option<&'a yaml
 
 /// Whether serde-saphyr reads the whole text under `budget`, depth and node
 /// count included, as [`parse`] would, without building any value.
+///
+/// A non-finite float passes, since it takes no budget and the caller decides
+/// what to make of it.
 fn within(input: &Input, budget: &Budget) -> bool {
-    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options(budget)).is_ok()
+    let options = options(budget, NonFiniteFloatPolicy::PassThrough);
+    serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options).is_ok()
 }
 
 /// Where the last step of `steps` is written as a key, or where the last step

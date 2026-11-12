@@ -738,6 +738,48 @@ fn a_flow_root_key_with_an_anchor_or_a_tag_keeps_its_entry() {
 }
 
 #[test]
+fn a_non_finite_float_is_a_value_that_is_no_string() {
+    let input = Input::new(
+        "page.yaml",
+        indoc! {"
+        up: .inf
+        down: -.inf
+        none: .NaN
+        after: text
+        "},
+    );
+    assert_eq!(
+        listing(&input),
+        [
+            row("up", ".inf", Written::Plain, None),
+            row("down", "-.inf", Written::Plain, None),
+            row("none", ".NaN", Written::Plain, None),
+            row("after", "text", Written::Plain, Some("text")),
+        ]
+    );
+}
+
+#[test]
+fn parse_still_refuses_a_non_finite_float_it_cannot_type() {
+    #[derive(Debug, Deserialize)]
+    #[serde(untagged)]
+    #[expect(
+        dead_code,
+        reason = "The test reads the refusal, and no variant is read."
+    )]
+    enum Anything {
+        Text(String),
+        Number(f64),
+    }
+    let input = Input::new("page.yaml", "up: .inf\n");
+    let refused = input
+        .parse::<BTreeMap<String, Anything>>()
+        .unwrap_err()
+        .to_string();
+    assert!(refused.contains("non-finite"), "{refused}");
+}
+
+#[test]
 fn a_key_that_is_no_string_is_left_out() {
     let input = Input::new(
         "page.yaml",

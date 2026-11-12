@@ -74,7 +74,9 @@ impl Input {
     /// keep their own ranges. A text whose root is no mapping, such
     /// as a sequence or a scalar, has no entries. The text must pass the limits
     /// in force, as [`Input::parse`] holds it to, and a YAML input builds the
-    /// document that [`Input::place`] keeps.
+    /// document that [`Input::place`] keeps. A YAML `.inf`, `-.inf` or `.NaN`
+    /// is a value that is no string, where [`Input::parse`] refuses a typeless
+    /// read of it.
     ///
     /// ```
     /// # #[cfg(feature = "input-yaml")]

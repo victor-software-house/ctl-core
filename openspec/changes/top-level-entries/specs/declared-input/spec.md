@@ -34,12 +34,18 @@ The value range SHALL exclude an anchor and a tag before a YAML value, SHALL inc
 ### Requirement: Listing follows the limits of parsing
 
 The text SHALL pass the limits in force, and a refusal SHALL be the error that `Input::parse` gives, with the same wording.
+A YAML `.inf`, `-.inf` or `.NaN` SHALL be a value that is no string, and SHALL NOT refuse the text.  
 A YAML input SHALL share the yamled document with `Input::place`.
 
 #### Scenario: A refusal is the parse refusal
 
 - **WHEN** a YAML text holds a duplicate key or a merge key, or goes past `max_depth`
 - **THEN** `top_level` gives the error `parse` gives, and for the depth it names `max_depth`
+
+#### Scenario: A non-finite float
+
+- **WHEN** a YAML text holds `.inf`, `-.inf` and `.NaN` as values beside a string
+- **THEN** `top_level` lists all four entries, with no string for the first three, and `Input::parse` still refuses a typeless read of one
 
 #### Scenario: One document for placing and listing
 
