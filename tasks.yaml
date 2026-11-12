@@ -164,19 +164,6 @@ queue:
       - 2026-11-10, ctl-core main 1d6746b writes hidden commands with hide=#true (usage/nodes.rs line 282) and has no option to drop them.
       - verctl lists its removed verbs prepare and pin in its usage spec, marked hidden, and its command-names spec says so.
 
-  - id: CTC-054
-    title: Place a key as well as a value
-    scope: "ctl-core: input"
-    outcome: >-
-      A CLI places a fault on the key it is about, and on the item of a list it is
-      about, through one public call.
-    blocked_by: []
-    acceptance:
-      - Input::place_key returns where the last step of a FieldPath is written as a key, for YAML and TOML, and the root and an index step give their value, with tests.
-    plan: openspec/changes/key-place/proposal.md
-    notes:
-      - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
-
   - id: CTC-055
     title: List the top-level entries of a YAML or TOML text
     scope: input
@@ -300,6 +287,20 @@ horizon:
       - The operator asked for oversized sections and headless prose blocks to be forbidden in every operator document, and for the mechanism to be analysed first (operator, 2026-11-10).
 
 archive:
+  - id: CTC-054
+    title: Place a key as well as a value
+    scope: "ctl-core: input"
+    outcome: >-
+      A CLI places a fault on the key it is about, and on the item of a list it is
+      about, through one public call.
+    plan: openspec/changes/archive/2026-11-11-key-place/proposal.md
+    notes:
+      - '2026-11-11, asked by hakkiri: place gives where a value starts, so a fault about a glob key whose value is a block mapping lands one line below it. yamled holds the key span as Node::key and the toml tree holds the key span of each entry.'
+    completed: 2026-11-11T22:04:53
+    evidence:
+      - '2026-11-12 (UTC): PR 280 merged as 60e91fa. Input::place_key places the key of the last step of a FieldPath for YAML and TOML, and the root and an index step give their value, with tests.'
+    disposition: completed
+
   - id: CTC-053
     title: Place every problem through one public field path
     scope: "ctl-core: input"

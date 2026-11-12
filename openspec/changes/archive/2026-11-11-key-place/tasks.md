@@ -14,4 +14,6 @@ Every compile, lint and test step runs in a box or the pull request's CI, not on
 
 ## 2. Integration
 
-- [ ] 2.1 Verify the pull request's CI passes: lint, workflow policy, prose lint, OpenSpec, size and the dependency checks.
+- [x] 2.1 Verify the pull request's CI passes: lint, workflow policy, prose lint, OpenSpec, size and the dependency checks.  
+  Evidence, 2026-11-12 (UTC): [PR 280][ctl-core#280] merged as 60e91fa with `verify / Verify`, `verify / Static checks`, `verify / Build and test` and `verify / Publish checks` green.
+[ctl-core#280]: https://github.com/victor-software-house/ctl-core/pull/280
