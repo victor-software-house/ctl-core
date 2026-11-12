@@ -1,5 +1,11 @@
 # Changelog
 
+## ctl-core 0.7.2
+
+- `Input::place_key` returns where the last step of a `FieldPath` is written as a key, where `Input::place` returns where its value starts.
+  A fault about the key itself, such as a glob that is no glob, lands on the key and not on the first line of a block value.
+  An item of a list and the root have no key, so they give the place of their value ([#280](https://github.com/victor-software-house/ctl-core/pull/280)).
+
 ## ctl-core 0.7.1
 
 - `Input::place` turns a `FieldPath`, the steps down to a field, into the line and column where it is written, and `Input::problem_at` builds a placed `Problem` from one.
