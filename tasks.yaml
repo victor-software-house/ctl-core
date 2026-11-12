@@ -130,6 +130,7 @@ queue:
     notes:
       - 'Triggered by verctl #313 (VER-107). There a target under `assets` is a `#[serde(flatten)]` map entry, so garde reports `assets.targets.linux-x64.files` and `places` lands on the `assets:` line, because the file has no `targets` key.'
       - garde_derive 0.23 parses `#[garde(rename)]` into an alias it never emits, so a struct cannot drop the segment itself, and a hand-written Validate would replace the declared rules.
+    plan: openspec/changes/flattened-field-place/proposal.md
 
   - id: CTC-051
     title: Complete bash, zsh, fish, elvish, PowerShell, and Nushell, with run-time candidates

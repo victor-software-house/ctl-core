@@ -145,6 +145,10 @@ pub struct Input {
     lines_before: usize,
     limits: Limits,
     format: Format,
+    /// The schema fields serde flattens into their parents, which
+    /// [`Input::flattened`] declares.
+    #[cfg(feature = "validate")]
+    flattened: Vec<FieldPath>,
     /// The YAML document that placing reads, built on first use.
     #[cfg(feature = "input-yaml")]
     yaml_document: yaml_text::Located,
@@ -208,6 +212,8 @@ impl Input {
             lines_before: 0,
             limits: Limits::NONE,
             format,
+            #[cfg(feature = "validate")]
+            flattened: Vec::new(),
             #[cfg(feature = "input-yaml")]
             yaml_document: yaml_text::Located::default(),
         }
@@ -279,6 +285,8 @@ impl Input {
                     lines_before: self.lines_before + 1,
                     limits: self.limits.clone(),
                     format: Format::Yaml,
+                    #[cfg(feature = "validate")]
+                    flattened: self.flattened.clone(),
                     yaml_document: yaml_text::Located::default(),
                 };
                 return Some((matter, &rest[offset + line.len()..]));
@@ -294,6 +302,85 @@ impl Input {
     pub fn limits(mut self, limits: Limits) -> Self {
         self.limits = limits;
         self
+    }
+
+    /// Declare that the schema field at `field` is flattened into its parent
+    /// with `#[serde(flatten)]`, so the file writes its entries directly under
+    /// the parent.
+    ///
+    /// garde names the field in each problem's path all the same, and serde
+    /// gives no sign of the flattening at run time, so the schema declares it.
+    /// [`Input::check`] then drops the field's step from each garde path whose
+    /// leading steps are `field`, before it places the problem and prints its
+    /// field. `field` is written in the schema's terms, the way garde names it,
+    /// and each call adds one field. A declaration that matches no garde path
+    /// changes nothing. [`Input::place`], [`Input::place_key`], and
+    /// [`Input::problem_at`] take paths in the file's terms, so a declaration
+    /// does not touch them.
+    ///
+    /// # Examples
+    ///
+    /// verctl's `assets` holds its targets in a flattened map field `targets`.
+    /// Without the declaration, the problem prints as
+    /// `assets.targets.linux-x64.files` and sits on the line below `assets:`.
+    ///
+    /// ```
+    /// # #[cfg(feature = "input")]
+    /// # {
+    /// use std::collections::BTreeMap;
+    ///
+    /// use ctl_core::input::{FieldPath, Input};
+    /// use ctl_core::validate::at_least_one;
+    /// use garde::Validate;
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Debug, Deserialize, Validate)]
+    /// struct Config {
+    ///     #[garde(dive)]
+    ///     assets: Assets,
+    /// }
+    ///
+    /// #[derive(Debug, Deserialize, Validate)]
+    /// struct Assets {
+    ///     #[serde(flatten)]
+    ///     #[garde(dive)]
+    ///     targets: BTreeMap<String, Target>,
+    /// }
+    ///
+    /// #[derive(Debug, Deserialize, Validate)]
+    /// struct Target {
+    ///     #[garde(custom(at_least_one("file")))]
+    ///     files: Vec<String>,
+    /// }
+    ///
+    /// let error = Input::new("ver.yaml", "assets:\n  linux-x64:\n    files: []\n")
+    ///     .flattened(FieldPath::root().key("assets").key("targets"))
+    ///     .load::<Config>()
+    ///     .unwrap_err();
+    /// assert_eq!(
+    ///     error.to_string(),
+    ///     "ver.yaml:3:12: assets.linux-x64.files: must declare at least one file"
+    /// );
+    /// # }
+    /// ```
+    #[cfg(feature = "validate")]
+    #[must_use]
+    pub fn flattened(mut self, field: FieldPath) -> Self {
+        self.flattened.push(field);
+        self
+    }
+
+    /// `path` without the step of each declared flattened field it passes
+    /// through, or `None` when it passes through none.
+    #[cfg(feature = "validate")]
+    fn unflatten(&self, path: &FieldPath) -> Option<FieldPath> {
+        let positions: Vec<usize> = self
+            .flattened
+            .iter()
+            .filter(|field| path.starts_with(field))
+            .filter_map(|field| field.steps().len().checked_sub(1))
+            .collect();
+        (!positions.is_empty()).then(|| path.without(&positions))
     }
 
     /// Parse the text into `T`, without validating it.
@@ -347,7 +434,9 @@ impl Input {
     /// of its nearest written ancestor. The place comes from the parts of
     /// garde's path through [`Input::place`], so a key that holds a `.` is
     /// found as one key. `Problem::field` is garde's printed path, for display
-    /// only.
+    /// only. A path through a field [`Input::flattened`] declares loses that
+    /// field's step, and its `Problem::field` is the shorter path as
+    /// [`FieldPath`] prints it.
     ///
     /// # Errors
     ///
@@ -364,11 +453,12 @@ impl Input {
         let reported: Vec<_> = report
             .iter()
             .map(|(path, error)| {
-                (
-                    path.to_string(),
-                    FieldPath::from(path),
-                    error.message().to_owned(),
-                )
+                let steps = FieldPath::from(path);
+                let (field, steps) = match self.unflatten(&steps) {
+                    Some(kept) => (kept.to_string(), kept),
+                    None => (path.to_string(), steps),
+                };
+                (field, steps, error.message().to_owned())
             })
             .collect();
         let paths: Vec<_> = reported.iter().map(|(_, path, _)| path.clone()).collect();
