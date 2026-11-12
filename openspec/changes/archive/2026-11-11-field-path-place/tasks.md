@@ -33,4 +33,4 @@ The usual build host did not answer on 2026-11-11, so the box was a cloud one (4
   - 2026-11-11 (UTC), `test`, `test:input-toml`, `lint`, `check:features`, `doc` and `check:size` passed in the box.
     The tests are `a_text_over_the_size_limit_builds_no_document` and `a_text_over_the_depth_or_node_limit_builds_no_document` in `yaml_text.rs`, and `a_text_over_the_size_limit_is_not_placed` in `tests/input_toml.rs`.
 
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml

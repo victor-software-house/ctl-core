@@ -45,4 +45,4 @@ CTC-049 stays open for what this change does not do:
 
 [field-steps]: https://github.com/victor-software-house/ctl-core/blob/1cbad5cf9888ac9f87d2c0cf9207b83e844df564/ctl-core/src/input.rs#L411-L428
 [garde-path]: https://docs.rs/crate/garde/0.23.0/source/src/error.rs
-[ledger]: ../../../tasks.yaml
+[ledger]: ../../../../tasks.yaml
