@@ -150,7 +150,7 @@ dependencies = [
 
 [[package]]
 name = "ctl-core"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "ctl-layout"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "ctl-text",
  "insta",
@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "ctl-term"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anstyle",
  "ctl-text",
@@ -195,7 +195,7 @@ dependencies = [
 
 [[package]]
 name = "ctl-text"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anstyle",
  "proptest",
