@@ -1,21 +1,25 @@
-//! A reader that closes stdout early, through a real child process piped to
-//! `head -1`.
+//! A reader that closes stdout early, through a real child process and a
+//! pipe that the reader closes after one line.
 //!
 //! The target has no libtest harness: the harness prints its own banner to
-//! stdout, and `head -1` quits after the first line, so the next harness
-//! write would fail before the code under test ran. With no harness, only
-//! [`Console`] writes to the pipe.
+//! stdout, and the reader closes the pipe after the first line, so the next
+//! harness write would fail before the code under test ran. With no harness,
+//! only [`Console`] writes to the pipe.
 //!
-//! The binary runs twice. Started plainly it is the parent: it starts
-//! `head -1`, then starts itself with the switch variable set and its stdout
-//! on `head`'s stdin. With the switch set it is the writer: it prints 10,000
-//! rows and exits 0 when the console reports a closed pipe, 3 when every row
-//! went through, and 4 on any other error. Arguments are ignored, so
-//! `cargo test <filter>` still runs this binary.
+//! The binary runs twice. Started plainly it is the parent and the reader: it
+//! opens a pipe, starts itself with the switch variable set and its stdout on
+//! the pipe's write end, reads the first line, then closes the read end. With
+//! the switch set it is the writer: it prints 10,000 rows and exits 0 when the
+//! console reports a closed pipe, 3 when every row went through, and 4 on any
+//! other error. The parent reads the line itself, not through `head`: how
+//! much a system `head` reads before it quits differs between
+//! implementations, and one that reads a whole pipe buffer lets the writer
+//! finish. Arguments are ignored, so `cargo test <filter>` still runs this
+//! binary.
 
 #[cfg(unix)]
 mod unix {
-    use std::io::{self, Write};
+    use std::io::{self, BufRead, BufReader, Write};
     use std::path::PathBuf;
     use std::process::{Child, Command, ExitCode, Stdio};
 
@@ -34,6 +38,14 @@ mod unix {
         "COLORTERM",
     ];
 
+    /// How much the parent reads from the pipe at a time. The first row is
+    /// 25 bytes, so the parent reads at most this much before it closes the
+    /// pipe.
+    const READ_BUFFER: usize = 4096;
+
+    /// Rows the writer prints, 25 bytes each with their line break: 250 KB,
+    /// over the 64 KiB a Linux pipe buffers plus the [`READ_BUFFER`] the
+    /// parent reads, 68 KiB.
     const ROWS: usize = 10_000;
 
     /// Lines handed to the console as they are.
@@ -86,10 +98,10 @@ mod unix {
 
     /// Starts the writer with `stdout` as its standard output.
     ///
-    /// The `Command` keeps its copy of `stdout`, the write end of `head`'s
-    /// stdin, until it is dropped. It is dropped when this returns, so a
-    /// writer that dies before writing a line leaves `head` at end of file
-    /// and the test fails instead of hanging.
+    /// The `Command` keeps its copy of `stdout`, the pipe's write end, until
+    /// it is dropped. It is dropped when this returns, so a writer that dies
+    /// before writing a line leaves the parent's read at end of file and the
+    /// test fails instead of hanging.
     fn spawn_writer(path: PathBuf, stdout: Stdio) -> io::Result<Child> {
         let mut writer = Command::new(path);
         writer
@@ -102,28 +114,26 @@ mod unix {
         writer.spawn()
     }
 
+    /// Starts the writer on a pipe, reads one line from it and closes it,
+    /// then checks that the writer saw the closed pipe, wrote nothing to
+    /// stderr, and that the parent read a whole line.
     fn start_both() -> Result<(), String> {
-        let mut head = Command::new("head")
-            .arg("-1")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|error| format!("could not start head: {error}"))?;
-        let pipe = head
-            .stdin
-            .take()
-            .ok_or_else(|| "head has no stdin".to_owned())?;
+        let (reader, pipe) =
+            io::pipe().map_err(|error| format!("could not open a pipe: {error}"))?;
 
         let path = std::env::current_exe()
             .map_err(|error| format!("could not find the test binary: {error}"))?;
         let child = spawn_writer(path, Stdio::from(pipe))
             .map_err(|error| format!("could not start the writer: {error}"))?;
+        let mut reader = BufReader::with_capacity(READ_BUFFER, reader);
+        let mut first = String::new();
+        reader
+            .read_line(&mut first)
+            .map_err(|error| format!("could not read the first line: {error}"))?;
+        drop(reader);
         let output = child
             .wait_with_output()
             .map_err(|error| format!("could not wait for the writer: {error}"))?;
-        let head_output = head
-            .wait_with_output()
-            .map_err(|error| format!("could not wait for head: {error}"))?;
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         if output.status.code() != Some(0) {
@@ -135,9 +145,11 @@ mod unix {
         if !stderr.is_empty() {
             return Err(format!("the writer wrote to stderr: {stderr}"));
         }
-        let kept = String::from_utf8_lossy(&head_output.stdout);
-        if kept.lines().count() != 1 {
-            return Err(format!("head kept {} lines: {kept}", kept.lines().count()));
+        if !first.ends_with('\n') {
+            return Err(format!(
+                "the parent read no whole line, only {} bytes",
+                first.len()
+            ));
         }
         Ok(())
     }
