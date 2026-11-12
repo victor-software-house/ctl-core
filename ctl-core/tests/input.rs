@@ -597,7 +597,7 @@ fn an_undeclared_or_unmatched_flattened_field_places_as_garde_names_it() {
 fn listing(input: &Input) -> Vec<(String, String, Written, Option<String>)> {
     input
         .top_level()
-        .unwrap()
+        .unwrap_or_default()
         .into_iter()
         .map(|entry| {
             (
