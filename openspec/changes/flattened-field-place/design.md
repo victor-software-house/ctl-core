@@ -36,9 +36,16 @@ It lost because `FieldPath` keeps a non-numeric index as a key, so a rare path w
 ### 4. A declaration matches its steps exactly
 
 A declared path matches a garde path whose leading steps are equal to it, indexes included.  
-A flattened field under every item of a list, or under every entry of a map, needs a wildcard step, which `Step` does not have.  
-No caller has one, so the wildcard waits for one.
+Each call adds one declaration, so a schema with two flattened fields calls `flattened` twice.  
+A declaration that matches no garde path changes nothing.
 
 A key with the flattened field's name, such as a target named `targets`, still works: only the step at the declared position is dropped.
+
+## Non-Goals
+
+- A flattened field under every item of a list, or under every entry of a map.  
+  It needs a wildcard step.  
+  `Step` is a public enum without `#[non_exhaustive]`, so a new variant breaks every exhaustive match on it, a breaking change.  
+  No caller has such a field, so the wildcard waits for one.
 
 Override and disable path: an input that declares no flattened field checks exactly as before.

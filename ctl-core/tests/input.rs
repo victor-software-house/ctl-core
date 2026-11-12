@@ -488,3 +488,106 @@ fn a_frontmatter_place_keeps_the_line_of_the_whole_file() {
     let at = matter.place(&glob_label("a.b")).unwrap();
     assert_eq!((at.line, at.column), (4, 12));
 }
+
+/// A release schema whose targets and jobs are flattened maps, as verctl's
+/// `assets` holds its targets.
+#[derive(Debug, Deserialize, Validate)]
+struct Shipped {
+    #[garde(dive)]
+    assets: Assets,
+    #[garde(dive)]
+    #[serde(default)]
+    ci: Jobs,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+struct Assets {
+    #[serde(flatten)]
+    #[garde(dive)]
+    targets: BTreeMap<String, Target>,
+}
+
+#[derive(Debug, Default, Deserialize, Validate)]
+struct Jobs {
+    #[serde(flatten)]
+    #[garde(dive)]
+    jobs: BTreeMap<String, Target>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+struct Target {
+    #[garde(custom(at_least_one("file")))]
+    files: Vec<String>,
+}
+
+const SHIPPED: &str = indoc! {"
+    assets:
+      linux-x64:
+        files: []
+      a.b/c:
+        files: []
+      targets:
+        files: []
+    ci:
+      lint:
+        files: []
+"};
+
+/// `problems` ordered by place and field.
+fn ordered(mut problems: Vec<Problem>) -> Vec<Problem> {
+    problems.sort_by_key(|problem| (problem.line, problem.column, problem.field.clone()));
+    problems
+}
+
+fn assets_targets() -> FieldPath {
+    FieldPath::root().key("assets").key("targets")
+}
+
+#[test]
+fn a_problem_under_a_declared_flattened_field_sits_where_the_file_writes_it() {
+    let error = Input::new("ver.yaml", SHIPPED)
+        .flattened(assets_targets())
+        .flattened(FieldPath::root().key("ci").key("jobs"))
+        .load::<Shipped>()
+        .unwrap_err();
+    let message = "must declare at least one file";
+    assert_eq!(
+        ordered(error.problems),
+        [
+            problem(3, 12, "assets.linux-x64.files", message),
+            problem(5, 12, "assets.a.b/c.files", message),
+            problem(7, 12, "assets.targets.files", message),
+            problem(10, 12, "ci.lint.files", message),
+        ]
+    );
+}
+
+/// Undeclared, each `assets` path walks into the target named `targets`, the
+/// one key `targets` the file holds, and stops there.
+#[test]
+fn an_undeclared_or_unmatched_flattened_field_places_as_garde_names_it() {
+    let message = "must declare at least one file";
+    let undeclared = ordered(
+        Input::new("ver.yaml", SHIPPED)
+            .load::<Shipped>()
+            .unwrap_err()
+            .problems,
+    );
+    assert_eq!(
+        undeclared,
+        [
+            problem(7, 5, "assets.targets.a.b/c.files", message),
+            problem(7, 5, "assets.targets.linux-x64.files", message),
+            problem(7, 5, "assets.targets.targets.files", message),
+            problem(9, 3, "ci.jobs.lint.files", message),
+        ]
+    );
+    let unmatched = ordered(
+        Input::new("ver.yaml", SHIPPED)
+            .flattened(FieldPath::root().key("release").key("targets"))
+            .load::<Shipped>()
+            .unwrap_err()
+            .problems,
+    );
+    assert_eq!(unmatched, undeclared);
+}

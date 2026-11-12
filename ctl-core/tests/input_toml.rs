@@ -581,3 +581,43 @@ fn a_later_check_is_placed_through_place() {
     let files = input.place(&FieldPath::root().key("files")).unwrap();
     assert_eq!(input.place(&glob_label("docs/**/*.rs")), Some(files));
 }
+
+#[derive(Debug, Deserialize, Validate)]
+struct Shipped {
+    #[garde(dive)]
+    assets: Assets,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+struct Assets {
+    #[serde(flatten)]
+    #[garde(dive)]
+    targets: BTreeMap<String, Target>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+struct Target {
+    #[garde(custom(at_least_one("file")))]
+    files: Vec<String>,
+}
+
+#[test]
+fn a_problem_under_a_declared_flattened_field_sits_on_its_toml_value() {
+    let text = indoc! {"
+        [assets.linux-x64]
+        files = []
+    "};
+    let error = Input::new_with_format("ver.toml", text, Format::Toml)
+        .flattened(FieldPath::root().key("assets").key("targets"))
+        .load::<Shipped>()
+        .unwrap_err();
+    assert_eq!(
+        error.problems,
+        [problem(
+            2,
+            9,
+            "assets.linux-x64.files",
+            "must declare at least one file"
+        )]
+    );
+}

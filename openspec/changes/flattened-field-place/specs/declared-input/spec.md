@@ -4,7 +4,9 @@
 
 `Input::flattened` SHALL take the `FieldPath` of a schema field that serde flattens into its parent.  
 `Input::check` SHALL drop that field's step from each garde path whose leading steps equal the declared path.  
-It SHALL then place the problem and print its field from the resulting path.  
+It SHALL then place the problem and print its field from the resulting path.
+
+Each call SHALL add one declaration.  
 A problem whose path starts with no declared path SHALL keep garde's printed field and its place.
 
 #### Scenario: A flattened map in YAML
@@ -27,3 +29,8 @@ A problem whose path starts with no declared path SHALL keep garde's printed fie
 
 - **WHEN** a target is named `targets`, so garde reports `assets.targets.targets.files`, and the input declares `assets`, `targets`
 - **THEN** the printed field is `assets.targets.files`, and the problem sits on that target's `files` line
+
+#### Scenario: Two flattened fields
+
+- **WHEN** the schema also holds its jobs in a flattened map field `jobs` under `ci`, and the input declares both `assets`, `targets` and `ci`, `jobs`
+- **THEN** a problem in `ci.lint.files` prints as `ci.lint.files` and sits on that line

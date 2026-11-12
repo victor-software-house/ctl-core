@@ -28,8 +28,9 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
 - `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and fish, behind the `completion` and `shell-init` features.
 - A loader for declared YAML or TOML input that validates once and reports every problem with its file and line, behind `input-yaml` and `input-toml`.
   Validation with garde is behind `validate`, and `input` is `input-yaml` with `validate`.
-  `Input::place` turns a `FieldPath`, the steps down to a field, into its line and column, so a CLI places a problem of its own as the loader places garde's.  
-  `Input::place_key` gives the line and column of the key instead, for a fault about the key itself.
+  - `Input::place` turns a `FieldPath`, the steps down to a field, into its line and column, so a CLI places a problem of its own as the loader places garde's.
+  - `Input::place_key` gives the line and column of the key instead, for a fault about the key itself.
+  - `Input::flattened` declares a field that `#[serde(flatten)]` puts under its parent, so its problems print and sit where the file writes them.
 
 ## Example
 

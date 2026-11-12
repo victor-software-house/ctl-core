@@ -57,6 +57,26 @@ impl FieldPath {
     pub fn steps(&self) -> &[Step] {
         &self.0
     }
+
+    /// Whether this path's leading steps are the steps of `prefix`.
+    #[cfg(feature = "validate")]
+    pub(crate) fn starts_with(&self, prefix: &Self) -> bool {
+        self.0.starts_with(&prefix.0)
+    }
+
+    /// This path without the steps at `positions`, each an index into
+    /// [`Self::steps`].
+    #[cfg(feature = "validate")]
+    pub(crate) fn without(&self, positions: &[usize]) -> Self {
+        Self(
+            self.0
+                .iter()
+                .enumerate()
+                .filter(|(position, _)| !positions.contains(position))
+                .map(|(_, step)| step.clone())
+                .collect(),
+        )
+    }
 }
 
 /// The path as garde prints a field: keys joined by `.`, indexes in brackets,
