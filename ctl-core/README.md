@@ -87,7 +87,7 @@ Each feature turns on only what its code calls.
 |:--|:--|
 | `document` | Semantic documents, with no terminal engine |
 | `render` | Renders documents to a `String` through `ctl-text`, `ctl-layout`, and the `ctl-term` encoder, with a replaceable `Theme` |
-| `json` | Serde models and the JSON view |
+| `json` | Serde models |
 | `view` | Pretty, JSON, and colourless output over one model, with `ctl-term` deciding colour and width |
 | `cli` | Clap helpers (`OutputArgs`, `DryRunArgs`) and parser defaults |
 | `help` | Styled help through the document renderer |

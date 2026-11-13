@@ -34,7 +34,7 @@ cli = ["dep:clap"]
 ## Semantic presentation documents without a terminal engine.
 document = []
 
-## Serde models and the JSON view.
+## Serde models.
 json = ["dep:serde"]
 
 ## Rendering semantic documents to a `String` through `ctl-text` and
