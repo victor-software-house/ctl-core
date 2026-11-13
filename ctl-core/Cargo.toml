@@ -6,7 +6,6 @@ rust-version.workspace = true
 description = "A framework for clap programs: typed results, help, and terminal or JSON output"
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 keywords = ["clap", "cli", "help", "color"]
 categories = ["command-line-interface", "development-tools"]
 

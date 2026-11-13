@@ -6,7 +6,6 @@ rust-version.workspace = true
 description = "Terminal widgets built on ctl-text: tables, records, rules, stacks, and indents"
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 keywords = ["terminal", "table", "layout", "unicode", "cli"]
 categories = ["command-line-interface", "text-processing"]
 autotests = false
