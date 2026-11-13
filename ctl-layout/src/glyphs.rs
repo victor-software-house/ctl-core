@@ -1,5 +1,7 @@
 //! The characters a frame is drawn with, for Unicode and for ASCII.
 
+use std::iter;
+
 use ctl_text::{BoxChars, Line, Span, Style};
 
 /// The four characters of one horizontal line of a grid. They are its left
@@ -31,7 +33,7 @@ impl Border {
             if index > 0 {
                 text.push(self.junction);
             }
-            text.extend(std::iter::repeat_n(self.fill, usize::from(*width) + 2));
+            text.extend(iter::repeat_n(self.fill, usize::from(*width) + 2));
         }
         text.push(self.right);
         Line::from(Span::new(text, Style::new()))

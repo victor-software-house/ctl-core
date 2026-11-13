@@ -18,12 +18,13 @@
 //! for a regular file: when omitted, 0644. Trim declarations with `{%- … -%}`
 //! so a shebang stays on line one. Any other export is the template's own.
 //!
-//! Rendering uses [`surface::environment`](crate::surface::environment):
+//! Rendering uses [`surface::environment`]:
 //! undefined names fail, the trailing newline is kept, and ctl-core's shared
 //! fragments are available. Which templates a repository has, and what
 //! context they see, stay with the CLI that generates them.
 
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs, io};
 
@@ -32,6 +33,7 @@ use minijinja::value::Value;
 use minijinja::{Environment, State};
 use serde::{Deserialize, Serialize};
 
+use crate::surface;
 use crate::validate::{inside_the_repo, one_file_name};
 
 /// What a template declares about the file it becomes, read as one schema
@@ -113,7 +115,7 @@ impl fmt::Display for ServeError {
     }
 }
 
-impl std::error::Error for ServeError {}
+impl Error for ServeError {}
 
 /// Render one template with `context`, and read the target path, name, and
 /// mode it declares.
@@ -142,7 +144,7 @@ pub fn render(
         .and_then(|name| name.strip_suffix(suffix))
         .filter(|name| !name.is_empty())
         .ok_or_else(|| failed(format!("template name does not end in {suffix}")))?;
-    let environment: Environment<'static> = crate::surface::environment()
+    let environment: Environment<'static> = surface::environment()
         .map_err(|error| failed(format!("register ctl-core fragments: {error}")))?;
     let name = template.display().to_string();
     let compiled = environment

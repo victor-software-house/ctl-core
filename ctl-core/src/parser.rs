@@ -29,8 +29,12 @@ use std::ffi::OsString;
 
 #[cfg(feature = "help")]
 use clap::ArgMatches;
+#[cfg(feature = "help")]
+use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, Command};
 
+#[cfg(feature = "help")]
+use crate::flags;
 #[cfg(feature = "help")]
 use crate::{ColorMode, OutputFormat};
 
@@ -81,7 +85,7 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
         .unwrap_or(false);
     ParsedOutput {
         format,
-        color: crate::flags::resolve_color(color, no_color),
+        color: flags::resolve_color(color, no_color),
     }
 }
 
@@ -98,7 +102,7 @@ pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
     let probe = lift_requirements(apply_defaults(declared.clone()));
     match probe.try_get_matches_from(raw) {
         Ok(matches) => names_help(&declared, &matches),
-        Err(error) => error.kind() == clap::error::ErrorKind::DisplayHelp,
+        Err(error) => error.kind() == ErrorKind::DisplayHelp,
     }
 }
 

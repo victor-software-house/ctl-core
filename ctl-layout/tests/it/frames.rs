@@ -3,7 +3,7 @@
 use ctl_layout::{Column, Frame, Record, RecordStyle, RowSeparation, Table};
 use ctl_text::{BoxChars, Context, Measurement, Renderable, Text};
 
-use crate::common::{cells, lines};
+use crate::common::{cells, ledger, lines};
 
 fn small(frame: Frame, separation: RowSeparation) -> Table {
     Table::new([Column::new("id"), Column::new("name")])
@@ -151,7 +151,7 @@ fn a_short_row_gets_empty_cells_and_a_long_row_loses_its_extra() {
 #[test]
 fn a_borderless_record_right_aligns_keys() {
     assert_eq!(
-        lines(&crate::common::ledger(), 80),
+        lines(&ledger(), 80),
         ["ledger  tasks.yaml", "active  QCTL-014"]
     );
 }

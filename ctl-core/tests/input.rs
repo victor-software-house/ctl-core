@@ -6,13 +6,14 @@
 #![cfg(feature = "input")]
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ctl_core::indoc;
 use ctl_core::input::{FieldPath, Input, Limits, Place, Problem, Written};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
+use serde::de::{DeserializeOwned, IgnoredAny};
 
 #[derive(Debug, Deserialize, Validate, PartialEq)]
 struct Config {
@@ -238,20 +239,17 @@ fn an_alias_reached_through_another_alias_names_the_failing_value() {
 fn a_path_that_leaves_the_repository_is_refused() {
     for outside in ["/etc/passwd", "../up", "docs/../../up"] {
         assert!(
-            inside_the_repo(std::path::Path::new(outside), &()).is_err(),
+            inside_the_repo(Path::new(outside), &()).is_err(),
             "{outside}"
         );
     }
     for inside in ["docs", "docs/a.md", "./docs"] {
-        assert!(
-            inside_the_repo(std::path::Path::new(inside), &()).is_ok(),
-            "{inside}"
-        );
+        assert!(inside_the_repo(Path::new(inside), &()).is_ok(), "{inside}");
     }
 }
 
 /// What a user reads for one malformed file.
-fn report<T: serde::de::DeserializeOwned>(name: &str, text: &str) -> String {
+fn report<T: DeserializeOwned>(name: &str, text: &str) -> String {
     match Input::new(name, text).parse::<T>() {
         Ok(_) => format!("{name}: parsed"),
         Err(error) => error.to_string(),
@@ -895,7 +893,7 @@ fn a_duplicate_key_and_a_merge_key_are_entries_that_parse_refuses() {
         ]
     );
     for input in [&duplicate, &merge] {
-        assert!(input.parse::<serde::de::IgnoredAny>().is_err());
+        assert!(input.parse::<IgnoredAny>().is_err());
     }
 }
 

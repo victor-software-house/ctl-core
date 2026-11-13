@@ -6,7 +6,7 @@
 #![cfg(feature = "cli")]
 
 use clap::{CommandFactory, FromArgMatches, Parser};
-use ctl_core::{ColorMode, OutputArgs, OutputFormat};
+use ctl_core::{ColorMode, OutputArgs, OutputFormat, parser};
 
 #[derive(Parser)]
 #[command(version)]
@@ -33,7 +33,7 @@ struct StatusArgs {
     reason = "a test helper: a failure here is the calling test failing"
 )]
 fn parse(args: &[&str]) -> Cli {
-    let matches = ctl_core::parser::apply_defaults(Cli::command())
+    let matches = parser::apply_defaults(Cli::command())
         .try_get_matches_from(args)
         .expect("parse test argv");
     Cli::from_arg_matches(&matches).expect("build typed CLI")

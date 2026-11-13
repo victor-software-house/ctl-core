@@ -5,6 +5,8 @@
 )]
 #![cfg(feature = "view")]
 
+use std::process::ExitCode;
+
 use ctl_core::{
     ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, Outcome,
     OutputFormat, Present, View,
@@ -72,7 +74,7 @@ fn error_pretty_uses_stderr_and_failure_exit() {
         .capture(&status)
         .unwrap();
     assert_eq!(captured.stream(), Destination::Stderr);
-    assert_eq!(captured.exit_code(), std::process::ExitCode::from(2));
+    assert_eq!(captured.exit_code(), ExitCode::from(2));
 }
 
 #[test]

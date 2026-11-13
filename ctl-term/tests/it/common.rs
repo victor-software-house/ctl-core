@@ -1,7 +1,7 @@
 //! Helpers and fixtures shared by the test modules.
 
 use ctl_term::{ColorMode, Console, DetectOptions, Probe, Stream, Terminal};
-use ctl_text::anstyle::{AnsiColor, Style};
+use ctl_text::anstyle::{AnsiColor, Color, Style};
 use ctl_text::{Context, Line, Measurement, Renderable, Span};
 
 /// The escape byte, which only the encoder may write.
@@ -60,7 +60,7 @@ pub(crate) fn line(spans: &[(&str, Style)]) -> Line {
 }
 
 /// A foreground colour.
-pub(crate) fn fg(color: impl Into<ctl_text::anstyle::Color>) -> Style {
+pub(crate) fn fg(color: impl Into<Color>) -> Style {
     Style::new().fg_color(Some(color.into()))
 }
 

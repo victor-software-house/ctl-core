@@ -1,7 +1,8 @@
 //! Warn on repeated or contradictory shared flags. The last value still wins.
 
 use std::fmt;
-use std::io::Write as _;
+use std::io::{self, Write as _};
+use std::iter::Peekable;
 
 use crate::{formatdoc, writedoc};
 
@@ -131,7 +132,7 @@ where
     I: IntoIterator<Item = &'a FlagWarning>,
 {
     for warning in warnings {
-        let _ = writeln!(std::io::stderr().lock(), "{}", warning.line(bin));
+        let _ = writeln!(io::stderr().lock(), "{}", warning.line(bin));
     }
 }
 
@@ -177,7 +178,7 @@ where
     seen
 }
 
-fn take_value<'a, I>(args: &mut std::iter::Peekable<I>, arg: &str, names: &[&str]) -> bool
+fn take_value<'a, I>(args: &mut Peekable<I>, arg: &str, names: &[&str]) -> bool
 where
     I: Iterator<Item = &'a str>,
 {

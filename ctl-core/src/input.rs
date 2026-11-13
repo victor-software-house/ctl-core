@@ -38,8 +38,9 @@
 //! # Ok::<(), ctl_core::input::InputError>(())
 //! ```
 
+use std::error::Error;
 use std::path::Path;
-use std::{fmt, io};
+use std::{fmt, fs, io, slice};
 
 #[cfg(feature = "validate")]
 use garde::Validate;
@@ -523,7 +524,7 @@ impl Input {
     /// ```
     #[must_use]
     pub fn place(&self, path: &FieldPath) -> Option<Place> {
-        self.places(std::slice::from_ref(path), At::Value)
+        self.places(slice::from_ref(path), At::Value)
             .pop()
             .flatten()
     }
@@ -557,9 +558,7 @@ impl Input {
     /// ```
     #[must_use]
     pub fn place_key(&self, path: &FieldPath) -> Option<Place> {
-        self.places(std::slice::from_ref(path), At::Key)
-            .pop()
-            .flatten()
+        self.places(slice::from_ref(path), At::Key).pop().flatten()
     }
 
     /// A [`Problem`] for `path` with `message`, placed as [`Input::place`]
@@ -616,7 +615,7 @@ impl Input {
 /// The file at `path`, named by its path, or the I/O failure.
 fn read_text(path: &Path) -> Result<(String, String), InputError> {
     let name = path.display().to_string();
-    match std::fs::read_to_string(path) {
+    match fs::read_to_string(path) {
         Ok(text) => Ok((name, text)),
         Err(error) => Err(InputError::unread(name, &error)),
     }
@@ -687,4 +686,4 @@ impl fmt::Display for InputError {
     }
 }
 
-impl std::error::Error for InputError {}
+impl Error for InputError {}

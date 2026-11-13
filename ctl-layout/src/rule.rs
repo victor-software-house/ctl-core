@@ -1,5 +1,7 @@
 //! A horizontal rule, with an optional title.
 
+use std::iter;
+
 use ctl_text::{Context, Line, Measurement, Overflow, Renderable, Text};
 
 use crate::glyphs::Glyphs;
@@ -77,8 +79,8 @@ impl Renderable for Rule {
         line.extend(title.spans().iter().cloned());
         let fill = width.saturating_sub(title.width().saturating_add(TITLE_MARGIN));
         if fill > 0 {
-            let tail: String = std::iter::once(' ')
-                .chain(std::iter::repeat_n(rule_char, usize::from(fill)))
+            let tail: String = iter::once(' ')
+                .chain(iter::repeat_n(rule_char, usize::from(fill)))
                 .collect();
             line.push(literal(&tail));
         }

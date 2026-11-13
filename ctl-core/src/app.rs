@@ -25,21 +25,29 @@
 //!   [`BrokenPipe::Fail`].
 
 use std::ffi::OsString;
-use std::fmt;
 use std::io::{self, Write as _};
 use std::marker::PhantomData;
 use std::process::ExitCode;
+use std::{env, fmt};
 
 use anyhow::Result;
 #[cfg(feature = "usage")]
 use clap::Command;
+use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
 
 use crate::color::ColorMode;
+#[cfg(feature = "completion")]
+use crate::completion;
 use crate::format::OutputFormat;
-use crate::render::RenderOptions;
+#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+use crate::input::{self, Limits};
+use crate::render::{self, RenderOptions};
 use crate::theme::Theme;
-use crate::view::{JsonLayout, Present, View};
+#[cfg(feature = "usage")]
+use crate::usage;
+use crate::view::{self, JsonLayout, Present, View};
+use crate::{flags, help, parser};
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
 type SelectView<C> = Box<dyn Fn(&C) -> View>;
@@ -139,7 +147,7 @@ impl<C> App<C> {
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
-            render_usage: Box::new(crate::usage::spec),
+            render_usage: Box::new(usage::spec),
             marker: PhantomData,
         }
     }
@@ -194,8 +202,8 @@ impl<C> App<C> {
     /// does a repository's `.ctl/input.yaml` with `input-yaml`.
     #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
     #[must_use]
-    pub fn input_limits(self, limits: crate::input::Limits) -> Self {
-        crate::input::set_default_limits(limits);
+    pub fn input_limits(self, limits: Limits) -> Self {
+        input::set_default_limits(limits);
         self
     }
 
@@ -315,7 +323,7 @@ impl<C> App<C> {
         C: CommandFactory + 'static,
     {
         let bin = self.bin.clone();
-        self.before_parse(move |args| crate::completion::complete::<C>(&bin, args))
+        self.before_parse(move |args| completion::complete::<C>(&bin, args))
     }
 
     /// Answer a `--usage-spec` request from mise for the task named `task`.
@@ -360,7 +368,7 @@ where
     where
         T: Present,
     {
-        self.run_from(std::env::args_os(), execute)
+        self.run_from(env::args_os(), execute)
     }
 
     /// Run against explicit argv. The first item is the binary name.
@@ -388,15 +396,12 @@ where
 
         #[cfg(feature = "usage")]
         if let Some(task) = &self.mounted_as
-            && let Some(spec_bin) = crate::usage::spec_bin(words.iter().skip(1), task)
+            && let Some(spec_bin) = usage::spec_bin(words.iter().skip(1), task)
         {
             let mut command = C::command();
             command.set_bin_name(&spec_bin);
             let spec = (self.render_usage)(command, &spec_bin);
-            return self.written(
-                crate::view::write_stdout(spec.as_bytes()),
-                ExitCode::SUCCESS,
-            );
+            return self.written(view::write_stdout(spec.as_bytes()), ExitCode::SUCCESS);
         }
 
         for hook in &self.before_parse {
@@ -406,23 +411,23 @@ where
         }
 
         let raw_view = self.configured_view(raw_view::<C>(&raw));
-        for warning in raw_view.env_warnings(crate::render::process_env) {
-            let _ = writeln!(std::io::stderr().lock(), "{}: warning: {warning}", self.bin);
+        for warning in raw_view.env_warnings(render::process_env) {
+            let _ = writeln!(io::stderr().lock(), "{}: warning: {warning}", self.bin);
         }
-        if words.len() == 1 && crate::parser::requires_input::<C>() {
+        if words.len() == 1 && parser::requires_input::<C>() {
             return self.written(
-                crate::help::emit_bare_with_options::<C>(raw_view.render_options()),
+                help::emit_bare_with_options::<C>(raw_view.render_options()),
                 ExitCode::from(2),
             );
         }
-        match crate::help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
+        match help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
             Err(error) => return self.written(Err(error), ExitCode::SUCCESS),
         }
 
-        let command = crate::parser::apply_defaults(C::command());
-        let command = match crate::flags::env_under_flags(command, &raw) {
+        let command = parser::apply_defaults(C::command());
+        let command = match flags::env_under_flags(command, &raw) {
             Ok(command) => command,
             Err(error) => {
                 return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
@@ -457,8 +462,6 @@ where
     /// Help always comes from ctl-core's renderer, so it needs none of Clap's
     /// `help` or `color` features.
     fn clap_error(&self, error: &clap::Error, view: &View, args: &[String]) -> ExitCode {
-        use clap::error::ErrorKind;
-
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
@@ -470,18 +473,18 @@ where
         }
         let options = view.render_options();
         let written = if kind == ErrorKind::DisplayVersion {
-            crate::view::write_stdout(error.to_string().as_bytes())
+            view::write_stdout(error.to_string().as_bytes())
         } else if kind == ErrorKind::DisplayHelp {
-            crate::help::emit_selected::<C>(args, options)
+            help::emit_selected::<C>(args, options)
         } else {
-            crate::help::emit_selected_to_stderr::<C>(args, options)
+            help::emit_selected_to_stderr::<C>(args, options)
         };
         self.written(written, code)
     }
 }
 
 fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
-    let parsed = crate::parser::parsed_output::<C>(raw);
+    let parsed = parser::parsed_output::<C>(raw);
     View::new(parsed.format, parsed.color)
 }
 
@@ -526,12 +529,12 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
     view
 }
 
-fn is_clap_display(kind: clap::error::ErrorKind) -> bool {
+fn is_clap_display(kind: ErrorKind) -> bool {
     matches!(
         kind,
-        clap::error::ErrorKind::DisplayVersion
-            | clap::error::ErrorKind::DisplayHelp
-            | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        ErrorKind::DisplayVersion
+            | ErrorKind::DisplayHelp
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
     )
 }
 
@@ -543,9 +546,12 @@ fn exit_code(code: i32) -> ExitCode {
 mod tests {
     use std::cell::Cell;
     use std::ffi::OsString;
+    use std::io;
+    use std::process::ExitCode;
     use std::rc::Rc;
 
     use clap::{Parser, Subcommand};
+    use ctl_text::anstyle::Effects;
     use serde::Serialize;
 
     use super::{App, BrokenPipe, is_clap_display, parse_error_view, raw_view};
@@ -627,7 +633,7 @@ mod tests {
                 observed.set(true);
                 Ok(Status { pending: 0 })
             });
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
         assert!(ran.get());
     }
 
@@ -686,10 +692,10 @@ mod tests {
             .before_parse(|args| {
                 args.iter()
                     .any(|arg| arg == "--complete")
-                    .then_some(std::process::ExitCode::SUCCESS)
+                    .then_some(ExitCode::SUCCESS)
             })
             .run_from(["toy", "--complete"], |_| Ok(Status { pending: 0 }));
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
     }
 
     #[cfg(feature = "usage")]
@@ -709,7 +715,7 @@ mod tests {
             .run_from(["toy", "--usage-spec=mounted"], |_| {
                 Ok(Status { pending: 0 })
             });
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
         assert_eq!(
             observed.borrow().as_ref(),
             Some(&("mounted".to_owned(), Some("mounted".to_owned())))
@@ -770,7 +776,7 @@ mod tests {
 
     #[test]
     fn app_theme_reaches_every_view_over_the_styles_theme() {
-        let underline = ctl_text::Style::new().effects(ctl_text::anstyle::Effects::UNDERLINE);
+        let underline = ctl_text::Style::new().effects(Effects::UNDERLINE);
         let theme = Theme::new().style(Role::Heading, underline);
         let app = App::<Cli>::new("toy")
             .theme(theme)
@@ -789,10 +795,8 @@ mod tests {
 
     #[test]
     fn a_closed_pipe_exits_as_the_policy_says() {
-        use std::process::ExitCode;
-
-        let closed = || Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe));
-        let other = || Err(std::io::Error::other("disk full"));
+        let closed = || Err(io::Error::from(io::ErrorKind::BrokenPipe));
+        let other = || Err(io::Error::other("disk full"));
         let ignore = App::<Cli>::new("toy");
         assert_eq!(
             ignore.written(closed(), ExitCode::SUCCESS),
@@ -825,7 +829,7 @@ mod tests {
                 .width(80)
         });
         let code = app.run_from(["toy", "status"], |_| Ok(Status { pending: 0 }));
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
     }
 
     #[test]
@@ -844,13 +848,13 @@ mod tests {
     fn missing_nested_subcommand_uses_claps_help_exit() {
         let code =
             App::<NestedCli>::new("toy").run_from(["toy", "group"], |_| Ok(Status { pending: 0 }));
-        assert_eq!(code, std::process::ExitCode::from(2));
+        assert_eq!(code, ExitCode::from(2));
     }
 
     #[test]
     fn bare_invocation_is_usage_error() {
         let code = App::<Cli>::new("toy").run_from(["toy"], |_| Ok(Status { pending: 0 }));
-        assert_eq!(code, std::process::ExitCode::from(2));
+        assert_eq!(code, ExitCode::from(2));
     }
 
     #[test]
@@ -861,7 +865,7 @@ mod tests {
             observed.set(true);
             Ok(Status { pending: 0 })
         });
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
         assert!(ran.get());
     }
 
@@ -873,7 +877,7 @@ mod tests {
             observed.set(true);
             Ok(Status { pending: 0 })
         });
-        assert_eq!(code, std::process::ExitCode::SUCCESS);
+        assert_eq!(code, ExitCode::SUCCESS);
         assert!(ran.get());
     }
 

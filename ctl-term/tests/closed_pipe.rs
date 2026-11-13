@@ -17,8 +17,11 @@
 //! finish. Arguments are ignored, so `cargo test <filter>` still runs this
 //! binary.
 
+use std::process::ExitCode;
+
 #[cfg(unix)]
 mod unix {
+    use std::env;
     use std::io::{self, BufRead, BufReader, Write};
     use std::path::PathBuf;
     use std::process::{Child, Command, ExitCode, Stdio};
@@ -63,7 +66,7 @@ mod unix {
     }
 
     pub(super) fn run() -> ExitCode {
-        if std::env::var_os(WRITER_SWITCH).is_some() {
+        if env::var_os(WRITER_SWITCH).is_some() {
             return write_rows();
         }
         match start_both() {
@@ -121,7 +124,7 @@ mod unix {
         let (reader, pipe) =
             io::pipe().map_err(|error| format!("could not open a pipe: {error}"))?;
 
-        let path = std::env::current_exe()
+        let path = env::current_exe()
             .map_err(|error| format!("could not find the test binary: {error}"))?;
         let child = spawn_writer(path, Stdio::from(pipe))
             .map_err(|error| format!("could not start the writer: {error}"))?;
@@ -159,12 +162,12 @@ mod unix {
 /// writer as an I/O error; `-Zon-broken-pipe=kill` or a SIGPIPE reset would
 /// kill it by the signal instead, and the parent would report a failure.
 #[cfg(unix)]
-fn main() -> std::process::ExitCode {
+fn main() -> ExitCode {
     unix::run()
 }
 
 #[cfg(not(unix))]
-fn main() -> std::process::ExitCode {
+fn main() -> ExitCode {
     use std::io::{self, Write};
 
     writeln!(
@@ -172,5 +175,5 @@ fn main() -> std::process::ExitCode {
         "closed_pipe: skipped, ctl-term supports and tests Unix only"
     )
     .ok();
-    std::process::ExitCode::SUCCESS
+    ExitCode::SUCCESS
 }

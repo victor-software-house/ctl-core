@@ -1,5 +1,8 @@
 //! Terminal facts: colour, colour depth, and width for one stream.
 
+#[cfg(feature = "detect")]
+use std::env;
+
 use crate::color::{ColorDepth, ColorMode};
 use crate::stream::Probe;
 #[cfg(feature = "detect")]
@@ -216,7 +219,7 @@ impl Terminal {
 /// variable holding them still counts as set.
 #[cfg(feature = "detect")]
 fn process_env(name: &str) -> Option<String> {
-    std::env::var_os(name).map(|value| value.to_string_lossy().into_owned())
+    env::var_os(name).map(|value| value.to_string_lossy().into_owned())
 }
 
 /// An environment lookup that treats an empty value as unset.

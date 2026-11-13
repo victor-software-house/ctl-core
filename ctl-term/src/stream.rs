@@ -2,6 +2,8 @@
 
 #[cfg(feature = "detect")]
 use std::io::{self, IsTerminal};
+#[cfg(all(feature = "detect", unix))]
+use std::os::fd::AsFd;
 
 #[cfg(all(feature = "detect", unix))]
 use terminal_size::{Width, terminal_size_of};
@@ -91,7 +93,7 @@ impl Probe {
 }
 
 #[cfg(all(feature = "detect", unix))]
-fn columns_of(stream: impl std::os::fd::AsFd) -> Option<u16> {
+fn columns_of(stream: impl AsFd) -> Option<u16> {
     terminal_size_of(stream).map(|(Width(columns), _)| columns)
 }
 

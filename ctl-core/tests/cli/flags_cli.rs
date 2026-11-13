@@ -1,6 +1,8 @@
 //! Flatten mixins: shorts, longs, `--preview`, `-c` ownership.
+use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
 use ctl_core::flags::{FormatArgs, FormatLong, switch};
+use ctl_core::parser;
 use ctl_core::prelude::*;
 
 use crate::common::{Toy, ToyCmd, parse};
@@ -122,12 +124,12 @@ fn all_long_and_all_short() {
 #[test]
 fn help_and_version_are_clap_display() {
     for args in [["-h"], ["--help"], ["-V"], ["--version"]] {
-        let err = ctl_core::parser::apply_defaults(Toy::command())
+        let err = parser::apply_defaults(Toy::command())
             .try_get_matches_from(["toy"].into_iter().chain(args))
             .unwrap_err();
         assert!(matches!(
             err.kind(),
-            clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
         ));
     }
 }
@@ -137,13 +139,13 @@ fn missing_command_is_help() {
     let err = Toy::try_parse_from(["toy"]).unwrap_err();
     assert_eq!(
         err.kind(),
-        clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
     );
 }
 
 #[test]
 fn parser_debug_assert() {
-    ctl_core::parser::verify::<Toy>();
+    parser::verify::<Toy>();
 }
 
 #[test]

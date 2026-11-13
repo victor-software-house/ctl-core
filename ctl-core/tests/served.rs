@@ -8,6 +8,8 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
 use std::path::Path;
 
 use ctl_core::fixture::Suite;
@@ -179,7 +181,7 @@ fn a_symlinked_target_is_refused() {
     let suite = Suite::new("served");
     let root = suite.scenario("symlink");
     let outside = suite.root().file("outside.md", "keep");
-    std::os::unix::fs::symlink(&outside, root.path().join("q")).unwrap();
+    symlink(&outside, root.path().join("q")).unwrap();
 
     let report = served("x\n").unwrap().write(root.path()).unwrap_err();
     assert!(
@@ -195,7 +197,7 @@ fn a_symlinked_directory_above_the_target_is_refused() {
     let suite = Suite::new("served");
     let root = suite.scenario("parent");
     let outside = suite.scenario("outside");
-    std::os::unix::fs::symlink(outside.path(), root.path().join("tasks")).unwrap();
+    symlink(outside.path(), root.path().join("tasks")).unwrap();
 
     let task = served(r#"{%- set path = "tasks/q" -%}x"#).unwrap();
     let report = task.write(root.path()).unwrap_err();

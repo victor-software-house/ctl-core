@@ -7,6 +7,8 @@ use std::fmt;
 #[cfg(feature = "input-yaml")]
 use std::path::Path;
 use std::sync::{PoisonError, RwLock};
+#[cfg(feature = "input-yaml")]
+use std::{fs, io};
 
 use serde::Deserialize;
 #[cfg(feature = "input-yaml")]
@@ -225,7 +227,7 @@ pub fn set_default_limits(limits: Limits) {
 #[cfg(feature = "input-yaml")]
 pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
     let path = root.join(REPO_FILE);
-    let limits = match std::fs::read_to_string(&path) {
+    let limits = match fs::read_to_string(&path) {
         Ok(text) => {
             let process = PROCESS
                 .read()
@@ -235,7 +237,7 @@ pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
                 .parse_within::<RepoFile>(&process, Raise::InProcess)?
                 .limits
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Limits::NONE,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Limits::NONE,
         Err(error) => {
             return Err(InputError::unread(path.display().to_string(), &error));
         }

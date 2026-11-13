@@ -59,6 +59,7 @@
 //! [`App::completion`]: crate::app::App::completion
 //! [`shell::view`]: crate::shell::view
 
+use std::env;
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Write as _};
 use std::path::Path;
@@ -68,8 +69,8 @@ use clap::{CommandFactory, ValueEnum};
 use clap_complete::CompleteEnv;
 use clap_complete::env::{Bash, EnvCompleter, Fish, Shells, Zsh};
 
-use crate::formatdoc;
 use crate::shell::{Script, Shell};
+use crate::{formatdoc, parser, view};
 
 /// The environment variable that turns a run into a completion request.
 ///
@@ -176,7 +177,7 @@ pub struct CompletionArgs {
 /// prints from [`Shell::script`] so it matches the verb byte for byte. With
 /// words, `clap_complete` prints the candidates.
 pub(crate) fn complete<C: CommandFactory>(bin: &str, args: &[OsString]) -> Option<ExitCode> {
-    let requested = std::env::var_os(VAR).filter(|value| !value.is_empty() && value != "0")?;
+    let requested = env::var_os(VAR).filter(|value| !value.is_empty() && value != "0")?;
     let words = args
         .iter()
         .skip(1)
@@ -210,13 +211,13 @@ fn registration(bin: &str, requested: &OsStr) -> ExitCode {
     };
     shell
         .script(bin)
-        .and_then(|script| crate::view::write_stdout(script.text.as_bytes()))
+        .and_then(|script| view::write_stdout(script.text.as_bytes()))
         .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS)
 }
 
 fn candidates<C: CommandFactory>(bin: &str, args: &[OsString]) -> ExitCode {
-    let current_dir = std::env::current_dir().ok();
-    match CompleteEnv::with_factory(|| crate::parser::with_help(C::command()))
+    let current_dir = env::current_dir().ok();
+    match CompleteEnv::with_factory(|| parser::with_help(C::command()))
         .var(VAR)
         .bin(bin)
         .completer(bin)
