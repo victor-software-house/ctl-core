@@ -13,11 +13,11 @@
 use std::io::Read as _;
 use std::process::{Command as Process, Stdio};
 use std::sync::mpsc;
-use std::thread;
 use std::time::Duration;
+use std::{env, iter, thread};
 
 use ctl_core::prelude::*;
-use pty_process::Size;
+use pty_process::{Size, blocking};
 use serde::Serialize;
 
 #[derive(Parser)]
@@ -72,7 +72,7 @@ const END: &str = ">>>";
 fn run(args: &[&str], configure: impl FnOnce(App<Toy>) -> App<Toy>) -> ExitCode {
     println!("{START}");
     let code = configure(App::<Toy>::new("toy").view(|cli| cli.output.view())).run_from(
-        std::iter::once("toy").chain(args.iter().copied()),
+        iter::once("toy").chain(args.iter().copied()),
         |cli| match cli.command {
             Cmd::Show => Ok(Shown),
         },
@@ -88,7 +88,7 @@ fn run(args: &[&str], configure: impl FnOnce(App<Toy>) -> App<Toy>) -> ExitCode 
     reason = "a test helper: a failure here is the calling test failing"
 )]
 fn child(test: &str, variables: &[(&str, &str)]) -> Process {
-    let mut command = Process::new(std::env::current_exe().expect("test binary"));
+    let mut command = Process::new(env::current_exe().expect("test binary"));
     command
         .args(["--exact", test, "--nocapture", "--test-threads=1"])
         .env(CHILD, test);
@@ -114,7 +114,7 @@ fn child(test: &str, variables: &[(&str, &str)]) -> Process {
 }
 
 fn is_child(test: &str) -> bool {
-    std::env::var_os(CHILD).as_deref() == Some(test.as_ref())
+    env::var_os(CHILD).as_deref() == Some(test.as_ref())
 }
 
 /// The lines the child's `App` wrote to stdout, between the markers.
@@ -228,12 +228,11 @@ fn help_on_a_narrow_stderr_fits_stderr() {
         assert_eq!(run(&[], |app| app), ExitCode::from(2));
         return;
     }
-    let (pty, pts) =
-        pty_process::blocking::open().unwrap_or_else(|error| panic!("open a terminal: {error}"));
+    let (pty, pts) = blocking::open().unwrap_or_else(|error| panic!("open a terminal: {error}"));
     pty.resize(Size::new(24, 50))
         .unwrap_or_else(|error| panic!("size the terminal: {error}"));
-    let mut command = pty_process::blocking::Command::new(
-        std::env::current_exe().unwrap_or_else(|error| panic!("test binary: {error}")),
+    let mut command = blocking::Command::new(
+        env::current_exe().unwrap_or_else(|error| panic!("test binary: {error}")),
     )
     .args(["--exact", TEST, "--nocapture", "--test-threads=1"])
     .env(CHILD, TEST)

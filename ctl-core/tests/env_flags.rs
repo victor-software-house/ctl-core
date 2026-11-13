@@ -12,10 +12,13 @@
 
 use std::ffi::OsString;
 use std::process::Command as Process;
+use std::{env, iter};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs, env_under_flags};
+#[cfg(feature = "help")]
+use ctl_core::help;
 use ctl_core::parser::apply_defaults;
 use ctl_core::prelude::*;
 
@@ -72,7 +75,7 @@ const CHILD: &str = "CTL_CORE_ENV_FLAGS_CHILD";
 /// Parse as `App` does: the parser defaults, then the variables under the
 /// command line.
 fn try_parse(args: &[&str]) -> Result<Toy, clap::Error> {
-    let raw = std::iter::once("toy")
+    let raw = iter::once("toy")
         .chain(args.iter().copied())
         .map(OsString::from)
         .collect::<Vec<_>>();
@@ -96,10 +99,10 @@ fn parse(args: &[&str]) -> Toy {
     reason = "a test helper: a failure here is the calling test failing"
 )]
 fn in_child(test: &str, vars: &[(&str, &str)]) -> bool {
-    if std::env::var_os(CHILD).as_deref() == Some(test.as_ref()) {
+    if env::var_os(CHILD).as_deref() == Some(test.as_ref()) {
         return true;
     }
-    let output = Process::new(std::env::current_exe().expect("test binary"))
+    let output = Process::new(env::current_exe().expect("test binary"))
         .args(["--exact", test, "--nocapture", "--test-threads=1"])
         .env(CHILD, test)
         .env_remove("ENVTOY_FORMAT")
@@ -333,8 +336,7 @@ fn help_names_each_variable() {
         .find_subcommand("prepare")
         .cloned()
         .expect("prepare");
-    let text =
-        ctl_core::help::document(prepare).render(RenderOptions::new(ColorMode::Never).width(200));
+    let text = help::document(prepare).render(RenderOptions::new(ColorMode::Never).width(200));
     assert!(text.contains("[env: ENVTOY_CONFIG]"), "{text}");
     assert!(text.contains("[env: ENVTOY_DRY_RUN]"), "{text}");
 }

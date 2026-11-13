@@ -49,6 +49,8 @@ use crate::color::ColorMode;
 use crate::document::{Document, Text};
 use crate::format::OutputFormat;
 use crate::model::{Envelope, ErrorBody};
+#[cfg(feature = "app")]
+use crate::render;
 use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
 use crate::theme::Theme;
 
@@ -279,7 +281,7 @@ impl View {
     pub(crate) fn env_warnings(self, value: impl Fn(&str) -> Option<String>) -> Vec<String> {
         let mut warnings = self.options.style_env_warnings(&value);
         if self.json_layout.is_none() {
-            warnings.extend(crate::render::env_choice_warnings::<JsonLayout>(
+            warnings.extend(render::env_choice_warnings::<JsonLayout>(
                 self.json_layout_envs,
                 &value,
             ));

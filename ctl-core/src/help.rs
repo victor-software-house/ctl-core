@@ -20,12 +20,14 @@
 #![cfg_attr(feature = "app", doc = "", doc = "[`App`]: crate::App")]
 #![cfg_attr(not(feature = "app"), doc = "", doc = "[`App`]: crate#cargo-features")]
 
-use std::io;
+use std::ffi::OsString;
+use std::{env, io};
 
 use clap::{Command, CommandFactory};
 use ctl_term::Stream;
 
 use crate::document::{Document, Role, Section, Table, Text};
+use crate::parser;
 use crate::render::RenderOptions;
 
 const NARROW_HELP_WIDTH: u16 = 64;
@@ -44,8 +46,8 @@ const NARROW_HELP_WIDTH: u16 = 64;
 ///
 /// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
-    let raw = std::env::args_os().collect::<Vec<_>>();
-    let color = crate::parser::parsed_output::<C>(&raw).color;
+    let raw = env::args_os().collect::<Vec<_>>();
+    let color = parser::parsed_output::<C>(&raw).color;
     try_emit_with_options::<C>(RenderOptions::new(color))
 }
 
@@ -59,7 +61,7 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
 ///
 /// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<bool> {
-    let args = std::env::args_os()
+    let args = env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
     try_emit_from_with_options::<C>(&args, options)
@@ -76,11 +78,8 @@ pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::R
 ///
 /// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
-    let raw = args
-        .iter()
-        .map(std::ffi::OsString::from)
-        .collect::<Vec<_>>();
-    let color = crate::parser::parsed_output::<C>(&raw).color;
+    let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
+    let color = parser::parsed_output::<C>(&raw).color;
     try_emit_from_with_options::<C>(args, RenderOptions::new(color))
 }
 
@@ -97,11 +96,8 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<bool> {
-    let raw = args
-        .iter()
-        .map(std::ffi::OsString::from)
-        .collect::<Vec<_>>();
-    if !crate::parser::wants_help::<C>(&raw) {
+    let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
+    if !parser::wants_help::<C>(&raw) {
         return Ok(false);
     }
     emit_selected::<C>(args, options)?;
@@ -142,7 +138,7 @@ pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
 
 fn help_command<C: CommandFactory>(args: &[String]) -> Command {
     let declared = C::command();
-    let mut root = crate::parser::with_help(declared.clone());
+    let mut root = parser::with_help(declared.clone());
     root.build();
     select_command(root, declared, args.get(1..).unwrap_or(&[]))
 }
@@ -189,10 +185,10 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
 /// # Panics
 ///
 /// In a debug build, panics when Clap's `debug_assert` finds an invalid
-/// command definition, as [`parser::verify`](crate::parser::verify) does.
+/// command definition, as [`parser::verify`] does.
 #[must_use]
 pub fn document(command: Command) -> Document {
-    let mut command = crate::parser::with_help(command);
+    let mut command = parser::with_help(command);
     command.build();
     let usage = command.render_usage().to_string();
     let mut output =
@@ -299,16 +295,13 @@ fn value_label(arg: &clap::Arg) -> String {
     ) {
         return String::new();
     }
-    let names = arg
-        .get_value_names()
-        .map(|names| {
-            names
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
-        .unwrap_or_default();
+    let names = arg.get_value_names().map_or_default(|names| {
+        names
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(" ")
+    });
     let choices = arg
         .get_possible_values()
         .into_iter()

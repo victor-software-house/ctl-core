@@ -315,6 +315,7 @@ fn every_subcommands(command: Command) -> Command {
 #[cfg(feature = "app")]
 mod toy {
     use std::cell::RefCell;
+    use std::path::PathBuf;
     use std::rc::Rc;
 
     use ctl_core::prelude::*;
@@ -342,7 +343,7 @@ mod toy {
         /// Check one file.
         Check {
             /// The file to check.
-            path: std::path::PathBuf,
+            path: PathBuf,
             /// Stop at the first problem.
             #[arg(long)]
             strict: bool,

@@ -12,6 +12,7 @@
 //! assert_eq!(OutputFormat::default(), OutputFormat::Pretty);
 //! ```
 
+use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
@@ -87,7 +88,7 @@ impl fmt::Display for ParseFormatError {
     }
 }
 
-impl std::error::Error for ParseFormatError {}
+impl Error for ParseFormatError {}
 
 #[cfg(test)]
 mod tests {

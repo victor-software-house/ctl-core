@@ -7,6 +7,7 @@
 //!
 //! Each variant carries a short code (`R2`, `L5`, `J3`) to answer with.
 
+use std::env;
 use std::io::{self, Write as _};
 
 use ctl_core::{
@@ -178,7 +179,7 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
 fn main() -> io::Result<()> {
     let mut color = ColorMode::Always;
     let mut widths = Vec::new();
-    let mut arguments = std::env::args().skip(1);
+    let mut arguments = env::args().skip(1);
     while let Some(argument) = arguments.next() {
         if argument == "--color" {
             if arguments.next().as_deref() == Some("never") {

@@ -6,9 +6,9 @@
 )]
 #![cfg(all(unix, feature = "usage", feature = "fixture"))]
 
-use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
+use std::{env, fs};
 
 use ctl_core::fixture::Suite;
 use ctl_core::{formatdoc, indoc, mount_directives};
@@ -48,8 +48,8 @@ fn a_mounted_task_pipes_json_without_an_escape_byte() {
         .args(["run", "demo"])
         .current_dir(root.path())
         .env_clear()
-        .env("PATH", std::env::var_os("PATH").unwrap_or_default())
-        .env("HOME", std::env::var_os("HOME").unwrap_or_default())
+        .env("PATH", env::var_os("PATH").unwrap_or_default())
+        .env("HOME", env::var_os("HOME").unwrap_or_default())
         .env("MISE_CONFIG_DIR", root.path().join("mise-config"))
         .env("MISE_TRUSTED_CONFIG_PATHS", root.path())
         .env("MISE_TASK_OUTPUT", "prefix")

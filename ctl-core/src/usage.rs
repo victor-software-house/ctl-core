@@ -26,7 +26,8 @@ mod kdl;
 mod nodes;
 mod plain;
 
-use std::io::Write as _;
+use std::env;
+use std::io::{self, Write as _};
 use std::process::ExitCode;
 
 use clap::Command;
@@ -89,8 +90,8 @@ pub fn mount_directives(task: &str) -> String {
 /// otherwise, and `None` when argv has no such flag.
 #[must_use]
 pub fn take<C: clap::CommandFactory>(default_bin: &str) -> Option<ExitCode> {
-    let bin = spec_bin(std::env::args().skip(1), default_bin)?;
-    let written = write!(std::io::stdout().lock(), "{}", spec(C::command(), &bin));
+    let bin = spec_bin(env::args().skip(1), default_bin)?;
+    let written = write!(io::stdout().lock(), "{}", spec(C::command(), &bin));
     Some(if written.is_ok() {
         ExitCode::SUCCESS
     } else {

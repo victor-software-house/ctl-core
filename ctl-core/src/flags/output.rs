@@ -3,6 +3,8 @@ use clap::Args;
 use crate::color::ColorMode;
 use crate::flags::resolve_color;
 use crate::format::OutputFormat;
+#[cfg(feature = "view")]
+use crate::view;
 
 /// Output flags for the root parser: format, colour, and quiet. Flatten it with
 /// `#[command(flatten)]`.
@@ -70,8 +72,8 @@ impl OutputArgs {
     /// quiet setting, and the colour mode in force.
     #[cfg(feature = "view")]
     #[must_use]
-    pub fn view(&self) -> crate::view::View {
-        crate::view::View::new(self.format, self.color()).quiet(self.quiet)
+    pub fn view(&self) -> view::View {
+        view::View::new(self.format, self.color()).quiet(self.quiet)
     }
 }
 
@@ -111,8 +113,8 @@ impl FormatArgs {
     /// the colour mode and the parsed format and quiet setting.
     #[cfg(feature = "view")]
     #[must_use]
-    pub fn view(&self, color: ColorMode) -> crate::view::View {
-        crate::view::View::new(self.format, color).quiet(self.quiet)
+    pub fn view(&self, color: ColorMode) -> view::View {
+        view::View::new(self.format, color).quiet(self.quiet)
     }
 }
 
@@ -143,7 +145,7 @@ impl FormatLong {
     /// the colour mode and the parsed format and quiet setting.
     #[cfg(feature = "view")]
     #[must_use]
-    pub fn view(&self, color: ColorMode) -> crate::view::View {
-        crate::view::View::new(self.format, color).quiet(self.quiet)
+    pub fn view(&self, color: ColorMode) -> view::View {
+        view::View::new(self.format, color).quiet(self.quiet)
     }
 }

@@ -1,5 +1,7 @@
 //! Building lines out of cells, spaces, and rules.
 
+use std::iter;
+
 use ctl_text::{Line, Span, Style};
 
 use crate::align::Align;
@@ -16,7 +18,7 @@ pub(crate) fn spaces(count: u16) -> Span {
 
 /// A line of `count` repeats of `fill`.
 pub(crate) fn rule_line(fill: char, count: u16) -> Line {
-    let text: String = std::iter::repeat_n(fill, usize::from(count)).collect();
+    let text: String = iter::repeat_n(fill, usize::from(count)).collect();
     Line::from(literal(&text))
 }
 

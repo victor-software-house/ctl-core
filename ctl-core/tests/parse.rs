@@ -4,6 +4,7 @@
 )]
 #![cfg(feature = "cli")]
 
+use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs, switch};
 use ctl_core::parser::apply_defaults;
@@ -47,7 +48,7 @@ fn parse(args: &[&str]) -> Cli {
 }
 
 /// The error kind ctl-core's parser stops with for `args`.
-fn stops_with(args: &[&str]) -> Option<clap::error::ErrorKind> {
+fn stops_with(args: &[&str]) -> Option<ErrorKind> {
     let mut words = vec!["toy"];
     words.extend_from_slice(args);
     apply_defaults(Cli::command())
@@ -61,8 +62,6 @@ fn stops_with(args: &[&str]) -> Option<clap::error::ErrorKind> {
 /// feature.
 #[test]
 fn help_and_version_shorts() {
-    use clap::error::ErrorKind;
-
     assert_eq!(stops_with(&["-h"]), Some(ErrorKind::DisplayHelp));
     assert_eq!(stops_with(&["--help"]), Some(ErrorKind::DisplayHelp));
     assert_eq!(stops_with(&["prepare", "-h"]), Some(ErrorKind::DisplayHelp));
@@ -85,7 +84,7 @@ fn help_subcommand_names_the_command() {
         .try_get_matches_from(["toy", "help", "unknown"])
         .err()
         .map(|error| error.kind());
-    assert_eq!(unknown, Some(clap::error::ErrorKind::InvalidSubcommand));
+    assert_eq!(unknown, Some(ErrorKind::InvalidSubcommand));
 }
 
 #[test]

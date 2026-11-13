@@ -7,9 +7,9 @@
 //! baselines in `baseline/` are frozen: nothing here writes them.
 
 use std::fmt::Write as _;
-use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 /// The variable that makes [`check`] write a missing or changed engine file
 /// instead of reporting it.
@@ -30,7 +30,7 @@ fn baselines() -> PathBuf {
 }
 
 fn updating() -> bool {
-    std::env::var_os(UPDATE).is_some_and(|value| !value.is_empty())
+    env::var_os(UPDATE).is_some_and(|value| !value.is_empty())
 }
 
 /// Compare `actual` with the engine file `name`.

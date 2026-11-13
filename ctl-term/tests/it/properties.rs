@@ -9,6 +9,8 @@ use ctl_text::anstyle::{Ansi256Color, AnsiColor, Color, Effects, RgbColor, Style
 use ctl_text::{Line, Span};
 use proptest::prelude::*;
 
+use crate::common::ESC;
+
 const FRAGMENTS: &[&str] = &[
     "a",
     "word",
@@ -99,7 +101,7 @@ fn plain_text(lines: &[Line]) -> String {
 
 /// Whether `text` holds an escape byte.
 fn has_escape(text: &str) -> bool {
-    text.contains(crate::common::ESC)
+    text.contains(ESC)
 }
 
 /// Whether `color` is one a terminal of `depth` can show.
@@ -136,7 +138,7 @@ proptest! {
             if !styled {
                 prop_assert!(!has_escape(encoded_line), "{:?}", encoded_line);
             }
-            if let Some(start) = encoded_line.rfind(crate::common::ESC) {
+            if let Some(start) = encoded_line.rfind(ESC) {
                 prop_assert!(encoded_line[start..].starts_with(RESET), "{:?}", encoded_line);
             }
         }

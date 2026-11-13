@@ -18,6 +18,10 @@ use std::io::{self, Write as _};
 #[cfg(all(feature = "app", any(feature = "input", feature = "input-toml")))]
 use std::path::Path;
 
+#[cfg(all(feature = "help", not(feature = "view")))]
+use ctl_core::help;
+#[cfg(all(feature = "app", any(feature = "input", feature = "input-toml")))]
+use ctl_core::input::{Input, InputError};
 use ctl_core::prelude::*;
 
 #[derive(Parser)]
@@ -101,15 +105,15 @@ fn main() -> ExitCode {
 
 /// The number of pending rows in `tasks.yaml`.
 #[cfg(all(feature = "app", feature = "input"))]
-fn pending() -> Result<usize, ctl_core::input::InputError> {
-    let queue: Queue = ctl_core::input::Input::read(Path::new("tasks.yaml"))?.load()?;
+fn pending() -> Result<usize, InputError> {
+    let queue: Queue = Input::read(Path::new("tasks.yaml"))?.load()?;
     Ok(queue.pending.len())
 }
 
 /// The number of pending rows in `tasks.toml`.
 #[cfg(all(feature = "app", feature = "input-toml", not(feature = "input")))]
-fn pending() -> Result<usize, ctl_core::input::InputError> {
-    let queue: Queue = ctl_core::input::Input::open(Path::new("tasks.toml"))?.parse()?;
+fn pending() -> Result<usize, InputError> {
+    let queue: Queue = Input::open(Path::new("tasks.toml"))?.parse()?;
     Ok(queue.pending.len())
 }
 
@@ -127,7 +131,7 @@ fn main() -> ExitCode {
 
 #[cfg(all(feature = "help", not(feature = "view")))]
 fn main() -> ExitCode {
-    if ctl_core::help::try_emit::<Cli>().unwrap_or(false) {
+    if help::try_emit::<Cli>().unwrap_or(false) {
         return ExitCode::SUCCESS;
     }
     print_status()

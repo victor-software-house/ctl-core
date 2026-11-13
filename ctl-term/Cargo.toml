@@ -6,7 +6,6 @@ rust-version.workspace = true
 description = "Terminal output for CLIs: colour policy per stream, colour depth, width, and an escape encoder"
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 keywords = ["terminal", "color", "ansi", "tty", "cli"]
 categories = ["command-line-interface"]
 autotests = false

@@ -13,6 +13,7 @@
 //! assert!("rainbow".parse::<ColorMode>().is_err());
 //! ```
 
+use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
@@ -118,7 +119,7 @@ impl fmt::Display for ParseColorError {
     }
 }
 
-impl std::error::Error for ParseColorError {}
+impl Error for ParseColorError {}
 
 #[cfg(test)]
 mod tests {

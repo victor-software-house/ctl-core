@@ -3,6 +3,9 @@
 
 use std::fmt;
 
+#[cfg(feature = "validate")]
+use garde::error;
+
 /// One step down a [`FieldPath`]: a mapping key or a sequence index.
 ///
 /// The set is closed, because a node of a YAML or TOML document is entered by
@@ -106,8 +109,8 @@ impl fmt::Display for FieldPath {
 /// wrapper such as a one-field tuple struct, is dropped. An index component
 /// that is not a number is kept as a key.
 #[cfg(feature = "validate")]
-impl From<&garde::error::Path> for FieldPath {
-    fn from(path: &garde::error::Path) -> Self {
+impl From<&error::Path> for FieldPath {
+    fn from(path: &error::Path) -> Self {
         use garde::error::Kind;
 
         let mut steps = Vec::new();
@@ -170,7 +173,7 @@ mod tests {
     #[cfg(feature = "validate")]
     #[test]
     fn a_garde_path_converts_from_its_parts() {
-        let path = garde::error::Path::new("files")
+        let path = error::Path::new("files")
             .join("docs/**/*.md")
             .join("vocab")
             .join(0_usize);
@@ -189,9 +192,9 @@ mod tests {
     #[cfg(feature = "validate")]
     #[test]
     fn a_numeric_key_stays_a_key_and_a_keyless_part_is_dropped() {
-        let path = garde::error::Path::new("files")
+        let path = error::Path::new("files")
             .join("2")
-            .join(garde::error::NoKey::default())
+            .join(error::NoKey::default())
             .join("label");
         assert_eq!(
             FieldPath::from(&path).steps(),

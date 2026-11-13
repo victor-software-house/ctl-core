@@ -13,6 +13,7 @@
 mod shells;
 
 use std::process::{Command as Process, Output};
+use std::{env, iter};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
@@ -74,7 +75,7 @@ fn run(args: &[&str]) -> ExitCode {
             Cmd::Completion(_) => shell::view(cli.output.format),
             Cmd::Status => cli.output.view(),
         })
-        .run_from(std::iter::once("toy").chain(args.iter().copied()), |cli| {
+        .run_from(iter::once("toy").chain(args.iter().copied()), |cli| {
             Ok(match cli.command {
                 Cmd::Status => Report::Pending(Pending { pending: 0 }),
                 Cmd::Completion(command) => Report::Script(command.script("toy")?),
@@ -91,10 +92,10 @@ const CHILD: &str = "CTL_CORE_COMPLETION_CHILD";
     reason = "a test helper: a failure here is the calling test failing"
 )]
 fn in_child(test: &str, vars: &[(&str, &str)]) -> Option<Output> {
-    if std::env::var_os(CHILD).as_deref() == Some(test.as_ref()) {
+    if env::var_os(CHILD).as_deref() == Some(test.as_ref()) {
         return None;
     }
-    let output = Process::new(std::env::current_exe().expect("test binary"))
+    let output = Process::new(env::current_exe().expect("test binary"))
         .args(["--exact", test, "--nocapture", "--test-threads=1"])
         .env(CHILD, test)
         .env_remove(completion::VAR)

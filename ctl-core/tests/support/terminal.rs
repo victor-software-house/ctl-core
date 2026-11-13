@@ -14,7 +14,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use pty_process::Size;
-use pty_process::blocking::{Command, Pty};
+use pty_process::blocking::{self, Command, Pty};
 
 /// The end of every prompt a test sets, which no typed line contains.
 pub(crate) const PROMPT: &str = "READY> ";
@@ -35,8 +35,8 @@ impl Terminal {
     /// Start `command` on a new 24 by 80 terminal, and wait for its first
     /// prompt.
     pub(crate) fn start(command: Command) -> Self {
-        let (pty, pts) = pty_process::blocking::open()
-            .unwrap_or_else(|error| panic!("open a terminal: {error}"));
+        let (pty, pts) =
+            blocking::open().unwrap_or_else(|error| panic!("open a terminal: {error}"));
         pty.resize(Size::new(24, 80))
             .unwrap_or_else(|error| panic!("size the terminal: {error}"));
         let child = command.spawn(pts).unwrap_or_else(|error| {

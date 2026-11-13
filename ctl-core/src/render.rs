@@ -12,6 +12,10 @@
 //! spans. Escape sequences are added only when ctl-term's encoder writes the
 //! lines.
 
+use std::env;
+#[cfg(feature = "help")]
+use std::io;
+
 use ctl_layout::{
     Breakpoint, Column, Definitions, Record, Rule as RuleWidget, Stack, Table as TableWidget,
 };
@@ -133,7 +137,7 @@ pub(crate) fn env_choice_warnings<T: EnvChoice>(
 
 /// A set, non-empty environment variable.
 pub(crate) fn process_env(name: &str) -> Option<String> {
-    std::env::var(name).ok().filter(|value| !value.is_empty())
+    env::var(name).ok().filter(|value| !value.is_empty())
 }
 
 fn parse_choice<T: EnvChoice>(raw: &str) -> Option<T> {
@@ -423,14 +427,10 @@ impl RenderOptions {
     /// conversion rather than a boxed wrapper, which would keep the wrapper's
     /// `Debug` code in every binary that prints help.
     #[cfg(feature = "help")]
-    pub(crate) fn print_for(
-        self,
-        stream: ctl_term::Stream,
-        document: &Document,
-    ) -> std::io::Result<()> {
+    pub(crate) fn print_for(self, stream: ctl_term::Stream, document: &Document) -> io::Result<()> {
         self.console(stream)
             .print(&Renderer::new(self).widget(document))
-            .map_err(std::io::Error::from)
+            .map_err(io::Error::from)
     }
 }
 

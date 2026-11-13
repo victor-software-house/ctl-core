@@ -18,8 +18,11 @@
 //! lets the writer finish. Arguments are ignored, so `cargo test <filter>`
 //! still runs this binary.
 
+use std::process::ExitCode;
+
 #[cfg(unix)]
 mod unix {
+    use std::env;
     use std::io::{self, BufRead, BufReader, Write};
     use std::path::PathBuf;
     use std::process::{Child, Command, ExitCode, Stdio};
@@ -118,12 +121,8 @@ mod unix {
     }
 
     pub(super) fn run() -> ExitCode {
-        if let Some(case) = std::env::var(CASE_SWITCH)
-            .ok()
-            .as_deref()
-            .and_then(Case::named)
-        {
-            let policy = if std::env::var(POLICY_SWITCH).as_deref() == Ok("fail") {
+        if let Some(case) = env::var(CASE_SWITCH).ok().as_deref().and_then(Case::named) {
+            let policy = if env::var(POLICY_SWITCH).as_deref() == Ok("fail") {
                 BrokenPipe::Fail
             } else {
                 BrokenPipe::Ignore
@@ -200,7 +199,7 @@ mod unix {
         let (reader, pipe) =
             io::pipe().map_err(|error| format!("could not open a pipe: {error}"))?;
 
-        let path = std::env::current_exe()
+        let path = env::current_exe()
             .map_err(|error| format!("could not find the test binary: {error}"))?;
         let child = spawn_writer(path, case, policy, Stdio::from(pipe))
             .map_err(|error| format!("{label}: could not start the writer: {error}"))?;
@@ -245,11 +244,11 @@ mod unix {
 /// writer as an I/O error; `-Zon-broken-pipe=kill` or a SIGPIPE reset would
 /// kill it by the signal instead, and the parent would report a failure.
 #[cfg(unix)]
-fn main() -> std::process::ExitCode {
+fn main() -> ExitCode {
     unix::run()
 }
 
 #[cfg(not(unix))]
-fn main() -> std::process::ExitCode {
-    std::process::ExitCode::SUCCESS
+fn main() -> ExitCode {
+    ExitCode::SUCCESS
 }

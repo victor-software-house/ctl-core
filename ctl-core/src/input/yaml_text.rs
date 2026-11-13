@@ -312,6 +312,8 @@ fn yamled_path(steps: &[Step]) -> yamled::Path {
 
 #[cfg(test)]
 mod tests {
+    use std::ptr;
+
     use super::*;
 
     #[test]
@@ -324,7 +326,7 @@ mod tests {
         assert!(first.is_some());
         assert_eq!(input.place(&path).map(|at| at.line), Some(3));
         let second = input.yaml_document.document.get().unwrap();
-        assert!(std::ptr::eq(first, second));
+        assert!(ptr::eq(first, second));
     }
 
     /// `text` with the call tier's `limits`, placed at its first key.
@@ -344,7 +346,7 @@ mod tests {
         let first = input.yaml_document.document.get().unwrap();
         assert!(input.place(&FieldPath::root().key("a")).is_some());
         let second = input.yaml_document.document.get().unwrap();
-        assert!(std::ptr::eq(first, second));
+        assert!(ptr::eq(first, second));
     }
 
     #[test]

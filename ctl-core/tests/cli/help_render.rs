@@ -1,11 +1,11 @@
 //! Help extraction through the public semantic document.
 use clap::CommandFactory;
-use ctl_core::{ColorMode, RenderOptions};
+use ctl_core::{ColorMode, RenderOptions, help};
 
 use crate::common::Toy;
 
 fn help() -> String {
-    ctl_core::help::document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80))
+    help::document(Toy::command()).render(RenderOptions::new(ColorMode::Never).width(80))
 }
 
 #[test]
@@ -26,11 +26,11 @@ fn lists_output_flags() {
 #[test]
 fn try_emit_skips_without_help() {
     let args = ["toy", "status"].map(String::from);
-    assert!(!ctl_core::help::try_emit_from::<Toy>(&args).unwrap());
+    assert!(!help::try_emit_from::<Toy>(&args).unwrap());
 }
 
 #[test]
 fn try_emit_runs_on_help() {
     let args = ["toy", "--help"].map(String::from);
-    assert!(ctl_core::help::try_emit_from::<Toy>(&args).unwrap());
+    assert!(help::try_emit_from::<Toy>(&args).unwrap());
 }

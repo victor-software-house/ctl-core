@@ -6,7 +6,6 @@ rust-version.workspace = true
 description = "Styled text for terminals: safe spans, cell widths, wrapping, and truncation"
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 keywords = ["terminal", "unicode", "width", "wrap", "text"]
 categories = ["command-line-interface", "text-processing"]
 autotests = false

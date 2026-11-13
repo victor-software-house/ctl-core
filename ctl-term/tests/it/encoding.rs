@@ -2,7 +2,7 @@
 //! when it ends a line with a reset.
 
 use ctl_term::{ColorDepth, Encoder, RESET};
-use ctl_text::anstyle::{AnsiColor, Effects, Reset, RgbColor, Style};
+use ctl_text::anstyle::{Ansi256Color, AnsiColor, Effects, Reset, RgbColor, Style};
 
 use crate::common::{fg, line, red};
 
@@ -197,7 +197,7 @@ fn a_24_bit_colour_is_written_at_each_depth() {
 /// One 256-palette colour at each depth.
 #[test]
 fn a_palette_colour_is_written_at_each_depth() {
-    let lines = [line(&[("x", fg(ctl_text::anstyle::Ansi256Color(196)))])];
+    let lines = [line(&[("x", fg(Ansi256Color(196)))])];
     for depth in [ColorDepth::TrueColor, ColorDepth::Ansi256] {
         assert_eq!(
             encode(Some(depth), &lines),

@@ -12,8 +12,8 @@ mod shells;
 #[path = "support/terminal.rs"]
 mod terminal;
 
-use std::fs;
 use std::os::unix::fs::PermissionsExt as _;
+use std::{env, fs};
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser};
@@ -191,7 +191,7 @@ fn run(shell: Shell, setup: Setup, prompt_command: PromptCommand) -> (String, St
         &startup_function(shell, setup),
         prompt_command,
     );
-    let path = std::env::var("PATH").unwrap_or_default();
+    let path = env::var("PATH").unwrap_or_default();
     let log = root.path().join("log");
     let mut command = command
         .env("PATH", format!("{}:{path}", bin.display()))

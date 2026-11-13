@@ -6,7 +6,6 @@ rust-version.workspace = true
 description = "A framework for clap programs: typed results, help, and terminal or JSON output"
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 keywords = ["clap", "cli", "help", "color"]
 categories = ["command-line-interface", "development-tools"]
 
@@ -35,8 +34,8 @@ cli = ["dep:clap"]
 ## Semantic presentation documents without a terminal engine.
 document = []
 
-## Serde models and the JSON view.
-json = ["dep:serde", "dep:serde_json"]
+## Serde models.
+json = ["dep:serde"]
 
 ## Rendering semantic documents to a `String` through `ctl-text` and
 ## `ctl-layout`, with a replaceable `Theme`, written by the `ctl-term`
@@ -59,7 +58,7 @@ help = ["cli", "render", "clap/usage", "ctl-term/detect"]
 ## Pretty, colourless, and JSON output from serializable results. Adds
 ## `ctl-term`'s `detect` feature, which decides colour and width for the
 ## stream each result goes to.
-view = ["render", "json", "ctl-term/detect"]
+view = ["render", "json", "dep:serde_json", "ctl-term/detect"]
 
 ## A CLI's commands and flags as data (`surface::Surface`), without
 ## serialization or a template engine.
@@ -145,6 +144,7 @@ garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
 kdl.workspace = true
 pty-process.workspace = true
+serde_json.workspace = true
 
 [[example]]
 name = "gallery"

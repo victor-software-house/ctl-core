@@ -20,7 +20,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use clap::{Arg, Command};
 
-use crate::usage;
+use crate::{parser, usage};
 
 #[cfg(feature = "surface-templates")]
 mod templates;
@@ -178,15 +178,12 @@ impl Surface {
         let mut declared_arguments = BTreeMap::new();
         let mut help_settings = BTreeMap::new();
         collect_declarations(&command, "", &mut declared_arguments, &mut help_settings);
-        let mut command = crate::parser::with_help(command);
+        let mut command = parser::with_help(command);
         command.build();
         let command = restore_help_settings(command, "", &help_settings);
         let mount = mount.into();
         let binary = command.get_name().to_owned();
-        let about = command
-            .get_about()
-            .map(ToString::to_string)
-            .unwrap_or_default();
+        let about = command.get_about().map_or_default(ToString::to_string);
         let version = command.get_version().map(ToOwned::to_owned);
         let arguments = declared_arguments_for(&command, "", &declared_arguments);
         let inherited_arguments = arguments
@@ -340,10 +337,7 @@ fn surface_command(
             .map(ToOwned::to_owned)
             .collect(),
         hidden: command.is_hide_set(),
-        about: command
-            .get_about()
-            .map(ToString::to_string)
-            .unwrap_or_default(),
+        about: command.get_about().map_or_default(ToString::to_string),
         arguments,
         inherited_arguments: inherited_arguments.to_vec(),
         commands: command
@@ -396,7 +390,7 @@ fn collect_declarations(
     );
     for child in command
         .get_subcommands()
-        .filter(|child| !crate::parser::is_generated_help(child))
+        .filter(|child| !parser::is_generated_help(child))
     {
         let child_path = child_path(path, child.get_name());
         collect_declarations(child, &child_path, declared_arguments, help_settings);
@@ -480,10 +474,7 @@ fn argument(argument: &Arg) -> SurfaceArgument {
             .iter()
             .map(ToString::to_string)
             .collect(),
-        help: argument
-            .get_help()
-            .map(ToString::to_string)
-            .unwrap_or_default(),
+        help: argument.get_help().map_or_default(ToString::to_string),
         requirement: if argument.is_required_set() {
             SurfaceRequirement::Required
         } else {
@@ -510,6 +501,8 @@ mod tests {
     #[cfg(feature = "surface-templates")]
     use super::render;
     use super::{Surface, SurfaceArgument, SurfaceScope};
+    use crate::flags::{ColorLong, FormatLong, OutputArgs};
+    use crate::parser;
 
     #[derive(Parser)]
     #[command(name = "toy", version = "1.2.3", about = "Control toys")]
@@ -639,7 +632,7 @@ mod tests {
                 "{declared}in {usage}"
             );
         }
-        let applied = Surface::from_command(crate::parser::apply_defaults(Cli::command()), "t");
+        let applied = Surface::from_command(parser::apply_defaults(Cli::command()), "t");
         assert_eq!(
             help_lines(&applied.usage_kdl),
             (5, 4),
@@ -818,9 +811,9 @@ mod tests {
     #[derive(Parser)]
     struct OwnedFile {
         #[command(flatten)]
-        format: crate::flags::FormatLong,
+        format: FormatLong,
         #[command(flatten)]
-        color: crate::flags::ColorLong,
+        color: ColorLong,
         #[arg(short = 'f', long)]
         file: Option<String>,
         #[arg(short = 'c', long)]
@@ -844,7 +837,7 @@ mod tests {
     #[derive(Parser)]
     struct DefaultOutput {
         #[command(flatten)]
-        output: crate::flags::OutputArgs,
+        output: OutputArgs,
     }
 
     #[test]

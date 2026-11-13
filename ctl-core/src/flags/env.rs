@@ -5,6 +5,7 @@
 //! A CLI uses the first through `#[command(env_prefix = "...")]` and gets the
 //! second from [`App`](crate::App).
 
+use std::env;
 use std::ffi::OsString;
 
 use clap::error::ErrorKind;
@@ -238,13 +239,12 @@ impl Placed<'_> {
     fn env_name(&self) -> String {
         self.arg
             .get_env()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_default()
+            .map_or_default(|name| name.to_string_lossy().into_owned())
     }
 
     /// Whether the variable holds a value that changes the parse.
     fn is_set(&self) -> bool {
-        let Some(value) = self.arg.get_env().and_then(std::env::var_os) else {
+        let Some(value) = self.arg.get_env().and_then(env::var_os) else {
             return false;
         };
         let action = self.arg.get_action();
@@ -316,6 +316,8 @@ fn unbind(command: Command, path: &[&str], depth: usize, unset: &[(usize, Id)]) 
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsString;
+
     use clap::{Args, CommandFactory, Parser, Subcommand};
 
     use super::{EnvPrefix, env_name, env_under_flags};
@@ -422,7 +424,7 @@ mod tests {
             )
             .group(clap::ArgGroup::new("loud").arg("verbose"))
             .env_prefix("TOYCTL_GROUP_UNIT");
-        let raw = ["toy", "--quiet"].map(std::ffi::OsString::from);
+        let raw = ["toy", "--quiet"].map(OsString::from);
         let matches = env_under_flags(command, &raw)
             .unwrap()
             .try_get_matches_from(&raw)

@@ -14,8 +14,11 @@
 //! `NO_COLOR`, proves the harness would show that. Arguments are ignored, so
 //! `cargo test <filter>` still runs this binary.
 
+use std::process::ExitCode;
+
 #[cfg(unix)]
 mod unix {
+    use std::env;
     use std::ffi::OsStr;
     use std::io::{self, Write};
     use std::os::unix::ffi::OsStrExt;
@@ -36,10 +39,7 @@ mod unix {
     ];
 
     pub(super) fn run() -> ExitCode {
-        match std::env::var_os(EXPECTATION)
-            .as_deref()
-            .and_then(OsStr::to_str)
-        {
+        match env::var_os(EXPECTATION).as_deref().and_then(OsStr::to_str) {
             Some("on") => child(true),
             Some("off") => child(false),
             _ => parent(),
@@ -59,7 +59,7 @@ mod unix {
     /// Runs the child expecting `expectation`, with `no_color` as its
     /// `NO_COLOR` when given.
     fn run_child(expectation: &str, no_color: Option<&OsStr>) -> Result<(), String> {
-        let path = std::env::current_exe()
+        let path = env::current_exe()
             .map_err(|error| format!("could not find the test binary: {error}"))?;
         let mut command = Command::new(path);
         for name in COLOUR_VARIABLES {
@@ -96,12 +96,12 @@ mod unix {
 }
 
 #[cfg(unix)]
-fn main() -> std::process::ExitCode {
+fn main() -> ExitCode {
     unix::run()
 }
 
 #[cfg(not(unix))]
-fn main() -> std::process::ExitCode {
+fn main() -> ExitCode {
     use std::io::{self, Write};
 
     writeln!(
@@ -109,5 +109,5 @@ fn main() -> std::process::ExitCode {
         "non_utf8_no_color: skipped, ctl-term supports and tests Unix only"
     )
     .ok();
-    std::process::ExitCode::SUCCESS
+    ExitCode::SUCCESS
 }
