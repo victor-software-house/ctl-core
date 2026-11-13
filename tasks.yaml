@@ -342,6 +342,23 @@ horizon:
       - '2026-11-13, the ledger check runs in verify only where a repository lists it: templates does, and verctl, qctl, forkctl and ctl-core do not.'
       - 'Candidates to compare: a setup verb in each CLI on a ctl-core primitive, a Copier piece, and a GitHub App that installs a workflow and opens a pull request.'
       - The operator asked for this as a horizon spike, not for now (operator, 2026-11-13).
+      - verctl pilots the setup command before qctl and forkctl take it (operator, 2026-11-13).
+
+  - id: CTC-059
+    title: Run the ctl checks wherever a GitHub App is installed
+    scope: "ctl-core and every ctl CLI: verctl, qctl, forkctl"
+    outcome: >-
+      A spike shows whether a GitHub App can run each ctl CLI check on every pull
+      request of the repositories it is installed on, with no workflow in those
+      repositories.
+    kind: research
+    open: >-
+      Nobody has compared an App with a reusable workflow for running the checks, or
+      priced where an App would run them.
+    notes:
+      - The operator asked for this beside CTC-058, so that the checks run everywhere a tool is used or the App is installed (operator, 2026-11-13).
+      - 'Prior art in this organization: the Kodus GitHub App reviews every pull request of the repositories it covers.'
+      - verctl pilots it, starting with the registry checks of the release design in verctl docs/research/2026-11-13-atomic-releases.md.
 
 archive:
   - id: CTC-054
