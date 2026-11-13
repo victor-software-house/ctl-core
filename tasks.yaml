@@ -237,6 +237,18 @@ queue:
       - The report stays on stdout in pretty and JSON output while progress goes to stderr.
       - Diagnostics render as a warning line, GitHub annotations capped at 10 per level per step, a JSON diagnostics array, and a step summary.
       - verctl uses it for release and release --dry-run.
+
+  - id: CTC-060
+    title: Read a YAML tag through the declared input
+    scope: input
+    outcome: "A CLI reads the tag of a config value through ctl_core::input::Tagged, so a value such as `code_span_size: !override 0` keeps its tag beside the value, an untagged enum included."
+    blocked_by: []
+    acceptance:
+      - ctl_core::input::Tagged re-exports serde-saphyr Tagged, and Input::parse reads `!override [Acme]` into Tagged<an untagged enum> as the list Acme with the tag !override, with a test.
+      - ctl-core requires vsh-serde-saphyr 0.0.4, the fork release whose Tagged gives the inner type the plain node.
+    notes:
+      - '2026-11-13, hakkiri HKR-069 marks a forced setting with the YAML tag !override; serde-saphyr 0.0.3 read a tagged node into an untagged enum as the map {override: value}, so the fork patch tagged-plain-value fixed it in vsh-serde-saphyr 0.0.4.'
+    plan: openspec/changes/input-tagged/proposal.md
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
