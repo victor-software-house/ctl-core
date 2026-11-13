@@ -218,6 +218,25 @@ queue:
       - '2026-11-13, operator decision: the shell stays a required argument, as in mise, fnox, uv, rustup and chezmoi; the error detects both the parent shell and the system shell.'
       - 2026-11-13, Homebrew's Utils::Shell reads $SHELL as the preferred shell, and runs `ps -p PPID -o ucomm=` for the parent shell; both go through from_path. Output a shell evaluates, such as `brew --env` and `command-not-found-init`, tries the parent first. Advice for a profile file, in `caveats.rb`, tries $SHELL first. `brew --env` detects the shell only with `--shell=auto`.
       - 2026-11-13, gh completion with no -s prints the bash script. That silent default gives a zsh user the bash script.
+
+  - id: CTC-036
+    title: Live regions, progress, spinners and prompts
+    scope: ctl-term/, ctl-layout/
+    outcome: >-
+      A CLI streams progress to stderr while the report stays on stdout: a live region on a terminal, a GitHub Actions group per step, or plain start and end lines, with diagnostics that render as a warning line, a GitHub annotation, JSON and a step summary.
+    notes:
+      - Phase 3 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md, decision 14.
+      - CTC-034 shipped on 2026-11-09, so the engine this row waited for exists.
+      - 'Mode by detection, no flag needed: live when stderr is a terminal; github when GITHUB_ACTIONS=true; plain otherwise. A long-only --progress <live|plain|github> overrides it, and --quiet keeps only failures (operator, 2026-11-13).'
+      - Diagnostics carry a level, a code, and an optional file and line. GitHub allows 10 annotations per level per step, so the tenth one counts the rest. The step summary lists them all.
+      - verctl pilots it for release, release --dry-run, check and docs.
+      - 'Prior art: turbo groups logs on GitHub Actions only; nextest and cargo turn the live bar off in CI; mise summary prints one line per passing task.'
+    blocked_by: []
+    acceptance:
+      - ctl-core exposes a progress stream with live, plain and github modes, picked by detection and overridable by --progress.
+      - The report stays on stdout in pretty and JSON output while progress goes to stderr.
+      - Diagnostics render as a warning line, GitHub annotations capped at 10 per level per step, a JSON diagnostics array, and a step summary.
+      - verctl uses it for release and release --dry-run.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
@@ -258,17 +277,6 @@ horizon:
     open: Starts after CTC-034 ships the engine.
     notes:
       - Phase 2 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md, decision 14.
-
-  - id: CTC-036
-    title: Live regions, progress, spinners and prompts
-    scope: ctl-term/, ctl-layout/
-    outcome: >-
-      A CLI redraws a live region on a terminal and prints plain lines otherwise,
-      with a progress bar, a spinner, a confirmation prompt and an echo-off secret prompt.
-    kind: deferred
-    open: Starts after CTC-034 ships the engine.
-    notes:
-      - Phase 3 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md, decision 14.
 
   - id: CTC-037
     title: Render bundled Markdown in the terminal
