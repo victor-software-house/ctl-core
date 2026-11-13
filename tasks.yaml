@@ -203,17 +203,15 @@ queue:
     title: Detect the running and login shell for shell verbs
     scope: shell, completion
     outcome: >-
-      ctl-core reads the shell a command runs in and the user's login shell, and the
-      completion verb's missing-shell error suggests the script for each, in the order
-      Homebrew uses.
+      ctl-core reads the shell a command runs in and the user's login shell, and the completion verb's missing-shell error suggests the script for each, login shell first, as Homebrew orders profile-file advice.
     blocked_by:
       - CTC-056
     acceptance:
       - Shell::from_path maps a path or name to a Shell by its basename, with a version suffix such as zsh-5.9 removed, and returns None for any other shell.
       - A resolved_ reader returns the parent process's shell, and another returns the shell $SHELL names; each returns None when it cannot tell.
-      - With no shell, completion fails with exit code 2 and suggests the running shell's command line first and the login shell's second when they differ, each with the startup-file line for that shell.
       - Tests cover a nested shell whose parent differs from $SHELL, an unset $SHELL, an unknown shell name, and a versioned name.
       - rawr, verctl and qctl get the new error by bumping ctl-core, with no change to their own code.
+      - With no shell, completion fails with exit code 2 and suggests the login shell's ($SHELL) command line first and the running shell's second when they differ, each with the startup-file line for that shell, as Homebrew orders profile-file advice.
     links:
       - https://github.com/Homebrew/brew/blob/main/Library/Homebrew/utils/shell.rb
     notes:
