@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Input, Limits, Place, Problem, Written};
+use ctl_core::input::{FieldPath, Input, Limits, Place, Problem, Tagged, Written};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
@@ -916,4 +916,41 @@ fn a_frontmatter_entry_is_placed_in_the_whole_file() {
     let (matter, _) = file.frontmatter().unwrap();
     let entries = matter.top_level().unwrap();
     assert_eq!(&matter.text()[entries[0].value.clone()], "A page");
+}
+
+/// A setting that is a list or a word, read as serde reads an untagged enum.
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+enum Setting {
+    List(Vec<String>),
+    Word(String),
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Tags {
+    styles: Tagged<Setting>,
+    level: Tagged<Setting>,
+}
+
+#[test]
+fn a_field_keeps_its_tag_and_an_untagged_enum_reads_the_plain_value() {
+    let input = Input::new(
+        "hakkiri.yaml",
+        indoc! {"
+        styles: !override [Acme]
+        level: warning
+    "},
+    );
+    let tags: Tags = input.parse().unwrap();
+    assert_eq!(
+        tags.styles,
+        Tagged(
+            Setting::List(vec!["Acme".to_owned()]),
+            Some("!override".to_owned())
+        )
+    );
+    assert_eq!(
+        tags.level,
+        Tagged(Setting::Word("warning".to_owned()), None)
+    );
 }

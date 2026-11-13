@@ -31,6 +31,7 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
   - `Input::place` turns a `FieldPath`, the steps down to a field, into its line and column, so a CLI places a problem of its own as the loader places garde's.
   - `Input::place_key` gives the line and column of the key instead, for a fault about the key itself.
   - `Input::flattened` declares a field that `#[serde(flatten)]` puts under its parent, so its problems print and sit where the file writes them.
+  - `Tagged<T>` reads a field with its YAML tag, so a CLI can give a tag such as `!override` a meaning of its own.
   - `Input::top_level` lists the entries of the root mapping or table with the byte range of each value, how it is written and its string.
 
 ## Example

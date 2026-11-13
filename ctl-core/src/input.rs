@@ -63,6 +63,12 @@ use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "input-yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
+/// A value and the YAML tag written on its node, such as `!override` in
+/// `code_span_size: !override 0`: `Tagged(0, Some("!override".into()))`.
+/// A node with no tag reads as `Tagged(value, None)`, and an untagged enum
+/// inside reads the plain value of a tagged node.
+#[cfg(feature = "input-yaml")]
+pub use serde_saphyr::Tagged;
 
 /// What a placing answers with for a key of the path: where its value starts,
 /// or where the key itself is written.
