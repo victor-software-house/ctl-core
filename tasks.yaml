@@ -190,9 +190,9 @@ queue:
     blocked_by: []
     acceptance:
       - An argument can register a suggester through the public App or parser API, and a verb flattened from ctl-core registers its own with no consumer code.
-      - A missing-argument error for an argument with a suggester prints Clap's message, then each suggested command line, and its JSON error carries the suggestions as data with no ANSI.
       - A suggester that suggests nothing leaves the error as Clap writes it.
       - "The exit code stays Clap's usage code, 2: a suggestion never runs anything."
+      - A missing-argument error for an argument with a suggester prints Clap's message, then each suggested command line. Its JSON error holds the suggestions as data, with no ANSI.
     links:
       - https://github.com/clap-rs/clap/blob/master/clap_builder/src/error/kind.rs
     notes:
@@ -211,13 +211,13 @@ queue:
       - A resolved_ reader returns the parent process's shell, and another returns the shell $SHELL names; each returns None when it cannot tell.
       - Tests cover a nested shell whose parent differs from $SHELL, an unset $SHELL, an unknown shell name, and a versioned name.
       - rawr, verctl and qctl get the new error by bumping ctl-core, with no change to their own code.
-      - With no shell, completion fails with exit code 2 and suggests the login shell's ($SHELL) command line first and the running shell's second when they differ, each with the startup-file line for that shell, as Homebrew orders profile-file advice.
+      - With no shell, completion fails with exit code 2 and suggests the login shell's command line first, from $SHELL. When the running shell differs, its command line follows. Each comes with the startup-file line for its shell, as Homebrew orders profile-file advice.
     links:
       - https://github.com/Homebrew/brew/blob/main/Library/Homebrew/utils/shell.rb
     notes:
       - '2026-11-13, operator decision: the shell stays a required argument, as in mise, fnox, uv, rustup and chezmoi; the error detects both the parent shell and the system shell.'
-      - 2026-11-13, Homebrew's Utils::Shell reads $SHELL as preferred and runs ps -p PPID -o ucomm= as parent, both through from_path. Output a shell evaluates (brew --env, command-not-found-init) tries the parent first; advice for a profile file (caveats) tries $SHELL first. brew --env asks for detection with --shell=auto.
-      - '2026-11-13, gh completion with no -s prints the bash script, which shows the cost of a silent default: a zsh user gets bash.'
+      - 2026-11-13, Homebrew's Utils::Shell reads $SHELL as the preferred shell, and runs `ps -p PPID -o ucomm=` for the parent shell; both go through from_path. Output a shell evaluates, such as `brew --env` and `command-not-found-init`, tries the parent first. Advice for a profile file, in `caveats.rb`, tries $SHELL first. `brew --env` detects the shell only with `--shell=auto`.
+      - 2026-11-13, gh completion with no -s prints the bash script. That silent default gives a zsh user the bash script.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
