@@ -179,6 +179,45 @@ queue:
     notes:
       - "2026-11-11, hakkiri HKR-049 needs it for front matter: yamled 0.0.13 lists a mapping's entries, serde-saphyr types each value, and the TOML tree holds the spans."
       - '2026-11-12, found by the hakkiri HKR-049 front matter probe against Vale 66bbb85: top_level gave the parse error for a repeated key, a merge key or a .inf or .NaN value, and left out a number or null key, where Vale lints the values of all of them. It reads under its own serde-saphyr options now, and lists a scalar key by its text.'
+
+  - id: CTC-056
+    title: Suggest the missing value in a parse error
+    scope: "app: parse errors"
+    outcome: >-
+      When a required argument is missing, the error names the full command line to
+      run with a value the CLI suggests, for any verb of any ctl CLI, in pretty and JSON
+      output.
+    blocked_by: []
+    acceptance:
+      - An argument can register a suggester through the public App or parser API, and a verb flattened from ctl-core registers its own with no consumer code.
+      - A suggester that suggests nothing leaves the error as Clap writes it.
+      - "The exit code stays Clap's usage code, 2: a suggestion never runs anything."
+      - A missing-argument error for an argument with a suggester prints Clap's message, then each suggested command line. Its JSON error holds the suggestions as data, with no ANSI.
+    links:
+      - https://github.com/clap-rs/clap/blob/master/clap_builder/src/error/kind.rs
+    notes:
+      - '2026-11-13, operator decision: a missing shell for completion stays an error, and the better error is a general ctl-core facility, not wording special to that verb.'
+      - 2026-11-13, App::clap_error prints error.to_string() unchanged today, so no hint can reach the user.
+
+  - id: CTC-057
+    title: Detect the running and login shell for shell verbs
+    scope: shell, completion
+    outcome: >-
+      ctl-core reads the shell a command runs in and the user's login shell, and the completion verb's missing-shell error suggests the script for each, login shell first, as Homebrew orders profile-file advice.
+    blocked_by:
+      - CTC-056
+    acceptance:
+      - Shell::from_path maps a path or name to a Shell by its basename, with a version suffix such as zsh-5.9 removed, and returns None for any other shell.
+      - A resolved_ reader returns the parent process's shell, and another returns the shell $SHELL names; each returns None when it cannot tell.
+      - Tests cover a nested shell whose parent differs from $SHELL, an unset $SHELL, an unknown shell name, and a versioned name.
+      - rawr, verctl and qctl get the new error by bumping ctl-core, with no change to their own code.
+      - With no shell, completion fails with exit code 2 and suggests the login shell's command line first, from $SHELL. When the running shell differs, its command line follows. Each comes with the startup-file line for its shell, as Homebrew orders profile-file advice.
+    links:
+      - https://github.com/Homebrew/brew/blob/main/Library/Homebrew/utils/shell.rb
+    notes:
+      - '2026-11-13, operator decision: the shell stays a required argument, as in mise, fnox, uv, rustup and chezmoi; the error detects both the parent shell and the system shell.'
+      - 2026-11-13, Homebrew's Utils::Shell reads $SHELL as the preferred shell, and runs `ps -p PPID -o ucomm=` for the parent shell; both go through from_path. Output a shell evaluates, such as `brew --env` and `command-not-found-init`, tries the parent first. Advice for a profile file, in `caveats.rb`, tries $SHELL first. `brew --env` detects the shell only with `--shell=auto`.
+      - 2026-11-13, gh completion with no -s prints the bash script. That silent default gives a zsh user the bash script.
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker
