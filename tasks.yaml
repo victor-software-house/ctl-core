@@ -327,6 +327,22 @@ horizon:
       - verctl instructions held a 473-line Version PR section with no subheading, and its skill held 170 lines under one heading, until a hand split into sections of 22 lines or fewer.
       - The operator asked for oversized sections and headless prose blocks to be forbidden in every operator document, and for the mechanism to be analysed first (operator, 2026-11-10).
 
+  - id: CTC-058
+    title: Set up a ctl CLI in a repository with one command
+    scope: "ctl-core and every ctl CLI: verctl, qctl, forkctl"
+    outcome: >-
+      A spike shows how one command sets up a ctl CLI in a repository and opens the
+      pull request that carries the setup.
+    kind: research
+    open: >-
+      Nobody has surveyed what each CLI asks a repository to set up by hand, or how
+      an installer could do it.
+    notes:
+      - '2026-11-13, each repository wires a CLI by hand: the git:: task include, the pin, the release workflow caller, the App secrets, the checks in verify, and the hooks.'
+      - '2026-11-13, the ledger check runs in verify only where a repository lists it: templates does, and verctl, qctl, forkctl and ctl-core do not.'
+      - 'Candidates to compare: a setup verb in each CLI on a ctl-core primitive, a Copier piece, and a GitHub App that installs a workflow and opens a pull request.'
+      - The operator asked for this as a horizon spike, not for now (operator, 2026-11-13).
+
 archive:
   - id: CTC-054
     title: Place a key as well as a value
