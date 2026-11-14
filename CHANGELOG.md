@@ -1,5 +1,10 @@
 # Changelog
 
+## ctl-core 0.7.6
+
+- The `json` feature enables only `serde`, and `view` enables `serde_json` with it.
+  Only `view` writes JSON, so `json` alone builds no `serde_json` ([#292](https://github.com/victor-software-house/ctl-core/pull/292)).
+
 ## ctl-core 0.7.5
 
 - `ctl_core::input::Tagged` re-exports serde-saphyr's `Tagged<T>`, so a config field keeps its YAML tag beside its value: `styles: !override [Acme]` reads into `Tagged<T>` as `[Acme]` with the tag `!override`.
