@@ -145,7 +145,7 @@ pub(crate) fn emit_selected<C: CommandFactory>(
 ) -> io::Result<()> {
     let (command, is_root) = help_command::<C>(args);
     let groups = if is_root { groups } else { &[] };
-    options.print_for(Stream::Stdout, &render(command, detail(args), groups))
+    options.print_for(Stream::Stdout, &render(command, detail::<C>(args), groups))
 }
 
 /// The summary help for the command `args` select, to stderr. Clap asks for
@@ -181,19 +181,16 @@ enum Detail {
     Long,
 }
 
-/// The detail `args` ask for: the last of `-h` and `--help` before `--`, or
-/// the long form for the `help` subcommand.
-fn detail(args: &[String]) -> Detail {
-    let mut detail = Detail::Long;
-    for value in args.iter().skip(1) {
-        match value.as_str() {
-            "--" => break,
-            "-h" => detail = Detail::Short,
-            "--help" => detail = Detail::Long,
-            _ => {}
-        }
+/// The detail a help request in `args` asks for, as Clap reads the flag
+/// that stopped it: the long form for `--help` and the `help` subcommand,
+/// and the summary for `-h`.
+fn detail<C: CommandFactory>(args: &[String]) -> Detail {
+    let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
+    if parser::wants_long_help::<C>(&raw) {
+        Detail::Long
+    } else {
+        Detail::Short
     }
-    detail
 }
 
 /// The command `args` select, and whether it is the root.
@@ -494,7 +491,7 @@ fn description(arg: &clap::Arg, detail: Detail) -> Text {
 mod tests {
     use clap::{CommandFactory, Parser};
 
-    use super::{document, help_command, try_emit_from};
+    use super::{Detail, detail, document, help_command, try_emit_from};
     use crate::color::ColorMode;
     use crate::flags::{DryRunArgs, OutputArgs};
     use crate::render::RenderOptions;
@@ -581,6 +578,23 @@ mod tests {
         let text = document(command).render(RenderOptions::new(ColorMode::Never).width(80));
         assert!(text.contains("[env: TOY_CONFIG]"), "{text}");
         assert!(!text.contains("TOY_TOKEN"), "{text}");
+    }
+
+    #[test]
+    fn the_detail_follows_the_help_flag_clap_reads() {
+        let cases = [
+            (&["toy", "-h"][..], Detail::Short),
+            (&["toy", "--help"][..], Detail::Long),
+            (&["toy", "-h", "--help"][..], Detail::Short),
+            (&["toy", "--help", "-h"][..], Detail::Long),
+            (&["toy", "status", "-qh"][..], Detail::Short),
+            (&["toy", "status", "-m", "--help", "-h"][..], Detail::Short),
+            (&["toy", "help", "status"][..], Detail::Long),
+        ];
+        for (args, expected) in cases {
+            let args = args.iter().copied().map(String::from).collect::<Vec<_>>();
+            assert_eq!(detail::<Toy>(&args), expected, "{args:?}");
+        }
     }
 
     #[test]
