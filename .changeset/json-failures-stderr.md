@@ -1,5 +1,5 @@
 ---
-ctl-core: patch
+ctl-core: minor
 ---
 
 Every JSON failure now goes to stderr, and stdout stays empty after a failed run.
