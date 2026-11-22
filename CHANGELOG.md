@@ -1,5 +1,38 @@
 # Changelog
 
+## ctl-core 0.8.0-rc.1
+
+- Help renders more of what Clap declares.
+  `after_help` shows as an Examples section on `-h` and `--help`, and `after_long_help` replaces it on `--help`.
+  `--help` and the `help` subcommand show `long_about` and each argument's `long_help`, falling back to `about` and `help`.
+  A command's visible aliases follow its name, as in `ls, list` ([#303](https://github.com/victor-software-house/ctl-core/pull/303)).
+
+  `App::command_group(heading, commands)` lists some of the root's commands under a heading of their own, in the order given.
+  Each call adds one group, and the root's other commands follow under Commands.
+- A CLI can report its own refusals of an input in ctl-core's format.
+  `InputError::whole(name, message)` refuses the whole input, on no line.
+  `InputError::try_new(name, problems)` carries a list of `Problem`s, each placed with `Input::place` or on no line, and returns `None` for an empty list.
+  Both print as ctl-core's own problems do, one per line as `name:line:column: field: message` ([#304](https://github.com/victor-software-house/ctl-core/pull/304)).
+- Every JSON failure now goes to stderr, and stdout stays empty after a failed run.
+  That covers `View::emit_err`, a parse error, a handler error, and a result whose outcome is an error.
+  A caller that read the error envelope from stdout reads it from stderr instead ([#301](https://github.com/victor-software-house/ctl-core/pull/301)).
+
+  `ErrorBody` gains an optional `kind`, which JSON leaves out when it is unset, and `ErrorBody::kind` sets it.
+  A parse error's envelope sets `kind` to `usage`.
+
+  A handler returns the new `CommandError` to give a failure its own exit code and `kind` value.
+  `App` finds it anywhere in the `anyhow` chain, as the error or as context on its cause.
+  A plain `anyhow` error still exits 1 with no `kind`.
+- The `json` feature enables only `serde`, and `view` enables `serde_json` with it.
+  Only `view` writes JSON, so `json` alone builds no `serde_json` ([#292](https://github.com/victor-software-house/ctl-core/pull/292)).
+- A parse error now reads `<bin>: <message>`, without Clap's `error:` prefix, in pretty output and in the JSON envelope's `message` ([#302](https://github.com/victor-software-house/ctl-core/pull/302)).
+
+  `OutputArgs`, `FormatArgs`, and `FormatLong` gain `--json`, a shorthand for `--format json` that sets their `format` field.
+  Naming `--json` beside a `--format` other than `json` is a usage error.
+  With `env_prefix`, `--json` reads `<PREFIX>_JSON`, either flag on the command line wins over the other's variable, and `<PREFIX>_JSON` wins over `<PREFIX>_FORMAT`.
+  A CLI that calls `Surface::require_shorts` adds `--json` to its allow list, since `--json` has no short form.
+  A parse error after `--json` is JSON, as it is after a long `--format json`.
+
 ## ctl-core 0.7.5
 
 - `ctl_core::input::Tagged` re-exports serde-saphyr's `Tagged<T>`, so a config field keeps its YAML tag beside its value: `styles: !override [Acme]` reads into `Tagged<T>` as `[Acme]` with the tag `!override`.
