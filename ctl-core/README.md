@@ -19,7 +19,7 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
 ## What it provides
 
 - `-h`/`--help` and `-V`/`--version`, rendered as documents and wrapped to the terminal's width.
-- Shared flags to flatten into the parser: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`, and `-q`/`--quiet`.
+- Shared flags to flatten into the parser: `-c`/`--color`, `-f`/`--format`, `--json` for `--format json`, `-n`/`--dry-run`, and `-q`/`--quiet`.
   With `#[command(env_prefix = "MYCTL")]` on the root parser, every long option also reads `MYCTL_<LONG>` from the environment.
 - Success on stdout and failure on stderr, in JSON as in human output, so stdout is empty after a failure.
   JSON is never coloured, and quiet hides only successful human output.

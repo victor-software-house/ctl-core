@@ -77,6 +77,13 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
         .flatten()
         .copied()
         .unwrap_or_default();
+    let json = matches
+        .try_get_one::<bool>("json")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or(false);
+    let format = flags::resolved_format(format, json, &matches).unwrap_or(OutputFormat::Json);
     let no_color = matches
         .try_get_one::<bool>("no_color")
         .ok()

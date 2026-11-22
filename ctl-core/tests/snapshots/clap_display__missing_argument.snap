@@ -15,6 +15,7 @@ Output
 ┌────┬────────────┬─────────────────────┬──────────────────────────────────────┐
 │ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default:      │
 │    ┆            ┆                     ┆ pretty]                              │
+│    ┆ --json     ┆                     ┆ Shorthand for `--format json`        │
 │ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output colour policy. JSON    │
 │    ┆            ┆                     ┆ never contains ANSI [default: auto]  │
 │    ┆ --no-color ┆                     ┆ Force colourless pretty output. Wins │

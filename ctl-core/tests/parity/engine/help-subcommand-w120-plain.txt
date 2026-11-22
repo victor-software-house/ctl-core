@@ -15,6 +15,7 @@ Options
 Output
 ┌────┬────────────┬─────────────────────┬─────────────────────────────────────────────────────────────────────────────┐
 │ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [default: pretty] [env: LEDGERCTL_FORMAT]             │
+│    ┆ --json     ┆                     ┆ Shorthand for `--format json` [env: LEDGERCTL_JSON]                         │
 │ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output colour policy. JSON never contains ANSI [default: auto] [env: │
 │    ┆            ┆                     ┆ LEDGERCTL_COLOR]                                                            │
 │    ┆ --no-color ┆                     ┆ Force colourless pretty output. Wins over `--color`                         │

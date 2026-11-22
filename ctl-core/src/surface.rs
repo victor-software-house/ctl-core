@@ -825,12 +825,13 @@ mod tests {
         let surface = Surface::new::<OwnedFile>("x");
         let error = surface
             .require_shorts([])
-            .expect_err("format/color/no-color are long-only");
+            .expect_err("format/json/color/no-color are long-only");
         assert!(error.contains("--format"), "{error}");
+        assert!(error.contains("--json"), "{error}");
         assert!(error.contains("--color"), "{error}");
         assert!(error.contains("--no-color"), "{error}");
         surface
-            .require_shorts(["--format", "--color", "--no-color"])
+            .require_shorts(["--format", "--json", "--color", "--no-color"])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 
@@ -841,9 +842,9 @@ mod tests {
     }
 
     #[test]
-    fn output_args_only_exempt_no_color() {
+    fn output_args_only_exempt_json_and_no_color() {
         Surface::new::<DefaultOutput>("x")
-            .require_shorts(["--no-color"])
+            .require_shorts(["--json", "--no-color"])
             .unwrap_or_else(|error| panic!("{error}"));
     }
 

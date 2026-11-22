@@ -1,5 +1,6 @@
-//! Help and version output when Clap stops a parse: ctl-core renders the
-//! help, so it needs none of Clap's help or color features.
+//! Help, version, and error output when Clap stops a parse: ctl-core renders
+//! the help, so it needs none of Clap's help or color features. A parse error
+//! reads `toy: <message>`, without Clap's `error:` prefix.
 //!
 //! The help is a reviewed snapshot in `tests/snapshots`. Clap's derive drops
 //! the one trailing period of a doc comment's first paragraph, so the
@@ -35,6 +36,13 @@ enum Cmd {
         /// The row to show.
         id: String,
     },
+    /// Copy one row to another.
+    Copy {
+        /// The row to copy.
+        from: String,
+        /// The row to write.
+        to: String,
+    },
 }
 
 #[derive(Serialize)]
@@ -53,7 +61,7 @@ fn run(args: &[&str]) -> ExitCode {
         .view(|cli| cli.output.view())
         .run_from(iter::once("toy").chain(args.iter().copied()), |cli| {
             Ok(match cli.command {
-                Cmd::Show { id } => Shown { id },
+                Cmd::Show { id } | Cmd::Copy { from: id, .. } => Shown { id },
             })
         })
 }
@@ -65,6 +73,7 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
     let Some(output) = child::in_child(
         CHILD,
         "a_missing_argument_prints_the_subcommand_help_to_stderr",
+        &[],
     ) else {
         assert_eq!(child::case(|| run(&["show"])), ExitCode::from(2));
         return;
@@ -76,9 +85,42 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
 
 #[test]
 fn the_version_prints_clap_s_plain_line() {
-    let Some(output) = child::in_child(CHILD, "the_version_prints_clap_s_plain_line") else {
+    let Some(output) = child::in_child(CHILD, "the_version_prints_clap_s_plain_line", &[]) else {
         assert_eq!(child::case(|| run(&["--version"])), ExitCode::SUCCESS);
         return;
     };
     assert_eq!(child::case_stdout(&output), "toy 1.2.3\n");
+}
+
+#[test]
+fn a_missing_argument_is_an_error_line_without_claps_prefix() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_missing_argument_is_an_error_line_without_claps_prefix",
+        &[],
+    ) else {
+        assert_eq!(child::case(|| run(&["copy", "a"])), ExitCode::from(2));
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    insta::assert_snapshot!("parse_error_missing_argument", stderr);
+}
+
+#[test]
+fn json_before_a_bad_argument_makes_the_error_json() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "json_before_a_bad_argument_makes_the_error_json",
+        &[],
+    ) else {
+        assert_eq!(
+            child::case(|| run(&["--json", "show", "--bogus"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    insta::assert_snapshot!("parse_error_json_flag", stderr);
 }

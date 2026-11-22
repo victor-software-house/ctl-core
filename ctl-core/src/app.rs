@@ -489,7 +489,8 @@ where
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
-            let mut body = ErrorBody::new(&self.bin, error.to_string().trim());
+            let rendered = error.to_string();
+            let mut body = ErrorBody::new(&self.bin, parse_error_message(&rendered));
             if error.exit_code() == 2 {
                 body = body.kind(USAGE_KIND);
             }
@@ -519,10 +520,11 @@ fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
 /// `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller that asked for JSON
 /// and pipes it to `jq`.
 ///
-/// So a long `--format json` or `--format=json` before `--` makes the error
-/// JSON, which never carries ANSI. The last `--format` value Clap accepts
-/// wins in either direction, as it does in a full parse, so a later
-/// `--format pretty` undoes an earlier JSON choice.
+/// So `--json`, or a long `--format json` or `--format=json`, before `--`
+/// makes the error JSON, which never carries ANSI. Among `--format` values the
+/// last one Clap accepts wins in either direction, as it does in a full parse,
+/// so a later `--format pretty` undoes an earlier `--format json`. `--json`
+/// asks for JSON wherever it stands.
 ///
 /// The short `-f` is left out, because a CLI may bind it to another
 /// flag. The scan is lexical, so a domain option whose value happens to be
@@ -534,6 +536,10 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
     while let Some(arg) = args.next() {
         let value = match arg {
             Some("--") => break,
+            Some("--json") => {
+                last = Some(OutputFormat::Json);
+                break;
+            }
             Some("--format") => args.next().flatten(),
             Some(arg) => arg.strip_prefix("--format="),
             None => None,
@@ -551,6 +557,12 @@ fn parse_error_view(raw: &[OsString], mut view: View) -> View {
         }
     }
     view
+}
+
+/// Clap's rendered error without its leading `error: `, so a parse error reads
+/// `bin: message` like every other error.
+fn parse_error_message(rendered: &str) -> &str {
+    rendered.trim().trim_prefix("error: ")
 }
 
 fn is_clap_display(kind: ErrorKind) -> bool {
@@ -578,7 +590,9 @@ mod tests {
     use ctl_text::anstyle::Effects;
     use serde::Serialize;
 
-    use super::{App, BrokenPipe, is_clap_display, parse_error_view, raw_view};
+    use super::{
+        App, BrokenPipe, is_clap_display, parse_error_message, parse_error_view, raw_view,
+    };
     use crate::document::{Document, Fields};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
@@ -686,6 +700,13 @@ mod tests {
                 &["toy", "--bogus", "--format=pretty", "--format", "json"][..],
                 true,
             ),
+            (&["toy", "--json", "status", "--bogus"][..], true),
+            (&["toy", "status", "--bogus", "--json"][..], true),
+            (
+                &["toy", "--json", "--bogus", "--format", "pretty"][..],
+                true,
+            ),
+            (&["toy", "status", "--bogus", "--", "--json"][..], false),
         ];
         for (argv, json) in cases {
             let raw: Vec<OsString> = argv.iter().map(OsString::from).collect();
@@ -708,6 +729,15 @@ mod tests {
             !parse_error_view(&raw, json_first).format().is_json(),
             "a later --format pretty undoes the pre-parse's JSON"
         );
+    }
+
+    #[test]
+    fn a_parse_error_drops_claps_error_prefix() {
+        assert_eq!(
+            parse_error_message("error: unexpected argument found\n"),
+            "unexpected argument found"
+        );
+        assert_eq!(parse_error_message("no prefix\n"), "no prefix");
     }
 
     #[test]

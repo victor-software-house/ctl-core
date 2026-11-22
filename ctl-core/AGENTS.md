@@ -7,7 +7,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 ## What it owns
 
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
-- Shared flags: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
+- Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`; a usage error beside another `--format`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
 - Environment binding: `#[command(env_prefix = "VERCTL")]` on a CLI's root parser binds every long option, shared flags included, to `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude.
   - A flag on the command line wins over its variable, the variable over a config file, and the file over the default.
   - `App` runs `flags::env_under_flags` before the parse.
@@ -171,7 +171,8 @@ Every fallible public function documents `# Errors`, with no `missing_errors_doc
 JSON and anything else meant for a parser stays plain whatever the environment says.
 Agent shells set `CLICOLOR_FORCE=1`, `FORCE_COLOR=3`, and `COLORTERM=truecolor`; pretty output may honour them, and the JSON path never does.
 
-A parse error under a long `--format json` is a JSON error even when the bad argument comes first.
+A parse error under a long `--format json` or `--json` is a JSON error even when the bad argument comes first.
+A parse error reads `<bin>: <message>`, without Clap's `error:` prefix.
 A consumer test runs the binary with `CLICOLOR_FORCE=1` and asserts that JSON output holds no ESC byte.
 
 ## Library control
