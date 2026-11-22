@@ -1,5 +1,5 @@
 ---
-ctl-core: patch
+ctl-core: minor
 ---
 
 A parse error now reads `<bin>: <message>`, without Clap's `error:` prefix, in pretty output and in the JSON envelope's `message`.

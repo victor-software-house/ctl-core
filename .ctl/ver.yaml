@@ -6,6 +6,9 @@ prepare:
 packages:
   - name: ctl-core
     path: Cargo.toml
+    # Breaking changes ship as 0.8.0 candidates until the CLI-convention work
+    # is done; patches keep shipping on each Version PR (operator, 2026-11-22).
+    prerelease: rc
 
 # The workspace crates release together at one version, and ctl-core requires
 # ctl-layout, ctl-term, and ctl-text at exactly that version. `prepare`
