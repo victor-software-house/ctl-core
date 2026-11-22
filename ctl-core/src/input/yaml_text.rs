@@ -43,7 +43,7 @@ fn read<T: DeserializeOwned>(
 ) -> Result<T, InputError> {
     serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
         let location = error.location();
-        InputError::of(
+        InputError::new(
             input.name.clone(),
             vec![Problem {
                 line: location
