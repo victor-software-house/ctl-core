@@ -58,7 +58,7 @@ pub use clap::{Args, Parser, Subcommand};
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
 #[cfg(feature = "app")]
-pub use crate::app::{App, BrokenPipe};
+pub use crate::app::{App, BrokenPipe, CommandError};
 pub use crate::color::ColorMode;
 #[cfg(feature = "document")]
 pub use crate::document::{

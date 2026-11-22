@@ -4,8 +4,8 @@
 //! [`ErrorBody`].
 //!
 //! `View::emit_err` writes an `Envelope::Err` for a failure with no model.
-//! The types serialize with the `json` feature and describe themselves with
-//! `schema`.
+//! A JSON failure goes to stderr, and stdout stays empty. The types serialize
+//! with the `json` feature and describe themselves with `schema`.
 //!
 //! ```
 //! use ctl_core::model::{Envelope, ErrorBody, SCHEMA_VERSION};
@@ -66,10 +66,11 @@ mod data {
         },
     }
 
-    /// The payload of a failure envelope: which binary failed, and why.
+    /// The payload of a failure envelope: which binary failed, why, and a word
+    /// that names the failure when the CLI gives one.
     ///
-    /// Build one with [`ErrorBody::new`]. A field can join it in a minor
-    /// release.
+    /// Build one with [`ErrorBody::new`], and set `kind` with
+    /// [`ErrorBody::kind`]. A field can join it in a minor release.
     #[derive(Clone, Debug, Eq, PartialEq)]
     #[non_exhaustive]
     #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
@@ -80,6 +81,15 @@ mod data {
         /// The message to show. Format an `anyhow` error with `{error:#}` to
         /// include its whole chain.
         pub message: String,
+        /// A word a script can match on, such as `not_found`, which stays
+        /// the same when the message is reworded. The CLI names its values.
+        /// JSON leaves the field out when it is `None`, and the schema does
+        /// not require it.
+        #[cfg_attr(
+            feature = "json",
+            serde(default, skip_serializing_if = "Option::is_none")
+        )]
+        pub kind: Option<String>,
     }
 }
 
@@ -106,13 +116,22 @@ impl<T> Envelope<T> {
 }
 
 impl ErrorBody {
-    /// Build an error body from the failing binary's name and a message.
+    /// Build an error body from the failing binary's name and a message, with
+    /// no `kind`.
     #[must_use]
     pub fn new(bin: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             bin: bin.into(),
             message: message.into(),
+            kind: None,
         }
+    }
+
+    /// Set `kind`, the word that names the failure, such as `not_found`.
+    #[must_use]
+    pub fn kind(mut self, kind: impl Into<String>) -> Self {
+        self.kind = Some(kind.into());
+        self
     }
 }
 
@@ -149,5 +168,17 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
         let expect: serde_json::Value = serde_json::from_str(expected).unwrap();
         assert_eq!(value, expect);
+    }
+
+    #[test]
+    fn a_kind_joins_the_error_and_reads_back() {
+        let body = ErrorBody::new("toy", "no such box").kind("not_found");
+        let json = serde_json::to_value(Envelope::<()>::err(body.clone())).unwrap();
+        assert_eq!(json["error"]["kind"], "not_found");
+        let back: ErrorBody = serde_json::from_value(json["error"].clone()).unwrap();
+        assert_eq!(back, body);
+        let without: ErrorBody =
+            serde_json::from_str(r#"{"bin":"toy","message":"failed"}"#).unwrap();
+        assert_eq!(without.kind, None);
     }
 }
