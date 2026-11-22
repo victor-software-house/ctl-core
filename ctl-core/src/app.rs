@@ -46,6 +46,7 @@ use crate::color::ColorMode;
 #[cfg(feature = "completion")]
 use crate::completion;
 use crate::format::OutputFormat;
+use crate::help::CommandGroup;
 #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 use crate::input::{self, Limits};
 use crate::model::ErrorBody;
@@ -122,6 +123,7 @@ pub struct App<C> {
     json_layout_envs: Option<&'static [&'static str]>,
     theme: Option<Theme>,
     broken_pipe: BrokenPipe,
+    command_groups: Vec<CommandGroup>,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -159,6 +161,7 @@ impl<C> App<C> {
             json_layout_envs: None,
             theme: None,
             broken_pipe: BrokenPipe::Ignore,
+            command_groups: Vec::new(),
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -262,6 +265,26 @@ impl<C> App<C> {
     #[must_use]
     pub fn broken_pipe(mut self, policy: BrokenPipe) -> Self {
         self.broken_pipe = policy;
+        self
+    }
+
+    /// List the root's commands `commands` under `heading` in help, in that
+    /// order, as Clap has no heading for a subcommand.
+    ///
+    /// Each call adds one group, and the groups show in the order added. The
+    /// root's other visible commands follow under `Commands`, and a name that
+    /// matches no visible command is skipped. Help for a subcommand shows its
+    /// own commands under `Commands`.
+    #[must_use]
+    pub fn command_group(
+        mut self,
+        heading: impl Into<String>,
+        commands: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.command_groups.push(CommandGroup {
+            heading: heading.into(),
+            commands: commands.into_iter().map(Into::into).collect(),
+        });
         self
     }
 
@@ -433,11 +456,11 @@ where
         }
         if words.len() == 1 && parser::requires_input::<C>() {
             return self.written(
-                help::emit_bare_with_options::<C>(raw_view.render_options()),
+                help::emit_bare_grouped::<C>(raw_view.render_options(), &self.command_groups),
                 ExitCode::from(2),
             );
         }
-        match help::try_emit_from_with_options::<C>(&words, raw_view.render_options()) {
+        match help::try_emit_grouped::<C>(&words, raw_view.render_options(), &self.command_groups) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
             Err(error) => return self.written(Err(error), ExitCode::SUCCESS),
@@ -500,9 +523,9 @@ where
         let written = if kind == ErrorKind::DisplayVersion {
             view::write_stdout(error.to_string().as_bytes())
         } else if kind == ErrorKind::DisplayHelp {
-            help::emit_selected::<C>(args, options)
+            help::emit_selected::<C>(args, options, &self.command_groups)
         } else {
-            help::emit_selected_to_stderr::<C>(args, options)
+            help::emit_selected_to_stderr::<C>(args, options, &self.command_groups)
         };
         self.written(written, code)
     }

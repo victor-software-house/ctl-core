@@ -213,6 +213,9 @@ Each name list is replaceable, and an empty slice disables lookup.
 4. **Quiet is human-success only.** It never hides JSON or errors.
 5. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
    Usage lines wrap without splitting tokens.
+   `-h` shows `about`, each argument's `help`, and `after_help` as an Examples section; `--help` and the `help` subcommand show `long_about`, `long_help`, and `after_long_help`, each falling back to its short form.
+   A command's visible aliases follow its name.
+   Clap has no heading for a subcommand, so `App::command_group` names the root's groups, and the root's other commands follow under Commands.
 
 See [`docs/presentation.md`](../docs/presentation.md).
 

@@ -96,12 +96,7 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<bool> {
-    let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
-    if !parser::wants_help::<C>(&raw) {
-        return Ok(false);
-    }
-    emit_selected::<C>(args, options)?;
-    Ok(true)
+    try_emit_grouped::<C>(args, options, &[])
 }
 
 /// Print the root command's help to stderr, as shown for a bare invocation of
@@ -115,35 +110,102 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 ///
 /// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    options.print_for(Stream::Stderr, &document(C::command()))
+    emit_bare_grouped::<C>(options, &[])
 }
 
-/// Help for the command `args` select, to stdout, as a help request prints it.
+/// [`emit_bare_with_options`] with the root's commands under `groups`.
+pub(crate) fn emit_bare_grouped<C: CommandFactory>(
+    options: RenderOptions,
+    groups: &[CommandGroup],
+) -> io::Result<()> {
+    options.print_for(Stream::Stderr, &render(C::command(), Detail::Short, groups))
+}
+
+/// [`try_emit_from_with_options`] with the root's commands under `groups`.
+pub(crate) fn try_emit_grouped<C: CommandFactory>(
+    args: &[String],
+    options: RenderOptions,
+    groups: &[CommandGroup],
+) -> io::Result<bool> {
+    let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
+    if !parser::wants_help::<C>(&raw) {
+        return Ok(false);
+    }
+    emit_selected::<C>(args, options, groups)?;
+    Ok(true)
+}
+
+/// Help for the command `args` select, to stdout, as a help request prints it:
+/// the summary for `-h`, and the long form for `--help` and the `help`
+/// subcommand.
 pub(crate) fn emit_selected<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
+    groups: &[CommandGroup],
 ) -> io::Result<()> {
-    options.print_for(Stream::Stdout, &document(help_command::<C>(args)))
+    let (command, is_root) = help_command::<C>(args);
+    let groups = if is_root { groups } else { &[] };
+    options.print_for(Stream::Stdout, &render(command, detail(args), groups))
 }
 
-/// Help for the command `args` select, to stderr. Clap asks for it when a
-/// command that requires an argument or a subcommand gets neither.
+/// The summary help for the command `args` select, to stderr. Clap asks for
+/// it when a command that requires an argument or a subcommand gets neither.
 #[cfg(feature = "app")]
 pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
+    groups: &[CommandGroup],
 ) -> io::Result<()> {
-    options.print_for(Stream::Stderr, &document(help_command::<C>(args)))
+    let (command, is_root) = help_command::<C>(args);
+    let groups = if is_root { groups } else { &[] };
+    options.print_for(Stream::Stderr, &render(command, Detail::Short, groups))
 }
 
-fn help_command<C: CommandFactory>(args: &[String]) -> Command {
+/// A heading over some of the root's commands in help, in the order the
+/// heading names them. `App::command_group` builds one.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CommandGroup {
+    pub(crate) heading: String,
+    pub(crate) commands: Vec<String>,
+}
+
+/// How much help a request asks for, as Clap tells `-h` from `--help`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Detail {
+    /// `-h`, a bare invocation, and a missing argument: `about`, each
+    /// argument's `help`, and `after_help`.
+    Short,
+    /// `--help` and the `help` subcommand: `long_about`, each argument's
+    /// `long_help`, and `after_long_help`, each falling back to its short
+    /// form.
+    Long,
+}
+
+/// The detail `args` ask for: the last of `-h` and `--help` before `--`, or
+/// the long form for the `help` subcommand.
+fn detail(args: &[String]) -> Detail {
+    let mut detail = Detail::Long;
+    for value in args.iter().skip(1) {
+        match value.as_str() {
+            "--" => break,
+            "-h" => detail = Detail::Short,
+            "--help" => detail = Detail::Long,
+            _ => {}
+        }
+    }
+    detail
+}
+
+/// The command `args` select, and whether it is the root.
+fn help_command<C: CommandFactory>(args: &[String]) -> (Command, bool) {
     let declared = C::command();
     let mut root = parser::with_help(declared.clone());
     root.build();
     select_command(root, declared, args.get(1..).unwrap_or(&[]))
 }
 
-fn select_command(mut command: Command, mut declared: Command, args: &[String]) -> Command {
+fn select_command(mut command: Command, mut declared: Command, args: &[String]) -> (Command, bool) {
+    let mut is_root = true;
     for value in args {
         if value == "-h" || value == "--help" {
             break;
@@ -166,21 +228,26 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
             continue;
         };
         command = next;
+        is_root = false;
         if let Some(next) = declared_next {
             declared = next;
         }
     }
-    command
+    (command, is_root)
 }
 
-/// Build the help document of a Clap command.
+/// Build the help document of a Clap command, as `-h` shows it.
 ///
 /// The document holds the usage line, the about text, a `Commands` section,
-/// an `Arguments` section, and one section per option help heading
-/// (`Options` when an option names none). ctl-core's `-h/--help` flag and
-/// `help` subcommand are added, and the command is built first, so derived
-/// values such as the version flag are present. Hidden subcommands,
-/// arguments, and options are left out.
+/// an `Arguments` section, one section per option help heading (`Options`
+/// when an option names none), and an `Examples` section from the command's
+/// `after_help`. Each command shows its visible aliases beside its name.
+/// `--help` shows `long_about`, each argument's `long_help`, and
+/// `after_long_help` in their place when the command sets them.
+///
+/// ctl-core's `-h/--help` flag and `help` subcommand are added, and the
+/// command is built first, so derived values such as the version flag are
+/// present. Hidden subcommands, arguments, and options are left out.
 ///
 /// # Panics
 ///
@@ -188,35 +255,108 @@ fn select_command(mut command: Command, mut declared: Command, args: &[String]) 
 /// command definition, as [`parser::verify`] does.
 #[must_use]
 pub fn document(command: Command) -> Document {
+    render(command, Detail::Short, &[])
+}
+
+/// The help document at `detail`, with the commands under `groups` first.
+fn render(command: Command, detail: Detail, groups: &[CommandGroup]) -> Document {
     let mut command = parser::with_help(command);
     command.build();
     let usage = command.render_usage().to_string();
     let mut output =
         Document::new().paragraph(Text::new().span(Role::Heading, usage.trim().to_owned()));
-    if let Some(about) = command.get_about() {
+    let about = match detail {
+        Detail::Short => command.get_about(),
+        Detail::Long => command.get_long_about().or_else(|| command.get_about()),
+    };
+    if let Some(about) = about {
         output = output.paragraph(about.to_string());
     }
-
-    let commands = command
-        .get_subcommands()
-        .filter(|subcommand| !subcommand.is_hide_set())
-        .fold(Table::plain().token_column(0), |table, subcommand| {
-            table.row([
-                Text::plain(subcommand.get_name()),
-                Text::plain(
-                    subcommand
-                        .get_about()
-                        .map_or_else(String::new, ToString::to_string),
-                ),
-            ])
-        });
-    if !commands.is_empty() {
+    output = command_sections(output, &command, groups);
+    output = argument_sections(output, &command, detail);
+    let examples = match detail {
+        Detail::Short => command.get_after_help(),
+        Detail::Long => command
+            .get_after_long_help()
+            .or_else(|| command.get_after_help()),
+    };
+    if let Some(examples) = examples {
+        let text = examples.to_string();
         output = output.section(Section::new(
-            "Commands",
-            Document::new().table(commands.stacked_below(NARROW_HELP_WIDTH, 1)),
+            "Examples",
+            Document::new().verbatim(text.trim_start_matches('\n')),
         ));
     }
+    output
+}
 
+/// One section per group, in the order the groups come, then `Commands` for
+/// the visible commands no group names. A name that matches no visible
+/// command is skipped, so a hidden command stays hidden.
+fn command_sections(mut output: Document, command: &Command, groups: &[CommandGroup]) -> Document {
+    let visible = command
+        .get_subcommands()
+        .filter(|subcommand| !subcommand.is_hide_set())
+        .collect::<Vec<_>>();
+    for group in groups {
+        let members = group.commands.iter().filter_map(|name| {
+            visible
+                .iter()
+                .copied()
+                .find(|subcommand| subcommand.get_name() == name)
+        });
+        output = commands_section(output, group.heading.clone(), members);
+    }
+    let rest = visible.iter().copied().filter(|subcommand| {
+        !groups.iter().any(|group| {
+            group
+                .commands
+                .iter()
+                .any(|name| name == subcommand.get_name())
+        })
+    });
+    commands_section(output, "Commands".to_owned(), rest)
+}
+
+/// `output` with a section of `commands` under `heading`, or unchanged when
+/// there are none.
+fn commands_section<'a>(
+    output: Document,
+    heading: String,
+    commands: impl Iterator<Item = &'a Command>,
+) -> Document {
+    let table = commands.fold(Table::plain().token_column(0), |table, subcommand| {
+        table.row([
+            Text::plain(command_name(subcommand)),
+            Text::plain(
+                subcommand
+                    .get_about()
+                    .map_or_else(String::new, ToString::to_string),
+            ),
+        ])
+    });
+    if table.is_empty() {
+        return output;
+    }
+    output.section(Section::new(
+        heading,
+        Document::new().table(table.stacked_below(NARROW_HELP_WIDTH, 1)),
+    ))
+}
+
+/// The command's name, then its visible aliases: `ls, list`.
+fn command_name(command: &Command) -> String {
+    let mut name = command.get_name().to_owned();
+    for alias in command.get_visible_aliases() {
+        name.push_str(", ");
+        name.push_str(alias);
+    }
+    name
+}
+
+/// The `Arguments` section, then one section per option help heading, with
+/// `Help` last.
+fn argument_sections(mut output: Document, command: &Command, detail: Detail) -> Document {
     let positionals = command
         .get_positionals()
         .filter(|arg| !arg.is_hide_set())
@@ -225,7 +365,7 @@ pub fn document(command: Command) -> Document {
                 Text::new(),
                 Text::new().value(value_label(arg)),
                 Text::new(),
-                description(arg),
+                description(arg, detail),
             ])
         });
     if !positionals.is_empty() {
@@ -272,7 +412,7 @@ pub fn document(command: Command) -> Document {
                     arg.get_long()
                         .map_or_else(Text::new, |value| Text::new().token(format!("--{value}"))),
                     Text::new().value(value_label(arg)),
-                    description(arg),
+                    description(arg, detail),
                 ])
             });
         if !rows.is_empty() {
@@ -315,10 +455,15 @@ fn value_label(arg: &clap::Arg) -> String {
     }
 }
 
-/// The help text, then `[default: …]` and `[env: …]` notes in muted style.
-/// An option marked `hide_env` keeps its variable out of help, as in clap.
-fn description(arg: &clap::Arg) -> Text {
-    let description = arg.get_help().map_or_else(String::new, ToString::to_string);
+/// The help text, `long_help` first at [`Detail::Long`], then `[default: …]`
+/// and `[env: …]` notes in muted style. An option marked `hide_env` keeps its
+/// variable out of help, as in clap.
+fn description(arg: &clap::Arg, detail: Detail) -> Text {
+    let help = match detail {
+        Detail::Short => arg.get_help(),
+        Detail::Long => arg.get_long_help().or_else(|| arg.get_help()),
+    };
+    let description = help.map_or_else(String::new, ToString::to_string);
     let defaults = arg
         .get_default_values()
         .iter()
@@ -441,20 +586,22 @@ mod tests {
     #[test]
     fn help_subcommand_selects_the_requested_command() {
         let args = ["toy", "help", "status"].map(String::from);
-        assert_eq!(help_command::<Toy>(&args).get_name(), "status");
+        assert_eq!(help_command::<Toy>(&args).0.get_name(), "status");
     }
 
     #[test]
     fn subcommand_help_keeps_parent_usage_and_globals() {
-        let command = help_command::<Toy>(&["toy", "status", "--help"].map(String::from));
+        let (command, is_root) =
+            help_command::<Toy>(&["toy", "status", "--help"].map(String::from));
         assert_eq!(command.get_bin_name(), Some("ctl-core status"));
+        assert!(!is_root);
         assert!(command.get_arguments().any(|arg| arg.get_id() == "format"));
     }
 
     #[test]
     fn nested_help_subcommand_selects_the_requested_command() {
         let args = ["toy", "group", "help", "show"].map(String::from);
-        assert_eq!(help_command::<Toy>(&args).get_name(), "show");
+        assert_eq!(help_command::<Toy>(&args).0.get_name(), "show");
     }
 
     #[test]
