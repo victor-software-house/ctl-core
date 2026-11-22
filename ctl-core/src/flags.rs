@@ -1,9 +1,10 @@
 //! The flags every CLI built on ctl-core shares, as Clap structs to flatten
 //! into a parser.
 //!
-//! - [`OutputArgs`] adds `-f/--format`, `-c/--color`, `--no-color`, and
-//!   `-q/--quiet`. [`FormatArgs`], [`FormatLong`], and [`ColorLong`] are the
-//!   variants for a CLI that already owns `-c` or `-f`.
+//! - [`OutputArgs`] adds `-f/--format`, `--json` for `--format json`,
+//!   `-c/--color`, `--no-color`, and `-q/--quiet`. [`FormatArgs`],
+//!   [`FormatLong`], and [`ColorLong`] are the variants for a CLI that already
+//!   owns `-c` or `-f`.
 //! - [`DryRunArgs`] adds `-n/--dry-run`, with `--preview` as an alias.
 //! - [`EnvPrefix`] binds every long option to an environment variable.
 //! - [`chassis_warnings`] and [`warn_opposites`] find repeated or contradictory

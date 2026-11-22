@@ -1,0 +1,13 @@
+---
+source: ctl-core/tests/clap_display.rs
+expression: stderr
+---
+{
+  "status": "err",
+  "schema_version": 1,
+  "error": {
+    "bin": "toy",
+    "message": "unexpected argument found",
+    "kind": "usage"
+  }
+}

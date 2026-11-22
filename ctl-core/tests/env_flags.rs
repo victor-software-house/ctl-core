@@ -106,6 +106,7 @@ fn in_child(test: &str, vars: &[(&str, &str)]) -> bool {
         .args(["--exact", test, "--nocapture", "--test-threads=1"])
         .env(CHILD, test)
         .env_remove("ENVTOY_FORMAT")
+        .env_remove("ENVTOY_JSON")
         .env_remove("ENVTOY_CONFIG")
         .env_remove("ENVTOY_DRY_RUN")
         .env_remove("ENVTOY_PR")
@@ -157,6 +158,34 @@ fn the_flag_wins_over_its_variable() {
     let toy = parse(&["--format", "pretty", "prepare", "--config", "own.yaml"]);
     assert!(!toy.output.format.is_json());
     assert_eq!(config(&toy).0, "own.yaml");
+}
+
+#[test]
+fn json_and_format_on_the_command_line_beat_each_other_s_variable() {
+    if !in_child(
+        "json_and_format_on_the_command_line_beat_each_other_s_variable",
+        &[("ENVTOY_JSON", "true")],
+    ) {
+        return;
+    }
+    assert!(parse(&["prepare"]).output.format.is_json());
+    assert!(
+        !parse(&["--format", "pretty", "prepare"])
+            .output
+            .format
+            .is_json()
+    );
+}
+
+#[test]
+fn json_on_the_command_line_beats_the_format_variable() {
+    if !in_child(
+        "json_on_the_command_line_beats_the_format_variable",
+        &[("ENVTOY_FORMAT", "pretty")],
+    ) {
+        return;
+    }
+    assert!(parse(&["--json", "prepare"]).output.format.is_json());
 }
 
 #[test]

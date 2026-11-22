@@ -165,6 +165,41 @@ fn last_format_wins() {
 }
 
 #[test]
+fn json_is_format_json_in_every_format_struct() {
+    assert!(parse(&["--json", "status"]).output.format.is_json());
+    assert!(parse(&["status", "--json"]).output.format.is_json());
+    assert!(
+        SplitCmd::parse_from(["x", "status", "--json"])
+            .format
+            .format
+            .is_json()
+    );
+    assert!(
+        FileSplit::parse_from(["x", "-f", "tasks.yaml", "--json", "status"])
+            .format
+            .format
+            .is_json()
+    );
+}
+
+#[test]
+fn json_beside_another_format_is_a_usage_error() {
+    for args in [
+        ["--json", "--format", "pretty", "status"],
+        ["--format", "pretty", "status", "--json"],
+    ] {
+        let error = Toy::try_parse_from(["toy"].into_iter().chain(args)).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::ArgumentConflict, "{args:?}");
+    }
+    assert!(
+        parse(&["--format", "json", "status", "--json"])
+            .output
+            .format
+            .is_json()
+    );
+}
+
+#[test]
 fn dry_run_preview_pair_still_parses() {
     assert!(parse(&["--dry-run", "--preview", "status"]).dry.dry_run);
     assert!(parse(&["--preview", "--dry-run", "status"]).dry.dry_run);

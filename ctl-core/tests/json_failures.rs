@@ -131,7 +131,7 @@ fn a_parse_error_writes_the_envelope_to_stderr() {
         json!({
             "status": "err",
             "schema_version": 1,
-            "error": {"bin": "toy", "message": "error: unexpected argument found", "kind": "usage"},
+            "error": {"bin": "toy", "message": "unexpected argument found", "kind": "usage"},
         })
     );
 }
