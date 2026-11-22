@@ -10,11 +10,13 @@
 )]
 #![cfg(feature = "app")]
 
-use std::process::{Command as Process, Output};
-use std::{env, iter};
+use std::iter;
 
 use ctl_core::prelude::*;
 use serde::Serialize;
+
+#[path = "support/child.rs"]
+mod child;
 
 #[derive(Parser)]
 #[command(name = "toy", version = "1.2.3", about = "toy")]
@@ -58,46 +60,13 @@ fn run(args: &[&str]) -> ExitCode {
 
 const CHILD: &str = "CTL_CORE_CLAP_DISPLAY_CHILD";
 
-/// Run `test` in a child and return its output, or `None` when this process
-/// is that child and should run the case. The child writes to a pipe, so
-/// `COLUMNS` and ctl-core's layout variables would set its width and style;
-/// it runs without them, at the fallback width the snapshot holds.
-#[expect(
-    clippy::expect_used,
-    reason = "a test helper: a failure here is the calling test failing"
-)]
-fn in_child(test: &str) -> Option<Output> {
-    if env::var_os(CHILD).as_deref() == Some(test.as_ref()) {
-        return None;
-    }
-    let output = Process::new(env::current_exe().expect("test binary"))
-        .args(["--exact", test, "--nocapture", "--test-threads=1"])
-        .env(CHILD, test)
-        .env_remove("CLICOLOR")
-        .env_remove("CLICOLOR_FORCE")
-        .env_remove("FORCE_COLOR")
-        .env_remove("NO_COLOR")
-        .env_remove("COLORTERM")
-        .env_remove("COLUMNS")
-        .env_remove(DEFAULT_COLUMN_BUFFER_ENV)
-        .env_remove(DEFAULT_RECORD_STYLE_ENV)
-        .env_remove(DEFAULT_LIST_STYLE_ENV)
-        .env_remove(DEFAULT_ROW_SEPARATION_ENV)
-        .output()
-        .expect("spawn child");
-    assert!(
-        output.status.success(),
-        "{}{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    Some(output)
-}
-
 #[test]
 fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
-    let Some(output) = in_child("a_missing_argument_prints_the_subcommand_help_to_stderr") else {
-        assert_eq!(run(&["show"]), ExitCode::from(2));
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_missing_argument_prints_the_subcommand_help_to_stderr",
+    ) else {
+        assert_eq!(child::case(|| run(&["show"])), ExitCode::from(2));
         return;
     };
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -107,11 +76,9 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
 
 #[test]
 fn the_version_prints_clap_s_plain_line() {
-    let Some(output) = in_child("the_version_prints_clap_s_plain_line") else {
-        assert_eq!(run(&["--version"]), ExitCode::SUCCESS);
+    let Some(output) = child::in_child(CHILD, "the_version_prints_clap_s_plain_line") else {
+        assert_eq!(child::case(|| run(&["--version"])), ExitCode::SUCCESS);
         return;
     };
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("toy 1.2.3\n"), "{stdout}");
-    assert!(!stdout.contains('\u{1b}'), "{stdout}");
+    assert_eq!(child::case_stdout(&output), "toy 1.2.3\n");
 }
