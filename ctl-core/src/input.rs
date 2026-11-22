@@ -490,9 +490,8 @@ impl Input {
                 column: place.map(|at| at.column),
                 field,
                 message,
-            })
-            .collect();
-        Err(InputError::of(self.name.clone(), problems))
+            });
+        InputError::try_new(self.name.clone(), problems).map_or(Ok(()), Err)
     }
 
     /// Where `path` is written in the text, or where its nearest written
@@ -628,17 +627,80 @@ fn read_text(path: &Path) -> Result<(String, String), InputError> {
 }
 
 impl InputError {
-    /// A refusal of the whole input, not placed on a line.
-    fn whole(name: String, message: String) -> Self {
-        Self::of(
-            name,
-            vec![Problem {
+    /// The problems a CLI found in the input `name`, in the order given, so
+    /// it reports its own refusals as ctl-core reports garde's. Each
+    /// [`Problem`] is placed with [`Input::place`] or [`Input::problem_at`],
+    /// or carries no line.
+    ///
+    /// Returns `None` when `problems` is empty, since an error with no problem
+    /// would print nothing. So a CLI hands it every check's findings and
+    /// refuses the input only when one turned up.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ctl_core::input::{InputError, Problem};
+    ///
+    /// let refused = InputError::try_new(
+    ///     "compose.yaml",
+    ///     [Problem {
+    ///         line: Some(4),
+    ///         column: Some(5),
+    ///         field: "services.dev.privileged".to_owned(),
+    ///         message: "firescale runs no privileged service".to_owned(),
+    ///     }],
+    /// );
+    /// assert_eq!(
+    ///     refused.map(|error| error.to_string()).as_deref(),
+    ///     Some("compose.yaml:4:5: services.dev.privileged: firescale runs no privileged service")
+    /// );
+    /// assert_eq!(InputError::try_new("compose.yaml", []), None);
+    /// ```
+    #[must_use]
+    pub fn try_new(
+        name: impl Into<String>,
+        problems: impl IntoIterator<Item = Problem>,
+    ) -> Option<Self> {
+        let problems = problems.into_iter().collect::<Vec<_>>();
+        (!problems.is_empty()).then(|| Self {
+            name: name.into(),
+            problems,
+            io_failure: None,
+        })
+    }
+
+    /// A refusal of the whole input `name`, on no line and no field, such as
+    /// a value that only makes sense once the file is read whole.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ctl_core::input::InputError;
+    ///
+    /// let error = InputError::whole("compose.yaml", "the file names no service");
+    /// assert_eq!(error.to_string(), "compose.yaml: the file names no service");
+    /// ```
+    #[must_use]
+    pub fn whole(name: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::one(
+            name.into(),
+            Problem {
                 line: None,
                 column: None,
                 field: String::new(),
-                message,
-            }],
+                message: message.into(),
+            },
         )
+    }
+
+    /// The one problem ctl-core found in the input `name`, with no I/O
+    /// failure.
+    pub(crate) fn one(name: String, problem: Problem) -> Self {
+        Self {
+            name,
+            problems: vec![problem],
+            io_failure: None,
+        }
     }
 
     /// The input `name` could not be read: the failure's text is the one
@@ -647,15 +709,6 @@ impl InputError {
         Self {
             io_failure: Some(error.kind()),
             ..Self::whole(name, error.to_string())
-        }
-    }
-
-    /// The problems found in the input `name`, with no I/O failure.
-    const fn of(name: String, problems: Vec<Problem>) -> Self {
-        Self {
-            name,
-            problems,
-            io_failure: None,
         }
     }
 

@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Input, Limits, Place, Problem, Tagged, Written};
+use ctl_core::input::{FieldPath, Input, InputError, Limits, Place, Problem, Tagged, Written};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use garde::Validate;
 use serde::Deserialize;
@@ -41,6 +41,62 @@ fn problem(line: usize, column: usize, field: &str, message: &str) -> Problem {
         field: field.to_owned(),
         message: message.to_owned(),
     }
+}
+
+#[test]
+fn a_cli_reports_a_whole_file_refusal_in_ctl_core_s_format() {
+    let error = InputError::whole("compose.yaml", "the file names no service");
+    assert_eq!(error.name, "compose.yaml");
+    assert_eq!(error.io_failure(), None);
+    assert_eq!(
+        error.problems,
+        [Problem {
+            line: None,
+            column: None,
+            field: String::new(),
+            message: "the file names no service".to_owned(),
+        }]
+    );
+    assert_eq!(error.to_string(), "compose.yaml: the file names no service");
+}
+
+#[test]
+fn a_cli_reports_its_own_placed_problems_in_ctl_core_s_format() {
+    let input = Input::new(
+        "compose.yaml",
+        indoc! {"
+        services:
+          dev:
+            image: nixos
+            privileged: true
+    "},
+    );
+    let path = FieldPath::root()
+        .key("services")
+        .key("dev")
+        .key("privileged");
+    let place = input.place(&path);
+    assert_eq!(InputError::try_new(input.name(), []), None);
+    let error = InputError::try_new(
+        input.name(),
+        [
+            Problem {
+                line: place.map(|place| place.line),
+                column: place.map(|place| place.column),
+                field: path.to_string(),
+                message: "firescale runs no privileged service".to_owned(),
+            },
+            problem(1, 1, "services", "name one service at most"),
+        ],
+    )
+    .unwrap();
+    assert_eq!(error.io_failure(), None);
+    assert_eq!(
+        error.to_string(),
+        indoc! {"
+            compose.yaml:4:17: services.dev.privileged: firescale runs no privileged service
+            compose.yaml:1:1: services: name one service at most"}
+    );
 }
 
 #[test]

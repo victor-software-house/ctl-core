@@ -43,16 +43,16 @@ fn read<T: DeserializeOwned>(
 ) -> Result<T, InputError> {
     serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
         let location = error.location();
-        InputError::of(
+        InputError::one(
             input.name.clone(),
-            vec![Problem {
+            Problem {
                 line: location
                     .and_then(|at| usize::try_from(at.line()).ok())
                     .map(|line| line + input.lines_before),
                 column: location.and_then(|at| usize::try_from(at.column()).ok()),
                 field: String::new(),
                 message: message(input, error.without_snippet(), budget, raise),
-            }],
+            },
         )
     })
 }

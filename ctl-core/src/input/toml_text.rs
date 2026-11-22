@@ -78,14 +78,14 @@ fn nearest(root: &Spanned<DeValue<'_>>, steps: &[Step], at: At) -> Range<usize> 
 /// A problem with the whole input, placed at `span` when the parser gave one.
 fn refusal(input: &Input, span: Option<Range<usize>>, message: impl Into<String>) -> InputError {
     let place = span.map(|span| position(&input.text, span.start));
-    InputError::of(
+    InputError::one(
         input.name.clone(),
-        vec![Problem {
+        Problem {
             line: place.map(|(line, _)| line + input.lines_before),
             column: place.map(|(_, column)| column),
             field: String::new(),
             message: message.into(),
-        }],
+        },
     )
 }
 
