@@ -66,10 +66,10 @@ mod data {
         },
     }
 
-    /// The payload of a failure envelope: which binary failed, why, and what
-    /// kind of failure it was.
+    /// The payload of a failure envelope: which binary failed, why, and a word
+    /// that names the failure when the CLI gives one.
     ///
-    /// Build one with [`ErrorBody::new`], and add a kind with
+    /// Build one with [`ErrorBody::new`], and set `kind` with
     /// [`ErrorBody::kind`]. A field can join it in a minor release.
     #[derive(Clone, Debug, Eq, PartialEq)]
     #[non_exhaustive]
@@ -117,7 +117,7 @@ impl<T> Envelope<T> {
 
 impl ErrorBody {
     /// Build an error body from the failing binary's name and a message, with
-    /// no kind.
+    /// no `kind`.
     #[must_use]
     pub fn new(bin: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
@@ -127,7 +127,7 @@ impl ErrorBody {
         }
     }
 
-    /// Set the kind of failure, such as `not_found`.
+    /// Set `kind`, the word that names the failure, such as `not_found`.
     #[must_use]
     pub fn kind(mut self, kind: impl Into<String>) -> Self {
         self.kind = Some(kind.into());

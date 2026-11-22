@@ -22,9 +22,9 @@
 //!
 //! - A result exits with its [`Present::exit_code`], 0 by default.
 //! - A handler error exits 1, or with the code of the [`CommandError`] in its
-//!   chain. A JSON envelope carries that error's kind.
+//!   chain. A JSON envelope carries that error's `kind` value.
 //! - A parse error exits with Clap's code, 2 for a usage error, and its JSON
-//!   envelope carries the kind `usage`.
+//!   envelope sets `kind` to `usage`.
 //! - A bare invocation of a command that needs a subcommand or an argument
 //!   prints the root help to stderr and exits 2.
 //! - A reader that closed the output stream changes the code only under
@@ -60,8 +60,8 @@ mod command_error;
 
 pub use command_error::CommandError;
 
-/// The kind a parse error's JSON envelope carries when Clap reports a usage
-/// error.
+/// The `kind` value of a parse error's JSON envelope when Clap reports a
+/// usage error.
 const USAGE_KIND: &str = "usage";
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
@@ -374,8 +374,8 @@ where
     /// The handler `execute` gets the parsed CLI. An `Err` from it is written
     /// to stderr as an error (`bin: message`, or a JSON envelope). Its
     /// message includes the whole `anyhow` chain. It exits 1, or with the
-    /// exit code of the first [`CommandError`] in the chain, whose kind the
-    /// envelope carries.
+    /// exit code of the first [`CommandError`] in the chain, whose `kind`
+    /// value the envelope carries.
     ///
     /// # Panics
     ///

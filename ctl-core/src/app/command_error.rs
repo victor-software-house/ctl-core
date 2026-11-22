@@ -1,18 +1,18 @@
-//! A handler error that names its exit code and its kind.
+//! A handler error that carries its exit code and its `kind` value.
 
 use std::error::Error;
 use std::fmt;
 use std::num::NonZeroU8;
 
 /// A failure a handler returns when the failure has its own exit code, or a
-/// kind a script can match on, such as `not_found`.
+/// `kind` value a script can match on, such as `not_found`.
 ///
 /// Return it through `anyhow`, as the error itself or as context on its
 /// cause. [`App`](super::App) looks for it in the error's chain, at any
-/// depth. It exits with the code, and a JSON envelope carries the kind in
-/// [`ErrorBody::kind`](crate::model::ErrorBody::kind). The message is the
+/// depth. It exits with the code, and a JSON envelope carries the `kind` value
+/// in [`ErrorBody::kind`](crate::model::ErrorBody::kind). The message is the
 /// whole chain, as for any other error. A handler error that carries none
-/// exits 1 with no kind.
+/// exits 1 with no `kind`.
 ///
 /// ```
 /// use std::num::NonZeroU8;
@@ -44,7 +44,7 @@ pub struct CommandError {
 }
 
 impl CommandError {
-    /// A failure with `message`, exit code 1, and no kind.
+    /// A failure with `message`, exit code 1, and no `kind`.
     #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
         Self {
@@ -54,7 +54,7 @@ impl CommandError {
         }
     }
 
-    /// Set the kind a JSON envelope carries, such as `not_found`.
+    /// Set the `kind` value a JSON envelope carries, such as `not_found`.
     #[must_use]
     pub fn kind(mut self, kind: impl Into<String>) -> Self {
         self.kind = Some(kind.into());
@@ -77,7 +77,7 @@ impl CommandError {
             .or_else(|| error.chain().find_map(|cause| cause.downcast_ref::<Self>()))
     }
 
-    /// The kind, as [`Self::kind`] set it.
+    /// The `kind` value, as [`Self::kind`] set it.
     pub(crate) fn kind_name(&self) -> Option<&str> {
         self.kind.as_deref()
     }
