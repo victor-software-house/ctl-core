@@ -107,10 +107,47 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
 pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
     let declared = C::command();
     let probe = lift_requirements(apply_defaults(declared.clone()));
+    asks_for_help(&declared, probe, raw)
+}
+
+/// Whether a help request in `raw` asks for the long form: `--help`, or the
+/// `help` subcommand, as opposed to `-h`.
+///
+/// Clap acts on the first help flag it reads, finds `-h` inside a cluster
+/// such as `-qh`, and skips an option's value. So the probe asks Clap itself,
+/// with `-h` taken off every level: a request that still reads as help came
+/// through `--help` or the subcommand, and one that came through `-h` now
+/// fails on it.
+#[cfg(feature = "help")]
+pub(crate) fn wants_long_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
+    let declared = C::command();
+    let probe = without_short_help(lift_requirements(apply_defaults(declared.clone())));
+    asks_for_help(&declared, probe, raw)
+}
+
+/// Whether `probe` reads `raw` as a help request: the help flag, or the
+/// `help` subcommand ctl-core declares.
+#[cfg(feature = "help")]
+fn asks_for_help(declared: &Command, probe: Command, raw: &[OsString]) -> bool {
     match probe.try_get_matches_from(raw) {
-        Ok(matches) => names_help(&declared, &matches),
+        Ok(matches) => names_help(declared, &matches),
         Err(error) => error.kind() == ErrorKind::DisplayHelp,
     }
+}
+
+/// `command` with the short `-h` taken off ctl-core's help flag at every
+/// level, so only `--help` asks for help.
+#[cfg(feature = "help")]
+fn without_short_help(command: Command) -> Command {
+    command
+        .mut_args(|arg| {
+            if arg.get_id() == "help" {
+                arg.short(None)
+            } else {
+                arg
+            }
+        })
+        .mut_subcommands(without_short_help)
 }
 
 /// `command` with every parent's requirements lifted once a subcommand is
