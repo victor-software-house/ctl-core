@@ -21,8 +21,9 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
 - `-h`/`--help` and `-V`/`--version`, rendered as documents and wrapped to the terminal's width.
 - Shared flags to flatten into the parser: `-c`/`--color`, `-f`/`--format`, `-n`/`--dry-run`, and `-q`/`--quiet`.
   With `#[command(env_prefix = "MYCTL")]` on the root parser, every long option also reads `MYCTL_<LONG>` from the environment.
-- JSON on stdout only, never coloured, and human failures on stderr.
-  Quiet hides only successful human output.
+- Success on stdout and failure on stderr, in JSON as in human output, so stdout is empty after a failure.
+  JSON is never coloured, and quiet hides only successful human output.
+- A handler returns a `CommandError` to give a failure its own exit code and a kind, such as `not_found`, that the JSON envelope carries.
 - A reader that closes stdout early, such as `head -1`, leaves the exit code as the command set it.
   `App::broken_pipe(BrokenPipe::Fail)` turns every closed pipe into a failure.
 - `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and fish, behind the `completion` and `shell-init` features.

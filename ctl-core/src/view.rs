@@ -5,8 +5,10 @@
 //! mode, and the layout policy, and writes the result with [`View::show`] or
 //! returns it unwritten with [`View::capture`].
 //!
-//! Success goes to stdout and failure to stderr, except JSON, which always
-//! goes to stdout. JSON never contains ANSI whatever the colour mode says.
+//! Success goes to stdout and failure to stderr, in JSON as in pretty output.
+//! A JSON failure leaves stdout empty, so a reader that parses stdout never
+//! mistakes an error for a result. JSON never contains ANSI whatever the
+//! colour mode says.
 //!
 //! ```
 //! use ctl_core::color::ColorMode;
@@ -73,9 +75,9 @@ pub trait Present: Serialize {
     /// this.
     fn present(&self) -> Document;
 
-    /// Whether the result is a success or a failure. It picks the stream of
-    /// pretty output (stdout or stderr) and the default exit code. The default
-    /// is [`Outcome::Success`].
+    /// Whether the result is a success or a failure. It picks the stream
+    /// (stdout or stderr) and the default exit code. The default is
+    /// [`Outcome::Success`].
     fn outcome(&self) -> Outcome {
         Outcome::Success
     }
@@ -91,19 +93,19 @@ pub trait Present: Serialize {
     }
 }
 
-/// Whether a [`Present`] result succeeded. It picks the stream pretty output
+/// Whether a [`Present`] result succeeded. It picks the stream the output
 /// goes to and the default exit code.
 ///
 /// The set is closed, and the enum is not `#[non_exhaustive]`: a command
 /// either succeeded or failed.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Outcome {
-    /// The command succeeded. Pretty output goes to stdout, and the exit code
+    /// The command succeeded. Its output goes to stdout, and the exit code
     /// is `0`.
     #[default]
     Success,
-    /// The command failed. Pretty output goes to stderr, and the exit code is
-    /// `1`.
+    /// The command failed. Its output, pretty or JSON, goes to stderr, and the
+    /// exit code is `1`.
     Error,
 }
 
@@ -414,10 +416,11 @@ impl View {
     /// this path.
     ///
     /// JSON output is `value` serialized in the layout
-    /// [`Self::resolved_json_layout`] returns, for stdout. Pretty output is
-    /// rendered as [`Self::show`] would write it. Colour and width are decided
-    /// for the stream [`Captured::stream`] names, from the colour mode, the
-    /// process environment, and whether that stream is a terminal.
+    /// [`Self::resolved_json_layout`] returns, for stdout on a success and
+    /// stderr on an error. Pretty output is rendered as [`Self::show`] would
+    /// write it. Colour and width are decided for the stream
+    /// [`Captured::stream`] names, from the colour mode, the process
+    /// environment, and whether that stream is a terminal.
     ///
     /// # Errors
     ///
@@ -426,8 +429,12 @@ impl View {
         let outcome = value.outcome();
         let exit_code = value.exit_code();
         if self.format.is_json() {
+            let stream = match outcome {
+                Outcome::Success => Destination::Stdout,
+                Outcome::Error => Destination::Stderr,
+            };
             return Ok(Captured {
-                stream: Destination::Stdout,
+                stream,
                 content: self.json(value)?,
                 exit_code,
             });
@@ -470,22 +477,31 @@ impl View {
     /// Write a failure that has no [`Present`] model, such as a parse error.
     ///
     /// Pretty output is `{bin}: {message}` on stderr. JSON output is an
-    /// [`Envelope`] with an [`ErrorBody`] on stdout, in this view's layout.
-    /// The exit code is [`ExitCode::FAILURE`] in both.
+    /// [`Envelope`] with an [`ErrorBody`] on stderr, in this view's layout,
+    /// and stdout stays empty. The exit code is [`ExitCode::FAILURE`] in both.
     ///
     /// # Errors
     ///
-    /// Returns an error when writing to stdout or stderr fails.
+    /// Returns an error when writing to stderr fails.
     pub fn emit_err(self, bin: &str, message: &str) -> io::Result<ExitCode> {
-        if self.format.is_json() {
-            let envelope = Envelope::<()>::err(ErrorBody::new(bin, message));
-            write_stdout(self.json(&envelope)?.as_bytes())?;
-            return Ok(ExitCode::FAILURE);
-        }
-        let document =
-            Document::new().paragraph(Text::new().error(bin).then(": ").then(message.to_owned()));
-        write_stderr(self.pretty(ctl_term::Stream::Stderr, &document).as_bytes())?;
+        self.write_error(&ErrorBody::new(bin, message))?;
         Ok(ExitCode::FAILURE)
+    }
+
+    /// Write `error` to stderr: `{bin}: {message}` in pretty output, or an
+    /// [`Envelope`] that carries it whole in JSON.
+    pub(crate) fn write_error(self, error: &ErrorBody) -> io::Result<()> {
+        if self.format.is_json() {
+            let envelope = Envelope::<()>::err(error.clone());
+            return write_stderr(self.json(&envelope)?.as_bytes());
+        }
+        let document = Document::new().paragraph(
+            Text::new()
+                .error(error.bin.as_str())
+                .then(": ")
+                .then(error.message.as_str()),
+        );
+        write_stderr(self.pretty(ctl_term::Stream::Stderr, &document).as_bytes())
     }
 }
 

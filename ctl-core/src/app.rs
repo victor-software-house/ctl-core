@@ -11,14 +11,20 @@
 //! 4. parses the arguments, with environment variables yielding to flags;
 //! 5. calls the handler and writes its result, or its error, through the view.
 //!
+//! A failure goes to stderr in pretty output and in JSON alike, so stdout
+//! holds nothing after a failed run. That covers a handler error, a parse
+//! error, and a result whose [`Present::outcome`] is an error.
+//!
 //! A handler returns a [`Present`] value and prints nothing. Help, errors, and
 //! results share one renderer, one theme, and one width policy.
 //!
 //! # Exit codes
 //!
 //! - A result exits with its [`Present::exit_code`], 0 by default.
-//! - A handler error exits 1.
-//! - A parse error exits with Clap's code, 2 for a usage error.
+//! - A handler error exits 1, or with the code of the [`CommandError`] in its
+//!   chain. A JSON envelope carries that error's kind.
+//! - A parse error exits with Clap's code, 2 for a usage error, and its JSON
+//!   envelope carries the kind `usage`.
 //! - A bare invocation of a command that needs a subcommand or an argument
 //!   prints the root help to stderr and exits 2.
 //! - A reader that closed the output stream changes the code only under
@@ -42,12 +48,21 @@ use crate::completion;
 use crate::format::OutputFormat;
 #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 use crate::input::{self, Limits};
+use crate::model::ErrorBody;
 use crate::render::{self, RenderOptions};
 use crate::theme::Theme;
 #[cfg(feature = "usage")]
 use crate::usage;
 use crate::view::{self, JsonLayout, Present, View};
 use crate::{flags, help, parser};
+
+mod command_error;
+
+pub use command_error::CommandError;
+
+/// The kind a parse error's JSON envelope carries when Clap reports a usage
+/// error.
+const USAGE_KIND: &str = "usage";
 
 type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
 type SelectView<C> = Box<dyn Fn(&C) -> View>;
@@ -357,8 +372,10 @@ where
     /// Run against the process argv and return the exit code for `main`.
     ///
     /// The handler `execute` gets the parsed CLI. An `Err` from it is written
-    /// as an error (`bin: message`, or a JSON envelope) with exit code 1. Its
-    /// message includes the whole `anyhow` chain.
+    /// to stderr as an error (`bin: message`, or a JSON envelope). Its
+    /// message includes the whole `anyhow` chain. It exits 1, or with the
+    /// exit code of the first [`CommandError`] in the chain, whose kind the
+    /// envelope carries.
     ///
     /// # Panics
     ///
@@ -451,10 +468,17 @@ where
                 view.show(&value).map(|_| ()),
                 ExitCode::from(value.exit_code()),
             ),
-            Err(error) => self.written(
-                view.emit_err(&self.bin, &format!("{error:#}")).map(|_| ()),
-                ExitCode::FAILURE,
-            ),
+            Err(error) => {
+                let mut body = ErrorBody::new(&self.bin, format!("{error:#}"));
+                let mut code = ExitCode::FAILURE;
+                if let Some(failure) = CommandError::find(&error) {
+                    code = ExitCode::from(failure.code().get());
+                    if let Some(kind) = failure.kind_name() {
+                        body = body.kind(kind);
+                    }
+                }
+                self.written(view.write_error(&body), code)
+            }
         }
     }
 
@@ -465,11 +489,11 @@ where
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
-            return self.written(
-                view.emit_err(&self.bin, error.to_string().trim())
-                    .map(|_| ()),
-                code,
-            );
+            let mut body = ErrorBody::new(&self.bin, error.to_string().trim());
+            if error.exit_code() == 2 {
+                body = body.kind(USAGE_KIND);
+            }
+            return self.written(view.write_error(&body), code);
         }
         let options = view.render_options();
         let written = if kind == ErrorKind::DisplayVersion {

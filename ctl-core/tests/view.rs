@@ -78,6 +78,20 @@ fn error_pretty_uses_stderr_and_failure_exit() {
 }
 
 #[test]
+fn error_json_uses_stderr_and_its_exit() {
+    let status = Status {
+        pending: 1,
+        failed: true,
+    };
+    let captured = View::new(OutputFormat::Json, ColorMode::Always)
+        .capture(&status)
+        .unwrap();
+    assert_eq!(captured.stream(), Destination::Stderr);
+    assert_eq!(captured.exit_code(), ExitCode::from(2));
+    assert!(!captured.text().contains('\u{1b}'));
+}
+
+#[test]
 fn quiet_suppresses_only_successful_pretty_output() {
     let success = Status {
         pending: 0,

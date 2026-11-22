@@ -75,7 +75,9 @@
 //!   of them, where the last one given wins.
 //! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
 //!   policy, the record and table framing, and the style of each role.
-//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape.
+//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape. A handler returns
+//!   a [`CommandError`] to give a failure its own exit code and a kind a script
+//!   can match on.
 //! - [`input::Input`] loads a CLI's declared config from YAML or TOML, and
 //!   reports every problem on its file and line. [`input::FieldPath`] and
 //!   [`input::Input::place`] place a problem of the CLI's own the same way.
@@ -92,8 +94,8 @@
 //! - [`Present`] maps a serializable result to a semantic [`Document`].
 //! - [`View`] serializes the result for JSON and renders its document for
 //!   pretty and colourless output.
-//! - JSON always goes to stdout and never contains ANSI. Human failures go to
-//!   stderr.
+//! - Success goes to stdout and failure to stderr, in JSON as in pretty output.
+//!   JSON never contains ANSI.
 //! - A reader that closes stdout early, such as `head -1`, does not change the
 //!   exit code. A command that succeeded exits 0, and a failure keeps its code.
 //!   [`App::broken_pipe`] can make every closed pipe a failure.
@@ -136,7 +138,8 @@
     not(feature = "app"),
     doc = "",
     doc = "[`App`]: crate#cargo-features",
-    doc = "[`App::broken_pipe`]: crate#cargo-features"
+    doc = "[`App::broken_pipe`]: crate#cargo-features",
+    doc = "[`CommandError`]: crate#cargo-features"
 )]
 #![cfg_attr(
     not(feature = "view"),
@@ -239,7 +242,7 @@ pub mod view;
 
 #[cfg(feature = "app")]
 #[doc(hidden)]
-pub use app::{App, BrokenPipe};
+pub use app::{App, BrokenPipe, CommandError};
 #[doc(hidden)]
 pub use color::ColorMode;
 #[cfg(feature = "document")]

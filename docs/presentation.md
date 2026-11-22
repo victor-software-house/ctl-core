@@ -121,8 +121,9 @@ One serializable model feeds all modes:
 1. JSON serializes the model directly, writes one newline to stdout, and never contains ANSI.
 2. Pretty asks `Present` for a semantic document and renders it with color policy `auto` or `always`.
 3. Colorless renders the same document with color policy `never`; it does not maintain a second layout.
-4. Human errors use stderr.
-   JSON failures use stdout so machine consumers read one stream.
+4. Errors use stderr, human and JSON alike, so stdout stays empty after a failure.
+   That covers the error envelope, a parse error, and a result whose outcome is an error.
+   A reader that parses stdout never mistakes an error for a result.
 5. Quiet suppresses successful human output only.
    It never hides errors or JSON.
 6. A reader that closes stdout or stderr early, as `head -1` does, leaves the exit code as the command set it and puts nothing on stderr:
