@@ -76,7 +76,8 @@ fn a_cli_reports_its_own_placed_problems_in_ctl_core_s_format() {
         .key("dev")
         .key("privileged");
     let place = input.place(&path);
-    let error = InputError::new(
+    assert_eq!(InputError::try_new(input.name(), []), None);
+    let error = InputError::try_new(
         input.name(),
         [
             Problem {
@@ -87,7 +88,8 @@ fn a_cli_reports_its_own_placed_problems_in_ctl_core_s_format() {
             },
             problem(1, 1, "services", "name one service at most"),
         ],
-    );
+    )
+    .unwrap();
     assert_eq!(error.io_failure(), None);
     assert_eq!(
         error.to_string(),

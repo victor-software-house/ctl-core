@@ -491,7 +491,7 @@ impl Input {
                 field,
                 message,
             });
-        Err(InputError::new(self.name.clone(), problems))
+        InputError::try_new(self.name.clone(), problems).map_or(Ok(()), Err)
     }
 
     /// Where `path` is written in the text, or where its nearest written
@@ -632,12 +632,16 @@ impl InputError {
     /// [`Problem`] is placed with [`Input::place`] or [`Input::problem_at`],
     /// or carries no line.
     ///
+    /// Returns `None` when `problems` is empty, since an error with no problem
+    /// would print nothing. So a CLI hands it every check's findings and
+    /// refuses the input only when one turned up.
+    ///
     /// # Examples
     ///
     /// ```
     /// use ctl_core::input::{InputError, Problem};
     ///
-    /// let error = InputError::new(
+    /// let refused = InputError::try_new(
     ///     "compose.yaml",
     ///     [Problem {
     ///         line: Some(4),
@@ -647,17 +651,22 @@ impl InputError {
     ///     }],
     /// );
     /// assert_eq!(
-    ///     error.to_string(),
-    ///     "compose.yaml:4:5: services.dev.privileged: firescale runs no privileged service"
+    ///     refused.map(|error| error.to_string()).as_deref(),
+    ///     Some("compose.yaml:4:5: services.dev.privileged: firescale runs no privileged service")
     /// );
+    /// assert_eq!(InputError::try_new("compose.yaml", []), None);
     /// ```
     #[must_use]
-    pub fn new(name: impl Into<String>, problems: impl IntoIterator<Item = Problem>) -> Self {
-        Self {
+    pub fn try_new(
+        name: impl Into<String>,
+        problems: impl IntoIterator<Item = Problem>,
+    ) -> Option<Self> {
+        let problems = problems.into_iter().collect::<Vec<_>>();
+        (!problems.is_empty()).then(|| Self {
             name: name.into(),
-            problems: problems.into_iter().collect(),
+            problems,
             io_failure: None,
-        }
+        })
     }
 
     /// A refusal of the whole input `name`, on no line and no field, such as
@@ -673,15 +682,25 @@ impl InputError {
     /// ```
     #[must_use]
     pub fn whole(name: impl Into<String>, message: impl Into<String>) -> Self {
-        Self::new(
-            name,
-            [Problem {
+        Self::one(
+            name.into(),
+            Problem {
                 line: None,
                 column: None,
                 field: String::new(),
                 message: message.into(),
-            }],
+            },
         )
+    }
+
+    /// The one problem ctl-core found in the input `name`, with no I/O
+    /// failure.
+    pub(crate) fn one(name: String, problem: Problem) -> Self {
+        Self {
+            name,
+            problems: vec![problem],
+            io_failure: None,
+        }
     }
 
     /// The input `name` could not be read: the failure's text is the one
