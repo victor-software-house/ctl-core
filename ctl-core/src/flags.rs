@@ -36,6 +36,8 @@ mod warn;
 pub use color::ColorLong;
 pub use dry_run::DryRunArgs;
 pub use env::{EnvPrefix, env_under_flags};
+#[cfg(feature = "help")]
+pub(crate) use output::resolved_format;
 pub use output::{FormatArgs, FormatLong, OutputArgs};
 pub use warn::{FlagClash, FlagWarning, chassis_warnings, emit_warnings, warn_opposites};
 

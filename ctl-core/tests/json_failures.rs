@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 mod child;
 
 #[derive(Parser)]
-#[command(name = "toy", version = "1.2.3", about = "toy")]
+#[command(name = "toy", version = "1.2.3", about = "toy", env_prefix = "JSONTOY")]
 struct Toy {
     #[command(flatten)]
     output: OutputArgs,
@@ -103,7 +103,7 @@ fn stderr_json(output: &Output) -> Value {
 
 #[test]
 fn emit_err_writes_the_envelope_to_stderr() {
-    let Some(output) = child::in_child(CHILD, "emit_err_writes_the_envelope_to_stderr") else {
+    let Some(output) = child::in_child(CHILD, "emit_err_writes_the_envelope_to_stderr", &[]) else {
         let view = View::new(OutputFormat::Json, ColorMode::Never);
         assert_eq!(
             child::case(|| view.emit_err("toy", "nope").unwrap()),
@@ -119,7 +119,8 @@ fn emit_err_writes_the_envelope_to_stderr() {
 
 #[test]
 fn a_parse_error_writes_the_envelope_to_stderr() {
-    let Some(output) = child::in_child(CHILD, "a_parse_error_writes_the_envelope_to_stderr") else {
+    let Some(output) = child::in_child(CHILD, "a_parse_error_writes_the_envelope_to_stderr", &[])
+    else {
         assert_eq!(
             child::case(|| run(&["show", "--bogus", "--format", "json"])),
             ExitCode::from(2)
@@ -137,8 +138,21 @@ fn a_parse_error_writes_the_envelope_to_stderr() {
 }
 
 #[test]
+fn the_json_variable_makes_a_parse_error_json() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "the_json_variable_makes_a_parse_error_json",
+        &[("JSONTOY_JSON", "true")],
+    ) else {
+        assert_eq!(child::case(|| run(&["show", "--bogus"])), ExitCode::from(2));
+        return;
+    };
+    assert_eq!(stderr_json(&output)["error"]["kind"], "usage");
+}
+
+#[test]
 fn an_error_outcome_writes_the_result_to_stderr() {
-    let Some(output) = child::in_child(CHILD, "an_error_outcome_writes_the_result_to_stderr")
+    let Some(output) = child::in_child(CHILD, "an_error_outcome_writes_the_result_to_stderr", &[])
     else {
         assert_eq!(
             child::case(|| run(&["--format", "json", "broken"])),
@@ -154,7 +168,8 @@ fn an_error_outcome_writes_the_result_to_stderr() {
 
 #[test]
 fn a_plain_handler_error_exits_1_with_no_kind() {
-    let Some(output) = child::in_child(CHILD, "a_plain_handler_error_exits_1_with_no_kind") else {
+    let Some(output) = child::in_child(CHILD, "a_plain_handler_error_exits_1_with_no_kind", &[])
+    else {
         assert_eq!(
             child::case(|| run(&["--format", "json", "fail"])),
             ExitCode::FAILURE
@@ -173,7 +188,8 @@ fn a_plain_handler_error_exits_1_with_no_kind() {
 
 #[test]
 fn a_command_error_sets_the_kind_and_the_exit() {
-    let Some(output) = child::in_child(CHILD, "a_command_error_sets_the_kind_and_the_exit") else {
+    let Some(output) = child::in_child(CHILD, "a_command_error_sets_the_kind_and_the_exit", &[])
+    else {
         assert_eq!(
             child::case(|| run(&["--format", "json", "refuse"])),
             ExitCode::from(75)
@@ -196,7 +212,8 @@ fn a_command_error_sets_the_kind_and_the_exit() {
 
 #[test]
 fn a_command_error_sets_the_exit_of_pretty_output() {
-    let Some(output) = child::in_child(CHILD, "a_command_error_sets_the_exit_of_pretty_output")
+    let Some(output) =
+        child::in_child(CHILD, "a_command_error_sets_the_exit_of_pretty_output", &[])
     else {
         assert_eq!(
             child::case(|| run(&["--color", "never", "refuse"])),

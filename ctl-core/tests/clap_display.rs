@@ -73,6 +73,7 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
     let Some(output) = child::in_child(
         CHILD,
         "a_missing_argument_prints_the_subcommand_help_to_stderr",
+        &[],
     ) else {
         assert_eq!(child::case(|| run(&["show"])), ExitCode::from(2));
         return;
@@ -84,7 +85,7 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
 
 #[test]
 fn the_version_prints_clap_s_plain_line() {
-    let Some(output) = child::in_child(CHILD, "the_version_prints_clap_s_plain_line") else {
+    let Some(output) = child::in_child(CHILD, "the_version_prints_clap_s_plain_line", &[]) else {
         assert_eq!(child::case(|| run(&["--version"])), ExitCode::SUCCESS);
         return;
     };
@@ -96,6 +97,7 @@ fn a_missing_argument_is_an_error_line_without_claps_prefix() {
     let Some(output) = child::in_child(
         CHILD,
         "a_missing_argument_is_an_error_line_without_claps_prefix",
+        &[],
     ) else {
         assert_eq!(child::case(|| run(&["copy", "a"])), ExitCode::from(2));
         return;
@@ -107,8 +109,11 @@ fn a_missing_argument_is_an_error_line_without_claps_prefix() {
 
 #[test]
 fn json_before_a_bad_argument_makes_the_error_json() {
-    let Some(output) = child::in_child(CHILD, "json_before_a_bad_argument_makes_the_error_json")
-    else {
+    let Some(output) = child::in_child(
+        CHILD,
+        "json_before_a_bad_argument_makes_the_error_json",
+        &[],
+    ) else {
         assert_eq!(
             child::case(|| run(&["--json", "show", "--bogus"])),
             ExitCode::from(2)

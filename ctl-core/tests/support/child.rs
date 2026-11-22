@@ -7,8 +7,9 @@ use std::process::{Command, Output};
 
 use ctl_core::prelude::*;
 
-/// Run `test` in a child and return its output, or `None` when this process
-/// is that child and should run the case. `variable` marks the child.
+/// Run `test` in a child with `vars` set and return its output, or `None`
+/// when this process is that child and should run the case. `variable`
+/// marks the child.
 ///
 /// The child writes to pipes, so `COLUMNS`, the colour variables, and
 /// ctl-core's layout variables would change its output; it runs without them,
@@ -17,7 +18,7 @@ use ctl_core::prelude::*;
     clippy::expect_used,
     reason = "a test helper: a failure here is the calling test failing"
 )]
-pub(crate) fn in_child(variable: &str, test: &str) -> Option<Output> {
+pub(crate) fn in_child(variable: &str, test: &str, vars: &[(&str, &str)]) -> Option<Output> {
     if env::var_os(variable).as_deref() == Some(test.as_ref()) {
         return None;
     }
@@ -35,6 +36,7 @@ pub(crate) fn in_child(variable: &str, test: &str) -> Option<Output> {
         .env_remove(DEFAULT_LIST_STYLE_ENV)
         .env_remove(DEFAULT_ROW_SEPARATION_ENV)
         .env_remove(DEFAULT_JSON_LAYOUT_ENV)
+        .envs(vars.iter().copied())
         .output()
         .expect("spawn child");
     assert!(

@@ -133,7 +133,7 @@ impl FormatLong {
 ///
 /// An `ArgumentConflict` error when the command line holds `--json` and a
 /// `--format` other than `json`.
-fn resolved_format(
+pub(crate) fn resolved_format(
     format: OutputFormat,
     json: bool,
     matches: &ArgMatches,
