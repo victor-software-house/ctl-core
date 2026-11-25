@@ -28,10 +28,11 @@ Its stacked form is `Definitions`: label cells indented by 2, the rest below, in
 
 ### 1. The floor is the header width or 8 cells
 
-A column's floor is `min(natural, max(header width, floor))`, with the floor 8 cells by default; a floor setting of 0 sets no floor at all, header included, so the limits are the overflow limits.
+When the floor setting is above 0, a column's floor is `min(natural, max(header width, floor))`, with the floor 8 cells by default.
+A floor setting of 0 gives every column a floor of 0, header included, so the limits are the overflow limits.
 The new bound is named the column floor in code, such as `Extent::column_floor`, so `Extent::floor`, the widest cluster, keeps its name and meaning.
 
-1. The header bounds it from below, so a header never wraps mid-word.
+1. When the floor setting is above 0, the header bounds it from below, so a header never wraps mid-word.
 2. 8 cells holds a short id, a date's `2026-11`, or two words of a title; a narrower column holds fragments.
 3. The natural width bounds it from above, so a short column is never padded.
 

@@ -30,7 +30,8 @@ Under the `wrap` table fit, a framed table that cannot fit at its floors SHALL k
 
 ### Requirement: No column narrows below its floor
 
-A column's floor SHALL be its header width or the floor setting, 8 cells by default, whichever is larger, and no more than its natural width.
+When the floor setting is above 0, a column's floor SHALL be its header width or the floor setting, 8 cells by default, whichever is larger, and no more than its natural width.
+When the floor setting is 0, every column's floor SHALL be 0.
 A table SHALL NOT render a column narrower than its floor.
 
 #### Scenario: A wide list at 80 columns
