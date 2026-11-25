@@ -13,12 +13,12 @@ A floor of 0 SHALL leave each column at the limit its overflow sets.
 #### Scenario: Floor off
 
 - **WHEN** a consumer sets a floor of 0
-- **THEN** an ellipsis column can narrow to 1 cell, as before this change
+- **THEN** an ellipsis column with a 5-cell header can narrow to 1 cell, as before this change
 
 ### Requirement: The table fit is a public option
 
 ctl-core SHALL take the table fit from the table, then `RenderOptions`, `View`, and `App`, then `CTL_CORE_TABLE_FIT`, then `stack`.
-Under `wrap`, a table that cannot fit at its floors SHALL keep its grid and run past the width.
+Under `wrap`, a table that cannot fit at its floors SHALL keep its grid at its floors and run past the width, framed or not.
 
 #### Scenario: Wrap from the environment
 

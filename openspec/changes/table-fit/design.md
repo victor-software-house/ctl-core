@@ -5,7 +5,7 @@
 [proposal.md](proposal.md) gives the reasons.
 [widths.rs][widths] solves column widths in two passes.
 It shrinks the widest columns down to each column's minimum, its widest word.
-Then, in a framed table, it folds columns down to their floor, the widest grapheme cluster.
+Then, in a framed table, it folds columns down to their fold limit (`Extent::floor` today), the widest grapheme cluster.
 An ellipsis column has a minimum of 1 cell.
 
 [render.rs][render] wraps a table in a `Breakpoint` only when the consumer set `stacked_below`.
@@ -28,7 +28,8 @@ Its stacked form is `Definitions`: label cells indented by 2, the rest below, in
 
 ### 1. The floor is the header width or 8 cells
 
-A column's floor is `min(natural, max(header width, floor))`, with the floor 8 cells by default.
+A column's floor is `min(natural, max(header width, floor))`, with the floor 8 cells by default; a floor setting of 0 sets no floor at all, header included, so the limits are the overflow limits.
+The new bound is named the column floor in code, such as `Extent::column_floor`, so `Extent::floor`, the widest cluster, keeps its name and meaning.
 
 1. The header bounds it from below, so a header never wraps mid-word.
 2. 8 cells holds a short id, a date's `2026-11`, or two words of a title; a narrower column holds fragments.

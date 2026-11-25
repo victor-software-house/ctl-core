@@ -3,7 +3,7 @@
 ### Requirement: The script survives quiet and colour settings
 
 `shell::view(format)` SHALL print a `Script` in `format`, with no colour, whatever quiet setting the CLI's own view would apply.
-`pretty` and `tsv` output SHALL be the script text ending in exactly one newline.
+Every format other than `json`, built-in or registered, SHALL print the script text unchanged, ending in exactly one newline.
 JSON output SHALL be an object with the shell's name under `shell` and the script under `text`.
 
 #### Scenario: Pretty output
@@ -14,6 +14,11 @@ JSON output SHALL be an object with the shell's name under `shell` and the scrip
 #### Scenario: Piped output
 
 - **WHEN** `eval "$(toy completion zsh)"` runs, so stdout is a pipe and the format is `tsv`
+- **THEN** the captured stdout is the same script text as in `pretty`
+
+#### Scenario: CSV output
+
+- **WHEN** `TOY_FORMAT=csv toy completion zsh` runs
 - **THEN** the captured stdout is the same script text as in `pretty`
 
 #### Scenario: JSON output

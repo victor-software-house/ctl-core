@@ -14,6 +14,7 @@ It SHALL do so before a keep-words column runs past the width.
 
 A table with an outer frame SHALL fold a word wider than its column, so the frame stays aligned.
 It SHALL NOT fold a column below its floor.
+Under the `wrap` table fit, a framed table that cannot fit at its floors SHALL keep its grid at its floors and run past the width.
 
 #### Scenario: A URL in a grid
 
