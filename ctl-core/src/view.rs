@@ -50,7 +50,9 @@ use serde::Serialize;
 
 use crate::color::ColorMode;
 use crate::document::Document;
-use crate::format::{Format, FormatName, Formats, JSON, Output, PRETTY, Sink, unregistered};
+use crate::format::{
+    CSV, Format, FormatName, Formats, JSON, MARKDOWN, Output, PRETTY, Sink, TSV, unregistered,
+};
 use crate::model::ErrorBody;
 #[cfg(feature = "app")]
 use crate::render;
@@ -250,7 +252,7 @@ pub struct View {
 
 /// The formats ctl-core itself offers, which a view that was never resolved
 /// against a registry is looked up in.
-static BUILTIN: [&dyn Format; 2] = [&PRETTY, &JSON];
+static BUILTIN: [&dyn Format; 5] = [&PRETTY, &JSON, &TSV, &CSV, &MARKDOWN];
 
 /// How a view knows its format. A named format was chosen by a flag, a
 /// variable, a shorthand, or the caller. A defaulted one came from the

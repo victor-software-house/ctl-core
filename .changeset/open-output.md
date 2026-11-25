@@ -7,7 +7,8 @@ Output formats are an open interface.
 `pretty` and `json` are the built-in implementations, `format::PRETTY` and `format::JSON`, and their output is unchanged.
 A CLI adds a format, replaces a built-in of the same name, or removes one.
 It also sets the default for a terminal and for a pipe.
-Both defaults are `pretty` here, so output does not change, except where the breaks below say so.
+The terminal default is `pretty` and the piped default is `tsv`, the break that the tabular formats entry describes.
+Output on a terminal does not change, except where the breaks below say so.
 
 Breaking changes:
 

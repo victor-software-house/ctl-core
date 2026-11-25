@@ -51,7 +51,13 @@ mod parser {
 
     #[test]
     fn the_built_in_names_parse() {
-        for (text, name) in [("pretty", FormatName::PRETTY), ("json", FormatName::JSON)] {
+        for (text, name) in [
+            ("pretty", FormatName::PRETTY),
+            ("json", FormatName::JSON),
+            ("tsv", FormatName::TSV),
+            ("csv", FormatName::CSV),
+            ("markdown", FormatName::MARKDOWN),
+        ] {
             let toy = Toy::try_parse_from(["toy", "--format", text]).unwrap();
             assert_eq!(toy.output.format, Some(name), "{text}");
         }
@@ -59,12 +65,14 @@ mod parser {
 
     #[test]
     fn a_name_the_list_lacks_is_refused_with_the_names_it_has() {
-        for text in ["", "JSON", "yaml", "markdown", "human"] {
+        for text in ["", "JSON", "yaml", "xml", "human"] {
             let error = Toy::try_parse_from(["toy", "--format", text]).unwrap_err();
             assert_eq!(error.kind(), ErrorKind::InvalidValue, "{text:?}");
             let message = error.to_string();
             assert!(
-                message.contains(&format!("unknown format `{text}`; use one of pretty, json")),
+                message.contains(&format!(
+                    "unknown format `{text}`; use one of pretty, json, tsv, csv, markdown"
+                )),
                 "{message}"
             );
         }
@@ -87,6 +95,12 @@ mod parser {
             [
                 ("pretty", Some("Human text, optionally coloured".to_owned())),
                 ("json", Some("Machine JSON. Never contains ANSI".to_owned())),
+                (
+                    "tsv",
+                    Some("Tab-separated lines, one record per line".to_owned())
+                ),
+                ("csv", Some("Comma-separated values (RFC 4180)".to_owned())),
+                ("markdown", Some("Markdown tables and text".to_owned())),
             ]
         );
     }

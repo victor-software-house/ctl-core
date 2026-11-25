@@ -28,6 +28,7 @@ mod unix {
     use std::process::{Child, Command, ExitCode, Stdio};
 
     use anyhow::anyhow;
+    use ctl_core::format::{FormatName, Formats};
     use ctl_core::prelude::*;
     use serde::Serialize;
 
@@ -75,8 +76,11 @@ mod unix {
     /// What the writer does, and so which stream the parent reads.
     #[derive(Clone, Copy)]
     enum Case {
-        /// A command that succeeds and prints rows on stdout.
+        /// A command that succeeds and prints rows on stdout, in the piped
+        /// default, `tsv`.
         Rows,
+        /// The same command of a CLI that keeps `pretty` when piped.
+        PrettyRows,
         /// A command that fails with a long error on stderr.
         Error,
         /// A parse error, with a long unexpected argument, on stderr.
@@ -84,11 +88,12 @@ mod unix {
     }
 
     impl Case {
-        const ALL: [Self; 3] = [Self::Rows, Self::Error, Self::Parse];
+        const ALL: [Self; 4] = [Self::Rows, Self::PrettyRows, Self::Error, Self::Parse];
 
         const fn name(self) -> &'static str {
             match self {
                 Self::Rows => "rows",
+                Self::PrettyRows => "pretty-rows",
                 Self::Error => "error",
                 Self::Parse => "parse",
             }
@@ -101,8 +106,8 @@ mod unix {
         /// The exit code the writer must end with under `policy`.
         const fn expected(self, policy: BrokenPipe) -> i32 {
             match (self, policy) {
-                (Self::Rows, BrokenPipe::Ignore) => 0,
-                (Self::Rows | Self::Error, BrokenPipe::Fail)
+                (Self::Rows | Self::PrettyRows, BrokenPipe::Ignore) => 0,
+                (Self::Rows | Self::PrettyRows | Self::Error, BrokenPipe::Fail)
                 | (Self::Error, BrokenPipe::Ignore) => 1,
                 (Self::Parse, BrokenPipe::Ignore | BrokenPipe::Fail) => 2,
             }
@@ -143,14 +148,21 @@ mod unix {
         }
     }
 
+    fn rows(app: App<Rows>) -> ExitCode {
+        app.run_from(["rows"], |_| {
+            Ok(List {
+                rows: words().collect(),
+            })
+        })
+    }
+
     fn write(case: Case, policy: BrokenPipe) -> ExitCode {
         let app = App::<Rows>::new("rows").broken_pipe(policy);
         match case {
-            Case::Rows => app.run_from(["rows"], |_| {
-                Ok(List {
-                    rows: words().collect(),
-                })
-            }),
+            Case::Rows => rows(app),
+            Case::PrettyRows => {
+                rows(app.formats(Formats::builtin().piped_default(FormatName::PRETTY)))
+            }
             Case::Error => app.run_from(["rows"], |_| -> anyhow::Result<List> {
                 Err(anyhow!(words().collect::<Vec<_>>().join(" ")))
             }),
@@ -181,7 +193,7 @@ mod unix {
             .env(CASE_SWITCH, case.name())
             .env(POLICY_SWITCH, policy_name(policy));
         match case {
-            Case::Rows => writer.stdout(pipe).stderr(Stdio::piped()),
+            Case::Rows | Case::PrettyRows => writer.stdout(pipe).stderr(Stdio::piped()),
             Case::Error | Case::Parse => writer.stdout(Stdio::piped()).stderr(pipe),
         };
         for name in COLOUR_VARIABLES {
@@ -214,7 +226,7 @@ mod unix {
             .map_err(|error| format!("{label}: could not wait for the writer: {error}"))?;
 
         let other = match case {
-            Case::Rows => &output.stderr,
+            Case::Rows | Case::PrettyRows => &output.stderr,
             Case::Error | Case::Parse => &output.stdout,
         };
         let other = String::from_utf8_lossy(other);

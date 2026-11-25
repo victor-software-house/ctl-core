@@ -1,0 +1,8 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+|  |  |
+| --- | --- |
+| alpha | 1 |
+| beta | 2 |

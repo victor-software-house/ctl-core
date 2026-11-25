@@ -9,15 +9,15 @@ use clap::{Arg, ArgAction, Command};
 use crate::flags::env_name;
 #[cfg(feature = "cli")]
 use crate::format::FormatParser;
-use crate::format::{Format, FormatName, JSON, PRETTY};
+use crate::format::{CSV, Format, FormatName, JSON, MARKDOWN, PRETTY, TSV};
 
 /// The formats a CLI offers, and which one is the default.
 ///
-/// [`Self::builtin`] holds `pretty` and `json`. A CLI adds a format, replaces
-/// a built-in of the same name, or removes one, then installs the set with
-/// `App::formats`. Help, completion, the Usage spec, and parse errors list
-/// exactly the names registered here. Every builder takes and returns `self`,
-/// so a later call replaces an earlier one.
+/// [`Self::builtin`] holds `pretty`, `json`, `tsv`, `csv`, and `markdown`. A
+/// CLI adds a format, replaces a built-in of the same name, or removes one,
+/// then installs the set with `App::formats`. Help, completion, the Usage spec,
+/// and parse errors list exactly the names registered here. Every builder takes
+/// and returns `self`, so a later call replaces an earlier one.
 ///
 /// The set is not `Copy`: it owns the list. A `View` holds one registered
 /// format, never the set.
@@ -26,7 +26,15 @@ use crate::format::{Format, FormatName, JSON, PRETTY};
 /// use ctl_core::format::{FormatName, Formats};
 ///
 /// let formats = Formats::builtin().remove(FormatName::JSON);
-/// assert_eq!(formats.names().collect::<Vec<_>>(), [FormatName::PRETTY]);
+/// assert_eq!(
+///     formats.names().collect::<Vec<_>>(),
+///     [
+///         FormatName::PRETTY,
+///         FormatName::TSV,
+///         FormatName::CSV,
+///         FormatName::MARKDOWN
+///     ]
+/// );
 /// ```
 #[derive(Clone)]
 pub struct Formats {
@@ -36,14 +44,16 @@ pub struct Formats {
 }
 
 impl Formats {
-    /// `pretty` and `json`. `pretty` is the default on a terminal and when
-    /// piped.
+    /// `pretty`, `json`, `tsv`, `csv`, and `markdown`. `pretty` is the default
+    /// on a terminal and `tsv` is the default when stdout is not one. A CLI
+    /// that keeps `pretty` when piped calls
+    /// `piped_default(FormatName::PRETTY)`.
     #[must_use]
     pub fn builtin() -> Self {
         Self {
-            registered: vec![&PRETTY, &JSON],
+            registered: vec![&PRETTY, &JSON, &TSV, &CSV, &MARKDOWN],
             terminal: FormatName::PRETTY,
-            piped: FormatName::PRETTY,
+            piped: FormatName::TSV,
         }
     }
 

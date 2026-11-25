@@ -1,0 +1,7 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+id	title	age
+A-1	Ship the release	3
+A-2	Fix the parser	12

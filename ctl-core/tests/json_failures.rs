@@ -217,7 +217,7 @@ fn a_command_error_sets_the_exit_of_pretty_output() {
         child::in_child(CHILD, "a_command_error_sets_the_exit_of_pretty_output", &[])
     else {
         assert_eq!(
-            child::case(|| run(&["--color", "never", "refuse"])),
+            child::case(|| run(&["--color", "never", "--format", "pretty", "refuse"])),
             ExitCode::from(75)
         );
         return;

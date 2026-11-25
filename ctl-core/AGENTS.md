@@ -11,7 +11,9 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   `--json` beside another `--format` on the command line is a usage error.
   `TOY_JSON` beside a `TOY_FORMAT` that names another format is a usage error too, and the command line wins over any variable.
 - The open output interface: `format::Format`, `Output`, `Sink`, and `Formats` with feature `view`, and `FormatName` (the value `--format` parses into).
-  `pretty` and `json` are built-in `Format` implementations.
+  `pretty`, `json`, `tsv`, `csv`, and `markdown` are built-in `Format` implementations.
+  `pretty` is the default on a terminal and `tsv` is the default when stdout is not one.
+  A CLI that keeps `pretty` when piped sets `Formats::builtin().piped_default(FormatName::PRETTY)`.
   A CLI registers its own on `Formats` and installs them with `App::formats`
 - Environment binding: `#[command(env_prefix = "VERCTL")]` on a CLI's root parser binds every long option, shared flags included, to `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude.
   - A flag on the command line wins over its variable, the variable over a config file, and the file over the default.

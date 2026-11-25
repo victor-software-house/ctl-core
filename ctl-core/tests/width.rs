@@ -169,7 +169,10 @@ fn plain(text: &str) -> String {
 fn a_detected_width_keeps_the_buffer() {
     const TEST: &str = "a_detected_width_keeps_the_buffer";
     if is_child(TEST) {
-        assert_eq!(run(&["show"], |app| app), ExitCode::SUCCESS);
+        assert_eq!(
+            run(&["show", "--format", "pretty"], |app| app),
+            ExitCode::SUCCESS
+        );
         return;
     }
     let lines = rendered(TEST, &[("COLUMNS", "119")]);
@@ -181,7 +184,7 @@ fn a_detected_width_keeps_the_buffer() {
 fn an_explicit_width_is_exact() {
     const TEST: &str = "an_explicit_width_is_exact";
     if is_child(TEST) {
-        let code = run(&["show"], |app| {
+        let code = run(&["show", "--format", "pretty"], |app| {
             app.view(|cli| cli.output.view().width(100))
         });
         assert_eq!(code, ExitCode::SUCCESS);
@@ -196,7 +199,10 @@ fn an_explicit_width_is_exact() {
 fn everything_piped_lays_out_to_the_fallback() {
     const TEST: &str = "everything_piped_lays_out_to_the_fallback";
     if is_child(TEST) {
-        assert_eq!(run(&["show"], |app| app), ExitCode::SUCCESS);
+        assert_eq!(
+            run(&["show", "--format", "pretty"], |app| app),
+            ExitCode::SUCCESS
+        );
         return;
     }
     let lines = rendered(TEST, &[]);
@@ -208,7 +214,9 @@ fn everything_piped_lays_out_to_the_fallback() {
 fn no_fallback_lays_a_table_out_at_its_natural_width() {
     const TEST: &str = "no_fallback_lays_a_table_out_at_its_natural_width";
     if is_child(TEST) {
-        let code = run(&["show"], |app| app.fallback_width(None));
+        let code = run(&["show", "--format", "pretty"], |app| {
+            app.fallback_width(None)
+        });
         assert_eq!(code, ExitCode::SUCCESS);
         return;
     }

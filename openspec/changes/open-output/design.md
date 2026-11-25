@@ -79,13 +79,13 @@ Serde data has no column order or labels for a nested value, and a view already 
 | `Paragraph`, `Verbatim` | the plain text | left out | the text |
 | `Notice` | `level\tmessage` | left out | a quoted line, `> **warning**: message` |
 | `Heading`, `Section` title | left out | left out | a heading, one level deeper per section |
-| `Rule` | left out | left out | `---` |
+| `Rule` | left out | left out | `---`, after `**title**` and a blank line when it has a title |
 
 1. Blocks are separated by one blank line in every tabular format.
 2. Styling is dropped: a cell is the text of its spans.
 3. `tsv` writes a tab, a line feed, a carriage return, and a backslash inside a value as `\t`, `\n`, `\r`, and `\\`, so a record stays on one line.
 4. `csv` quotes a field that holds a comma, a quote, or a line break, as [RFC 4180][rfc4180] says, and ends records with CRLF.
-5. `markdown` escapes `|` in a cell and writes a line break in a cell as `<br>`.
+5. `markdown` writes a backslash in a cell as `\\`, `|` as `\|`, `&` as `&amp;`, `<` as `&lt;`, and a line break as `<br>`, so each escape reads back to one value.
 
 The alternative was rows taken from the serialized data, with nested keys flattened to dotted names.
 It lost because the column order would follow struct fields rather than the view, and a result whose view hides a field would show it.

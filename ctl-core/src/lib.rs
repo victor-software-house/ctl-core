@@ -94,8 +94,9 @@
 //!   choose the output format.
 //! - [`Present`] maps a serializable result to a semantic [`Document`].
 //! - [`View`] hands the result to its [`Format`], which serializes it or
-//!   renders its document. `pretty` and `json` are such formats, and a CLI adds
-//!   its own on [`Formats`].
+//!   renders its document. `pretty`, `json`, `tsv`, `csv`, and `markdown` are
+//!   such formats, and a CLI adds its own on [`Formats`]. With no format named,
+//!   a terminal gets `pretty` and a pipe gets `tsv`.
 //! - Success goes to stdout and failure to stderr, in JSON as in pretty output.
 //!   A machine format, such as JSON, never contains ANSI.
 //! - A reader that closes stdout early, such as `head -1`, does not change the

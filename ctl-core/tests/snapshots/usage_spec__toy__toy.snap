@@ -16,6 +16,9 @@ flag "-f --format" help="Output representation" global=#true help_heading=Output
         choices {
             choice pretty help="Human text, optionally coloured"
             choice json help="Machine JSON. Never contains ANSI"
+            choice tsv help="Tab-separated lines, one record per line"
+            choice csv help="Comma-separated values (RFC 4180)"
+            choice markdown help="Markdown tables and text"
         }
     }
 }

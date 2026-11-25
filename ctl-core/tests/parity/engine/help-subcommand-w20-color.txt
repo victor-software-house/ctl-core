@@ -24,7 +24,7 @@
 
 \u{1b}[1m\u{1b}[36mOutput\u{1b}[0m
   \u{1b}[1m\u{1b}[32m-f\u{1b}[0m \u{1b}[1m\u{1b}[32m--format\u{1b}[0m
-  \u{1b}[1m\u{1b}[33m[pretty|json]\u{1b}[0m
+  \u{1b}[1m\u{1b}[33m[pretty|json|tsv|csv|markdown]\u{1b}[0m
     Output
     representation
     \u{1b}[90m[env:\u{1b}[0m

@@ -9,6 +9,8 @@
 //! child's stdout and stderr.
 #![cfg(all(feature = "completion", feature = "app", feature = "fixture"))]
 
+#[path = "support/child.rs"]
+mod child;
 #[path = "support/shells.rs"]
 mod shells;
 
@@ -24,7 +26,7 @@ use ctl_core::shell::{self, Script, Shell};
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
-#[command(name = "toy", version, about = "toy")]
+#[command(name = "toy", version, about = "toy", env_prefix = "TOY")]
 struct Toy {
     #[command(flatten)]
     output: OutputArgs,
@@ -186,7 +188,13 @@ fn the_view_prints_the_script_as_it_is() {
     assert_eq!(pretty.text(), script.text);
     assert!(!pretty.text().contains('\u{1b}'));
 
-    for other in [None, Some(FormatName::TSV), Some(FormatName::new("yaml"))] {
+    for other in [
+        None,
+        Some(FormatName::TSV),
+        Some(FormatName::CSV),
+        Some(FormatName::MARKDOWN),
+        Some(FormatName::new("yaml")),
+    ] {
         let plain = shell::view(other).quiet(true).capture(&script).unwrap();
         assert_eq!(plain.text(), script.text, "{other:?}");
     }
@@ -207,6 +215,30 @@ fn the_verb_prints_the_script_under_quiet() {
     };
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains(&script(Shell::Zsh, "toy")), "{stdout}");
+}
+
+#[test]
+fn the_verb_prints_the_script_under_the_piped_default() {
+    let test = "the_verb_prints_the_script_under_the_piped_default";
+    let Some(output) = child::in_child(CHILD, test, &[]) else {
+        let code = child::case(|| run(&["completion", "zsh"]));
+        assert_eq!(code, ExitCode::SUCCESS);
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), script(Shell::Zsh, "toy"));
+}
+
+#[test]
+fn the_verb_prints_the_script_under_a_csv_format_variable() {
+    let test = "the_verb_prints_the_script_under_a_csv_format_variable";
+    let Some(output) = child::in_child(CHILD, test, &[("TOY_FORMAT", "csv")]) else {
+        let toy = Toy::try_parse_from(["toy", "completion", "zsh"]).unwrap();
+        assert_eq!(toy.output.format, Some(FormatName::CSV));
+        let code = child::case(|| run(&["completion", "zsh"]));
+        assert_eq!(code, ExitCode::SUCCESS);
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), script(Shell::Zsh, "toy"));
 }
 
 #[test]
