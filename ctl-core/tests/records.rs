@@ -69,7 +69,15 @@ struct Status {
 
 impl Present for Status {
     fn present(&self) -> Document {
-        Document::new().paragraph("status")
+        let section = |title: &str, key: &str, value: &str| {
+            Section::new(
+                title,
+                Document::new().table(Table::new(["k", "v"]).row([key, value])),
+            )
+        };
+        Document::new()
+            .section(section("one", "a", "1"))
+            .section(section("two", "b", "2"))
     }
 
     fn outcome(&self) -> Outcome {
@@ -120,6 +128,24 @@ enum Event {
     Plain {
         n: usize,
     },
+    /// A record that is an empty document.
+    Empty,
+    /// A record that is two adjacent tables of one header.
+    Pair {
+        n: usize,
+    },
+    /// A record that is a table whose row has more cells than its header.
+    Wide {
+        n: usize,
+    },
+    /// A record that is a paragraph.
+    Aside,
+    /// A record that is a heading.
+    Title,
+    /// A record that is a heading with no text.
+    Hollow,
+    /// A record that is a section, with a title and no body.
+    Titled,
     /// A record that fails half way through its serialization.
     Broken {
         #[serde(serialize_with = "unserializable")]
@@ -149,6 +175,20 @@ impl Present for Event {
             Self::Plain { n } => {
                 Document::new().table(Table::plain().row(["plain".to_owned(), n.to_string()]))
             }
+            Self::Empty => Document::new(),
+            Self::Pair { n } => {
+                let kind = |kind: &str| Table::new(["type", "n"]).row([kind, &n.to_string()]);
+                Document::new().table(kind("first")).table(kind("second"))
+            }
+            Self::Wide { n } => Document::new().table(Table::new(["type", "n"]).row([
+                "wide".to_owned(),
+                n.to_string(),
+                "extra".to_owned(),
+            ])),
+            Self::Aside => Document::new().paragraph("aside"),
+            Self::Title => Document::new().heading("aside"),
+            Self::Hollow => Document::new().heading(""),
+            Self::Titled => Document::new().section(Section::new("aside", Document::new())),
         }
     }
 
@@ -160,7 +200,14 @@ impl Present for Event {
             | Self::Broken { .. }
             | Self::Note { .. }
             | Self::Detail { .. }
-            | Self::Plain { .. } => Outcome::Success,
+            | Self::Plain { .. }
+            | Self::Empty
+            | Self::Pair { .. }
+            | Self::Wide { .. }
+            | Self::Aside
+            | Self::Title
+            | Self::Hollow
+            | Self::Titled => Outcome::Success,
         }
     }
 
@@ -172,7 +219,14 @@ impl Present for Event {
             | Self::Broken { .. }
             | Self::Note { .. }
             | Self::Detail { .. }
-            | Self::Plain { .. } => 0,
+            | Self::Plain { .. }
+            | Self::Empty
+            | Self::Pair { .. }
+            | Self::Wide { .. }
+            | Self::Aside
+            | Self::Title
+            | Self::Hollow
+            | Self::Titled => 0,
         }
     }
 }
@@ -202,8 +256,11 @@ enum Cmd {
         /// (a record whose own outcome is an error), `broken` (a record that
         /// fails half way through its serialization), `alternate` (tables
         /// of two kinds, A, A, B, A), `between` (fields between two tables of
-        /// one kind), `plain` (a table with no header row), or `refuse` (the
-        /// handler fails).
+        /// one kind), `plain` (a table with no header row), `empty-header`
+        /// (an empty header record), `pair` (a record of two tables of one
+        /// header), `wide` (a row wider than its header), `empty`,
+        /// `paragraph`, `heading`, `empty-heading`, or `section` (that
+        /// record between two ticks), or `refuse` (the handler fails).
         #[arg(long, default_value = "fixed")]
         mode: String,
     },
@@ -225,6 +282,16 @@ fn third_fails() -> anyhow::Error {
 fn wait_for_line() {
     let mut line = String::new();
     io::stdin().lock().read_line(&mut line).ok();
+}
+
+/// The records of one table, with `between` after the first of them.
+fn aside(header: Event, between: Event) -> Records<'static> {
+    Records::new(
+        header,
+        [Event::Tick { n: 1 }, between, Event::Tick { n: 2 }]
+            .into_iter()
+            .map(Ok),
+    )
 }
 
 fn events(mode: &str) -> anyhow::Result<Records<'static>> {
@@ -290,6 +357,19 @@ fn events(mode: &str) -> anyhow::Result<Records<'static>> {
                 .into_iter()
                 .map(Ok),
         ),
+        "empty-header" => Records::new(
+            Event::Empty,
+            [Event::Tick { n: 1 }, Event::Tick { n: 2 }]
+                .into_iter()
+                .map(Ok),
+        ),
+        "pair" => Records::new(header, [Event::Pair { n: 1 }].into_iter().map(Ok)),
+        "wide" => Records::new(header, [Event::Wide { n: 1 }].into_iter().map(Ok)),
+        "empty" => aside(header, Event::Empty),
+        "paragraph" => aside(header, Event::Aside),
+        "heading" => aside(header, Event::Title),
+        "empty-heading" => aside(header, Event::Hollow),
+        "section" => aside(header, Event::Titled),
         "broken" => Records::new(
             header,
             [
@@ -679,7 +759,7 @@ fn records(mode: &str) -> Records<'static> {
 }
 
 /// The stdout of a child that wrote the records of `test` as one run.
-fn written(test: &str, args: &'static [&'static str], vars: &[(&str, &str)]) -> Option<String> {
+fn written(test: &str, args: &[&str], vars: &[(&str, &str)]) -> Option<String> {
     let Some(output) = child::in_child(CHILD, test, vars) else {
         assert_eq!(child::case(|| run(args)), ExitCode::SUCCESS);
         return None;
@@ -960,4 +1040,187 @@ fn a_pretty_stream_writes_no_colour_when_refused() {
         return;
     };
     assert!(!stdout.contains('\u{1b}'), "{stdout:?}");
+}
+
+/// The stdout of the records of `mode` under `--stream` in `format`.
+fn streamed(test: &str, mode: &str, format: &str) -> Option<String> {
+    written(
+        test,
+        &["events", "--mode", mode, "--stream"],
+        &[("TOY_FORMAT", format)],
+    )
+}
+
+/// The stdout of `toy status` in `format`, streamed or collected.
+fn status(test: &str, format: &str, stream: bool) -> Option<String> {
+    written(
+        test,
+        &["status"],
+        &[("TOY_FORMAT", format), ("TOY_STREAM", &stream.to_string())],
+    )
+}
+
+#[test]
+fn a_value_of_two_tables_of_one_header_writes_the_same_bytes_streamed() {
+    let test = "a_value_of_two_tables_of_one_header_writes_the_same_bytes_streamed";
+    let expected = [
+        ("tsv", "k\tv\na\t1\n\nk\tv\nb\t2\n"),
+        ("csv", "k,v\r\na,1\r\n\r\nk,v\r\nb,2\r\n"),
+        (
+            "markdown",
+            "# one\n\n| k | v |\n| --- | --- |\n| a | 1 |\n\n# two\n\n| k | v |\n| --- | --- |\n| b | 2 |\n",
+        ),
+    ];
+    for (format, text) in expected {
+        let Some(streamed) = status(test, format, true) else {
+            return;
+        };
+        let Some(collected) = status(test, format, false) else {
+            return;
+        };
+        assert_eq!(collected, text, "{format}");
+        assert_eq!(streamed, text, "{format}");
+    }
+}
+
+#[test]
+fn two_adjacent_tables_of_one_header_in_a_record_are_not_merged() {
+    let test = "two_adjacent_tables_of_one_header_in_a_record_are_not_merged";
+    let expected = [
+        (
+            "tsv",
+            "type\tn\nheader\t3\nfirst\t1\n\ntype\tn\nsecond\t1\n",
+        ),
+        (
+            "csv",
+            "type,n\r\nheader,3\r\nfirst,1\r\n\r\ntype,n\r\nsecond,1\r\n",
+        ),
+        (
+            "markdown",
+            "| type | n |\n| --- | --- |\n| header | 3 |\n| first | 1 |\n\n| type | n |\n| --- | --- |\n| second | 1 |\n",
+        ),
+    ];
+    for (format, text) in expected {
+        let Some(stdout) = streamed(test, "pair", format) else {
+            return;
+        };
+        assert_eq!(stdout, text, "{format}");
+    }
+}
+
+#[test]
+fn a_row_wider_than_the_header_starts_a_new_table_streamed_and_collected() {
+    let test = "a_row_wider_than_the_header_starts_a_new_table_streamed_and_collected";
+    let tsv = "type\tn\nheader\t3\n\ntype\tn\t\nwide\t1\textra\n";
+    for format in ["tsv", "csv", "markdown"] {
+        let vars = |stream: &'static str| [("TOY_FORMAT", format), ("TOY_STREAM", stream)];
+        let Some(streamed) = written(test, &["events", "--mode", "wide"], &vars("true")) else {
+            return;
+        };
+        let Some(collected) = written(test, &["events", "--mode", "wide"], &vars("false")) else {
+            return;
+        };
+        assert_eq!(streamed, collected, "{format}");
+        if format == "tsv" {
+            assert_eq!(streamed, tsv);
+        }
+    }
+}
+
+#[test]
+fn a_block_the_dialect_leaves_out_does_not_end_a_csv_table() {
+    let test = "a_block_the_dialect_leaves_out_does_not_end_a_csv_table";
+    let Some(stdout) = streamed(test, "paragraph", "csv") else {
+        return;
+    };
+    assert_eq!(stdout, "type,n\r\nheader,3\r\ntick,1\r\ntick,2\r\n");
+}
+
+#[test]
+fn a_block_the_dialect_leaves_out_does_not_end_a_tsv_table() {
+    let test = "a_block_the_dialect_leaves_out_does_not_end_a_tsv_table";
+    let Some(stdout) = streamed(test, "heading", "tsv") else {
+        return;
+    };
+    assert_eq!(stdout, "type\tn\nheader\t3\ntick\t1\ntick\t2\n");
+}
+
+#[test]
+fn an_empty_heading_does_not_end_a_markdown_table() {
+    let test = "an_empty_heading_does_not_end_a_markdown_table";
+    let Some(stdout) = streamed(test, "empty-heading", "markdown") else {
+        return;
+    };
+    assert_eq!(
+        stdout,
+        "| type | n |\n| --- | --- |\n| header | 3 |\n| tick | 1 |\n| tick | 2 |\n"
+    );
+}
+
+const MARKDOWN_AFTER_HEADING: &str = "| type | n |\n| --- | --- |\n| header | 3 |\n| tick | 1 |\n\n# aside\n\n| type | n |\n| --- | --- |\n| tick | 2 |\n";
+
+#[test]
+fn a_markdown_heading_ends_the_table() {
+    let test = "a_markdown_heading_ends_the_table";
+    let Some(stdout) = streamed(test, "heading", "markdown") else {
+        return;
+    };
+    assert_eq!(stdout, MARKDOWN_AFTER_HEADING);
+}
+
+#[test]
+fn a_markdown_section_title_ends_the_table() {
+    let test = "a_markdown_section_title_ends_the_table";
+    let Some(stdout) = streamed(test, "section", "markdown") else {
+        return;
+    };
+    assert_eq!(stdout, MARKDOWN_AFTER_HEADING);
+}
+
+#[test]
+fn an_empty_record_changes_nothing_in_a_tabular_stream() {
+    let test = "an_empty_record_changes_nothing_in_a_tabular_stream";
+    let expected = [
+        ("tsv", "type\tn\nheader\t3\ntick\t1\ntick\t2\n"),
+        ("csv", "type,n\r\nheader,3\r\ntick,1\r\ntick,2\r\n"),
+        (
+            "markdown",
+            "| type | n |\n| --- | --- |\n| header | 3 |\n| tick | 1 |\n| tick | 2 |\n",
+        ),
+    ];
+    for (format, text) in expected {
+        let Some(stdout) = streamed(test, "empty", format) else {
+            return;
+        };
+        assert_eq!(stdout, text, "{format}");
+    }
+}
+
+/// What `pretty` writes for each record of the toy's table.
+const PRETTY_HEADER: &str =
+    "┌────────┬───┐\n│ type   ┆ n │\n╞════════╪═══╡\n│ header ┆ 3 │\n└────────┴───┘\n";
+const PRETTY_TICK_ONE: &str =
+    "┌──────┬───┐\n│ type ┆ n │\n╞══════╪═══╡\n│ tick ┆ 1 │\n└──────┴───┘\n";
+const PRETTY_TICK_TWO: &str =
+    "┌──────┬───┐\n│ type ┆ n │\n╞══════╪═══╡\n│ tick ┆ 2 │\n└──────┴───┘\n";
+
+#[test]
+fn pretty_writes_no_blank_line_for_an_empty_header_record() {
+    let test = "pretty_writes_no_blank_line_for_an_empty_header_record";
+    let Some(stdout) = streamed(test, "empty-header", "pretty") else {
+        return;
+    };
+    assert_eq!(stdout, format!("{PRETTY_TICK_ONE}\n{PRETTY_TICK_TWO}"));
+}
+
+#[test]
+fn pretty_writes_one_blank_line_for_an_empty_record_between_two_ticks() {
+    let test = "pretty_writes_one_blank_line_for_an_empty_record_between_two_ticks";
+    let Some(stdout) = streamed(test, "empty", "pretty") else {
+        return;
+    };
+    assert_eq!(
+        stdout,
+        format!("{PRETTY_HEADER}\n{PRETTY_TICK_ONE}\n{PRETTY_TICK_TWO}")
+    );
 }

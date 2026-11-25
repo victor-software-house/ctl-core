@@ -129,9 +129,12 @@ impl Buffer {
         }
     }
 
-    /// Whether `table`, `width` cells wide, continues the table last written.
+    /// Whether `table`, `width` cells wide, continues the table last written:
+    /// only when this record has written nothing yet, so inside one record
+    /// every table is written as the whole output writes it.
     fn continues(&self, table: &Table, width: usize) -> bool {
         self.stream
+            && self.text.is_empty()
             && self
                 .run
                 .last
@@ -397,16 +400,11 @@ fn write_fields(fields: &Fields, dialect: &dyn Dialect, out: &mut Buffer) {
 }
 
 /// A table is as wide as its longest row or its header row, and a table with
-/// no columns writes nothing. In a stream, a table with the header and width
-/// of the last one written is only its rows, with no blank line before them.
+/// no columns writes nothing. In a stream, the first table of a record, with
+/// the header and width of the last one written, is only its rows, with no
+/// blank line before them.
 fn write_table(table: &Table, dialect: &dyn Dialect, out: &mut Buffer) {
-    let width = table
-        .rows()
-        .iter()
-        .map(Vec::len)
-        .chain([table.headers().len()])
-        .max()
-        .unwrap_or_default();
+    let width = table.width();
     if width == 0 {
         return;
     }

@@ -12,7 +12,10 @@ use crate::format::{Format, FormatName, Output, PRETTY_ABOUT, RecordWriter, Sink
 /// Under `--stream` it renders each record's document as the whole output
 /// renders it when the record arrives, with one blank line between records,
 /// none before the first or after the last. Each record is laid out alone, so
-/// the columns of a table are not aligned across records.
+/// the columns of a table are not aligned across records. A record that renders
+/// to nothing writes nothing and adds no blank line. Colour and width are
+/// decided for each record, so a terminal resized mid-stream changes the width
+/// of later records.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Pretty;
 
@@ -30,6 +33,9 @@ struct Separated<'s> {
 impl RecordWriter for Separated<'_> {
     fn record(&mut self, output: &Output<'_>) -> io::Result<()> {
         let text = self.sink.render(output.document());
+        if text.is_empty() {
+            return Ok(());
+        }
         if mem::replace(&mut self.written, true) {
             self.sink.write_all(b"\n")?;
         }

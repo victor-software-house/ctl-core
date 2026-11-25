@@ -31,15 +31,17 @@ use crate::format::{Format, FormatName, Output, RecordWriter, Sink, TSV_ABOUT};
 /// writes nothing.
 ///
 /// Under `--stream`, each record is written as it arrives, as the whole
-/// output writes its document, with the same blank line between blocks. A
-/// table with the header line and column count of the last table written goes
-/// on with only its rows, and no blank line before them. A plain table goes
-/// on from the last plain table of the same column count. So records that are
-/// each one row of one table are, byte for byte, the collected output. Any
-/// other table writes its header line again, after a blank line. Fields, a
-/// paragraph, verbatim text, and a notice end the table, so the same table
-/// after one of them writes its header again. A block `tsv` leaves out, such
-/// as a heading, writes nothing and does not end the table.
+/// output writes its document, with the same blank line between blocks. The
+/// first table of a record, when it has the header line and column count of
+/// the last table written, goes on with only its rows, and no blank line
+/// before them. A plain table goes on from the last plain table of the same
+/// column count. So a stream of records that are each one row of one table
+/// with the same column count writes the same bytes as the collected output.
+/// Any other table writes its header line again, after a blank line. A block
+/// that writes something other than a table ends the table, so the same table
+/// after fields, a paragraph, verbatim text, or a notice writes its header
+/// again. A block `tsv` leaves out, such as a heading, writes nothing and does
+/// not end the table.
 ///
 /// It is a machine format, so it never writes ANSI styling, and it is the
 /// default when stdout is not a terminal. Its error form is the default,

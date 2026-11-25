@@ -64,7 +64,8 @@ type Item<'a> = anyhow::Result<Box<dyn Record + 'a>>;
 /// Without `--stream` the records are collected and written as one result.
 /// Its data is one sequence, header first, so `json` writes one array. Its
 /// document is the header's document followed by each record's. Adjacent
-/// documents that are each one table with equal headers merge into one table.
+/// documents that are each one table with equal headers and the same column
+/// count merge into one table.
 ///
 /// Every record goes to stdout. A record's [`Present::outcome`] and
 /// [`Present::exit_code`] are ignored. The run exits 0 unless the iterator
@@ -273,15 +274,17 @@ impl Serialize for Sequence<'_, '_> {
 }
 
 /// The document of a collected run: each record's document in turn, where
-/// adjacent documents that are each one table with equal headers make one
-/// table. Blocks and rows are moved, not copied.
+/// adjacent documents that are each one table with equal headers and the same
+/// column count make one table. Blocks and rows are moved, not copied.
 fn merged(records: &[Box<dyn Record + '_>]) -> Document {
     let mut blocks = Vec::new();
     let mut open = false;
     for record in records {
         match <[Block; 1]>::try_from(record.present().into_blocks()) {
             Ok([Block::Table(table)]) => match blocks.last_mut() {
-                Some(Block::Table(run)) if open && run.headers() == table.headers() => {
+                Some(Block::Table(run))
+                    if open && run.headers() == table.headers() && run.width() == table.width() =>
+                {
                     run.extend_rows(table);
                 }
                 _ => {

@@ -30,15 +30,16 @@ use crate::format::{CSV_ABOUT, Format, FormatName, Output, RecordWriter, Sink};
 /// another, that guards those cells.
 ///
 /// Under `--stream`, each record is written as it arrives, as the whole
-/// output writes its document, with the same blank line between blocks. A
-/// table with the header record and column count of the last table written
-/// goes on with only its rows, and no blank line before them. A plain table
-/// goes on from the last plain table of the same column count. So records
-/// that are each one row of one table are, byte for byte, the collected
-/// output. Any other table writes its header record again, after a blank
-/// line. Fields end the table, so the same table after them writes its header
-/// again. A block `csv` leaves out, such as a paragraph or a notice, writes
-/// nothing and does not end the table.
+/// output writes its document, with the same blank line between blocks. The
+/// first table of a record, when it has the header record and column count of
+/// the last table written, goes on with only its rows, and no blank line
+/// before them. A plain table goes on from the last plain table of the same
+/// column count. So a stream of records that are each one row of one table
+/// with the same column count writes the same bytes as the collected output.
+/// Any other table writes its header record again, after a blank line. A block
+/// that writes something other than a table ends the table, so the same table
+/// after fields writes its header again. A block `csv` leaves out, such as a
+/// paragraph or a notice, writes nothing and does not end the table.
 ///
 /// It is a machine format, so it writes no ANSI styling. Its error form is the
 /// default, `{bin}: {message}`.
