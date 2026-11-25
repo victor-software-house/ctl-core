@@ -47,7 +47,7 @@ const NARROW_HELP_WIDTH: u16 = 64;
 /// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
     let raw = env::args_os().collect::<Vec<_>>();
-    let color = parser::parsed_output::<C>(&raw).color;
+    let color = parser::parsed_output(C::command(), &raw).color;
     try_emit_with_options::<C>(RenderOptions::new(color))
 }
 
@@ -79,7 +79,7 @@ pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::R
 /// Panics when the command disables `-h/--help` or `-V/--version`.
 pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
     let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
-    let color = parser::parsed_output::<C>(&raw).color;
+    let color = parser::parsed_output(C::command(), &raw).color;
     try_emit_from_with_options::<C>(args, RenderOptions::new(color))
 }
 
@@ -96,7 +96,7 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<bool> {
-    try_emit_grouped::<C>(args, options, &[])
+    try_emit_grouped(&C::command(), args, options, &[])
 }
 
 /// Print the root command's help to stderr, as shown for a bare invocation of
@@ -110,53 +110,62 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 ///
 /// Returns the error from writing help to stderr.
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    emit_bare_grouped::<C>(options, &[])
+    emit_bare_grouped(C::command(), options, &[])
 }
 
-/// [`emit_bare_with_options`] with the root's commands under `groups`.
-pub(crate) fn emit_bare_grouped<C: CommandFactory>(
+/// [`emit_bare_with_options`] for `command`, with the root's commands under
+/// `groups`. `App` passes the command it augmented with the CLI's formats.
+pub(crate) fn emit_bare_grouped(
+    command: Command,
     options: RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
-    options.print_for(Stream::Stderr, &render(C::command(), Detail::Short, groups))
+    options.print_for(Stream::Stderr, &render(command, Detail::Short, groups))
 }
 
-/// [`try_emit_from_with_options`] with the root's commands under `groups`.
-pub(crate) fn try_emit_grouped<C: CommandFactory>(
+/// [`try_emit_from_with_options`] for `command`, with the root's commands
+/// under `groups`.
+pub(crate) fn try_emit_grouped(
+    command: &Command,
     args: &[String],
     options: RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<bool> {
     let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
-    if !parser::wants_help::<C>(&raw) {
+    if !parser::wants_help(command, &raw) {
         return Ok(false);
     }
-    emit_selected::<C>(args, options, groups)?;
+    emit_selected(command, args, options, groups)?;
     Ok(true)
 }
 
 /// Help for the command `args` select, to stdout, as a help request prints it:
 /// the summary for `-h`, and the long form for `--help` and the `help`
 /// subcommand.
-pub(crate) fn emit_selected<C: CommandFactory>(
+pub(crate) fn emit_selected(
+    declared: &Command,
     args: &[String],
     options: RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
-    let (command, is_root) = help_command::<C>(args);
+    let (command, is_root) = help_command(declared, args);
     let groups = if is_root { groups } else { &[] };
-    options.print_for(Stream::Stdout, &render(command, detail::<C>(args), groups))
+    options.print_for(
+        Stream::Stdout,
+        &render(command, detail(declared, args), groups),
+    )
 }
 
 /// The summary help for the command `args` select, to stderr. Clap asks for
 /// it when a command that requires an argument or a subcommand gets neither.
 #[cfg(feature = "app")]
-pub(crate) fn emit_selected_to_stderr<C: CommandFactory>(
+pub(crate) fn emit_selected_to_stderr(
+    declared: &Command,
     args: &[String],
     options: RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
-    let (command, is_root) = help_command::<C>(args);
+    let (command, is_root) = help_command(declared, args);
     let groups = if is_root { groups } else { &[] };
     options.print_for(Stream::Stderr, &render(command, Detail::Short, groups))
 }
@@ -184,9 +193,9 @@ enum Detail {
 /// The detail a help request in `args` asks for, as Clap reads the flag
 /// that stopped it: the long form for `--help` and the `help` subcommand,
 /// and the summary for `-h`.
-fn detail<C: CommandFactory>(args: &[String]) -> Detail {
+fn detail(declared: &Command, args: &[String]) -> Detail {
     let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
-    if parser::wants_long_help::<C>(&raw) {
+    if parser::wants_long_help(declared, &raw) {
         Detail::Long
     } else {
         Detail::Short
@@ -194,11 +203,10 @@ fn detail<C: CommandFactory>(args: &[String]) -> Detail {
 }
 
 /// The command `args` select, and whether it is the root.
-fn help_command<C: CommandFactory>(args: &[String]) -> (Command, bool) {
-    let declared = C::command();
+fn help_command(declared: &Command, args: &[String]) -> (Command, bool) {
     let mut root = parser::with_help(declared.clone());
     root.build();
-    select_command(root, declared, args.get(1..).unwrap_or(&[]))
+    select_command(root, declared.clone(), args.get(1..).unwrap_or(&[]))
 }
 
 fn select_command(mut command: Command, mut declared: Command, args: &[String]) -> (Command, bool) {
@@ -593,20 +601,22 @@ mod tests {
         ];
         for (args, expected) in cases {
             let args = args.iter().copied().map(String::from).collect::<Vec<_>>();
-            assert_eq!(detail::<Toy>(&args), expected, "{args:?}");
+            assert_eq!(detail(&Toy::command(), &args), expected, "{args:?}");
         }
     }
 
     #[test]
     fn help_subcommand_selects_the_requested_command() {
         let args = ["toy", "help", "status"].map(String::from);
-        assert_eq!(help_command::<Toy>(&args).0.get_name(), "status");
+        assert_eq!(help_command(&Toy::command(), &args).0.get_name(), "status");
     }
 
     #[test]
     fn subcommand_help_keeps_parent_usage_and_globals() {
-        let (command, is_root) =
-            help_command::<Toy>(&["toy", "status", "--help"].map(String::from));
+        let (command, is_root) = help_command(
+            &Toy::command(),
+            &["toy", "status", "--help"].map(String::from),
+        );
         assert_eq!(command.get_bin_name(), Some("ctl-core status"));
         assert!(!is_root);
         assert!(command.get_arguments().any(|arg| arg.get_id() == "format"));
@@ -615,7 +625,7 @@ mod tests {
     #[test]
     fn nested_help_subcommand_selects_the_requested_command() {
         let args = ["toy", "group", "help", "show"].map(String::from);
-        assert_eq!(help_command::<Toy>(&args).0.get_name(), "show");
+        assert_eq!(help_command(&Toy::command(), &args).0.get_name(), "show");
     }
 
     #[test]

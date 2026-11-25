@@ -2,11 +2,11 @@ use std::mem;
 
 use clap::error::ErrorKind;
 use clap::parser::ValueSource;
-use clap::{ArgMatches, Args, Command, FromArgMatches, Id};
+use clap::{Arg, ArgAction, ArgMatches, Args, Command, FromArgMatches, Id};
 
 use crate::color::ColorMode;
 use crate::flags::resolve_color;
-use crate::format::OutputFormat;
+use crate::format::{FormatName, FormatParser};
 #[cfg(feature = "view")]
 use crate::view;
 
@@ -15,8 +15,13 @@ use crate::view;
 ///
 /// `--json` is `--format json`: it sets [`Self::format`]. Naming it beside a
 /// `--format` other than `json` is a usage error. Either one on the command
-/// line wins over the other's variable, and `<PREFIX>_JSON` wins over
-/// `<PREFIX>_FORMAT`.
+/// line wins over the other's variable, and two variables that name different
+/// formats are a usage error.
+///
+/// [`Self::format`] holds what `--format` and `--json` name, or `None` when
+/// neither did, so a default stays open. With `App`, the format in force is
+/// `View::format`: it also reads the shorthands of every registered format, and
+/// the registry's defaults.
 ///
 /// The flags are global, so a subcommand accepts them too. [`Self::view`]
 /// builds the [`View`] for the parsed flags. A CLI that already uses `-c`
@@ -40,8 +45,8 @@ use crate::view;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct OutputArgs {
-    /// Output representation: `-f/--format`, or `json` under `--json`.
-    pub format: OutputFormat,
+    /// The format `-f/--format` names, or `json` under `--json`.
+    pub format: Option<FormatName>,
     color: ColorMode,
     no_color: bool,
     /// Suppress successful pretty output: `-q/--quiet`.
@@ -56,12 +61,13 @@ impl OutputArgs {
         resolve_color(self.color, self.no_color)
     }
 
-    /// Build the [`View`](crate::view::View) for these flags: the format, the
-    /// quiet setting, and the colour mode in force.
+    /// Build the [`View`](crate::view::View) for these flags: the format they
+    /// request, the quiet setting, and the colour mode in force. Without a
+    /// requested format the view takes the default when it resolves.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self) -> view::View {
-        view::View::new(self.format, self.color()).quiet(self.quiet)
+        view::View::requested(self.format, self.color()).quiet(self.quiet)
     }
 }
 
@@ -81,8 +87,8 @@ impl OutputArgs {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct FormatArgs {
-    /// Output representation: `-f/--format`, or `json` under `--json`.
-    pub format: OutputFormat,
+    /// The format `-f/--format` names, or `json` under `--json`.
+    pub format: Option<FormatName>,
     /// Suppress successful pretty output: `-q/--quiet`.
     pub quiet: bool,
 }
@@ -93,7 +99,7 @@ impl FormatArgs {
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> view::View {
-        view::View::new(self.format, color).quiet(self.quiet)
+        view::View::requested(self.format, color).quiet(self.quiet)
     }
 }
 
@@ -105,8 +111,8 @@ impl FormatArgs {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct FormatLong {
-    /// Output representation: `--format`, or `json` under `--json`.
-    pub format: OutputFormat,
+    /// The format `--format` names, or `json` under `--json`.
+    pub format: Option<FormatName>,
     /// Suppress successful pretty output: `-q/--quiet`.
     pub quiet: bool,
 }
@@ -117,38 +123,71 @@ impl FormatLong {
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> view::View {
-        view::View::new(self.format, color).quiet(self.quiet)
+        view::View::requested(self.format, color).quiet(self.quiet)
     }
 }
 
-/// `format`, or JSON when `--json` is set and the command line does not
-/// name another format.
+/// The `--json` flag: a shorthand for `--format json`.
+///
+/// The flag structs add it in `augment_args` and read it from the matches, so
+/// a format that declares a shorthand needs no field of its own.
+fn json_arg() -> Arg {
+    Arg::new("json")
+        .long("json")
+        .action(ArgAction::SetTrue)
+        .global(true)
+        .help("Shorthand for `--format json`")
+        .help_heading("Output")
+}
+
+/// Whether `--json`, or its variable, is set.
+fn json_set(matches: &ArgMatches) -> bool {
+    matches
+        .try_get_one::<bool>("json")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or(false)
+}
+
+/// The format `--format` and `--json` name together, or `None` when neither
+/// does.
 ///
 /// A command-line value outranks a variable, so `--format` on the command line
-/// beats `<PREFIX>_JSON`, and `--json` beats `<PREFIX>_FORMAT`. Clap applies
-/// neither `conflicts_with` nor `default_value_if` to a global flag a
+/// beats `<PREFIX>_JSON`, and `--json` beats `<PREFIX>_FORMAT`. Both on the
+/// command line, or both from variables, must name the same format. Clap
+/// applies neither `conflicts_with` nor `default_value_if` to a global flag a
 /// subcommand repeats, so the two flags are reconciled here.
 ///
 /// # Errors
 ///
 /// An `ArgumentConflict` error when the command line holds `--json` and a
-/// `--format` other than `json`.
+/// `--format` other than `json`, or when the variables of the two name
+/// different formats.
 pub(crate) fn resolved_format(
-    format: OutputFormat,
+    format: Option<FormatName>,
     json: bool,
     matches: &ArgMatches,
-) -> Result<OutputFormat, clap::Error> {
-    let from_line = |id: &str| matches.value_source(id) == Some(ValueSource::CommandLine);
-    if !json || (from_line("format") && !from_line("json")) {
-        return Ok(format);
+) -> Result<Option<FormatName>, clap::Error> {
+    let Some(format) = format else {
+        return Ok(json.then_some(FormatName::JSON));
+    };
+    if !json || format == FormatName::JSON {
+        return Ok(Some(format));
     }
-    if from_line("format") && format != OutputFormat::Json {
-        return Err(clap::Error::raw(
+    let source = |id: &str| matches.value_source(id);
+    match (source("format"), source("json")) {
+        (Some(ValueSource::CommandLine), Some(ValueSource::CommandLine)) => Err(clap::Error::raw(
             ErrorKind::ArgumentConflict,
             "the argument '--json' cannot be used with '--format <FORMAT>'\n",
-        ));
+        )),
+        (Some(ValueSource::CommandLine), _) => Ok(Some(format)),
+        (_, Some(ValueSource::CommandLine)) => Ok(Some(FormatName::JSON)),
+        _ => Err(clap::Error::raw(
+            ErrorKind::ArgumentConflict,
+            "the variables for --format and --json name different formats\n",
+        )),
     }
-    Ok(OutputFormat::Json)
 }
 
 /// Clap's traits for a public flag struct through its derived twin `$flags`,
@@ -174,18 +213,18 @@ macro_rules! through_flags {
             }
 
             fn augment_args(command: Command) -> Command {
-                $flags::augment_args(command)
+                $flags::augment_args(command).arg(json_arg())
             }
 
             fn augment_args_for_update(command: Command) -> Command {
-                $flags::augment_args_for_update(command)
+                $flags::augment_args_for_update(command).arg(json_arg())
             }
         }
     };
 }
 
 /// The Clap shape of [`OutputArgs`]. [`OutputArgs`] is built from it after the
-/// parse, so its `format` reads `--json`.
+/// parse, so its `format` reads `--json`, which `augment_args` adds.
 #[derive(Args, Default)]
 #[command(about = None, long_about = None)]
 #[group(id = "OutputArgs")]
@@ -195,14 +234,10 @@ struct OutputFlags {
         short = 'f',
         long,
         global = true,
-        value_enum,
-        default_value = "pretty",
+        value_parser = FormatParser::builtin(),
         help_heading = "Output"
     )]
-    format: OutputFormat,
-    /// Shorthand for `--format json`.
-    #[arg(long, global = true, help_heading = "Output")]
-    json: bool,
+    format: Option<FormatName>,
     /// Pretty-output colour policy. JSON never contains ANSI.
     #[arg(
         short = 'c',
@@ -224,7 +259,7 @@ struct OutputFlags {
 impl OutputFlags {
     fn resolve(self, matches: &ArgMatches) -> Result<OutputArgs, clap::Error> {
         Ok(OutputArgs {
-            format: resolved_format(self.format, self.json, matches)?,
+            format: resolved_format(self.format, json_set(matches), matches)?,
             color: self.color,
             no_color: self.no_color,
             quiet: self.quiet,
@@ -236,7 +271,6 @@ impl From<OutputArgs> for OutputFlags {
     fn from(args: OutputArgs) -> Self {
         Self {
             format: args.format,
-            json: false,
             color: args.color,
             no_color: args.no_color,
             quiet: args.quiet,
@@ -247,7 +281,7 @@ impl From<OutputArgs> for OutputFlags {
 through_flags!(OutputArgs, OutputFlags);
 
 /// The Clap shape of [`FormatArgs`]. [`FormatArgs`] is built from it after the
-/// parse, so its `format` reads `--json`.
+/// parse, so its `format` reads `--json`, which `augment_args` adds.
 #[derive(Args, Default)]
 #[command(about = None, long_about = None)]
 #[group(id = "FormatArgs")]
@@ -257,14 +291,10 @@ struct FormatFlags {
         short = 'f',
         long,
         global = true,
-        value_enum,
-        default_value = "pretty",
+        value_parser = FormatParser::builtin(),
         help_heading = "Output"
     )]
-    format: OutputFormat,
-    /// Shorthand for `--format json`.
-    #[arg(long, global = true, help_heading = "Output")]
-    json: bool,
+    format: Option<FormatName>,
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     quiet: bool,
@@ -273,7 +303,7 @@ struct FormatFlags {
 impl FormatFlags {
     fn resolve(self, matches: &ArgMatches) -> Result<FormatArgs, clap::Error> {
         Ok(FormatArgs {
-            format: resolved_format(self.format, self.json, matches)?,
+            format: resolved_format(self.format, json_set(matches), matches)?,
             quiet: self.quiet,
         })
     }
@@ -283,7 +313,6 @@ impl From<FormatArgs> for FormatFlags {
     fn from(args: FormatArgs) -> Self {
         Self {
             format: args.format,
-            json: false,
             quiet: args.quiet,
         }
     }
@@ -292,7 +321,7 @@ impl From<FormatArgs> for FormatFlags {
 through_flags!(FormatArgs, FormatFlags);
 
 /// The Clap shape of [`FormatLong`]. [`FormatLong`] is built from it after the
-/// parse, so its `format` reads `--json`.
+/// parse, so its `format` reads `--json`, which `augment_args` adds.
 #[derive(Args, Default)]
 #[command(about = None, long_about = None)]
 #[group(id = "FormatLong")]
@@ -301,14 +330,10 @@ struct FormatLongFlags {
     #[arg(
         long,
         global = true,
-        value_enum,
-        default_value = "pretty",
+        value_parser = FormatParser::builtin(),
         help_heading = "Output"
     )]
-    format: OutputFormat,
-    /// Shorthand for `--format json`.
-    #[arg(long, global = true, help_heading = "Output")]
-    json: bool,
+    format: Option<FormatName>,
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     quiet: bool,
@@ -317,7 +342,7 @@ struct FormatLongFlags {
 impl FormatLongFlags {
     fn resolve(self, matches: &ArgMatches) -> Result<FormatLong, clap::Error> {
         Ok(FormatLong {
-            format: resolved_format(self.format, self.json, matches)?,
+            format: resolved_format(self.format, json_set(matches), matches)?,
             quiet: self.quiet,
         })
     }
@@ -327,7 +352,6 @@ impl From<FormatLong> for FormatLongFlags {
     fn from(args: FormatLong) -> Self {
         Self {
             format: args.format,
-            json: false,
             quiet: args.quiet,
         }
     }

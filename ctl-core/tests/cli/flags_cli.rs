@@ -27,32 +27,29 @@ fn status_subcommand() {
 
 #[test]
 fn format_short_and_long() {
-    assert!(parse(&["-f", "json", "status"]).output.format.is_json());
-    assert!(
-        parse(&["--format", "json", "status"])
-            .output
-            .format
-            .is_json()
+    assert_eq!(
+        parse(&["-f", "json", "status"]).output.format,
+        Some(FormatName::JSON)
     );
-    assert!(
-        !parse(&["--format", "pretty", "status"])
-            .output
-            .format
-            .is_json()
+    assert_eq!(
+        parse(&["--format", "json", "status"]).output.format,
+        Some(FormatName::JSON)
+    );
+    assert_ne!(
+        parse(&["--format", "pretty", "status"]).output.format,
+        Some(FormatName::JSON)
     );
 }
 
 #[test]
 fn output_flags_work_after_the_subcommand() {
     let after = parse(&["status", "--format", "json", "--color", "never", "--quiet"]);
-    assert!(after.output.format.is_json());
+    assert_eq!(after.output.format, Some(FormatName::JSON));
     assert!(after.output.quiet);
     assert_eq!(after.output.color(), ColorMode::Never);
-    assert!(
-        parse(&["status", "-f", "json", "-q"])
-            .output
-            .format
-            .is_json()
+    assert_eq!(
+        parse(&["status", "-f", "json", "-q"]).output.format,
+        Some(FormatName::JSON)
     );
     assert_eq!(
         parse(&["status", "--no-color"]).output.color(),
@@ -66,7 +63,7 @@ fn format_args_flatten_is_global_after_the_verb() {
         "x", "status", "--format", "json", "--quiet", "--color", "never",
     ]);
     assert!(matches!(cli.command, ToyCmd::Status));
-    assert!(cli.format.format.is_json());
+    assert_eq!(cli.format.format, Some(FormatName::JSON));
     assert!(cli.format.quiet);
     assert_eq!(cli.color.color(), ColorMode::Never);
 }
@@ -99,7 +96,7 @@ fn quiet_and_dry_run() {
 #[test]
 fn defaults() {
     let cli = parse(&["status"]);
-    assert_eq!(cli.output.format, OutputFormat::Pretty);
+    assert_eq!(cli.output.format, None);
     assert_eq!(cli.output.color(), ColorMode::Auto);
     assert!(!cli.output.quiet);
     assert!(!cli.dry.dry_run);
@@ -115,10 +112,12 @@ fn all_long_and_all_short() {
         "--dry-run",
         "status",
     ]);
-    assert!(long.output.format.is_json() && long.output.quiet && long.dry.dry_run);
+    assert!(long.output.format == Some(FormatName::JSON) && long.output.quiet && long.dry.dry_run);
     assert_eq!(long.output.color(), ColorMode::Never);
     let short = parse(&["-f", "json", "-c", "never", "-q", "-n", "status"]);
-    assert!(short.output.format.is_json() && short.output.quiet && short.dry.dry_run);
+    assert!(
+        short.output.format == Some(FormatName::JSON) && short.output.quiet && short.dry.dry_run
+    );
 }
 
 #[test]
@@ -160,25 +159,31 @@ fn last_format_wins() {
         parse(&["--format", "json", "--format", "pretty", "status"])
             .output
             .format,
-        OutputFormat::Pretty
+        Some(FormatName::PRETTY)
     );
 }
 
 #[test]
 fn json_is_format_json_in_every_format_struct() {
-    assert!(parse(&["--json", "status"]).output.format.is_json());
-    assert!(parse(&["status", "--json"]).output.format.is_json());
-    assert!(
+    assert_eq!(
+        parse(&["--json", "status"]).output.format,
+        Some(FormatName::JSON)
+    );
+    assert_eq!(
+        parse(&["status", "--json"]).output.format,
+        Some(FormatName::JSON)
+    );
+    assert_eq!(
         SplitCmd::parse_from(["x", "status", "--json"])
             .format
-            .format
-            .is_json()
+            .format,
+        Some(FormatName::JSON)
     );
-    assert!(
+    assert_eq!(
         FileSplit::parse_from(["x", "-f", "tasks.yaml", "--json", "status"])
             .format
-            .format
-            .is_json()
+            .format,
+        Some(FormatName::JSON)
     );
 }
 
@@ -191,11 +196,11 @@ fn json_beside_another_format_is_a_usage_error() {
         let error = Toy::try_parse_from(["toy"].into_iter().chain(args)).unwrap_err();
         assert_eq!(error.kind(), ErrorKind::ArgumentConflict, "{args:?}");
     }
-    assert!(
+    assert_eq!(
         parse(&["--format", "json", "status", "--json"])
             .output
-            .format
-            .is_json()
+            .format,
+        Some(FormatName::JSON)
     );
 }
 
@@ -220,7 +225,7 @@ fn color_long_leaves_short_c_for_config() {
     let cli = Split::parse_from(["x", "-c", "cfg.toml", "--color", "never", "-f", "json"]);
     assert_eq!(cli.config.as_deref(), Some("cfg.toml"));
     assert_eq!(cli.color.color(), ColorMode::Never);
-    assert!(cli.format.format.is_json());
+    assert_eq!(cli.format.format, Some(FormatName::JSON));
 }
 
 #[derive(Parser, Debug)]
@@ -248,7 +253,7 @@ fn format_long_leaves_short_f_for_file() {
         "--no-color",
     ]);
     assert_eq!(cli.file.as_deref(), Some("tasks.yaml"));
-    assert!(cli.format.format.is_json());
+    assert_eq!(cli.format.format, Some(FormatName::JSON));
     assert!(cli.format.quiet);
     assert_eq!(cli.color.color(), ColorMode::Never);
 }

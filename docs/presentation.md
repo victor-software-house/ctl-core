@@ -24,7 +24,7 @@ Clap graph ──→ App ──→ domain handler ──→ Result model
 ctl-core owns:
 
 - Usage mounts, optional consumer enrichment through `App::usage_spec`, pre-parse short-circuits, help, Clap parsing, exit codes, and stream selection;
-- `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `OutputFormat`, and quiet behavior;
+- `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `FormatName`, the `Format` interface with its `pretty` and `json` implementations, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and unwrapped verbatim blocks that remove terminal controls, bidi controls, and Unicode line separators while preserving other Unicode formatting;
 - semantic roles and the one visual theme;
 - width detection, wrapping (including Usage lines), table layout, ANSI policy, stdout, and stderr, through the workspace's `ctl-text`, `ctl-layout`, and `ctl-term`;
@@ -114,18 +114,42 @@ The consumer's setter wins over the variable.
 `record_style_envs`, `frame_envs`, `row_separation_envs`, and `json_layout_envs` replace each ordered name list, and an empty slice disables lookup.
 A value outside the list is ignored, and `App` prints one warning line that lists the accepted values.
 
+## Output formats
+
+A format is a value that implements `format::Format`, and `FormatName` names it.
+`pretty` and `json` are built-in implementations, `format::PRETTY` and `format::JSON`, and a CLI registers its own on `format::Formats`.
+
+1. `Format::write` receives an `Output` and a `Sink`.
+   `Output::data` is the result as `&dyn erased_serde::Serialize`, `Output::document` is the document `present` builds, made on first use, and `Output::outcome` says whether the result succeeded.
+   `Sink` is the writer for the stream the result goes to.
+   Its `render` lays a document out as `pretty` does, and its colour is `never` when the format is a machine format.
+2. `Format::write_error` writes a failure.
+   The default is `{bin}: {message}`; `json` writes the error envelope.
+3. `Formats::builtin()` holds `pretty` and `json`.
+   `add` registers a format or replaces the one of the same name, `remove` takes one out, and `terminal_default` and `piped_default` set the default for each case.
+   Both defaults are `pretty`.
+   `App::formats` installs the set.
+4. `Formats::augment` gives a command the registered names for `--format`, and one global flag for each shorthand the command lacks.
+   Help, completion, the Usage spec, a `Surface` built from the augmented command, and parse errors then list the same names.
+   A shorthand flag reads `<PREFIX>_<LONG>`, with the prefix taken from the variable `--format` reads.
+5. The format in force is the one named on the command line, then the one a variable names, then the default for the terminal check.
+   Two flags, or two variables, that name different formats are a usage error that names both.
+6. `View::new` takes a registered format, and `View::requested` takes a name that `View::resolve` turns into one.
+   `View::format()` returns the name, and `View::is_machine()` says whether the format never writes ANSI.
+
 ## Output law
 
 One serializable model feeds all modes:
 
 1. JSON serializes the model directly, writes one newline to stdout, and never contains ANSI.
+   Every format that is a machine format has the same last property: its `Sink` takes the colour away.
 2. Pretty asks `Present` for a semantic document and renders it with color policy `auto` or `always`.
 3. Colorless renders the same document with color policy `never`; it does not maintain a second layout.
-4. Errors use stderr, human and JSON alike, so stdout stays empty after a failure.
+4. Errors use stderr, in each format's own error form, so stdout stays empty after a failure.
    That covers the error envelope, a parse error, and a result whose outcome is an error.
    A reader that parses stdout never mistakes an error for a result.
-5. Quiet suppresses successful human output only.
-   It never hides errors or JSON.
+5. Quiet suppresses a successful result in `pretty` and in a default format.
+   It never hides errors, and never hides a machine format that a flag, a shorthand, or a variable named.
 6. A reader that closes stdout or stderr early, as `head -1` does, leaves the exit code as the command set it and puts nothing on stderr:
    - A command that succeeded exits 0.
    - A failed command or a parse error keeps its code, so a closed pipe never turns a failure into success.

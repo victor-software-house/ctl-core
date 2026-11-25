@@ -72,7 +72,8 @@ fn every_engine_file_has_a_baseline() {
 #[cfg(feature = "view")]
 #[test]
 fn a_view_writes_what_render_writes() {
-    use ctl_core::prelude::{Document, OutputFormat, Present, View};
+    use ctl_core::format::PRETTY;
+    use ctl_core::prelude::{Document, Present, View};
     use serde::Serialize;
 
     #[derive(Serialize)]
@@ -92,7 +93,7 @@ fn a_view_writes_what_render_writes() {
         for width in WIDTHS {
             for (color, label) in MODES {
                 let rendered = document.render(options(color, width));
-                let view = View::new(OutputFormat::Pretty, color)
+                let view = View::new(&PRETTY, color)
                     .width(width)
                     .styles(options(color, width));
                 let captured = view

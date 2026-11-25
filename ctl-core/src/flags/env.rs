@@ -64,7 +64,7 @@ impl EnvPrefix for Command {
 /// The variable a long option reads: `dry-run` under `TOY` is
 /// `TOY_DRY_RUN`.
 #[must_use]
-fn env_name(prefix: &str, long: &str) -> String {
+pub(crate) fn env_name(prefix: &str, long: &str) -> String {
     format!("{prefix}_{}", long.to_ascii_uppercase().replace('-', "_"))
 }
 

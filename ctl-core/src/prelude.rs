@@ -69,7 +69,9 @@ pub use crate::flags::{
     ColorLong, DryRunArgs, EnvPrefix, FormatArgs, FormatLong, OutputArgs, chassis_warnings,
     emit_warnings, warn_opposites,
 };
-pub use crate::format::OutputFormat;
+pub use crate::format::FormatName;
+#[cfg(feature = "view")]
+pub use crate::format::{Format, Formats};
 pub use crate::model::{Envelope, ErrorBody, SCHEMA_VERSION};
 #[cfg(feature = "cli")]
 pub use crate::parser::verify;

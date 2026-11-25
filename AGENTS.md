@@ -12,7 +12,7 @@ Each crate's own `AGENTS.md` holds what that crate owns, what it must not own, i
 | `ctl-text` | [`ctl-text/AGENTS.md`](ctl-text/AGENTS.md) | Styled text, cell widths, wrapping, and the `Renderable` protocol. No terminal I/O |
 | `ctl-layout` | [`ctl-layout/AGENTS.md`](ctl-layout/AGENTS.md) | Tables, records, rules, stacks, and indents on `ctl-text`. Never writes an escape byte |
 | `ctl-term` | [`ctl-term/AGENTS.md`](ctl-term/AGENTS.md) | Colour policy, depth, and width per stream, and the escape encoder |
-| `ctl-core` | [`ctl-core/AGENTS.md`](ctl-core/AGENTS.md) | The CLI chassis: flags, `App`, help, `Document`, `View`, and the JSON envelope |
+| `ctl-core` | [`ctl-core/AGENTS.md`](ctl-core/AGENTS.md) | The CLI chassis: flags, `App`, help, `Document`, `View`, the output formats, and the JSON envelope |
 
 Read the guide of every crate a change touches before changing it.
 

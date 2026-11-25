@@ -20,11 +20,8 @@ Options
 
 Output
   -f --format [pretty|json]
-    Output representation [default:
-    pretty] [env: LEDGERCTL_FORMAT]
-  --json
-    Shorthand for `--format json` [env:
-    LEDGERCTL_JSON]
+    Output representation [env:
+    LEDGERCTL_FORMAT]
   -c --color [auto|always|never]
     Pretty-output colour policy. JSON
     never contains ANSI [default: auto]
@@ -35,6 +32,9 @@ Output
   -q --quiet
     Suppress successful pretty output
     [env: LEDGERCTL_QUIET]
+  --json
+    Shorthand for `--format json` [env:
+    LEDGERCTL_JSON]
 
 Help
   -h --help

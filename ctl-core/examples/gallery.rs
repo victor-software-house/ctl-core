@@ -10,9 +10,10 @@
 use std::env;
 use std::io::{self, Write as _};
 
+use ctl_core::format::JSON as JSON_FORMAT;
 use ctl_core::{
-    ColorMode, Document, Fields, Frame, JsonLayout, OutputFormat, Present, RecordStyle,
-    RenderOptions, RowSeparation, Table, Text, View,
+    ColorMode, Document, Fields, Frame, JsonLayout, Present, RecordStyle, RenderOptions,
+    RowSeparation, Table, Text, View,
 };
 use serde::Serialize;
 
@@ -167,7 +168,7 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
     };
     for (code, layout, label) in JSON {
         render(out, &banner(code, label, width), base)?;
-        let captured = View::new(OutputFormat::Json, color)
+        let captured = View::new(&JSON_FORMAT, color)
             .json_layout(layout)
             .capture(&queue)?;
         out.write_all(captured.bytes())?;

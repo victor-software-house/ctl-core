@@ -36,24 +36,26 @@ use clap::{Arg, ArgAction, Command};
 #[cfg(feature = "help")]
 use crate::flags;
 #[cfg(feature = "help")]
-use crate::{ColorMode, OutputFormat};
+use crate::{ColorMode, FormatName};
 
 /// Output policy recovered with the authoritative Clap graph before a full
 /// parse succeeds.
 #[cfg(feature = "help")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ParsedOutput {
-    pub(crate) format: OutputFormat,
+    pub(crate) format: Option<FormatName>,
     pub(crate) color: ColorMode,
 }
 
-/// Best-effort output policy for help and parse errors.
+/// Best-effort output policy for help and parse errors, read from `command`.
 ///
 /// Clap still owns option placement, attached short values, domain option
-/// values, global propagation, and `--` semantics.
+/// values, global propagation, and `--` semantics. The format is the one
+/// `--format` and `--json` name, and none when they name nothing, so the
+/// caller applies its own default.
 #[cfg(feature = "help")]
-pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> ParsedOutput {
-    let command = C::command()
+pub(crate) fn parsed_output(command: Command, raw: &[OsString]) -> ParsedOutput {
+    let command = command
         .arg_required_else_help(false)
         .args_override_self(true)
         .disable_help_flag(true)
@@ -61,16 +63,15 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
         .ignore_errors(true);
     let Ok(matches) = command.try_get_matches_from(raw) else {
         return ParsedOutput {
-            format: OutputFormat::Pretty,
+            format: None,
             color: ColorMode::Auto,
         };
     };
     let format = matches
-        .try_get_one::<OutputFormat>("format")
+        .try_get_one::<FormatName>("format")
         .ok()
         .flatten()
-        .copied()
-        .unwrap_or_default();
+        .copied();
     let color = matches
         .try_get_one::<ColorMode>("color")
         .ok()
@@ -83,7 +84,7 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
         .flatten()
         .copied()
         .unwrap_or(false);
-    let format = flags::resolved_format(format, json, &matches).unwrap_or(OutputFormat::Json);
+    let format = flags::resolved_format(format, json, &matches).unwrap_or(Some(FormatName::JSON));
     let no_color = matches
         .try_get_one::<bool>("no_color")
         .ok()
@@ -104,10 +105,9 @@ pub(crate) fn parsed_output<C: clap::CommandFactory>(raw: &[OsString]) -> Parsed
 /// lifts its parents' requirements, so `help` still answers when the parent
 /// needs an argument.
 #[cfg(feature = "help")]
-pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
-    let declared = C::command();
+pub(crate) fn wants_help(declared: &Command, raw: &[OsString]) -> bool {
     let probe = lift_requirements(apply_defaults(declared.clone()));
-    asks_for_help(&declared, probe, raw)
+    asks_for_help(declared, probe, raw)
 }
 
 /// Whether a help request in `raw` asks for the long form: `--help`, or the
@@ -119,10 +119,9 @@ pub(crate) fn wants_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
 /// through `--help` or the subcommand, and one that came through `-h` now
 /// fails on it.
 #[cfg(feature = "help")]
-pub(crate) fn wants_long_help<C: clap::CommandFactory>(raw: &[OsString]) -> bool {
-    let declared = C::command();
+pub(crate) fn wants_long_help(declared: &Command, raw: &[OsString]) -> bool {
     let probe = without_short_help(lift_requirements(apply_defaults(declared.clone())));
-    asks_for_help(&declared, probe, raw)
+    asks_for_help(declared, probe, raw)
 }
 
 /// Whether `probe` reads `raw` as a help request: the help flag, or the
@@ -174,8 +173,7 @@ fn names_help(declared: &Command, matches: &ArgMatches) -> bool {
 
 /// Whether the command's Clap grammar rejects a bare invocation with help.
 #[cfg(feature = "app")]
-pub(crate) fn requires_input<C: clap::CommandFactory>() -> bool {
-    let command = C::command();
+pub(crate) fn requires_input(command: &Command) -> bool {
     command.is_arg_required_else_help_set() || command.is_subcommand_required_set()
 }
 

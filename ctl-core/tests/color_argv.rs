@@ -6,7 +6,7 @@
 #![cfg(feature = "cli")]
 
 use clap::{CommandFactory, FromArgMatches, Parser};
-use ctl_core::{ColorMode, OutputArgs, OutputFormat, parser};
+use ctl_core::{ColorMode, FormatName, OutputArgs, parser};
 
 #[derive(Parser)]
 #[command(version)]
@@ -42,14 +42,14 @@ fn parse(args: &[&str]) -> Cli {
 #[test]
 fn attached_globals_work_after_subcommand() {
     let cli = parse(&["toy", "status", "-fjson", "-cnever"]);
-    assert_eq!(cli.output.format, OutputFormat::Json);
+    assert_eq!(cli.output.format, Some(FormatName::JSON));
     assert_eq!(cli.output.color(), ColorMode::Never);
 }
 
 #[test]
 fn domain_hyphen_value_is_not_a_global_flag() {
     let cli = parse(&["toy", "status", "-m", "--format=json"]);
-    assert_eq!(cli.output.format, OutputFormat::Pretty);
+    assert_eq!(cli.output.format, None);
     match cli.command {
         Command::Status(args) => assert_eq!(args.message.as_deref(), Some("--format=json")),
     }
@@ -67,6 +67,6 @@ fn global_values_are_last_wins() {
         "always",
         "--no-color",
     ]);
-    assert_eq!(cli.output.format, OutputFormat::Json);
+    assert_eq!(cli.output.format, Some(FormatName::JSON));
     assert_eq!(cli.output.color(), ColorMode::Never);
 }

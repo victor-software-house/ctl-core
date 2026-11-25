@@ -55,10 +55,18 @@ schema = ["json", "dep:schemars"]
 ## which decides colour and width for the stream help goes to.
 help = ["cli", "render", "clap/usage", "ctl-term/detect"]
 
-## Pretty, colourless, and JSON output from serializable results. Adds
-## `ctl-term`'s `detect` feature, which decides colour and width for the
-## stream each result goes to.
-view = ["render", "json", "dep:serde_json", "ctl-term/detect"]
+## Pretty, colourless, and JSON output from serializable results, and the
+## open `Format` interface they are written through. Adds `erased-serde`, so a
+## format serializes a result it holds as a trait object, and `ctl-term`'s
+## `detect` feature, which decides colour and width for the stream each result
+## goes to.
+view = [
+  "render",
+  "json",
+  "dep:serde_json",
+  "dep:erased-serde",
+  "ctl-term/detect",
+]
 
 ## A CLI's commands and flags as data (`surface::Surface`), without
 ## serialization or a template engine.
@@ -125,6 +133,7 @@ clap = { workspace = true, optional = true }
 garde = { workspace = true, optional = true }
 clap_complete = { workspace = true, optional = true }
 document-features.workspace = true
+erased-serde = { workspace = true, optional = true }
 indoc.workspace = true
 minijinja = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
