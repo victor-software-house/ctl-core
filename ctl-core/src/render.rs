@@ -12,6 +12,7 @@
 //! spans. Escape sequences are added only when ctl-term's encoder writes the
 //! lines.
 
+use std::cell::OnceCell;
 use std::env;
 #[cfg(feature = "help")]
 use std::io;
@@ -693,6 +694,7 @@ impl Renderer {
                     renderer: self,
                     table: table.clone(),
                     count,
+                    built: OnceCell::new(),
                 };
                 Box::new(Fallback::new(stacked, grid))
             }
@@ -815,25 +817,34 @@ impl Renderer {
     }
 }
 
-/// The stacked form of a table, built when it is measured or drawn, so a table
-/// that fits never builds it.
+/// The stacked form of a table, built the first time it is measured or drawn
+/// and kept, so a table that fits never builds it and one that does not builds
+/// it once.
+///
+/// It owns a copy of the table because the widget tree outlives the document
+/// it was built from; the copy costs what building the grid beside it costs.
 struct StackedForm {
     renderer: Renderer,
     table: Table,
     count: usize,
+    built: OnceCell<Box<dyn Renderable>>,
+}
+
+impl StackedForm {
+    fn form(&self) -> &dyn Renderable {
+        self.built
+            .get_or_init(|| self.renderer.stacked(&self.table, self.count))
+            .as_ref()
+    }
 }
 
 impl Renderable for StackedForm {
     fn measure(&self, context: &Context) -> Measurement {
-        self.renderer
-            .stacked(&self.table, self.count)
-            .measure(context)
+        self.form().measure(context)
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        self.renderer
-            .stacked(&self.table, self.count)
-            .render(context)
+        self.form().render(context)
     }
 }
 
