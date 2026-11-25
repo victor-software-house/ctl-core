@@ -84,7 +84,7 @@ fn a_cli_reports_its_own_placed_problems_in_ctl_core_s_format() {
                 line: place.map(|place| place.line),
                 column: place.map(|place| place.column),
                 field: path.to_string(),
-                message: "firescale runs no privileged service".to_owned(),
+                message: "this host runs no privileged service".to_owned(),
             },
             problem(1, 1, "services", "name one service at most"),
         ],
@@ -94,7 +94,7 @@ fn a_cli_reports_its_own_placed_problems_in_ctl_core_s_format() {
     assert_eq!(
         error.to_string(),
         indoc! {"
-            compose.yaml:4:17: services.dev.privileged: firescale runs no privileged service
+            compose.yaml:4:17: services.dev.privileged: this host runs no privileged service
             compose.yaml:1:1: services: name one service at most"}
     );
 }
