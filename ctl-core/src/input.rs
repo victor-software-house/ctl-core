@@ -647,12 +647,12 @@ impl InputError {
     ///         line: Some(4),
     ///         column: Some(5),
     ///         field: "services.dev.privileged".to_owned(),
-    ///         message: "firescale runs no privileged service".to_owned(),
+    ///         message: "this host runs no privileged service".to_owned(),
     ///     }],
     /// );
     /// assert_eq!(
     ///     refused.map(|error| error.to_string()).as_deref(),
-    ///     Some("compose.yaml:4:5: services.dev.privileged: firescale runs no privileged service")
+    ///     Some("compose.yaml:4:5: services.dev.privileged: this host runs no privileged service")
     /// );
     /// assert_eq!(InputError::try_new("compose.yaml", []), None);
     /// ```
