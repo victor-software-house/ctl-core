@@ -165,8 +165,8 @@ pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
     // read it. Both start a key at its scalar, so an anchor or a tag before it
     // moves neither.
     // A key written twice in different types, such as `1` and `'1'`, cannot
-    // take the other's span, a key written twice in one type has two places,
-    // and a key yamled leaves out, such as an alias, shifts no pair after it.
+    // take the other's span. A key written twice in one type has two places.
+    // A key yamled leaves out, such as an alias, shifts no pair after it.
     let by_place: HashMap<(usize, usize), _> = root
         .entries()
         .filter_map(|(_, node)| node.key().map(|at| ((at.line, at.column), node)))
