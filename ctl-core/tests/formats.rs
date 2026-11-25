@@ -399,19 +399,15 @@ fn help_lists_the_registered_formats_and_the_shorthand_variable() {
     let Some(output) = child::in_child(
         CHILD,
         "help_lists_the_registered_formats_and_the_shorthand_variable",
-        &[("COLUMNS", "200")],
+        &[],
     ) else {
         assert_eq!(child::case(|| run(&["--help"])), ExitCode::SUCCESS);
         return;
     };
-    let stdout = child::case_stdout(&output);
-    assert!(
-        stdout.contains("[pretty|json|tsv|csv|markdown|yaml]"),
-        "{stdout}"
+    insta::assert_snapshot!(
+        "help_lists_the_registered_formats",
+        child::case_stdout(&output)
     );
-    assert!(stdout.contains("--yaml"), "{stdout}");
-    assert!(stdout.contains("Shorthand for `--format yaml`"), "{stdout}");
-    assert!(stdout.contains("FMTTOY_YAML"), "{stdout}");
 }
 
 #[test]

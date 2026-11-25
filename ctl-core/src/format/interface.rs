@@ -6,12 +6,13 @@ use crate::model::ErrorBody;
 
 /// How a result becomes output: one implementation per `--format` name.
 ///
-/// ctl-core's own formats, [`PRETTY`](crate::format::PRETTY) and
-/// [`JSON`](crate::format::JSON), implement it and nothing more, so a CLI's
-/// format can do whatever they do. A CLI declares its format as a `static`
-/// and registers a reference on [`Formats`](crate::format::Formats). A
-/// [`View`](crate::view::View) holds that reference, never the format, so it
-/// stays `Copy`.
+/// ctl-core's own formats, [`PRETTY`](crate::format::PRETTY),
+/// [`JSON`](crate::format::JSON), [`TSV`](crate::format::TSV),
+/// [`CSV`](crate::format::CSV), and [`MARKDOWN`](crate::format::MARKDOWN),
+/// implement it and nothing more, so a CLI's format can do whatever they do.
+/// A CLI declares its format as a `static` and registers a reference on
+/// [`Formats`](crate::format::Formats). A [`View`](crate::view::View) holds
+/// that reference, never the format, so it stays `Copy`.
 ///
 /// The trait takes no type parameter and has no generic method, so a registry
 /// can hold formats chosen at run time. A format reads the result through

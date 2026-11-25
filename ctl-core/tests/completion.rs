@@ -9,6 +9,8 @@
 //! child's stdout and stderr.
 #![cfg(all(feature = "completion", feature = "app", feature = "fixture"))]
 
+#[path = "support/child.rs"]
+mod child;
 #[path = "support/shells.rs"]
 mod shells;
 
@@ -217,25 +219,26 @@ fn the_verb_prints_the_script_under_quiet() {
 
 #[test]
 fn the_verb_prints_the_script_under_the_piped_default() {
-    let Some(output) = in_child("the_verb_prints_the_script_under_the_piped_default", &[]) else {
-        assert_eq!(run(&["completion", "zsh"]), ExitCode::SUCCESS);
+    let test = "the_verb_prints_the_script_under_the_piped_default";
+    let Some(output) = child::in_child(CHILD, test, &[]) else {
+        let code = child::case(|| run(&["completion", "zsh"]));
+        assert_eq!(code, ExitCode::SUCCESS);
         return;
     };
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains(&script(Shell::Zsh, "toy")), "{stdout}");
+    assert_eq!(child::case_stdout(&output), script(Shell::Zsh, "toy"));
 }
 
 #[test]
 fn the_verb_prints_the_script_under_a_csv_format_variable() {
-    let Some(output) = in_child(
-        "the_verb_prints_the_script_under_a_csv_format_variable",
-        &[("TOY_FORMAT", "csv")],
-    ) else {
-        assert_eq!(run(&["completion", "zsh"]), ExitCode::SUCCESS);
+    let test = "the_verb_prints_the_script_under_a_csv_format_variable";
+    let Some(output) = child::in_child(CHILD, test, &[("TOY_FORMAT", "csv")]) else {
+        let toy = Toy::try_parse_from(["toy", "completion", "zsh"]).unwrap();
+        assert_eq!(toy.output.format, Some(FormatName::CSV));
+        let code = child::case(|| run(&["completion", "zsh"]));
+        assert_eq!(code, ExitCode::SUCCESS);
         return;
     };
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains(&script(Shell::Zsh, "toy")), "{stdout}");
+    assert_eq!(child::case_stdout(&output), script(Shell::Zsh, "toy"));
 }
 
 #[test]
