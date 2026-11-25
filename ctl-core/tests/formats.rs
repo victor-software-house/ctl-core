@@ -13,7 +13,9 @@ use std::io::{self, Write as _};
 use std::iter;
 
 use clap::{CommandFactory, Parser, Subcommand};
-use ctl_core::format::{Format, FormatName, Formats, JSON, Output, PRETTY, Sink};
+use ctl_core::format::{
+    CSV, Format, FormatName, Formats, JSON, MARKDOWN, Output, PRETTY, Sink, TSV,
+};
 use ctl_core::prelude::*;
 use serde::Serialize;
 
@@ -132,7 +134,13 @@ fn a_format_of_the_same_name_replaces_a_built_in() {
     let formats = Formats::builtin().add(&REPLACEMENT);
     assert_eq!(
         formats.names().collect::<Vec<_>>(),
-        [FormatName::PRETTY, FormatName::JSON]
+        [
+            FormatName::PRETTY,
+            FormatName::JSON,
+            FormatName::TSV,
+            FormatName::CSV,
+            FormatName::MARKDOWN
+        ]
     );
     let view = View::requested(Some(FormatName::JSON), ColorMode::Never)
         .resolve(&formats, true)
@@ -145,7 +153,13 @@ fn a_removed_format_cannot_be_requested() {
     let formats = Formats::builtin().add(&YAML).remove(FormatName::JSON);
     assert_eq!(
         formats.names().collect::<Vec<_>>(),
-        [FormatName::PRETTY, YAML_NAME]
+        [
+            FormatName::PRETTY,
+            FormatName::TSV,
+            FormatName::CSV,
+            FormatName::MARKDOWN,
+            YAML_NAME
+        ]
     );
     assert!(formats.get(FormatName::JSON).is_none());
     let error = View::requested(Some(FormatName::JSON), ColorMode::Never)
@@ -221,6 +235,18 @@ fn a_machine_format_never_writes_an_escape_whatever_the_colour_mode_says() {
         .capture(&status())
         .unwrap();
     assert!(text(&human).contains('\u{1b}'), "{:?}", text(&human));
+    let machine: [&'static dyn Format; 4] = [&JSON, &TSV, &CSV, &MARKDOWN];
+    for built_in in machine {
+        let captured = View::new(built_in, ColorMode::Always)
+            .capture(&status())
+            .unwrap();
+        assert!(
+            !text(&captured).contains('\u{1b}'),
+            "{}: {:?}",
+            built_in.name(),
+            text(&captured)
+        );
+    }
 }
 
 #[derive(Parser)]
@@ -353,7 +379,7 @@ fn an_unregistered_name_is_a_usage_error_that_lists_the_registered_names() {
         &[],
     ) else {
         assert_eq!(
-            child::case(|| run(&["status", "--format", "markdown"])),
+            child::case(|| run(&["status", "--format", "msgpack"])),
             ExitCode::from(2)
         );
         return;
@@ -361,7 +387,9 @@ fn an_unregistered_name_is_a_usage_error_that_lists_the_registered_names() {
     assert_eq!(child::case_stdout(&output), "");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("unknown format `markdown`; use one of pretty, json, yaml"),
+        stderr.contains(
+            "unknown format `msgpack`; use one of pretty, json, tsv, csv, markdown, yaml"
+        ),
         "{stderr}"
     );
 }
@@ -371,13 +399,16 @@ fn help_lists_the_registered_formats_and_the_shorthand_variable() {
     let Some(output) = child::in_child(
         CHILD,
         "help_lists_the_registered_formats_and_the_shorthand_variable",
-        &[],
+        &[("COLUMNS", "200")],
     ) else {
         assert_eq!(child::case(|| run(&["--help"])), ExitCode::SUCCESS);
         return;
     };
     let stdout = child::case_stdout(&output);
-    assert!(stdout.contains("[pretty|json|yaml]"), "{stdout}");
+    assert!(
+        stdout.contains("[pretty|json|tsv|csv|markdown|yaml]"),
+        "{stdout}"
+    );
     assert!(stdout.contains("--yaml"), "{stdout}");
     assert!(stdout.contains("Shorthand for `--format yaml`"), "{stdout}");
     assert!(stdout.contains("FMTTOY_YAML"), "{stdout}");
@@ -506,7 +537,7 @@ fn the_json_flag_is_a_usage_error_once_json_is_removed() {
     assert_eq!(child::case_stdout(&output), "");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("unknown format `json`; use one of pretty, yaml"),
+        stderr.contains("unknown format `json`; use one of pretty, tsv, csv, markdown, yaml"),
         "{stderr}"
     );
 }
@@ -535,7 +566,7 @@ fn the_json_variable_is_a_usage_error_once_json_is_removed() {
         .join(" ");
     assert!(
         stderr.contains(
-            "unknown format `json` from the variable `FMTTOY_JSON`; use one of pretty, yaml"
+            "unknown format `json` from the variable `FMTTOY_JSON`; use one of pretty, tsv, csv, markdown, yaml"
         ),
         "{stderr}"
     );
@@ -625,7 +656,7 @@ fn an_unregistered_format_variable_is_a_usage_error_that_names_the_variable() {
         .join(" ");
     assert!(
         stderr.contains(
-            "unknown format `nope` from the variable `FMTTOY_FORMAT`; use one of pretty, json, yaml"
+            "unknown format `nope` from the variable `FMTTOY_FORMAT`; use one of pretty, json, tsv, csv, markdown, yaml"
         ),
         "{stderr}"
     );

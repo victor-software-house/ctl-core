@@ -1,0 +1,8 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+| field | value |
+| --- | --- |
+| pending | 2 |
+| latest | A-1 shipped |

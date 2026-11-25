@@ -24,7 +24,7 @@ Clap graph ──→ App ──→ domain handler ──→ Result model
 ctl-core owns:
 
 - Usage mounts, optional consumer enrichment through `App::usage_spec`, pre-parse short-circuits, help, Clap parsing, exit codes, and stream selection;
-- `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `FormatName`, the `Format` interface with its `pretty` and `json` implementations, and quiet behavior;
+- `OutputArgs`, `FormatArgs`, `FormatLong`, `ColorLong`, `ColorMode`, `FormatName`, the `Format` interface with its `pretty`, `json`, `tsv`, `csv`, and `markdown` implementations, and quiet behavior;
 - `Document`, `Text`, `Fields`, `Table`, `Section`, `Notice`, `Rule`, and unwrapped verbatim blocks that remove terminal controls, bidi controls, and Unicode line separators while preserving other Unicode formatting;
 - semantic roles and the one visual theme;
 - width detection, wrapping (including Usage lines), table layout, ANSI policy, stdout, and stderr, through the workspace's `ctl-text`, `ctl-layout`, and `ctl-term`;
@@ -117,7 +117,7 @@ A value outside the list is ignored, and `App` prints one warning line that list
 ## Output formats
 
 A format is a value that implements `format::Format`, and `FormatName` names it.
-`pretty` and `json` are built-in implementations, `format::PRETTY` and `format::JSON`, and a CLI registers its own on `format::Formats`.
+`pretty`, `json`, `tsv`, `csv`, and `markdown` are built-in implementations, such as `format::PRETTY` and `format::TSV`, and a CLI registers its own on `format::Formats`.
 
 1. `Format::write` receives an `Output` and a `Sink`.
    `Output::data` is the result as `&dyn erased_serde::Serialize`, `Output::document` is the document `present` builds, made on first use, and `Output::outcome` says whether the result succeeded.
@@ -125,9 +125,10 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    Its `render` lays a document out as `pretty` does, and its colour is `never` when the format is a machine format.
 2. `Format::write_error` writes a failure.
    The default is `{bin}: {message}`; `json` writes the error envelope.
-3. `Formats::builtin()` holds `pretty` and `json`.
+3. `Formats::builtin()` holds the five built-ins.
    `add` registers a format or replaces the one of the same name, `remove` takes one out, and `terminal_default` and `piped_default` set the default for each case.
-   Both defaults are `pretty`.
+   The terminal default is `pretty` and the piped default is `tsv`.
+   A CLI that keeps `pretty` when piped sets `Formats::builtin().piped_default(FormatName::PRETTY)`.
    `App::formats` installs the set.
 4. `Formats::augment` gives a command the registered names for `--format`, and one global flag for each shorthand the command lacks.
    Help, completion, the Usage spec, a `Surface` built from the augmented command, and parse errors then list the same names.
@@ -136,6 +137,13 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    Two flags, or two variables, that name different formats are a usage error that names both.
 6. `View::new` takes a registered format, and `View::requested` takes a name that `View::resolve` turns into one.
    `View::format()` returns the name, and `View::is_machine()` says whether the format never writes ANSI.
+7. `tsv`, `csv`, and `markdown` read `Output::document`, so the columns a script gets are the columns a person sees.
+   `tsv` writes tables, fields, paragraphs, verbatim text, and notices; `csv` writes only tables and fields; `markdown` writes every block.
+   A cell is the text of its spans with the styling dropped.
+   `tsv` writes a tab, line feed, carriage return, and backslash in a cell as `\t`, `\n`, `\r`, and `\\`.
+   `csv` follows RFC 4180 and ends each record in CRLF.
+   `markdown` escapes `|` in a cell and writes a line break there as `<br>`.
+   Blocks that write something are separated by one blank line.
 
 ## Output law
 

@@ -1,0 +1,23 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+One row is open.
+
+Run:
+    ```sh
+    qctl status
+    ```
+
+id	title
+A-1	Ship
+
+warning	stale-row: one row is stale
+
+rows	1
+
+Nothing else.
+
+success	done
+
+error	line one\nline two

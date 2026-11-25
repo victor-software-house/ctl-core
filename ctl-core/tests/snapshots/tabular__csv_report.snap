@@ -1,0 +1,9 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+id,title<CR>
+A-1,Ship<CR>
+<CR>
+field,value<CR>
+rows,1<CR>

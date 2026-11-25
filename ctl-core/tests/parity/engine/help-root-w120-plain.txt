@@ -15,14 +15,14 @@ Options
 └────┴───────────┴──────┴────────────────────────────────────────────────────────────────────┘
 
 Output
-┌────┬────────────┬─────────────────────┬─────────────────────────────────────────────────────────────────────────────┐
-│ -f ┆ --format   ┆ [pretty|json]       ┆ Output representation [env: LEDGERCTL_FORMAT]                               │
-│ -c ┆ --color    ┆ [auto|always|never] ┆ Pretty-output colour policy. JSON never contains ANSI [default: auto] [env: │
-│    ┆            ┆                     ┆ LEDGERCTL_COLOR]                                                            │
-│    ┆ --no-color ┆                     ┆ Force colourless pretty output. Wins over `--color`                         │
-│ -q ┆ --quiet    ┆                     ┆ Suppress successful pretty output [env: LEDGERCTL_QUIET]                    │
-│    ┆ --json     ┆                     ┆ Shorthand for `--format json` [env: LEDGERCTL_JSON]                         │
-└────┴────────────┴─────────────────────┴─────────────────────────────────────────────────────────────────────────────┘
+┌────┬────────────┬────────────────────────────────┬─────────────────────────────────────────────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json|tsv|csv|markdown] ┆ Output representation [env: LEDGERCTL_FORMAT]                   │
+│ -c ┆ --color    ┆ [auto|always|never]            ┆ Pretty-output colour policy. JSON never contains ANSI [default: │
+│    ┆            ┆                                ┆ auto] [env: LEDGERCTL_COLOR]                                    │
+│    ┆ --no-color ┆                                ┆ Force colourless pretty output. Wins over `--color`             │
+│ -q ┆ --quiet    ┆                                ┆ Suppress successful pretty output [env: LEDGERCTL_QUIET]        │
+│    ┆ --json     ┆                                ┆ Shorthand for `--format json` [env: LEDGERCTL_JSON]             │
+└────┴────────────┴────────────────────────────────┴─────────────────────────────────────────────────────────────────┘
 
 Help
 ┌────┬────────┬──┬─────────────────────────────────────┐

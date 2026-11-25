@@ -24,7 +24,7 @@ use ctl_core::shell::{self, Script, Shell};
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
-#[command(name = "toy", version, about = "toy")]
+#[command(name = "toy", version, about = "toy", env_prefix = "TOY")]
 struct Toy {
     #[command(flatten)]
     output: OutputArgs,
@@ -186,7 +186,13 @@ fn the_view_prints_the_script_as_it_is() {
     assert_eq!(pretty.text(), script.text);
     assert!(!pretty.text().contains('\u{1b}'));
 
-    for other in [None, Some(FormatName::TSV), Some(FormatName::new("yaml"))] {
+    for other in [
+        None,
+        Some(FormatName::TSV),
+        Some(FormatName::CSV),
+        Some(FormatName::MARKDOWN),
+        Some(FormatName::new("yaml")),
+    ] {
         let plain = shell::view(other).quiet(true).capture(&script).unwrap();
         assert_eq!(plain.text(), script.text, "{other:?}");
     }
@@ -203,6 +209,29 @@ fn the_view_prints_the_script_as_it_is() {
 fn the_verb_prints_the_script_under_quiet() {
     let Some(output) = in_child("the_verb_prints_the_script_under_quiet", &[]) else {
         assert_eq!(run(&["--quiet", "completion", "zsh"]), ExitCode::SUCCESS);
+        return;
+    };
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains(&script(Shell::Zsh, "toy")), "{stdout}");
+}
+
+#[test]
+fn the_verb_prints_the_script_under_the_piped_default() {
+    let Some(output) = in_child("the_verb_prints_the_script_under_the_piped_default", &[]) else {
+        assert_eq!(run(&["completion", "zsh"]), ExitCode::SUCCESS);
+        return;
+    };
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains(&script(Shell::Zsh, "toy")), "{stdout}");
+}
+
+#[test]
+fn the_verb_prints_the_script_under_a_csv_format_variable() {
+    let Some(output) = in_child(
+        "the_verb_prints_the_script_under_a_csv_format_variable",
+        &[("TOY_FORMAT", "csv")],
+    ) else {
+        assert_eq!(run(&["completion", "zsh"]), ExitCode::SUCCESS);
         return;
     };
     let stdout = String::from_utf8_lossy(&output.stdout);

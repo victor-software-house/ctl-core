@@ -1,0 +1,14 @@
+---
+source: ctl-core/tests/tabular.rs
+expression: "text.replace('\\r', \"<CR>\")"
+---
+name	value
+tab	a\tb
+quote	say "hi"
+comma	x,y
+pipe	p|q
+backslash	c:\\dir
+break	line1\nline2
+short	
+
+a\tkey	a\\tb\r\nc

@@ -24,7 +24,7 @@ Options
 
 Output
   -f --format
-  [pretty|json]
+  [pretty|json|tsv|csv|markdown]
     Output
     representation
     [env:

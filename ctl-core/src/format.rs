@@ -2,8 +2,9 @@
 //!
 //! [`FormatName`] names one format. A name is a value, not a variant of a
 //! closed enum, so a CLI can register a format of its own and ctl-core's
-//! built-in formats are ordinary members of the set. `pretty` is for people and
-//! `json` is one JSON document.
+//! built-in formats are ordinary members of the set. `pretty` is for people,
+//! `json` is one JSON document, `tsv` is one record per line for pipes, `csv`
+//! is comma-separated values, and `markdown` is Markdown text.
 //!
 //! `FormatName` needs no feature. With `cli`, `--format` parses into it and
 //! rejects a name no format answers to. With `view`, the `Format` trait,
@@ -41,22 +42,34 @@ use clap::{Arg, Command};
 use serde::{Serialize, Serializer};
 
 #[cfg(feature = "view")]
+mod csv;
+#[cfg(feature = "view")]
 mod interface;
 #[cfg(feature = "view")]
 mod json;
+#[cfg(feature = "view")]
+mod markdown;
 #[cfg(feature = "view")]
 mod output;
 #[cfg(feature = "view")]
 mod pretty;
 #[cfg(feature = "view")]
 mod registry;
+#[cfg(feature = "view")]
+mod tabular;
+#[cfg(feature = "view")]
+mod tsv;
 
+#[cfg(feature = "view")]
+pub use csv::{CSV, Csv};
 #[cfg(feature = "view")]
 pub use erased_serde;
 #[cfg(feature = "view")]
 pub use interface::Format;
 #[cfg(feature = "view")]
 pub use json::{JSON, Json};
+#[cfg(feature = "view")]
+pub use markdown::{MARKDOWN, Markdown};
 #[cfg(feature = "view")]
 pub use output::{Output, Sink};
 #[cfg(feature = "view")]
@@ -65,6 +78,8 @@ pub use pretty::{PRETTY, Pretty};
 pub use registry::Formats;
 #[cfg(feature = "view")]
 pub(crate) use registry::unregistered;
+#[cfg(feature = "view")]
+pub use tsv::{TSV, Tsv};
 
 /// The help line of `pretty`, in `--format`'s help and completion and in
 /// [`Format::about`], so the two cannot differ.
@@ -74,6 +89,18 @@ pub(crate) const PRETTY_ABOUT: &str = "Human text, optionally coloured";
 /// The help line of `json`; see [`PRETTY_ABOUT`].
 #[cfg(any(feature = "cli", feature = "view"))]
 pub(crate) const JSON_ABOUT: &str = "Machine JSON. Never contains ANSI";
+
+/// The help line of `tsv`; see [`PRETTY_ABOUT`].
+#[cfg(any(feature = "cli", feature = "view"))]
+pub(crate) const TSV_ABOUT: &str = "Tab-separated lines, one record per line";
+
+/// The help line of `csv`; see [`PRETTY_ABOUT`].
+#[cfg(any(feature = "cli", feature = "view"))]
+pub(crate) const CSV_ABOUT: &str = "Comma-separated values (RFC 4180)";
+
+/// The help line of `markdown`; see [`PRETTY_ABOUT`].
+#[cfg(any(feature = "cli", feature = "view"))]
+pub(crate) const MARKDOWN_ABOUT: &str = "Markdown tables and text";
 
 /// The name of an output format: the value `--format` takes and `View::format`
 /// returns.
@@ -141,12 +168,15 @@ impl FormatParser {
         Self { names }
     }
 
-    /// The parser the derived flags carry: `pretty` and `json`. A CLI's
+    /// The parser the derived flags carry: the five built-in names. A CLI's
     /// registry replaces it when [`App`](crate::App) augments the command.
     pub(crate) fn builtin() -> Self {
         Self::new(vec![
             (FormatName::PRETTY, PRETTY_ABOUT),
             (FormatName::JSON, JSON_ABOUT),
+            (FormatName::TSV, TSV_ABOUT),
+            (FormatName::CSV, CSV_ABOUT),
+            (FormatName::MARKDOWN, MARKDOWN_ABOUT),
         ])
     }
 
