@@ -164,7 +164,7 @@ impl Dialect for Markdown {
         while let Some(character) = characters.next() {
             match character {
                 '\r' if characters.peek() == Some(&'\n') => {}
-                '\n' => out.push_str("\n> "),
+                '\n' | '\r' => out.push_str("\n> "),
                 other => out.push(other),
             }
         }

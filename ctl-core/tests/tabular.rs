@@ -212,6 +212,16 @@ fn a_markdown_title_stays_on_one_line_and_an_empty_one_is_not_written() {
 }
 
 #[test]
+fn every_line_of_a_markdown_notice_stays_quoted() {
+    let document =
+        Document::new().notice(Notice::new(NoticeLevel::Error, "one\r# two\r\n---\nthree"));
+    assert_eq!(
+        written(&MARKDOWN, document),
+        "> **error**: one\n> # two\n> ---\n> three\n"
+    );
+}
+
+#[test]
 fn a_block_that_writes_nothing_adds_no_blank_line() {
     let document = || {
         Document::new()
