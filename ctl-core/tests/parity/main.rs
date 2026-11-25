@@ -20,7 +20,7 @@
 mod corpus;
 mod engine;
 
-use ctl_core::prelude::{ColorMode, Frame, RecordStyle, RenderOptions, RowSeparation};
+use ctl_core::prelude::{ColorMode, Frame, RecordStyle, RenderOptions, RowSeparation, TableFit};
 
 const WIDTHS: [u16; 4] = [20, 40, 80, 120];
 
@@ -34,6 +34,8 @@ fn options(color: ColorMode, width: u16) -> RenderOptions {
         .record_style(RecordStyle::KeysRight)
         .frame(Frame::Grid)
         .row_separation(RowSeparation::None)
+        .column_floor(8)
+        .table_fit(TableFit::Stack)
 }
 
 #[test]

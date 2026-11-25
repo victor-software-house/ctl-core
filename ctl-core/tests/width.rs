@@ -103,6 +103,8 @@ fn child(test: &str, variables: &[(&str, &str)]) -> Process {
         DEFAULT_RECORD_STYLE_ENV,
         DEFAULT_LIST_STYLE_ENV,
         DEFAULT_ROW_SEPARATION_ENV,
+        DEFAULT_COLUMN_FLOOR_ENV,
+        DEFAULT_TABLE_FIT_ENV,
     ] {
         command.env_remove(name);
     }

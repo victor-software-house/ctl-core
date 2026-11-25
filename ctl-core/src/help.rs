@@ -60,6 +60,10 @@ pub fn try_emit<C: CommandFactory>() -> io::Result<bool> {
 /// # Panics
 ///
 /// Panics when the command disables `-h/--help` or `-V/--version`.
+#[expect(
+    clippy::large_types_passed_by_value,
+    reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+)]
 pub fn try_emit_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<bool> {
     let args = env::args_os()
         .map(|arg| arg.to_string_lossy().into_owned())
@@ -92,11 +96,15 @@ pub fn try_emit_from<C: CommandFactory>(args: &[String]) -> io::Result<bool> {
 /// # Panics
 ///
 /// Panics when the command disables `-h/--help` or `-V/--version`.
+#[expect(
+    clippy::large_types_passed_by_value,
+    reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+)]
 pub fn try_emit_from_with_options<C: CommandFactory>(
     args: &[String],
     options: RenderOptions,
 ) -> io::Result<bool> {
-    try_emit_grouped(&C::command(), args, options, &[])
+    try_emit_grouped(&C::command(), args, &options, &[])
 }
 
 /// Print the root command's help to stderr, as shown for a bare invocation of
@@ -109,15 +117,19 @@ pub fn try_emit_from_with_options<C: CommandFactory>(
 /// # Errors
 ///
 /// Returns the error from writing help to stderr.
+#[expect(
+    clippy::large_types_passed_by_value,
+    reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+)]
 pub fn emit_bare_with_options<C: CommandFactory>(options: RenderOptions) -> io::Result<()> {
-    emit_bare_grouped(C::command(), options, &[])
+    emit_bare_grouped(C::command(), &options, &[])
 }
 
 /// [`emit_bare_with_options`] for `command`, with the root's commands under
 /// `groups`. `App` passes the command it augmented with the CLI's formats.
 pub(crate) fn emit_bare_grouped(
     command: Command,
-    options: RenderOptions,
+    options: &RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
     options.print_for(Stream::Stderr, &render(command, Detail::Short, groups))
@@ -128,7 +140,7 @@ pub(crate) fn emit_bare_grouped(
 pub(crate) fn try_emit_grouped(
     command: &Command,
     args: &[String],
-    options: RenderOptions,
+    options: &RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<bool> {
     let raw = args.iter().map(OsString::from).collect::<Vec<_>>();
@@ -145,7 +157,7 @@ pub(crate) fn try_emit_grouped(
 pub(crate) fn emit_selected(
     declared: &Command,
     args: &[String],
-    options: RenderOptions,
+    options: &RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
     let (command, is_root) = help_command(declared, args);
@@ -162,7 +174,7 @@ pub(crate) fn emit_selected(
 pub(crate) fn emit_selected_to_stderr(
     declared: &Command,
     args: &[String],
-    options: RenderOptions,
+    options: &RenderOptions,
     groups: &[CommandGroup],
 ) -> io::Result<()> {
     let (command, is_root) = help_command(declared, args);

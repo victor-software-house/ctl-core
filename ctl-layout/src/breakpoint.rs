@@ -6,7 +6,8 @@ use ctl_text::{Context, Line, Measurement, Renderable};
 ///
 /// It measures and renders whichever widget applies at the context's width,
 /// so a table can give way to [`Definitions`](crate::Definitions) on a narrow
-/// terminal. Each widget holds the data it draws, owned or borrowed:
+/// terminal. [`Fallback`](crate::Fallback) is its counterpart by fit. Each
+/// widget holds the data it draws, owned or borrowed:
 /// `Breakpoint::new(40, &definitions, &table)` works.
 #[derive(Clone, Debug)]
 pub struct Breakpoint<N, W> {

@@ -1,14 +1,10 @@
-┌──────┬─────┬─────┐
-│ \u{1b}[1m\u{1b}[36mname\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mdef\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mloc\u{1b}[0m │
-│      ┆ \u{1b}[1m\u{1b}[36maul\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mal\u{1b}[0m  │
-│      ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m   ┆     │
-╞══════╪═════╪═════╡
-│ \u{1b}[1mdemo\u{1b}[0m ┆ 0.5 ┆ 0.4 │
-│ \u{1b}[1m-cor\u{1b}[0m ┆ .0  ┆ .2  │
-│ \u{1b}[1me\u{1b}[0m    ┆     ┆     │
-│ \u{1b}[1mdemo\u{1b}[0m ┆ -   ┆ 1.8 │
-│ \u{1b}[1m-cli\u{1b}[0m ┆     ┆ .1  │
-└──────┴─────┴─────┘
+\u{1b}[1m\u{1b}[36mdemo-core\u{1b}[0m
+\u{1b}[1m\u{1b}[36mdefault\u{1b}[0m  0.5.0
+  \u{1b}[1m\u{1b}[36mlocal\u{1b}[0m  0.4.2
+
+\u{1b}[1m\u{1b}[36mdemo-cli\u{1b}[0m
+\u{1b}[1m\u{1b}[36mdefault\u{1b}[0m  -
+  \u{1b}[1m\u{1b}[36mlocal\u{1b}[0m  1.8.1
 
 \u{1b}[1m\u{1b}[31merror\u{1b}[0m · 2 package(s)
 differ from the

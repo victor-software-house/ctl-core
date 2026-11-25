@@ -12,12 +12,14 @@
 //! spans. Escape sequences are added only when ctl-term's encoder writes the
 //! lines.
 
+use std::cell::OnceCell;
 use std::env;
 #[cfg(feature = "help")]
 use std::io;
 
 use ctl_layout::{
-    Breakpoint, Column, Definitions, Record, Rule as RuleWidget, Stack, Table as TableWidget,
+    Breakpoint, Column, Definitions, Fallback, Record, Rule as RuleWidget, Stack,
+    Table as TableWidget,
 };
 pub use ctl_layout::{Frame, RecordStyle, RowSeparation};
 use ctl_term::{ColorDepth, Encoder};
@@ -27,6 +29,7 @@ use ctl_text::{
 };
 
 use crate::color::ColorMode;
+pub use crate::document::TableFit;
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
 use crate::theme::Theme;
 
@@ -68,6 +71,22 @@ pub const DEFAULT_ROW_SEPARATION_ENV: &str = "CTL_CORE_ROW_SEPARATION";
 /// [`DEFAULT_ROW_SEPARATION_ENV`].
 pub const DEFAULT_ROW_SEPARATION_ENVS: &[&str] = &[DEFAULT_ROW_SEPARATION_ENV];
 
+/// The column floor when nothing sets one, in cells.
+const DEFAULT_COLUMN_FLOOR: u16 = 8;
+/// The environment variable that sets the column floor when the CLI has not:
+/// `CTL_CORE_COLUMN_FLOOR`, a whole number of cells. `0` turns the floor off.
+pub const DEFAULT_COLUMN_FLOOR_ENV: &str = "CTL_CORE_COLUMN_FLOOR";
+/// The ordered list of variables read for the column floor, holding only
+/// [`DEFAULT_COLUMN_FLOOR_ENV`].
+pub const DEFAULT_COLUMN_FLOOR_ENVS: &[&str] = &[DEFAULT_COLUMN_FLOOR_ENV];
+/// The environment variable that sets the table fit when the CLI has not:
+/// `CTL_CORE_TABLE_FIT`. Its values are the [`TableFit`] names `stack` and
+/// `wrap`.
+pub const DEFAULT_TABLE_FIT_ENV: &str = "CTL_CORE_TABLE_FIT";
+/// The ordered list of variables read for the table fit, holding only
+/// [`DEFAULT_TABLE_FIT_ENV`].
+pub const DEFAULT_TABLE_FIT_ENVS: &[&str] = &[DEFAULT_TABLE_FIT_ENV];
+
 /// The width of a rule in a document laid out at its natural width. A rule has
 /// no natural width of its own, so it would otherwise fill that width.
 const NATURAL_RULE_WIDTH: u16 = 40;
@@ -94,6 +113,10 @@ impl EnvChoice for Frame {
     ];
 }
 
+impl EnvChoice for TableFit {
+    const VALUES: &'static [(&'static str, Self)] = &[("stack", Self::Stack), ("wrap", Self::Wrap)];
+}
+
 impl EnvChoice for RowSeparation {
     const VALUES: &'static [(&'static str, Self)] = &[
         ("none", Self::None),
@@ -102,15 +125,44 @@ impl EnvChoice for RowSeparation {
     ];
 }
 
+/// The first value among the variables in `names` that `accepts`. Every
+/// kind of setting reads its variable through it.
+fn env_accepted(
+    names: &[&str],
+    value: &dyn Fn(&str) -> Option<String>,
+    accepts: &dyn Fn(&str) -> bool,
+) -> Option<String> {
+    names
+        .iter()
+        .filter_map(|name| value(name))
+        .find(|raw| accepts(raw))
+}
+
+/// One line per variable in `names` whose value `accepts` refuses, with
+/// `hint` saying what is accepted. Every kind of setting warns through it.
+#[cfg(feature = "app")]
+fn env_refused(
+    names: &[&str],
+    value: &dyn Fn(&str) -> Option<String>,
+    accepts: &dyn Fn(&str) -> bool,
+    hint: &dyn Fn() -> String,
+) -> Vec<String> {
+    names
+        .iter()
+        .filter_map(|name| {
+            let raw = value(name)?;
+            (!accepts(&raw)).then(|| format!("{name}={raw} is ignored; use {}", hint()))
+        })
+        .collect()
+}
+
 /// The first variable in `names` that holds an accepted value.
 pub(crate) fn env_choice<T: EnvChoice>(
     names: &[&str],
     value: impl Fn(&str) -> Option<String>,
 ) -> Option<T> {
-    names
-        .iter()
-        .filter_map(|name| value(name))
-        .find_map(|raw| parse_choice(&raw))
+    env_accepted(names, &value, &|raw| parse_choice::<T>(raw).is_some())
+        .and_then(|raw| parse_choice(&raw))
 }
 
 /// One line per variable in `names` whose value is not accepted.
@@ -119,20 +171,35 @@ pub(crate) fn env_choice_warnings<T: EnvChoice>(
     names: &[&str],
     value: impl Fn(&str) -> Option<String>,
 ) -> Vec<String> {
-    names
-        .iter()
-        .filter_map(|name| {
-            let raw = value(name)?;
-            parse_choice::<T>(&raw).is_none().then(|| {
-                let accepted = T::VALUES
-                    .iter()
-                    .map(|(value, _)| *value)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{name}={raw} is ignored; use one of {accepted}")
-            })
-        })
-        .collect()
+    env_refused(
+        names,
+        &value,
+        &|raw| parse_choice::<T>(raw).is_some(),
+        &|| {
+            let accepted: Vec<&str> = T::VALUES.iter().map(|(value, _)| *value).collect();
+            ["one of ", &accepted.join(", ")].concat()
+        },
+    )
+}
+
+fn parse_cells(raw: &str) -> Option<u16> {
+    raw.trim().parse().ok()
+}
+
+/// The first variable in `names` that holds a whole number of cells.
+fn env_cells(names: &[&str], value: &dyn Fn(&str) -> Option<String>) -> Option<u16> {
+    env_accepted(names, value, &|raw| parse_cells(raw).is_some())
+        .as_deref()
+        .and_then(parse_cells)
+}
+
+/// One line per variable in `names` whose value is not a whole number of
+/// cells.
+#[cfg(feature = "app")]
+fn env_cells_warnings(names: &[&str], value: &dyn Fn(&str) -> Option<String>) -> Vec<String> {
+    env_refused(names, value, &|raw| parse_cells(raw).is_some(), &|| {
+        "a whole number of cells".to_owned()
+    })
 }
 
 /// A set, non-empty environment variable.
@@ -170,14 +237,19 @@ pub struct RenderOptions {
     frame_envs: &'static [&'static str],
     row_separation: Option<RowSeparation>,
     row_separation_envs: &'static [&'static str],
+    column_floor: Option<u16>,
+    column_floor_envs: &'static [&'static str],
+    table_fit: Option<TableFit>,
+    table_fit_envs: &'static [&'static str],
 }
 
 impl RenderOptions {
     /// Build options with [`DEFAULT_FALLBACK_WIDTH`] when no width is
-    /// detected. Record style, table frame, and row separation read
-    /// [`DEFAULT_RECORD_STYLE_ENV`], [`DEFAULT_LIST_STYLE_ENV`], and
-    /// [`DEFAULT_ROW_SEPARATION_ENV`] unless the CLI sets them. Roles are
-    /// drawn in [`Theme::default`].
+    /// detected. Record style, table frame, row separation, column floor, and
+    /// table fit read [`DEFAULT_RECORD_STYLE_ENV`],
+    /// [`DEFAULT_LIST_STYLE_ENV`], [`DEFAULT_ROW_SEPARATION_ENV`],
+    /// [`DEFAULT_COLUMN_FLOOR_ENV`], and [`DEFAULT_TABLE_FIT_ENV`] unless the
+    /// CLI sets them. Roles are drawn in [`Theme::default`].
     ///
     /// With `view` or `help`, the width is detected for the stream written,
     /// with a buffer of `DEFAULT_COLUMN_BUFFER` cells and
@@ -201,6 +273,10 @@ impl RenderOptions {
             frame_envs: DEFAULT_LIST_STYLE_ENVS,
             row_separation: None,
             row_separation_envs: DEFAULT_ROW_SEPARATION_ENVS,
+            column_floor: None,
+            column_floor_envs: DEFAULT_COLUMN_FLOOR_ENVS,
+            table_fit: None,
+            table_fit_envs: DEFAULT_TABLE_FIT_ENVS,
         }
     }
 
@@ -240,6 +316,44 @@ impl RenderOptions {
     #[must_use]
     pub const fn row_separation(mut self, separation: RowSeparation) -> Self {
         self.row_separation = Some(separation);
+        self
+    }
+
+    /// Set the column floor of every [`Table`] to `cells`: no column narrows
+    /// below the larger of its header width and `cells`, and the floor is
+    /// never more than the column's natural width. `0` turns the floor off, so
+    /// a column goes down to the limit its overflow sets. The default is 8.
+    /// This beats the environment.
+    ///
+    /// A table with [`Table::stacked_below`] has no floor.
+    #[must_use]
+    pub const fn column_floor(mut self, cells: u16) -> Self {
+        self.column_floor = Some(cells);
+        self
+    }
+
+    /// Set what every [`Table`] does when its columns at their floors do not
+    /// fit the width, unless the table sets it with [`Table::stacking`]. This
+    /// beats the environment. The default is [`TableFit::Stack`].
+    #[must_use]
+    pub const fn table_fit(mut self, fit: TableFit) -> Self {
+        self.table_fit = Some(fit);
+        self
+    }
+
+    /// Replace the ordered environment names read for the column floor.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub const fn column_floor_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.column_floor_envs = names;
+        self
+    }
+
+    /// Replace the ordered environment names read for the table fit.
+    /// An empty slice disables lookup.
+    #[must_use]
+    pub const fn table_fit_envs(mut self, names: &'static [&'static str]) -> Self {
+        self.table_fit_envs = names;
         self
     }
 
@@ -311,8 +425,9 @@ impl RenderOptions {
         self
     }
 
-    /// Take the theme, record style, table frame, row separation, and the
-    /// variables they read from `styles`. Colour and width stay as they are.
+    /// Take the theme, record style, table frame, row separation, column
+    /// floor, table fit, and the variables they read from `styles`. Colour and
+    /// width stay as they are.
     #[cfg(feature = "view")]
     #[must_use]
     pub(crate) const fn styles(mut self, styles: Self) -> Self {
@@ -323,6 +438,10 @@ impl RenderOptions {
         self.frame_envs = styles.frame_envs;
         self.row_separation = styles.row_separation;
         self.row_separation_envs = styles.row_separation_envs;
+        self.column_floor = styles.column_floor;
+        self.column_floor_envs = styles.column_floor_envs;
+        self.table_fit = styles.table_fit;
+        self.table_fit_envs = styles.table_fit_envs;
         self
     }
 
@@ -345,6 +464,32 @@ impl RenderOptions {
     #[must_use]
     pub fn resolved_row_separation(self) -> RowSeparation {
         self.row_separation_with(process_env)
+    }
+
+    /// Column floor, in cells: the CLI's choice, then the environment, then
+    /// 8. It reads the process environment.
+    #[must_use]
+    pub fn resolved_column_floor(self) -> u16 {
+        self.column_floor_with(process_env)
+    }
+
+    /// Table fit: the CLI's choice, then the environment, then
+    /// [`TableFit::Stack`]. It reads the process environment.
+    #[must_use]
+    pub fn resolved_table_fit(self) -> TableFit {
+        self.table_fit_with(process_env)
+    }
+
+    fn column_floor_with(self, value: impl Fn(&str) -> Option<String>) -> u16 {
+        self.column_floor
+            .or_else(|| env_cells(self.column_floor_envs, &value))
+            .unwrap_or(DEFAULT_COLUMN_FLOOR)
+    }
+
+    fn table_fit_with(self, value: impl Fn(&str) -> Option<String>) -> TableFit {
+        self.table_fit
+            .or_else(|| env_choice(self.table_fit_envs, value))
+            .unwrap_or_default()
     }
 
     fn record_style_with(self, value: impl Fn(&str) -> Option<String>) -> RecordStyle {
@@ -385,6 +530,12 @@ impl RenderOptions {
                 &value,
             ));
         }
+        if self.column_floor.is_none() {
+            warnings.extend(env_cells_warnings(self.column_floor_envs, &value));
+        }
+        if self.table_fit.is_none() {
+            warnings.extend(env_choice_warnings::<TableFit>(self.table_fit_envs, &value));
+        }
         warnings
     }
 
@@ -416,7 +567,7 @@ impl RenderOptions {
     #[cfg(feature = "view")]
     pub(crate) fn render_for(self, stream: ctl_term::Stream, document: &Document) -> String {
         self.console(stream)
-            .render(&Renderer::new(self).widget(document))
+            .render(&Renderer::new(&self).widget(document))
     }
 
     /// Write `document` to `stream` in the colour and at the width decided for
@@ -429,7 +580,7 @@ impl RenderOptions {
     #[cfg(feature = "help")]
     pub(crate) fn print_for(self, stream: ctl_term::Stream, document: &Document) -> io::Result<()> {
         self.console(stream)
-            .print(&Renderer::new(self).widget(document))
+            .print(&Renderer::new(&self).widget(document))
             .map_err(io::Error::from)
     }
 }
@@ -438,12 +589,21 @@ impl RenderOptions {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Renderer {
     options: RenderOptions,
+    /// The column floor, resolved once for every table of the document.
+    column_floor: u16,
+    /// The table fit, resolved once for every table of the document.
+    table_fit: TableFit,
 }
 
 impl Renderer {
-    /// Build a renderer.
-    pub(crate) const fn new(options: RenderOptions) -> Self {
-        Self { options }
+    /// Build a renderer. It reads the environment for the column floor and the
+    /// table fit here, once, and not for each table.
+    pub(crate) fn new(options: &RenderOptions) -> Self {
+        Self {
+            options: *options,
+            column_floor: options.resolved_column_floor(),
+            table_fit: options.resolved_table_fit(),
+        }
     }
 
     /// Render one document to a newline-terminated string, as
@@ -508,29 +668,89 @@ impl Renderer {
             .iter()
             .map(Vec::len)
             .fold(table.headers().len(), usize::max);
+        let policy = table.stacked();
+        let floor = if policy.is_some() {
+            0
+        } else {
+            self.column_floor
+        };
         let grid = TableWidget::new((0..count).map(|index| self.column(table, index)))
             .frame(self.options.resolved_frame())
             .row_separation(self.options.resolved_row_separation())
+            .column_floor(floor)
             .rows(table.rows().iter().map(|row| {
                 row.iter()
                     .enumerate()
                     .map(|(index, cell)| self.text(cell, cell_role(table, index)))
                     .collect::<Vec<_>>()
             }));
-        let Some(policy) = table.stacked() else {
-            return Box::new(grid);
-        };
-        let definitions = table
+        if let Some(policy) = policy {
+            let definitions = self.definitions(table, policy.label_columns());
+            return Box::new(Breakpoint::new(policy.width(), definitions, grid));
+        }
+        match table.fit().unwrap_or(self.table_fit) {
+            TableFit::Stack if !table.rows().is_empty() => {
+                let stacked = StackedForm {
+                    renderer: self,
+                    table: table.clone(),
+                    count,
+                    built: OnceCell::new(),
+                };
+                Box::new(Fallback::new(stacked, grid))
+            }
+            TableFit::Stack | TableFit::Wrap => Box::new(grid),
+        }
+    }
+
+    /// Each row as entries: its first `label_columns` cells as labels in the
+    /// token role, and the rest as the description under them.
+    fn definitions(self, table: &Table, label_columns: usize) -> Definitions {
+        table
             .rows()
             .iter()
             .fold(Definitions::new(), |definitions, row| {
-                let (labels, description) = row.split_at(row.len().min(policy.label_columns()));
+                let (labels, description) = row.split_at(row.len().min(label_columns));
                 definitions.entry(
                     labels.iter().map(|cell| self.text(cell, Some(Role::Token))),
                     description.iter().map(|cell| self.text(cell, None)),
                 )
-            });
-        Box::new(Breakpoint::new(policy.width(), definitions, grid))
+            })
+    }
+
+    /// The form of a table of `count` columns that does not fit.
+    ///
+    /// With headers, each row is its first cell as a title in the heading
+    /// role, over a record of one header and value line for each other
+    /// column, in the resolved record style, with a blank line between rows.
+    /// Without headers there are no names to show, so each row is its first
+    /// cell as a label over the others.
+    fn stacked(self, table: &Table, count: usize) -> Box<dyn Renderable> {
+        if table.headers().is_empty() {
+            return Box::new(self.definitions(table, 1));
+        }
+        let style = self.options.resolved_record_style();
+        let cell = |row: &[Text], index: usize, default: Option<Role>| {
+            row.get(index)
+                .map_or_else(StyledText::new, |cell| self.text(cell, default))
+        };
+        Box::new(
+            table
+                .rows()
+                .iter()
+                .fold(Stack::new().spacing(1), |stack, row| {
+                    let record = (1..count).fold(Record::new().style(style), |record, index| {
+                        record.row(
+                            cell(table.headers(), index, Some(Role::Heading)),
+                            cell(row, index, cell_role(table, index)),
+                        )
+                    });
+                    stack.push(
+                        Stack::new()
+                            .push(cell(row, 0, Some(Role::Heading)))
+                            .push(record),
+                    )
+                }),
+        )
     }
 
     fn column(self, table: &Table, index: usize) -> Column {
@@ -597,6 +817,37 @@ impl Renderer {
     }
 }
 
+/// The stacked form of a table, built the first time it is measured or drawn
+/// and kept, so a table that fits never builds it and one that does not builds
+/// it once.
+///
+/// It owns a copy of the table because the widget tree outlives the document
+/// it was built from; the copy costs what building the grid beside it costs.
+struct StackedForm {
+    renderer: Renderer,
+    table: Table,
+    count: usize,
+    built: OnceCell<Box<dyn Renderable>>,
+}
+
+impl StackedForm {
+    fn form(&self) -> &dyn Renderable {
+        self.built
+            .get_or_init(|| self.renderer.stacked(&self.table, self.count))
+            .as_ref()
+    }
+}
+
+impl Renderable for StackedForm {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.form().measure(context)
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        self.form().render(context)
+    }
+}
+
 /// The role a table cell's plain spans take: a token column's, then an id
 /// column's, then none.
 fn cell_role(table: &Table, index: usize) -> Option<Role> {
@@ -627,8 +878,12 @@ impl Document {
         doc = "[`View`]: crate#cargo-features"
     )]
     #[must_use]
+    #[expect(
+        clippy::large_types_passed_by_value,
+        reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+    )]
     pub fn render(&self, options: RenderOptions) -> String {
-        Renderer::new(options).render(self)
+        Renderer::new(&options).render(self)
     }
 }
 
@@ -699,7 +954,7 @@ mod tests {
     use ctl_text::anstyle::Effects;
     use indoc::{formatdoc, indoc};
 
-    use super::{Frame, RecordStyle, RenderOptions, RowSeparation};
+    use super::{Frame, RecordStyle, RenderOptions, RowSeparation, TableFit};
     use crate::color::ColorMode;
     use crate::document::{Document, Fields, Notice, NoticeLevel, Role, Section, Table, Text};
     use crate::theme::Theme;
@@ -1051,5 +1306,71 @@ mod tests {
             description = "    ",
         };
         assert_eq!(rendered, expected);
+    }
+
+    fn variable<'a>(name: &'a str, value: &'a str) -> impl Fn(&str) -> Option<String> + 'a {
+        move |asked| (asked == name).then(|| value.to_owned())
+    }
+
+    #[test]
+    fn the_environment_picks_the_column_floor_the_owner_left_open() {
+        let open = RenderOptions::new(ColorMode::Never);
+        let twelve = variable("CTL_CORE_COLUMN_FLOOR", "12");
+        assert_eq!(open.column_floor_with(|_| None), 8);
+        assert_eq!(open.column_floor_with(&twelve), 12);
+        assert_eq!(open.column_floor(5).column_floor_with(&twelve), 5);
+        assert_eq!(open.column_floor(0).column_floor_with(&twelve), 0);
+        assert_eq!(open.column_floor_envs(&[]).column_floor_with(&twelve), 8);
+        let aliased = variable("TOY_FLOOR", "3");
+        assert_eq!(
+            open.column_floor_envs(&["TOY_FLOOR", "CTL_CORE_COLUMN_FLOOR"])
+                .column_floor_with(aliased),
+            3
+        );
+    }
+
+    #[test]
+    fn the_environment_picks_the_table_fit_the_owner_left_open() {
+        let open = RenderOptions::new(ColorMode::Never);
+        let wrap = variable("CTL_CORE_TABLE_FIT", "wrap");
+        assert_eq!(open.table_fit_with(|_| None), TableFit::Stack);
+        assert_eq!(open.table_fit_with(&wrap), TableFit::Wrap);
+        assert_eq!(
+            open.table_fit(TableFit::Stack).table_fit_with(&wrap),
+            TableFit::Stack
+        );
+        assert_eq!(
+            open.table_fit_envs(&[]).table_fit_with(&wrap),
+            TableFit::Stack
+        );
+    }
+
+    #[cfg(feature = "app")]
+    #[test]
+    fn an_unaccepted_floor_or_fit_is_ignored_and_the_warning_names_the_variable() {
+        let typos = |name: &str| match name {
+            "CTL_CORE_COLUMN_FLOOR" => Some("wide".to_owned()),
+            "CTL_CORE_TABLE_FIT" => Some("fold".to_owned()),
+            _ => None,
+        };
+        let options = RenderOptions::new(ColorMode::Never);
+        assert_eq!(options.column_floor_with(typos), 8);
+        assert_eq!(options.table_fit_with(typos), TableFit::Stack);
+        assert_eq!(
+            options.style_env_warnings(typos),
+            [
+                "CTL_CORE_COLUMN_FLOOR=wide is ignored; use a whole number of cells",
+                "CTL_CORE_TABLE_FIT=fold is ignored; use one of stack, wrap",
+            ]
+        );
+        assert_eq!(
+            options
+                .column_floor(8)
+                .table_fit(TableFit::Wrap)
+                .style_env_warnings(typos),
+            Vec::<String>::new()
+        );
+        let negative = variable("CTL_CORE_COLUMN_FLOOR", "-1");
+        assert_eq!(options.style_env_warnings(negative).len(), 1);
     }
 }

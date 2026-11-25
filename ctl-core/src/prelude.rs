@@ -62,7 +62,7 @@ pub use crate::app::{App, BrokenPipe, CommandError};
 pub use crate::color::ColorMode;
 #[cfg(feature = "document")]
 pub use crate::document::{
-    Document, Fields, Notice, NoticeLevel, Role, Rule, Section, Table, Text,
+    Document, Fields, Notice, NoticeLevel, Role, Rule, Section, Stacked, Table, TableFit, Text,
 };
 #[cfg(feature = "cli")]
 pub use crate::flags::{
@@ -82,9 +82,11 @@ pub use crate::render::{
 };
 #[cfg(feature = "render")]
 pub use crate::render::{
-    DEFAULT_FALLBACK_WIDTH, DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS,
-    DEFAULT_RECORD_STYLE_ENV, DEFAULT_RECORD_STYLE_ENVS, DEFAULT_ROW_SEPARATION_ENV,
-    DEFAULT_ROW_SEPARATION_ENVS, Frame, RecordStyle, RenderOptions, RowSeparation,
+    DEFAULT_COLUMN_FLOOR_ENV, DEFAULT_COLUMN_FLOOR_ENVS, DEFAULT_FALLBACK_WIDTH,
+    DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS, DEFAULT_RECORD_STYLE_ENV,
+    DEFAULT_RECORD_STYLE_ENVS, DEFAULT_ROW_SEPARATION_ENV, DEFAULT_ROW_SEPARATION_ENVS,
+    DEFAULT_TABLE_FIT_ENV, DEFAULT_TABLE_FIT_ENVS, Frame, RecordStyle, RenderOptions,
+    RowSeparation,
 };
 #[cfg(feature = "surface-model")]
 pub use crate::surface::Surface;

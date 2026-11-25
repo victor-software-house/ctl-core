@@ -1,0 +1,10 @@
+---
+source: ctl-core/tests/table_fit.rs
+expression: rendered
+---
+id        name    path                           status  owner  notes
+──────────────────────────────────────────────────────────────────────────────
+QCTL-014  ledger  crates/ctl-core/src/render.rs  queued  alice  Declare row
+                                                                separation
+QCTL-015  yamled  crates/yamled/src/location.rs  active  alice  Write a ledger
+                                                                atomically

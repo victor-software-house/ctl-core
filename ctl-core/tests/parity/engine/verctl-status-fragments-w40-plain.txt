@@ -1,13 +1,13 @@
-┌───────────────┬──────────────┬───────┐
-│ file          ┆ package      ┆ bump  │
-╞═══════════════╪══════════════╪═══════╡
-│ quiet-lions-s ┆ demo-core    ┆ minor │
-│ ing.md        ┆              ┆       │
-│ quiet-lions-s ┆ demo-cli     ┆ patch │
-│ ing.md        ┆              ┆       │
-│ tidy-owls-wav ┆ demo-docs-si ┆ major │
-│ e.md          ┆ te           ┆       │
-└───────────────┴──────────────┴───────┘
+┌─────────────┬────────────────┬───────┐
+│ file        ┆ package        ┆ bump  │
+╞═════════════╪════════════════╪═══════╡
+│ quiet-lions ┆ demo-core      ┆ minor │
+│ -sing.md    ┆                ┆       │
+│ quiet-lions ┆ demo-cli       ┆ patch │
+│ -sing.md    ┆                ┆       │
+│ tidy-owls-w ┆ demo-docs-site ┆ major │
+│ ave.md      ┆                ┆       │
+└─────────────┴────────────────┴───────┘
 
 pending  2
     max  major

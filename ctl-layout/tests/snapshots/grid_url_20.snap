@@ -1,19 +1,15 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-┌──────────┬───────┐
-│ id       ┆ url   │
-╞══════════╪═══════╡
-│ QCTL-014 ┆ https │
-│          ┆ ://ex │
-│          ┆ ample │
-│          ┆ .test │
-│          ┆ /aaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-│          ┆ aaaaa │
-└──────────┴───────┘
+┌──────────┬──────────┐
+│ id       ┆ url      │
+╞══════════╪══════════╡
+│ QCTL-014 ┆ https:// │
+│          ┆ example. │
+│          ┆ test/aaa │
+│          ┆ aaaaaaaa │
+│          ┆ aaaaaaaa │
+│          ┆ aaaaaaaa │
+│          ┆ aaaaaaaa │
+│          ┆ aaaa     │
+└──────────┴──────────┘

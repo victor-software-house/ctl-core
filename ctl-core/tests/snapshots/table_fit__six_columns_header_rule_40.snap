@@ -1,0 +1,17 @@
+---
+source: ctl-core/tests/table_fit.rs
+expression: rendered
+---
+QCTL-014
+  name  ledger
+  path  crates/ctl-core/src/render.rs
+status  queued
+ owner  alice
+ notes  Declare row separation
+
+QCTL-015
+  name  yamled
+  path  crates/yamled/src/location.rs
+status  active
+ owner  alice
+ notes  Write a ledger atomically

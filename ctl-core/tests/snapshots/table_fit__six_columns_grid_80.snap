@@ -1,0 +1,14 @@
+---
+source: ctl-core/tests/table_fit.rs
+expression: rendered
+---
+┌──────────┬────────┬────────────────────────────┬────────┬───────┬────────────┐
+│ id       ┆ name   ┆ path                       ┆ status ┆ owner ┆ notes      │
+╞══════════╪════════╪════════════════════════════╪════════╪═══════╪════════════╡
+│ QCTL-014 ┆ ledger ┆ crates/ctl-core/src/render ┆ queued ┆ alice ┆ Declare    │
+│          ┆        ┆ .rs                        ┆        ┆       ┆ row        │
+│          ┆        ┆                            ┆        ┆       ┆ separation │
+│ QCTL-015 ┆ yamled ┆ crates/yamled/src/location ┆ active ┆ alice ┆ Write a    │
+│          ┆        ┆ .rs                        ┆        ┆       ┆ ledger     │
+│          ┆        ┆                            ┆        ┆       ┆ atomically │
+└──────────┴────────┴────────────────────────────┴────────┴───────┴────────────┘

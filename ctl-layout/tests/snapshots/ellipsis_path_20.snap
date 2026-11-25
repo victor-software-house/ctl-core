@@ -1,13 +1,15 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-┌──────────────┬───┐
-│ path         ┆ … │
-╞══════════════╪═══╡
-│ crates/ctl-c ┆ … │
-│ ore/src/rend ┆   │
-│ ers.rs       ┆   │
-│ crates/ctl-t ┆ … │
-│ ext/src/wrap ┆   │
-│ .rs          ┆   │
-└──────────────┴───┘
+┌──────────┬──────────┐
+│ path     ┆ title    │
+╞══════════╪══════════╡
+│ crates/c ┆ Let a l… │
+│ tl-core/ ┆          │
+│ src/rend ┆          │
+│ ers.rs   ┆          │
+│ crates/c ┆ ok       │
+│ tl-text/ ┆          │
+│ src/wrap ┆          │
+│ .rs      ┆          │
+└──────────┴──────────┘

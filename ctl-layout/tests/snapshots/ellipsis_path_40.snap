@@ -1,9 +1,11 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-┌────────────────────────────────┬─────┐
-│ path                           ┆ ti… │
-╞════════════════════════════════╪═════╡
-│ crates/ctl-core/src/renders.rs ┆ Le… │
-│ crates/ctl-text/src/wrap.rs    ┆ ok  │
-└────────────────────────────────┴─────┘
+┌───────────────────────────┬──────────┐
+│ path                      ┆ title    │
+╞═══════════════════════════╪══════════╡
+│ crates/ctl-core/src/rende ┆ Let a l… │
+│ rs.rs                     ┆          │
+│ crates/ctl-text/src/wrap. ┆ ok       │
+│ rs                        ┆          │
+└───────────────────────────┴──────────┘

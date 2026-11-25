@@ -88,14 +88,14 @@ impl<'a> Sink<'a> {
     pub(crate) fn new(
         writer: &'a mut dyn io::Write,
         stream: ctl_term::Stream,
-        options: RenderOptions,
+        options: &RenderOptions,
         json_layout: JsonLayout,
         machine: bool,
     ) -> Self {
         let options = if machine {
             options.color(ColorMode::Never)
         } else {
-            options
+            *options
         };
         Self {
             writer,

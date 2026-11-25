@@ -9,7 +9,7 @@ It SHALL do so before a keep-words column runs past the width.
 
 #### Scenario: An ellipsis title
 
-- **WHEN** a list with a keep-words path column of 30 cells and an ellipsis title column renders at width 40
+- **WHEN** an unframed list with a keep-words path column of 30 cells and an ellipsis title column renders at width 40
 - **THEN** the path stays whole, the title column is at least 8 cells, and each title that does not fit ends in `…`
 
 ### Requirement: A framed table folds instead of overflowing
@@ -58,7 +58,7 @@ A table with a `stacked_below` threshold SHALL keep that threshold's form.
 #### Scenario: Six columns at width 40
 
 - **WHEN** a list with six 8-cell floors renders at width 40 in a grid
-- **THEN** each row renders as a record whose lines name each column's header
+- **THEN** each row renders as a record whose lines name each other column's header
 
 #### Scenario: A headerless table
 
@@ -69,3 +69,12 @@ A table with a `stacked_below` threshold SHALL keep that threshold's form.
 
 - **WHEN** a help table stacked below 64 renders at width 40
 - **THEN** each flag prints on its own line, indented by 2, with its description below, indented by 4
+
+### Requirement: A table with no rows draws its grid
+
+A table with no rows SHALL draw its grid, header only, and SHALL NOT stack.
+
+#### Scenario: A table with no rows
+
+- **WHEN** a table with headers and no rows renders at a width where its floors do not fit
+- **THEN** it draws its grid, header only, and never stacks

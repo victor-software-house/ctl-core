@@ -228,8 +228,16 @@ Buffer zero disables subtraction; an empty environment slice disables lookup.
 Explicit widths remain exact.
 Public option-aware help entry points keep direct help callers under the same policy.
 
-The record style, list frame, row separation, and JSON layout read `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, and `CTL_CORE_JSON_LAYOUT` when the consumer has not set them.
+The record style, list frame, row separation, column floor, table fit, and JSON layout read `CTL_CORE_RECORD_STYLE`, `CTL_CORE_LIST_STYLE`, `CTL_CORE_ROW_SEPARATION`, `CTL_CORE_COLUMN_FLOOR`, `CTL_CORE_TABLE_FIT`, and `CTL_CORE_JSON_LAYOUT` when the consumer has not set them.
 Each name list is replaceable, and an empty slice disables lookup.
+
+The column floor is 8 cells.
+No column of a table narrows below the larger of its header width and the floor, and the floor is never more than the column's natural width.
+`RenderOptions::column_floor(0)` or `CTL_CORE_COLUMN_FLOOR=0` turns it off.
+
+A table whose floors and frame do not fit the width stacks each row as a record.
+`Table::stacking(TableFit::Wrap)`, `RenderOptions::table_fit(TableFit::Wrap)`, or `CTL_CORE_TABLE_FIT=wrap` keeps the grid at its floors instead.
+A table with `stacked_below` has no floor and keeps its own form.
 
 ## View contract
 

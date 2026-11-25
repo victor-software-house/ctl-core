@@ -471,10 +471,14 @@ impl View {
         warnings
     }
 
-    /// Take the theme, record style, table frame, row separation, and the
-    /// variables they read from `styles`. Its colour and width settings are
-    /// ignored; the view owns those.
+    /// Take the theme, record style, table frame, row separation, column
+    /// floor, table fit, and the variables they read from `styles`. Its colour
+    /// and width settings are ignored; the view owns those.
     #[must_use]
+    #[expect(
+        clippy::large_types_passed_by_value,
+        reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+    )]
     pub const fn styles(mut self, styles: RenderOptions) -> Self {
         self.options = self.options.styles(styles);
         self
@@ -626,7 +630,7 @@ impl View {
         Sink::new(
             writer,
             stream,
-            self.options,
+            &self.options,
             self.resolved_json_layout().settled(),
             format.machine(),
         )

@@ -18,7 +18,8 @@ use crate::table::Table;
 ///
 /// A record is a two-column [`Table`] with no header. It shares the table's
 /// column widths, so a long value wraps under its own column and a long word
-/// keeps its line. A record with no rows draws nothing.
+/// keeps its line. Its table has a column floor of 0, so a record narrows as
+/// far as its words allow. A record with no rows draws nothing.
 #[derive(Clone, Debug)]
 pub struct Record {
     table: Table,
@@ -59,7 +60,9 @@ impl Record {
             RecordStyle::KeysLeft => (Frame::Plain, Align::Left),
             RecordStyle::Boxed => (Frame::Grid, Align::Left),
         };
-        Table::new([Column::untitled().align(keys), Column::untitled()]).frame(frame)
+        Table::new([Column::untitled().align(keys), Column::untitled()])
+            .frame(frame)
+            .column_floor(0)
     }
 }
 

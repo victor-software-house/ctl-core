@@ -1,5 +1,5 @@
 //! Terminal widgets built on [`ctl_text`]: tables, records, rules, stacks,
-//! indents, and a way to swap one widget for another by width.
+//! indents, and a way to swap one widget for another by width or by fit.
 //!
 //! Every widget implements [`Renderable`]. It first *measures*: the narrowest
 //! width it can be drawn at without breaking a word it keeps whole, and its
@@ -135,6 +135,7 @@
 //! - [`Definitions`]: entries as a line of labels over indented description
 //!   lines, the narrow form of a table.
 //! - [`Breakpoint`]: one widget below a width and another from it up.
+//! - [`Fallback`]: a table, or another widget when the table does not fit.
 //! - [`Rule`]: a horizontal line with an optional title.
 //! - [`Stack`]: widgets one above the other.
 //! - [`Indent`]: a widget moved right.
@@ -147,6 +148,7 @@ mod align;
 mod breakpoint;
 mod column;
 mod definitions;
+mod fallback;
 mod frame;
 mod glyphs;
 mod indent;
@@ -164,6 +166,7 @@ pub use column::Column;
 pub use ctl_text;
 pub use ctl_text::{Context, Overflow, Renderable, Text};
 pub use definitions::Definitions;
+pub use fallback::Fallback;
 pub use frame::{Frame, RecordStyle, RowSeparation};
 pub use indent::Indent;
 pub use record::Record;

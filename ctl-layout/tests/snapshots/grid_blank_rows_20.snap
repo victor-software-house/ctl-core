@@ -1,40 +1,23 @@
 ---
 source: ctl-layout/tests/it/snapshots.rs
 ---
-┌──────┬─────┬─────┐
-│ id   ┆ tit ┆ age │
-│      ┆ le  ┆     │
-╞══════╪═════╪═════╡
-│ QCTL ┆ Let ┆   3 │
-│ -014 ┆ a   ┆     │
-│      ┆ led ┆     │
-│      ┆ ger ┆     │
-│      ┆ dec ┆     │
-│      ┆ lar ┆     │
-│      ┆ e   ┆     │
-│      ┆ row ┆     │
-│      ┆ sep ┆     │
-│      ┆ ara ┆     │
-│      ┆ tio ┆     │
-│      ┆ n   ┆     │
-│      ┆     ┆     │
-│ QCTL ┆ Wri ┆ 120 │
-│ -015 ┆ te  ┆     │
-│      ┆ a   ┆     │
-│      ┆ led ┆     │
-│      ┆ ger ┆     │
-│      ┆ ato ┆     │
-│      ┆ mic ┆     │
-│      ┆ all ┆     │
-│      ┆ y   ┆     │
-│      ┆     ┆     │
-│ QCTL ┆ Nam ┆  45 │
-│ -016 ┆ e   ┆     │
-│      ┆ the ┆     │
-│      ┆ nex ┆     │
-│      ┆ t   ┆     │
-│      ┆ sta ┆     │
-│      ┆ rta ┆     │
-│      ┆ ble ┆     │
-│      ┆ row ┆     │
-└──────┴─────┴─────┘
+┌──────────┬──────────┬─────┐
+│ id       ┆ title    ┆ age │
+╞══════════╪══════════╪═════╡
+│ QCTL-014 ┆ Let a    ┆   3 │
+│          ┆ ledger   ┆     │
+│          ┆ declare  ┆     │
+│          ┆ row      ┆     │
+│          ┆ separati ┆     │
+│          ┆ on       ┆     │
+│          ┆          ┆     │
+│ QCTL-015 ┆ Write a  ┆ 120 │
+│          ┆ ledger   ┆     │
+│          ┆ atomical ┆     │
+│          ┆ ly       ┆     │
+│          ┆          ┆     │
+│ QCTL-016 ┆ Name the ┆  45 │
+│          ┆ next     ┆     │
+│          ┆ startabl ┆     │
+│          ┆ e row    ┆     │
+└──────────┴──────────┴─────┘
