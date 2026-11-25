@@ -157,13 +157,24 @@ A handler whose subcommands return a value and records returns `view::Reply`, an
 
 1. Without `--stream`, records are collected and written as one result.
    Its data is one sequence, header first, so `json` writes one array.
-   Its document is the header's document followed by each record's, where adjacent documents that are each one table with equal headers merge into one table.
+   Its document is the header's document followed by each record's, where adjacent documents that are each one table with equal headers and the same column count merge into one table.
 2. With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record when the iterator yields it.
    ctl-core takes what the writer wrote for one record, locks stdout, writes it whole, flushes, and unlocks.
    It holds no lock while the iterator or a serialization runs, and a record that fails to write leaves no partial line on stdout.
    The default writer calls `write` for each record and writes nothing between records, so a CLI's own format streams with no extra code.
    `json` writes each record compact on one line ending in LF, whatever the layout.
-   The stream forms of `tsv`, `csv`, `markdown`, and `pretty` are still the default writer.
+   `tsv`, `csv`, and `markdown` share one stream writer, and `pretty` has its own.
+   The tabular writer writes each record's document as the whole output writes it, with the same blank line between blocks, and keeps the header of the table it last wrote.
+   The first table of a record, when its header row equals that header and it has the same column count, goes on with only its rows and no blank line before them.
+   Inside one record every table is written as the whole output writes it.
+   A plain table goes on from the last plain table of the same column count.
+   Any other table writes its header again after a blank line, and in `markdown` its separator row too.
+   A block that writes something other than a table ends the table, so the same table after it writes its header again.
+   A block the format leaves out writes nothing, adds no blank line, and does not end the table.
+   So a stream of records that are each one row of one table with the same column count writes the same bytes as the collected output.
+   `pretty` renders each record's document as the whole output renders it, with a blank line between records and none before the first or after the last.
+   A record that renders to nothing writes nothing and adds no blank line.
+   Its tables are not aligned across records, and colour and width are decided for each record, so a terminal resized mid-stream changes the width of later records.
 3. A value under `--stream` is a stream of one record, as the value serializes, with no `type` field added.
    A value that failed keeps its own stream, stderr, and exit code.
 4. Every record goes to stdout.

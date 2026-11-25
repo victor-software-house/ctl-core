@@ -1,0 +1,17 @@
+---
+source: ctl-core/tests/records.rs
+expression: "stdout.replace('\\r', \"<CR>\")"
+---
+┌────────┬───┐
+│ type   ┆ n │
+╞════════╪═══╡
+│ header ┆ 3 │
+└────────┴───┘
+
+detail  1
+
+┌──────┬───┐
+│ type ┆ n │
+╞══════╪═══╡
+│ tick ┆ 2 │
+└──────┴───┘

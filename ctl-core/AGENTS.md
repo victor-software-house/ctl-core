@@ -142,7 +142,7 @@ A command returns a value or `view::Records`, a header record then records, each
 Only `Records::new` and `Reply::value` are generic: each record is erased at once, and `View::run_records` writes records collected or streamed in two separate functions.
 A value under `--stream` writes through the format's `RecordWriter` without that driver, so a CLI that returns only values does not link the collecting path.
 
-- Without `--stream`, records are collected and written as one result: `json` writes one array, and adjacent one-table documents with equal headers merge into one table.
+- Without `--stream`, records are collected and written as one result: `json` writes one array, and adjacent one-table documents with equal headers and the same column count merge into one table.
 - With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record as the iterator yields it.
   The writer writes into a buffer the driver owns; the driver then locks stdout, writes the record whole, flushes, and unlocks.
   No lock is held while the iterator, `present`, or a serialization runs, and a record that fails to write reaches stdout in no part.

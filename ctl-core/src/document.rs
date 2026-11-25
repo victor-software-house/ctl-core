@@ -505,6 +505,18 @@ impl Table {
         self.rows.extend(other.rows);
     }
 
+    /// The number of columns: the cells of the longest row, header row
+    /// included.
+    #[cfg(feature = "view")]
+    pub(crate) fn width(&self) -> usize {
+        self.rows
+            .iter()
+            .map(Vec::len)
+            .chain([self.headers.len()])
+            .max()
+            .unwrap_or_default()
+    }
+
     /// The header cells, empty for a table with no header row.
     #[must_use]
     pub fn headers(&self) -> &[Text] {

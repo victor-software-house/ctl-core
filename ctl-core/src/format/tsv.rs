@@ -2,7 +2,7 @@ use std::io::{self, Write as _};
 
 use crate::document::Notice;
 use crate::format::tabular::{self, Buffer, Dialect, Place, Source};
-use crate::format::{Format, FormatName, Output, Sink, TSV_ABOUT};
+use crate::format::{Format, FormatName, Output, RecordWriter, Sink, TSV_ABOUT};
 
 /// The `tsv` format: the result's document as tab-separated lines.
 ///
@@ -29,6 +29,19 @@ use crate::format::{Format, FormatName, Output, Sink, TSV_ABOUT};
 /// the terminal that shows it. Blocks that write something are separated by
 /// one blank line, every line ends in a line feed, and an empty document
 /// writes nothing.
+///
+/// Under `--stream`, each record is written as it arrives, as the whole
+/// output writes its document, with the same blank line between blocks. The
+/// first table of a record, when it has the header line and column count of
+/// the last table written, goes on with only its rows, and no blank line
+/// before them. A plain table goes on from the last plain table of the same
+/// column count. So a stream of records that are each one row of one table
+/// with the same column count writes the same bytes as the collected output.
+/// Any other table writes its header line again, after a blank line. A block
+/// that writes something other than a table ends the table, so the same table
+/// after fields, a paragraph, verbatim text, or a notice writes its header
+/// again. A block `tsv` leaves out, such as a heading, writes nothing and does
+/// not end the table.
 ///
 /// It is a machine format, so it never writes ANSI styling, and it is the
 /// default when stdout is not a terminal. Its error form is the default,
@@ -102,5 +115,9 @@ impl Format for Tsv {
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
         let written = tabular::write(output.document(), self);
         sink.write_all(written.as_bytes())
+    }
+
+    fn stream<'s>(&'s self, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+        tabular::stream(self, sink)
     }
 }
