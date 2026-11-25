@@ -15,7 +15,7 @@ ctl-core's help does, and command output almost never does.
 The maintainer chose the rule for every table: wrap cells down to a floor, then stack each row as a record (operator, 2026-11-24).
 A table never crops and never narrows a column to a few characters.
 
-This change belongs to [CTC-062][ledger].
+This change belongs to [CTC-064][ledger].
 
 ## What Changes
 
