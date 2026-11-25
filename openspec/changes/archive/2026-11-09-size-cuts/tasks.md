@@ -19,7 +19,9 @@
   1. The failing run used plain `cargo test` outside mise. The shells
      `mise.test.toml` pins were not on `PATH`, and the host has no fish of
      its own.
+
   2. All 6 failures were spawn errors: the program was missing.
+
   3. The `dev` and `test` profiles put conda-fish 4.9.3 and conda-zsh
      5.9.2 on `PATH`. The command:
 
@@ -68,6 +70,7 @@
      `INSTA_UPDATE=no`, CI's setting, passed 4 of 4.
   3. Each control, bidi, separator, and byte order mark character shows
      as `<U+XXXX>`. The spec already writes some as KDL's `\u{..}`.
+
 - [x] 2.2 Move usage-lib to 7.3.0 and accept the snapshots again. Verify:
   the snapshot diff shows only decision 2's `""""#` change. The changeset
   lists it as a fix.
@@ -77,6 +80,7 @@
   `--quad-hash` string opens with `##"""` and closes with `"""##` in place
   of one hash. The run with `INSTA_UPDATE=no` passed the corpus and the
   91 library tests. The changeset lists the fix.
+
 - [x] 2.3 Mount the toy through `mount_directives` under mise 2026.11.4.
   Verify: `mise run toy --help` prints the toy's subcommands and flags.
   zsh completion after `mise run toy` and a space offers them. The note
@@ -97,6 +101,7 @@
      `--strict`.
   4. The spec has no `--version` flag and no `help` command, so
      completion offers neither.
+
 - [x] 2.4 Verify: CI passes on the pushed commit.
 
   [PR 235][ctl-core#235] passed every check on its last head,
@@ -120,6 +125,7 @@
   - `-.5` and `+.5` in `identifier`;
   - the value names in `value_names`, whose 7.3.0 capture passed 6 of 6
     on the same host first.
+
 - [x] 3.2 Add `kdl = "=6.7.1"` as a dev-dependency and these tests:
   - one per row of decision 3, which parses the output and compares the
     value;
@@ -145,6 +151,7 @@
 
   Each check stops at its first failing case. A row past it shows only
   in the writer's pass.
+
 - [x] 3.3 Add tests for quotes, backslashes, newlines, tabs, non-ASCII
   text, a leading dash, and the words `true`, `null`, and `inf`. Verify:
   each value reads back unchanged.
@@ -152,6 +159,7 @@
   2026-11-09 (-03:00), same run: `defaults_read_back_unchanged` and
   `help_reads_back_as_clap_renders_it` cover every hostile string, and
   `identifier_words_read_back_as_strings` every identifier case. All pass.
+
 - [x] 3.4 Build qctl, verctl, and forkctl against the branch. Verify: each
   `--usage-spec` output equals its usage-lib 7.3.0 output.
 
@@ -160,6 +168,7 @@
   built twice. Its ctl-core line pointed first at [7f4e123][7f4e123],
   then at the branch. Each pair of `--usage-spec` outputs is
   byte-identical, at 259, 131, and 289 lines.
+
 - [x] 3.5 Repeat task 2.3 against the writer. Also mount one task per
   value-name form of decision 3, on a flag and on a positional. A
   positional with two choices follows each. Verify:
@@ -178,6 +187,7 @@
      positional: completion offered `p1` and `p2` after one value. After
      two values it offered only files. Decision 3's table holds the 7.3.0
      results.
+
 - [x] 3.6 Verify: CI passes on the pushed commit, and the changeset lists
   each departure as a fix.
 
@@ -200,6 +210,7 @@
   strsim, anstream and its parsers, and the crates only they pulled in.
   `cargo tree --all-features --edges normal` shows no kdl and no winnow
   0.7; `--edges dev` shows kdl under ctl-core alone.
+
 - [x] 4.2 Ban usage-lib in `deny.toml` through the `deny_bans` answer,
   with a reason. Verify: `mise run deny` passes in CI with no warning.
 
@@ -216,6 +227,7 @@
   `copier update`. On 2026-11-09 (-03:00), `mise run deny` reported bans,
   licenses, and sources ok, with no warning. CI's advisory run is still
   to come on the pull request.
+
 - [x] 4.3 Extend `check:tree` to fail on usage-lib, kdl, or winnow below
   1.0 in ctl-core's normal dependencies with every feature. Verify: CI's
   `check:tree` passes, and fails on a commit that adds usage-lib back.
@@ -225,6 +237,7 @@
   it failed on usage-lib and on clap's `color`, `help`, `error-context`,
   and `suggestions`. With `clap/usage` taken out of the `usage` feature,
   it failed on the missing `usage`. CI's run is still to come.
+
 - [x] 4.4 Verify: `cargo tree -e features -i clap_builder` for ctl-core
   with `app`, `usage`, and `input` shows no `default`, `color`, `help`,
   `error-context`, or `suggestions`. If one shows, cut it or record why it
@@ -238,11 +251,13 @@
   On 2026-11-09 (-03:00), the command showed `env`, `std`, `string`, and
   `usage` for `app,usage,input` and for `usage`, and `env`, `std`, and
   `string` for `cli`.
+
 - [x] 4.5 Verify: CI's `deps` (cargo-machete) passes.
 
   [PR 238][ctl-core#238] merged at [4eaa0fa][4eaa0fa]. Its last head,
   [b8c0b9a][b8c0b9a], passed `deps` in the Static checks job of
   [run 42568402969][run-42568402969].
+
 - [x] 4.6 Declare `-h`/`--help` and the `help` subcommand in ctl-core, and
   add `test:cli`, which runs the parser tests with only the `cli` feature.
   Verify: CI's `test:cli` passes with `-h`, `--help`, `-V`, and
@@ -292,6 +307,7 @@
      `deserialize_recorded_key`, once per field visitor. The visitors
      are qctl's ledger and row types, and serde_json's key classifier.
      Any struct with string keys reaches it inside `deserialize`.
+
 - [x] 5.2 Capture real-run problem reports from the input tests and from
   qctl on malformed ledgers, before the change. Verify: the captures are
   committed as snapshots, accepted with insta, none written by hand.
@@ -302,6 +318,7 @@
   On 2026-11-09 (-03:00), insta accepted the snapshot at
   [4eaa0fa][4eaa0fa] with the test added. qctl's own output was compared
   on the host and is not committed here: qctl's tests own it.
+
 - [x] 5.3 Build messages without the snippet renderer, as decision 7
   describes. Verify: every input test and snapshot passes unchanged, and
   qctl's release build, with its yamled on the same fork, keeps no
@@ -368,6 +385,7 @@
   ([budget.rs][saphyr-budget-211]). The first is the `limits:` key that
   `.ctl/input.yaml` exposes and that a limit error names. The lock moved
   granit-parser from 2.0.0 to 2.1.0 with it.
+
 - [x] 6.2 Verify: `deny.toml`'s `[bans.workspace-dependencies]` check
   passes, so each dependency is declared once in
   `[workspace.dependencies]`.
@@ -375,6 +393,7 @@
   On 2026-11-09 (-03:00), `cargo deny --all-features check bans` reported
   bans ok on the branch, and CI's `deny` passed in
   [run 42575754249][run-42575754249].
+
 - [x] 6.3 Add the `usage` and `input` tiers to the `size` example and to
   `[workspace.metadata.size]`. Set every budget to the `.text` CI prints
   for the commit, with a reason per tier. Verify: a budget follows a
@@ -417,6 +436,7 @@
   budget. It passed in [run 42595568951][run-42595568951] on f92ada8, PR
   245's head, and in the merge queue's [run 42595968031][run-42595968031]
   on c3f9e41.
+
 - [x] 6.4 Update `ctl-core/AGENTS.md`, `docs/presentation.md`, the `usage`
   module docs, and the feature docs in `ctl-core/Cargo.toml` where they
   name usage-lib or its Serde edge. Verify: no `Cargo.toml` or
@@ -435,6 +455,7 @@
     - this change and its [ledger row](../../../../tasks.yaml);
     - two archived changes and a research note under `docs/research/`;
     - decision 16's measurements in the terminal-render-engine change.
+
 - [x] 6.5 Verify: Vale reports zero problems, no lint exception lacks a
   reason, and the changeset covers every behaviour change in the stack.
 

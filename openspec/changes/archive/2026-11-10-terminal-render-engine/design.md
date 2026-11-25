@@ -803,9 +803,11 @@ What each step moved, in `.text` bytes:
 
 1. qctl's B → C is close to the 269,548 bytes that kdl, usage-lib and
    winnow took on darwin-arm64. Its lock drops 15 packages.
+
 2. Before the cuts, qctl's C → D was zero, because usage-lib turned
    clap's defaults back on. It is now -54,160 bytes. Each consumer makes
    that cut in its own `Cargo.toml`.
+
 3. rawr uses neither `usage` nor `input`, so the cuts had nothing to remove
    from it. Its +7,040 is the `-h/--help` flag and `help` subcommand
    ctl-core now declares. rawr keeps clap's defaults, so clap's own help
@@ -825,6 +827,7 @@ What each step moved, in `.text` bytes:
    80,672 bytes. ctl-core cannot avoid its share without clap's `help`
    feature, which the cuts removed. [CTC-042][ledger] measures a
    non-generic copy of the tree.
+
 4. annotate-snippets is still in build C, through upstream serde-saphyr's
    `deserialize_str`, as item 3 of the earlier list gives.
 

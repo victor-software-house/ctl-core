@@ -133,13 +133,16 @@ The omission is an upstream defect in kdl 6.7.1, which usage-lib copied.
 It is not reported upstream: a report needs the maintainer's approval.
 
 - The writer writes `default="a\u{7f}b"`.
+
 - Beside the parse, its tests check every output for two things:
   - a literal code point from the whole disallowed set;
   - a Newline inside a single-line string.
 
   A later missed character then fails a test without a new row.
+
 - Every other bare default in the corpus is a valid identifier: `-x` and
   `--x` are signed identifiers.
+
 - The corpus also holds one default and possible value per case of the
   identifier grammar:
   - number-like words: `1`, `-1`, `+1`, `.5`, `-.5`, `+.5`, `1e3`,
@@ -271,8 +274,10 @@ built without default features. kdl pulls winnow 0.7, miette, and
 unicode-width 0.1 into the dev graph.
 
 1. `deny.toml` bans usage-lib outright.
+
 2. It bans kdl and winnow below 1.0 with `wrappers`. Only ctl-core may
    depend on kdl, and only kdl on winnow 0.7.
+
 3. Neither second version needs a `skip`. cargo-deny 0.20.2 leaves a crate
    reached only through dev-dependencies out of two checks:
    - duplicates, by [`multiple-versions-include-dev`][deny-bans-0202],
@@ -281,11 +286,14 @@ unicode-width 0.1 into the dev graph.
 
    The advisory, ban, and source checks still cover it. A
    dev-dependency never ships, so that default is the policy here.
+
 4. `syn@2` is the one `skip`: garde_derive 0.23.0, the latest release,
    requires syn 2, while serde, clap, thiserror, and schemars use syn 3.
+
 5. The templates repository renders `deny.toml`. Each entry is an answer
    in `.copier-answers.yml` (`deny_bans`, `deny_skip`), applied with
    `copier update`, never a hand edit.
+
 6. `check:tree` fails when usage-lib, kdl, or winnow below 1.0 appears in
    ctl-core's normal dependencies with every feature. The dev-dependency
    is the one path left for kdl and winnow 0.7.

@@ -580,13 +580,20 @@ Last release 2025-04-27. No stable release in the last 12 months. 115 open issue
    ```
 
 2. Styling: `termcolor` `ColorSpec` held on the cell, written to a `termcolor::Buffer` [cl-cell].
+
 3. Width: `unicode-width` 0.2, per char, in a function ported from the `ansi-width` crate [cl-width].
+
 4. ANSI: `display_width` skips CSI (to a byte in 0x40..=0x7C), OSC (to BEL or ST), and for an `ESC` followed by any other character it counts only that character [cl-width].
+
 5. Layout: each cell computes `required_dimension()`. A table takes the maximum per column, then each cell is printed with the `available_dimension` [cl-dimension].
    There is no shrink, no wrap, and no terminal width. Wide tables overflow.
+
 6. Terminal: `termcolor::ColorChoice`, default `Always` [cl-table].
+
 7. Dependencies: `termcolor`, `unicode-width` 0.2. Defaults add `csv`, `cli-table-derive`. No-default is the first two.
+
 8. Maintenance: last release 2025-03-18, 4 open.
+
 9. Lessons: copy the `RequiredDimension` and `AvailableDimension` pair.
    Avoid a default that always colours.
 
@@ -616,18 +623,26 @@ Last release 2025-04-27. No stable release in the last 12 months. 115 open issue
    ```
 
    The two calls are in [tm-skin-text].
+
 2. Styling: `MadSkin` holds a `CompoundStyle` (a crossterm `ContentStyle`) per element and a `LineStyle` for paragraphs, headers and tables [tm-skin] [tm-compound].
+
 3. Width: `unicode-width` 0.1, `char.width().unwrap_or(0)` and `str.width()` [tm-tokens].
+
 4. ANSI: none on input. Markdown is parsed by `minimad` first.
+
 5. Layout (tables): a `TblFit` observes every cell width, then fits columns [tm-fit]:
    1. If the sum of maximum widths fits, use them.
    2. A column minimum is 3.
    3. Step 1 cuts columns wider than 4 toward their average width, by at most 4 each, in proportion to how far above average they are.
    4. Step 2 removes the rest in proportion to `width - 3`.
    5. A text line is hard-wrapped to width, with a minimum of 3 [tm-fit].
+
 6. Terminal: `crossterm::terminal::size()` in `terminal_size()` [tm-term].
+
 7. Dependencies, all required: `coolor` (crossterm feature), `crokey`, `crossbeam`, `lazy-regex`, `minimad`, `serde`, `thiserror`, `unicode-width` 0.1. The only feature, `special-renders`, has no dependencies.
+
 8. Maintenance: last release 2026-09-23, 7 stable releases in 12 months, 18 open.
+
 9. Lessons: copy the observe-then-fit shape of `TblFit` (observe cells, then compute).
    The two-step shrink is simple.
    Avoid a hard minimum column of 3 with no way to change it.

@@ -222,13 +222,18 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    `Color` is an enum of `Ansi(AnsiColor)`, `Ansi256(Ansi256Color)` and `Rgb(RgbColor)`. [color.rs L4-17][anstyle-color]
    `Effects` is a `u16` newtype with const flags for bold, dim, italic, five underline kinds, blink, invert, hidden and strikethrough. [effect.rs L9-38][anstyle-effects]
    Builders are `const fn`. `Ansi256Color::into_ansi` converts 0 to 15 losslessly to `AnsiColor`; nothing converts RGB. No hyperlinks.
+
 3. **Writing ANSI.** `Display` for `Style` writes the start codes, and the alternate flag (`{style:#}`) writes the reset. [style.rs L411-419][anstyle-style-display]
    The reset is the fixed string `ESC [ 0 m`, elided when the style is plain. [style.rs L153-160][anstyle-style-reset], [reset.rs L22][anstyle-reset]
    Colors format through a 19-byte stack buffer, not `format!`. [color.rs L568-635][anstyle-dispbuf]
    It never parses ANSI.
+
 4. **Detection.** None.
+
 5. **Dependencies.** None. Feature `std` (default) adds `write_to` helpers. 1,648 lines. MSRV 1.66.
+
 6. **Maintenance.** 2026-03-13. About 892 M downloads. clap_builder and cargo depend on it (`pub use anstyle::*` in [styling.rs L3][clap-styling-reexport]; [cargo Cargo.toml][cargo-cargo]).
+
 7. **Lessons.** Take it as the style type. It is the shared vocabulary of clap, cargo and anstream. Missing: color-depth downgrade, hyperlinks, a style diff (to emit fewer codes).
 
 ### 4.2 anstream 1.0.0
@@ -243,6 +248,7 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    ```
 
 2. **Style model.** None of its own. It accepts any text with ANSI and uses `anstyle::Style` when translating for Windows.
+
 3. **Parsing ANSI.** Yes, two ways, both on `anstyle-parse`.
    - Strip: [`next_bytes`, adapter/strip.rs L284-329][anstream-strip-next].
      It runs the state machine over bytes until a printable one, copies the printable run as a slice, and drops the rest.
@@ -253,13 +259,17 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    - Windows translation: `WinconBytes` drives the full `Parser` with a `Perform` impl that tracks SGR and splits text into `(Style, String)` runs. [adapter/wincon.rs L68-93][anstream-wincon-capture]
      `cap_wincon_color` keeps 4-bit colors, converts 256-color values 0 to 15, and drops RGB and the rest. [wincon.rs L175-181][anstream-cap]
    - Cost: one pass, O(bytes), two table lookups per byte. State carries across `write` calls, so split escapes work. I did not measure throughput.
+
 4. **Detection.** See section 3.1. Uses `is_terminal_polyfill` for the tty check, on the wrapped stream.
+
 5. **Dependencies.** Default features `auto` and `wincon`.
    Unix: `anstyle`, `anstyle-parse`, `anstyle-query`, `colorchoice`, `is_terminal_polyfill`, `utf8parse`. None pull `libc`, `rustix` or `windows-sys` on Unix.
    Windows adds `anstyle-wincon` (and through it `windows-sys`).
    Without `auto`, `anstyle-query` is dropped and `AutoStream::new(.., Auto)` becomes `Never`. [Cargo.toml features][anstream-cargo]
    2,562 lines. MSRV 1.66.
+
 6. **Maintenance.** 1.0.0 on 2026-02-11. About 823 M downloads. Used by clap_builder (feature `color`, default) and cargo. [clap Cargo.toml][clap-cargo], [cargo Cargo.toml][cargo-cargo]
+
 7. **Lessons.** Take it for the output boundary. It is the only crate here that strips ANSI from a stream and handles `Never` correctly for any writer. Write styled text once, with ANSI, and let the stream decide. Do not call `print!` in a loop: each call re-detects. Hold an `AutoStream` and lock it.
 
 ### 4.3 anstyle-parse 1.0.0
@@ -285,11 +295,16 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    ```
 
 2. **Style model.** None.
+
 3. **ANSI.** Only on Windows: `enable_ansi_colors` sets `ENABLE_VIRTUAL_TERMINAL_PROCESSING` on stdout and stderr. [windows.rs L12-80][anstyle-query-windows]
+
 4. **Detection.** `NO_COLOR` and `CLICOLOR_FORCE` are true when non-empty. `CLICOLOR` is `Some(value != "0")`. `TERM` is checked for unset and `dumb` (on Windows an unset `TERM` is allowed). `COLORTERM` is true only for `truecolor` or `24bit`. `CI` is true when present. [lib.rs L23-135][anstyle-query-env]
    It never checks a file descriptor.
+
 5. **Dependencies.** None on Unix. `windows-sys` on Windows. 242 lines.
+
 6. **Maintenance.** 2025-11-13. About 787 M downloads. Used by anstream.
+
 7. **Lessons.** Take it for the individual predicates, or copy the rules. Its definition of "non-empty" for `NO_COLOR` follows the no-color.org text. It has no `FORCE_COLOR` and no depth level.
 
 ### 4.5 anstyle-wincon 3.0.11
@@ -311,10 +326,15 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    ```
 
 2. **Model.** `Auto`, `AlwaysAnsi`, `Always`, `Never`, stored in an `AtomicUsize`. [lib.rs L14-59][colorchoice-global]
+
 3. **ANSI.** None.
+
 4. **Detection.** None.
+
 5. **Dependencies.** None; `no_std` outside tests. 115 lines.
+
 6. **Maintenance.** 2026-03-13. About 788 M downloads. Used by anstream, which re-exports it.
+
 7. **Lessons.** Take the enum through `anstream::ColorChoice`. The global atomic is process-wide, so a library that wants per-call control should keep its own value and not call `write_global`.
    Note that clap has a separate three-variant `ColorChoice` (no `AlwaysAnsi`). [util/color.rs L5-12][clap-colorchoice]
    `clap_builder` converts it field by field in `Colorizer::print`. [output/fmt.rs L36-60][clap-colorizer]
@@ -331,13 +351,18 @@ Source size counts every `.rs` file under `src/`, including inline tests.
 2. **Style model.** Two forms. Compile-time: zero-sized color types (`fg::<Red>()`, `fg_rgb::<R, G, B>()`), whose escape bytes are const. [lib.rs L286-303][owo-fg], [dyn_styles.rs L429-455][owo-rgb]
    Runtime: `Style { fg, bg, bold, style_flags }` with `style_flags` a `u8` bit set of seven effects. [dyn_styles.rs L83-96][owo-style]
    Colors are 4-bit, xterm 256, CSS names and RGB. No downgrade.
+
 3. **Writing ANSI.** Each wrapper writes its prefix, the value, then a targeted reset: `ESC [ 39 m` after a foreground, `ESC [ 49 m` after a background. [colors.rs L132-147][owo-reset]
    A runtime `Style` writes one combined `ESC [ a;b;c m` prefix and the full reset `ESC [ 0 m`. [dyn_styles.rs L505-585][owo-prefix]
    No hyperlinks. It never parses ANSI.
+
 4. **Detection.** Optional feature `supports-colors` adds `if_supports_color(Stream, |v| v.red())`, backed by `supports-color` and cached per stream. [supports_colors.rs L35-76][owo-supports]
    A global `set_override(bool)` and `with_override` beat detection. [overrides.rs L27-76][owo-override]
+
 5. **Dependencies.** None by default (`alloc`, `supports-colors` optional). With `supports-colors`: `supports-color` 3 and `supports-color` 2. 4,533 lines.
+
 6. **Maintenance.** 2026-08-27. About 194 M downloads. Not used by clap or cargo directly. The anstream docs recommend it for runtime styling. [anstream lib.rs][anstream-lib]
+
 7. **Lessons.** Good ergonomics for call sites. Its detection is per value and cached forever, which suits a CLI whose choice is fixed at startup, but it cannot follow an explicit `--color` flag except through the global override. A library that owns the writer should skip it.
 
 ### 4.8 yansi 1.0.1
@@ -353,15 +378,20 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    `Set<T>` is a `u16` bit set. [set.rs L4][yansi-set]
    `Color` has `Primary`, `Fixed(u8)`, `Rgb(u8,u8,u8)` and the 16 named colors. [color.rs L9-28][yansi-color]
    Quirks (`Mask`, `Wrap`, `Linger`, `Clear`, `Resetting`) change reset behavior.
+
 3. **Writing ANSI.** `fmt_prefix` and `fmt_suffix` write to a `dyn fmt::Write`. [style.rs L173, L252-260][yansi-prefix]
    The suffix is the full reset `ESC [ 0 m`, skipped for a default style or the `Linger` quirk.
    The condition is checked at format time, so a disabled style prints the plain value. [paint.rs L237-262][yansi-fmt-args]
    Hyperlinks: `PaintedLink` writes OSC 8 open and close with the ST terminator. [hyperlink.rs L63-99][yansi-link]
+
 4. **Detection.** The `Condition` is a function pointer: global `yansi::whenever(Condition)` or per style. Built-ins, behind features: `stdout_is_tty`, `stderr_is_tty`, `stdin_is_tty`, `clicolor` (`CLICOLOR_FORCE` or `CLICOLOR` not `0`), `no_color`, and combos. Each has a cached and a live form. [condition.rs L77-87, L319-356][yansi-condition]
    On Windows the default condition enables VT mode once. [condition.rs L164-172][yansi-os-support]
    It does not read `COLORTERM`, `TERM` or `FORCE_COLOR`.
+
 5. **Dependencies.** Default `std`. `is-terminal` only with `detect-tty`. 2,728 lines.
+
 6. **Maintenance.** 2024-03-13, no release since. About 301 M downloads. Not used by clap or cargo.
+
 7. **Lessons.** The `Condition` as a swappable function pointer is a tidy design. The "quirks" are a sign that reset strategy is a real design decision. Worth reading, not worth depending on.
 
 ### 4.9 nu-ansi-term 0.50.3
@@ -377,12 +407,17 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    `Color` has 16 named, `Fixed(u8)` and `Rgb(u8,u8,u8)`. [style.rs L309-389][nu-color]
    `Difference` computes the minimal codes to go from one style to another. [difference.rs L6-14][nu-difference]
    A `Gradient` helper exists.
+
 3. **Writing ANSI.** `write_prefix` and `write_suffix`, with full reset `ESC [ 0 m` when the style is not plain. [ansi.rs L8, L110-120][nu-ansi]
    Hyperlinks: `.hyperlink(url)` wraps in OSC 8; the open sequence goes between style prefix and text. [display.rs L189-196, L300-308][nu-link]
    A `Difference`-based `AnsiStrings` writer avoids redundant resets between adjacent pieces.
+
 4. **Detection.** None. `enable_ansi_support()` on Windows. [windows.rs L10][nu-windows]
+
 5. **Dependencies.** `windows` (the big crate) on Windows. `serde` optional. 2,891 lines.
+
 6. **Maintenance.** 2025-10-10. About 636 M downloads. Not used by clap or cargo.
+
 7. **Lessons.** The style-diff idea (`Difference`) is the one piece worth borrowing if a renderer wants minimal output. Do not depend on it: no detection, and a heavy Windows dependency.
 
 ### 4.10 console 0.16.6
@@ -399,18 +434,23 @@ Source size counts every `.rs` file under `src/`, including inline tests.
 2. **Style model.** `Style { fg, bg, fg_bright, bg_bright, attrs, force, for_stderr }`. [utils.rs L283-291][console-style]
    `Color` is 8 named plus `Color256(u8)` and `TrueColor(r,g,b)`. [utils.rs L139-150][console-color]
    Bright is a flag, emitted as `38;5;n+8`, not as `90..97`. No downgrade.
+
 3. **Writing ANSI.** `StyledObject` implements each fmt trait through one macro: write start codes, the value, then `ESC [ 0 m` if anything was written. [utils.rs L791-841][console-fmt]
    It parses ANSI too, with a hand-written scanner (no regex): `strip_ansi_codes`, `AnsiCodeIterator`, `measure_text_width`. [ansi.rs L274-291, L311, L352-395][console-ansi-scan]
    The scanner recognizes CSI, OSC (BEL or ST end) and DCS. Tests cover OSC 8. [ansi.rs L552-560][console-osc8]
+
 4. **Detection.**
    - Color enabled for a stream: `(is_a_color_terminal && CLICOLOR != "0") || CLICOLOR_FORCE != "0"`. [utils.rs L15-22][console-colors]
    - `is_a_color_terminal`: stream is a tty (libc `isatty` on the Term's fd), `NO_COLOR` not set at all (even empty), `TERM` not `dumb` and set (an unset `TERM` counts as dumb on Unix). [unix_term.rs L25-35][console-color-terminal], [term.rs L579-590][console-dumb]
    - True color: also `COLORTERM` is `truecolor` or `24bit`. [unix_term.rs L37-42][console-color-terminal]
    - Results are cached in a `OnceLock<AtomicBool>` per stream and can be overridden with `set_colors_enabled` and `set_colors_enabled_stderr`. [utils.rs L25-40, L65][console-colors]
    - Width: `ioctl(fd, TIOCGWINSZ)` on the Term's own fd, only if it is a tty. [unix_term.rs L53-70][console-ioctl]
+
 5. **Dependencies.** Defaults `std`, `ansi-parsing`, `unicode-width`. `libc` on Unix (direct `isatty`, `ioctl`, `tcgetattr`). On Windows `windows-sys` and `encode_unicode`. 4,423 lines. MSRV 1.71.
    No `rustix`, `parking_lot`, `mio` or `signal-hook`.
+
 6. **Maintenance.** 2026-09-10. About 412 M downloads. Used by indicatif; not by clap or cargo.
+
 7. **Lessons.** Its useful parts are the ANSI-aware width measure and the cursor helpers; both are small. Its color logic is global and per-process, which fits poorly with a library that takes a writer and a choice. Do not take it unless indicatif comes along.
 
 ### 4.11 termcolor 1.4.1
@@ -429,13 +469,18 @@ Source size counts every `.rs` file under `src/`, including inline tests.
 2. **Style model.** `ColorSpec` has `fg`, `bg`, and booleans for bold, intense, underline, dimmed, italic, reset, strikethrough. [lib.rs L1826-1836][termcolor-spec]
    `Color` has 8 named, `Ansi256(u8)`, `Rgb(u8,u8,u8)`. [lib.rs L2071-2083][termcolor-color]
    On the Windows console path, 256-color and RGB values outside 0 to 15 return `None`. No downgrade.
+
 3. **Writing ANSI.** Imperative: `set_color` writes `ESC [ 1 m`, `2`, `3`, `4`, `9` and color codes; `reset` writes `ESC [ 0 m`. [lib.rs L1518-1557][termcolor-ansi]
    Hyperlinks: `set_hyperlink(&HyperlinkSpec)` writes OSC 8 with ST. [lib.rs L1547-1553][termcolor-ansi]
    The caller must reset. It never parses ANSI.
+
 4. **Detection.** `Auto` checks only `TERM` (unset or `dumb` means no color on Unix) and `NO_COLOR` (set means no color). It does not check for a tty. [lib.rs L292-335][termcolor-detect]
    The crate's docs tell callers to check `stdin().is_terminal()` themselves. [lib.rs L91-104][termcolor-docs]
+
 5. **Dependencies.** `winapi-util` on Windows only. None on Unix. 2,572 lines.
+
 6. **Maintenance.** 2024-01-10, no release since. About 574 M downloads. I did not verify which downstream tools use it.
+
 7. **Lessons.** The imperative `WriteColor` model forces callers to pair set and reset. A `Display`-based model is safer. The missing tty check in `Auto` is a trap. Do not take it.
 
 ### 4.12 supports-color 3.0.2
@@ -449,7 +494,9 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    ```
 
 2. **Model.** `ColorLevel { level, has_basic, has_256, has_16m }`. [lib.rs L185-199][supports-color-level]
+
 3. **ANSI.** None.
+
 4. **Detection.** The one crate here that returns a depth. Order, in `supports_color`: [lib.rs L90-117][supports-color-detect]
    1. `FORCE_COLOR` (`true` or empty is 1, `false` is 0, a number is clamped to 3), else `CLICOLOR_FORCE` not `0` is 1. [L36-52][supports-color-force] A positive value wins over everything.
    2. `NO_COLOR` set and not `0`, or `TERM=dumb`, or the stream is not a tty (unless `IGNORE_IS_TERMINAL` is set and not `0`): level 0.
@@ -459,8 +506,11 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    6. Otherwise none.
    The tty check is `std::io::IsTerminal` on `stdout()` or `stderr()` as named by `Stream`. [L82-88][supports-color-tty]
    Results can be cached per stream with `on_cached`. [L178-183][supports-color-cache]
+
 5. **Dependencies.** `is_ci`. 276 lines.
+
 6. **Maintenance.** 2024-11-26. About 79 M downloads. Used by owo-colors (optional). Not by clap or cargo.
+
 7. **Lessons.** The best source for rules of thumb on depth: copy the ladder, since it is small, or take the crate for `has_256` and `has_16m`. Note it treats `NO_COLOR` as "set and not `0`", while anstyle-query treats it as "non-empty". Pick one and test it. It gives a depth, but `FORCE_COLOR` and `CLICOLOR_FORCE` return level 1 or the number, not a real depth probe.
 
 ### 4.13 supports-hyperlinks 3.2.0
@@ -472,11 +522,16 @@ Source size counts every `.rs` file under `src/`, including inline tests.
    ```
 
 2. **Model.** A `bool`.
+
 3. **ANSI.** None.
+
 4. **Detection.** `FORCE_HYPERLINK` (anything but `0`) decides first. Then: `DOMTERM`; `VTE_VERSION` at least 5000; `TERM_PROGRAM` one of `Hyper`, `iTerm.app`, `terminology`, `WezTerm`, `vscode`, `ghostty`, `zed`; `TERM` one of `xterm-kitty`, `alacritty`, `alacritty-direct`; `COLORTERM=xfce4-terminal`; `WT_SESSION`; `KONSOLE_VERSION`. [lib.rs L12-53][supports-hyperlinks-detect]
    `on(stream)` adds a tty check on the named stream, bypassed when `FORCE_HYPERLINK` is set. [L55-67][supports-hyperlinks-on]
+
 5. **Dependencies.** None. 67 lines.
+
 6. **Maintenance.** 2025-12-17. About 48 M downloads. Not used by clap or cargo.
+
 7. **Lessons.** The allow-list is the value; it is 40 lines and out of date the day it ships. Copy it into the library with a documented override (`FORCE_HYPERLINK`) rather than take a dependency. It does not detect tmux or screen, which swallow OSC 8 unless configured. I did not check that against the code beyond noting the lack of a `TMUX` branch.
    Related: `anstyle-hyperlink` 1.0.2 provides a `Hyperlink<D: Display>` that writes OSC 8 and builds `file://` URLs with hostname and percent-encoding. [hyperlink.rs L9-62][anstyle-hyperlink]
 
@@ -492,10 +547,15 @@ See section 3.2.
    ```
 
 2. **Model.** `Width(u16)` and `Height(u16)`.
+
 3. **ANSI.** None.
+
 4. **Detection.** Per-fd `isatty` plus `TIOCGWINSZ`, or `GetConsoleScreenBufferInfo`. No environment variable. [unix.rs L24-41][terminal_size-of]
+
 5. **Dependencies.** See section 3.2. 256 lines. MSRV 1.71.
+
 6. **Maintenance.** 2026-03-23. About 238 M downloads. clap_builder uses it behind feature `wrap_help` (not default). [clap Cargo.toml][clap-cargo]
+
 7. **Lessons.** Take it. Pass the stream you render to. Add the `COLUMNS` fallback in the library, since this crate does not.
 
 ### 4.15 crossterm 0.29.0 (size, tty and style only)
@@ -513,18 +573,23 @@ See section 3.2.
    `Color` has `Reset`, 16 named (named `Dark*` and light pairs), `Rgb { r, g, b }` and `AnsiValue(u8)`. [types/color.rs][crossterm-color]
    Colors are written as `38;5;n` for the 16 named values too, not `30..37`. [colored.rs L96-141][crossterm-colored]
    No downgrade. `available_color_count()` guesses depth from `COLORTERM` then `TERM`, returning 8, 256 or `u16::MAX`. [style.rs L163-181][crossterm-colorcount]
+
 3. **Writing ANSI.** `StyledContent`'s `Display` goes through `execute_fmt`, which formats commands as ANSI. [styled_content.rs L67-77][crossterm-styled]
    Colors format to nothing when `NO_COLOR` is non-empty, memoized once in a `parking_lot::Once`. `force_color_output(bool)` overrides. [colored.rs L75-93][crossterm-nocolor], [style.rs L183-192][crossterm-force]
    No tty check on the styling path. No hyperlinks.
+
 4. **Detection.** Size: `/dev/tty`, then stdout, then `tput`. [terminal/sys/unix.rs L59-105][crossterm-size]
    Tty: `isatty` on a descriptor via `rustix` or `libc`. [tty.rs L24-45][crossterm-tty]
+
 5. **Dependencies.** Default features `bracketed-paste`, `events`, `windows`, `derive-more`. [Cargo.toml features][crossterm-cargo]
    Always: `bitflags`, `document-features`, `parking_lot`; on Unix `rustix` (`std`, `stdio`, `termios`).
    With `events` (default): `mio`, `signal-hook`, `signal-hook-mio`.
    Optional: `libc`, `filedescriptor`, `serde`, `base64`, `futures-core`.
    Windows: `winapi` and `crossterm_winapi` (feature `windows`).
    There is no feature that removes the style module. The minimal set is `default-features = false`, which still pulls `parking_lot`. 11,691 lines.
+
 6. **Maintenance.** 2025-04-05. About 229 M downloads. Not used by clap or cargo.
+
 7. **Lessons.** Do not take it for styling, size or tty. For those three jobs it brings `parking_lot` and, by default, `mio` and `signal-hook`. Its `/dev/tty` size is the wrong source for redirected output. Take it only if raw-mode input is ever in scope.
 
 ### 4.16 is-terminal 0.4.17 and std `IsTerminal`
@@ -537,10 +602,15 @@ See section 3.2.
    ```
 
 2. **Style.** None.
+
 3. **ANSI.** None.
+
 4. **Detection.** `isatty` on Unix and a console-mode query on Windows.
+
 5. **Dependencies.** `libc` on Unix, `windows-sys` on Windows. 382 lines. MSRV 1.63.
+
 6. **Maintenance.** 2025-10-23. About 382 M downloads. yansi uses it behind `detect-tty`.
+
 7. **Lessons.** The trait has been in `std` since Rust 1.70, and the crate's README says it matches what is in std. [std docs][std-isterminal]
    Use `std::io::IsTerminal` and do not add this crate. anstream wraps the same std call through `is_terminal_polyfill`. [stream.rs L60-67][anstream-isterminal-polyfill]
 
@@ -559,12 +629,17 @@ See section 3.3.
    ```
 
 2. **Style model.** Template strings with `{bar}`, `{spinner}`, `{msg}` and colored placeholders such as `{bar:40.cyan/blue}`. Colors come from `console::Style`. [style.rs L60-70][indicatif-style]
+
 3. **ANSI.** Writes cursor moves and clears through `console`. Parses ANSI to measure width. Never strips. Does not use OSC 9;4 progress.
+
 4. **Detection.** Hidden if not a terminal or `TERM=dumb`. [draw_target.rs L79-92][indicatif-target-term]
    Color follows `console::colors_enabled` and `colors_enabled_stderr`, so it follows the `console` rules in section 4.10.
+
 5. **Dependencies.** `console` (with `ansi-parsing`, `std`), `portable-atomic`, `unit-prefix`, `unicode-width` (default). `web-time` on wasm. Optional: `rayon`, `tokio`, `futures-core`, `unicode-segmentation`, `vt100`. [Cargo.toml][indicatif-cargo]
    Through `console`: `libc` on Unix, `windows-sys` on Windows. 6,572 lines. MSRV 1.85.
+
 6. **Maintenance.** 2026-07-01. About 252 M downloads. Not used by clap. The cargo manifest lists no `indicatif`; it lists `anstyle-progress`. [cargo Cargo.toml][cargo-cargo]
+
 7. **Lessons.** Use it as is if bars are needed, behind a feature. Do not mix its writes with a renderer that owns the same stream, except through `MultiProgress::suspend` or `println`. For a rich-like library, the draw model is worth copying; the dependency on `console` is the cost.
    Related: `anstyle-progress` 0.1.6 writes the OSC 9;4 terminal progress sequence and decides support from `TERM_FEATURES`, `TERM_PROGRAM`, `TERM`, `WT_SESSION` and `ConEmuANSI`. [query.rs L1-45][anstyle-progress-query]
 
@@ -584,15 +659,20 @@ See section 3.3.
    `pub use anstyle::*` re-exports the types. [styling.rs L3][clap-styling-reexport]
    `Styles::styled()` is bold-underline headers, bold literals, red bold errors, green valid and yellow invalid values. `Styles::plain()` is empty. [L37-75][clap-styles-default]
    Only 4-bit colors by default.
+
 3. **Writing ANSI.** Help is built into a `StyledStr(String)`, a plain `String` with `{style}text{style:#}` already inlined. [styled_str.rs L25][clap-styledstr]
    `ansi()` returns the text with codes. `Display` strips them with `anstream::adapter::strip_str`. [L35-37, L133-136, L213-221][clap-styledstr-display]
    Printing goes through `anstream::AutoStream::new(stdout().lock(), choice)`, with the clap choice mapped onto the anstream choice. [output/fmt.rs L36-60][clap-colorizer]
    The help layout wraps by word with ANSI-aware lengths.
+
 4. **Detection.** Whatever `AutoStream` does for `Auto` (section 3.1), on stdout for help and stderr for errors. The `--color` value only sets `Always`, `Never` or `Auto`. [command.rs L3905-3921][clap-getcolor]
    Width: `terminal_size()` (stdout, stderr, stdin in order), else `COLUMNS` and `LINES`, else 100. Only with feature `wrap_help`; without it width is unlimited. [help_template.rs L122-136, L1119-1127][clap-width]
+
 5. **Dependencies.** Defaults: `anstream` (via `color`), `anstyle`, `clap_lex`, plus `strsim` for suggestions. `terminal_size` only with `wrap_help`. `unicode-width` only with `unicode`. [Cargo.toml][clap-cargo]
    28,992 lines (the whole parser).
+
 6. **Maintenance.** 2026-09-14. About 910 M downloads. It is clap itself.
+
 7. **Lessons.** A library for clap CLIs should accept `clap::builder::styling::Styles`, or at least convert to and from it, because `anstyle::Style` is already the common type. It can emit ANSI into `StyledStr` for `after_help`, and let clap strip it. The same text then works for `--color never`. The roles in `Styles` (header, literal, placeholder, error, valid, invalid) are a ready-made semantic palette.
 
 ### 4.19 rustix 1.1.6 (as the width and tty backend)

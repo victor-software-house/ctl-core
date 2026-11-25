@@ -25,22 +25,28 @@ Queue row: CTC-031.
 1. `insta`, pinned to `=1.49.0` as a dev-dependency with no default
    features, keeps each rendered script and the verb's help as a reviewed
    snapshot under `tests/snapshots/`.
+
 2. CI sets `INSTA_UPDATE=no`, so a changed or missing snapshot fails the
    test and CI never writes one.
    `cargo-insta` 1.49.0, a local tool, reviews changes.
+
 3. A shared test helper runs each script through its own shell:
    - `bash -n` and `shellcheck --enable=all` for bash;
    - `zsh -f -n` for zsh;
    - `fish --no-config -n` for fish.
 
    It writes the script through ctl-core's `fixture` module.
+
 4. zsh 5.9.2, fish 4.9.3, and shellcheck 0.11.0 are a `test` mise
    profile, `mise.test.toml` with `mise.test.lock`.
    Local runs load it after `dev`, and CI loads it only in its Build and
    test job, so both use the same tools and no other job fetches them.
+
 5. The `completion` tests move to snapshots.
    The test crate drops its `missing_docs` exception, which never fired.
+
 6. The `Shell` docs state that its set of shells is closed.
+
 7. The testing rule is recorded in `AGENTS.md`.
 
 ## Capabilities
