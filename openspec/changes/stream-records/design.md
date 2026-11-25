@@ -45,7 +45,7 @@ The default writer calls `write` for each record and writes nothing between reco
 
 1. Collected records reach `write` as one `Output`.
    Its `data()` serializes the records as one sequence, header first, and its `document()` is the header's document, then each record's.
-   So `json` writes one array that one parser reads like the stream, and adjacent one-table documents with equal headers merge into one table.
+   So `json` writes one array that one parser reads like the stream, and adjacent one-table documents with equal headers and an equal column count merge into one table.
 2. `json` splits records on LF only.
 3. `--stream` with no format named uses the registry's stream default, `json`, which `Formats::stream_default(name)` changes (operator, 2026-11-25).
 4. When the iterator yields an error, the records before it are written, streamed or collected.
