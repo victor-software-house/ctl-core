@@ -112,6 +112,7 @@ queue:
       - 2026-11-25, --format picks the encoding and --stream the delivery; no jsonl format or flag, and no socket sink (operator, 2026-11-25).
       - 2026-11-25, every format streams, writing records in the order they are produced, and a CLI's own format streams through the same interface (operator, 2026-11-25).
       - 2026-11-25, --stream alone uses a stream default, json, and a single value under --stream is a stream of one record (operator, 2026-11-25).
+      - 2026-11-25, PR 321 and PR 323 merged records, --stream and the stream form of every built-in; the row stays queued until the maintainer releases the candidate and the Version PR lists the changeset.
 
   - id: CTC-064
     title: "Fit every table: wrap down to a floor, then stack rows"
@@ -128,6 +129,7 @@ queue:
     plan: openspec/changes/table-fit/proposal.md
     notes:
       - 2026-11-24, wrap, then stack is the default rule for every table (operator, 2026-11-24).
+      - 2026-11-25, PR 324 merged column floors and stacking by fit, and every task of the table-fit change is done; the row stays queued until the maintainer releases the candidate.
 
   - id: CTC-043
     title: >-
