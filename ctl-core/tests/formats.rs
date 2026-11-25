@@ -588,3 +588,45 @@ fn a_view_that_requested_a_format_keeps_it_when_no_flag_names_one() {
     };
     assert_eq!(child::case_stdout(&output), "{\n  \"pending\": 2\n}\n");
 }
+
+#[test]
+fn a_parse_error_after_a_shorthand_variable_uses_that_formats_error_form() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_parse_error_after_a_shorthand_variable_uses_that_formats_error_form",
+        &[("CLICOLOR_FORCE", "1"), ("FMTTOY_YAML", "true")],
+    ) else {
+        assert_eq!(
+            child::case(|| run(&["status", "--bogus"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.starts_with("toy: "), "{stderr}");
+    assert!(!stderr.contains('\u{1b}'), "{stderr}");
+}
+
+#[test]
+fn an_unregistered_format_variable_is_a_usage_error_that_names_the_variable() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "an_unregistered_format_variable_is_a_usage_error_that_names_the_variable",
+        &[("FMTTOY_FORMAT", "nope")],
+    ) else {
+        assert_eq!(child::case(|| run(&["status"])), ExitCode::from(2));
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(
+        stderr.contains(
+            "unknown format `nope` from the variable `FMTTOY_FORMAT`; use one of pretty, json, yaml"
+        ),
+        "{stderr}"
+    );
+}
