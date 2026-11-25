@@ -42,7 +42,7 @@ Help, completion, the usage spec, and a parse error SHALL list the same names.
 
 ### Requirement: The default follows the terminal
 
-With no format named, output SHALL be the terminal default, `pretty`, when stdout is a terminal, and the piped default, `tsv`, when it is not.
+With no format named and no `--stream`, output SHALL be the terminal default, `pretty`, when stdout is a terminal, and the piped default, `tsv`, when it is not.
 A CLI SHALL be able to set either default, and setting the piped default to `pretty` SHALL turn the piped switch off.
 
 #### Scenario: Piped list
@@ -121,21 +121,26 @@ In `json`, each record SHALL be one compact JSON object with a string `type` fie
 - **WHEN** a reader parses each line of `toy events --stream --json`
 - **THEN** each line is a JSON object whose `type` field is a string
 
-### Requirement: Any format can give a stream form
+### Requirement: Every format streams
 
-A format SHALL give a stream form through the public format interface, on the same terms for a CLI's own format as for a built-in.
-`json` SHALL have a stream form.
-`--stream` with a format that has none SHALL be a usage error, exit 2, before the command runs.
+Every format SHALL have a stream form that writes each record when it is produced, in the order produced.
+A format that defines no stream form of its own SHALL write each record as it writes a whole result.
+A CLI's own format SHALL stream through the same interface as a built-in.
 
 #### Scenario: A CLI's format streams
 
-- **WHEN** a CLI registers `yaml` with a stream form and runs `toy events --stream --format yaml`
-- **THEN** the `yaml` format receives each record when the command produces it
+- **WHEN** a CLI registers `yaml` with no stream form of its own and runs `toy events --stream --format yaml`
+- **THEN** each record is written as a YAML document when the command produces it
 
-#### Scenario: Pretty does not stream
+#### Scenario: tsv writes the header once
 
-- **WHEN** `toy events --stream --format pretty` runs
-- **THEN** the run exits 2 with a usage error, and the command does not run
+- **WHEN** `toy events --stream --format tsv` runs and three records of one table arrive
+- **THEN** stdout holds one header line, then one line per record as it arrives
+
+#### Scenario: Pretty streams
+
+- **WHEN** `toy events --stream --format pretty` runs and the command yields three records a second apart
+- **THEN** each record is rendered before the next one is produced
 
 ### Requirement: --stream alone uses the stream default
 
@@ -145,6 +150,11 @@ A format SHALL give a stream form through the public format interface, on the sa
 
 - **WHEN** `toy events --stream` runs on a terminal with no format variable set
 - **THEN** stdout holds one JSON object per line, the header first
+
+#### Scenario: A single value under --stream
+
+- **WHEN** `toy status --stream --json` runs and the command returns one value
+- **THEN** stdout holds that value as one compact JSON object on one line
 
 ### Requirement: A stream written whole is one document
 
@@ -187,7 +197,7 @@ A machine format SHALL write no escape sequence, whatever the colour mode and th
 
 ### Requirement: --quiet never hides a machine format that was named
 
-`--quiet` SHALL hide a successful result in `pretty` and in a default format.
+`--quiet` SHALL hide a successful result in `pretty` and in a default machine format.
 It SHALL NOT hide a machine format named by a flag, a shorthand, or a variable.
 
 #### Scenario: Quiet with a named format
@@ -203,6 +213,16 @@ It SHALL NOT hide a machine format named by a flag, a shorthand, or a variable.
 #### Scenario: Quiet with the piped default
 
 - **WHEN** `toy apply --quiet | cat` runs with no format named and succeeds
+- **THEN** stdout is empty
+
+#### Scenario: Quiet with the stream default
+
+- **WHEN** `toy events --stream --quiet` runs with no format named and succeeds
+- **THEN** stdout is empty
+
+#### Scenario: Quiet with a named pretty
+
+- **WHEN** `toy status --format pretty --quiet` runs and succeeds
 - **THEN** stdout is empty
 
 ### Requirement: Tabular formats follow the view

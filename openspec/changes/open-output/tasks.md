@@ -26,8 +26,8 @@
 
 - [ ] 4.1 Add `view::Records` and let `App::run` take a value or records; hand collected records to `write` as one `Output` and streamed ones to the format's `RecordWriter`; write the error mid-stream and handle the closed pipe.
   Verify: integration tests for each scenario of the `output-formats` spec under --stream, including a toy CLI's own streaming format and `| head -n 1` on an endless stream.
-- [ ] 4.2 Refuse `--stream` before the handler runs when the format has no stream form.
-  Verify: a test whose handler panics if called exits 2 under `--stream --format pretty`.
+- [ ] 4.2 Write the stream form of `json`, `tsv`, `csv`, and `markdown` from design decision 6; `pretty` keeps the default writer.
+  Verify: snapshot tests of each built-in under `--stream`, with records of one table and of two tables.
 
 ## 5. Docs and release
 
