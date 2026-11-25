@@ -9,7 +9,7 @@
 
 ## 2. Stream forms
 
-- [ ] 2.1 Write the stream form of `json`, `tsv`, `csv`, and `markdown` from design decision 1; `pretty` keeps the default writer.
+- [ ] 2.1 Write the stream form of `json`, `tsv`, `csv`, `markdown`, and `pretty` from design decision 1.
   Verify: snapshot tests of each built-in under `--stream`, with records of one table and of two tables.
 
 ## 3. Docs and release

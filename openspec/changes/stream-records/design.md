@@ -23,7 +23,8 @@ This change adds a second delivery to that interface.
 ### 1. Records and the stream form
 
 A command returns either a value, as today, or `view::Records`: a header record, then an iterator of records, each `Result`.
-Each record is `Present` and serializes with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record types.
+Each record of `Records` is `Present` and serializes with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record types.
+A stream from a command that returns one value is that one value, which carries no `type` field unless the value has one.
 
 Every format streams, and a stream writes records in the order they are produced (operator, 2026-11-25).
 `stream(sink)` returns the format's `format::RecordWriter`.
@@ -66,7 +67,7 @@ The format in force under `--stream` is the one named on the command line, then 
 | Behaviour | Library override | Disable |
 |:--|:--|:--|
 | `--stream` alone picks `json` | `Formats::stream_default(name)` | name a format |
-| A format's stream form | override `Format::stream` | keep the default writer, which calls `write` |
+| A format's stream form | override `Format::stream` | keep the default writer, which calls `write` and writes nothing between records |
 
 ## Risks / Trade-offs
 

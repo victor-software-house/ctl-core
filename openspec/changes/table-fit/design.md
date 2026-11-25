@@ -75,6 +75,7 @@ An unaccepted value is named in a warning, as today.
 
 An ellipsis column is a consumer's choice to cut long text, so it keeps cutting, but at its floor instead of 1 cell.
 A table that only fit with 1-cell ellipsis columns now stacks.
+With a floor setting of 0 the column cuts down to 1 cell again, as decisions 1 and 3 say.
 
 ### 5. The stacked form is new, not `stacked_below`'s
 
@@ -84,8 +85,9 @@ The fallback keeps that idea, a table that gives way to stacked rows, but draws 
 
 ## Risks / Trade-offs
 
-1. [Tables stack on terminals where they wrapped before] → A consumer sets `column_floor` lower or `table_fit(Wrap)`; a user sets `CTL_CORE_TABLE_FIT=wrap`.
-2. [Snapshots change in consumers] → The changeset names the rule and both variables.
+1. [Under `wrap`, a framed table wider than the terminal looks broken where the terminal wraps long lines] → `wrap` is for output read in a pager or a file, where lines do not wrap.
+2. [Tables stack on terminals where they wrapped before] → A consumer sets `column_floor` lower or `table_fit(Wrap)`; a user sets `CTL_CORE_TABLE_FIT=wrap`.
+3. [Snapshots change in consumers] → The changeset names the rule and both variables.
 
 [widths]: ../../../ctl-layout/src/widths.rs
 [render]: ../../../ctl-core/src/render.rs

@@ -63,7 +63,7 @@ ctl-core SHALL NOT add a `type` field to it; the `type` field is required only o
 #### Scenario: A single value under --stream
 
 - **WHEN** `toy status --stream --json` runs and the command returns one value with no `type` field
-- **THEN** stdout holds that value as one compact JSON object on one line, with no `type` field
+- **THEN** stdout holds that value as one compact JSON value on one line, with no `type` field
 
 ### Requirement: A stream written whole is one document
 
