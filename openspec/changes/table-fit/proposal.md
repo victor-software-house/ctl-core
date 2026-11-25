@@ -2,9 +2,15 @@
 
 ## Why
 
-A table wider than the terminal narrows its widest column one cell at a time, with no lower bound but the widest word, and a fold or ellipsis column goes down to 1 cell.
-Tables in daily use become unreadable this way: one consumer's session list at 80 columns narrows every column until each cell holds a few characters.
-Rows stack into records today only where a consumer sets a threshold by hand with `Table::stacked_below`, which ctl-core's help does and command output almost never does.
+A table wider than the terminal narrows its widest column one cell at a time, down to the widest word.
+A fold or ellipsis column goes down to 1 cell.
+A grid table then folds every keep-words column down to its widest grapheme cluster, 1 cell for ASCII text ([widths.rs][widths]).
+
+Take a grid list of six columns of 30-cell paths at width 40.
+Its frame takes 19 cells and leaves 21, so by those rules each column folds to 3 or 4 cells.
+
+Rows stack into records today only where a consumer sets a threshold by hand with `Table::stacked_below`.
+ctl-core's help does, and command output almost never does.
 
 The maintainer chose the rule for every table: wrap cells down to a floor, then stack each row as a record (operator, 2026-11-24).
 A table never crops and never narrows a column to a few characters.
@@ -41,3 +47,4 @@ None.
 4. Release: a `ctl-core: minor` changeset for the changed output, in the 0.8.0 candidates.
 
 [ledger]: ../../../tasks.yaml
+[widths]: ../../../ctl-layout/src/widths.rs

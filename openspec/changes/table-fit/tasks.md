@@ -17,6 +17,6 @@
 ## 3. Docs and release
 
 - [ ] 3.1 Update `docs/presentation.md` and the rustdoc of `Table` in both crates.
-  Verify: `mise run lint:prose` and the doc tasks pass in CI.
+  Verify: `mise run lint:prose` and `mise run lint:md` pass locally, and the doc tasks pass in CI.
 - [ ] 3.2 Write a `ctl-core: minor` changeset naming the rule and both variables.
   Verify: `openspec validate table-fit --strict` passes.

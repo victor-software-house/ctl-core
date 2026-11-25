@@ -10,6 +10,21 @@ It SHALL do so before a keep-words column runs past the width.
 - **WHEN** a list with a keep-words path column of 30 cells and an ellipsis title column renders at width 40
 - **THEN** the path stays whole, the title column is at least 8 cells, and each title that does not fit ends in `…`
 
+### Requirement: A framed table folds instead of overflowing
+
+A table with an outer frame SHALL fold a word wider than its column, so the frame stays aligned.
+It SHALL NOT fold a column below its floor.
+
+#### Scenario: A URL in a grid
+
+- **WHEN** a grid list holds a 60-cell URL and renders at width 40
+- **THEN** every line of the grid is at most 40 cells wide
+
+#### Scenario: Six paths in a grid
+
+- **WHEN** a grid list of six columns of 30-cell paths renders at width 40
+- **THEN** no column folds below 8 cells, and the rows render as stacked records
+
 ## ADDED Requirements
 
 ### Requirement: No column narrows below its floor
@@ -29,13 +44,22 @@ A table SHALL NOT render a column narrower than its floor.
 
 ### Requirement: A table that cannot fit at its floors stacks
 
-When a table's floors and frame do not fit the width, the table SHALL draw each row as a record: the first column's value as its title, then one header and value line per other column, rows separated by a blank line.
+When a table's floors and frame do not fit the width, the table SHALL draw each row as a record.
+A record SHALL show the first column's value as its title, then one header and value line per other column.
+A blank line SHALL separate the records.
+
+A table with no headers SHALL stack each row as its first cell over the others.
 A table with a `stacked_below` threshold SHALL keep that threshold's form.
 
 #### Scenario: Six columns at width 40
 
 - **WHEN** a list with six 8-cell floors renders at width 40 in a grid
 - **THEN** each row renders as a record whose lines name each column's header
+
+#### Scenario: A headerless table
+
+- **WHEN** a headerless table of six 8-cell-floor columns renders at width 40
+- **THEN** each row prints its first cell indented by 2 and the other cells below it, indented by 4
 
 #### Scenario: Help keeps its threshold
 
