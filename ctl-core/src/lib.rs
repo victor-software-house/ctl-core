@@ -259,7 +259,9 @@ pub use color::ColorMode;
 pub use document::Document;
 #[cfg(feature = "document")]
 #[doc(hidden)]
-pub use document::{Block, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Table, Text};
+pub use document::{
+    Block, Fields, Notice, NoticeLevel, Role, Rule, Section, Span, Stacked, Table, TableFit, Text,
+};
 #[cfg(feature = "cli")]
 #[doc(hidden)]
 pub use flags::EnvPrefix;
@@ -291,7 +293,7 @@ pub use render::{
     DEFAULT_LIST_STYLE_ENV, DEFAULT_LIST_STYLE_ENVS, DEFAULT_RECORD_STYLE_ENV,
     DEFAULT_RECORD_STYLE_ENVS, DEFAULT_ROW_SEPARATION_ENV, DEFAULT_ROW_SEPARATION_ENVS,
     DEFAULT_TABLE_FIT_ENV, DEFAULT_TABLE_FIT_ENVS, Frame, RecordStyle, RenderOptions,
-    RowSeparation, TableFit,
+    RowSeparation,
 };
 #[cfg(feature = "surface-model")]
 #[doc(hidden)]

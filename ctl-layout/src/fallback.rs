@@ -64,6 +64,10 @@ impl<S: Renderable, T: Borrow<Table>> Renderable for Fallback<S, T> {
     }
 
     fn render(&self, context: &Context) -> Vec<Line> {
-        self.pick(context).render(context)
+        let table: &Table = self.table.borrow();
+        match table.fitting_layout(context) {
+            Some(layout) => table.draw(&layout, context),
+            None => self.stacked.render(context),
+        }
     }
 }

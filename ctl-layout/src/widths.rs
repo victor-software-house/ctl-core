@@ -336,6 +336,9 @@ mod tests {
         assert_eq!(extents[1].limit(Framing::Framed), 1);
     }
 
+    /// An unframed table needs 8 for the id, 10 for the word "atomically",
+    /// and a gap of 2. A grid needs two fold limits of 8 and a frame of 7. With
+    /// the floor off, a grid column's limit is its widest cluster, 1.
     #[test]
     fn a_table_fits_when_its_limits_and_frame_fit_the_width() {
         let table = |frame| {
@@ -343,13 +346,10 @@ mod tests {
                 .frame(frame)
                 .row(["QCTL-014", "Write a ledger atomically"])
         };
-        // Unframed: 8 for the id, 10 for the word "atomically", and a gap of 2.
         assert!(table(Frame::Plain).fits(&Context::new(20)));
         assert!(!table(Frame::Plain).fits(&Context::new(19)));
-        // Framed: two fold limits of 8, and a frame of 7.
         assert!(table(Frame::Grid).fits(&Context::new(23)));
         assert!(!table(Frame::Grid).fits(&Context::new(22)));
-        // With the floor off a framed column's limit is its widest cluster, 1.
         assert!(table(Frame::Grid).column_floor(0).fits(&Context::new(9)));
         assert!(!table(Frame::Grid).column_floor(0).fits(&Context::new(8)));
     }

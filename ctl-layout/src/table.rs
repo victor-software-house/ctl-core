@@ -138,7 +138,45 @@ impl Table {
     /// limits. A table with nothing to draw fits any width.
     #[must_use]
     pub fn fits(&self, context: &Context) -> bool {
-        self.is_blank() || self.narrowest(&self.extents(context)) <= u64::from(context.width())
+        self.is_blank() || self.within(&self.extents(context), context)
+    }
+
+    /// Whether the columns at their limits, with the frame, take no more than
+    /// `context`'s width.
+    fn within(&self, extents: &[Extent], context: &Context) -> bool {
+        self.narrowest(extents) <= u64::from(context.width())
+    }
+
+    /// The layout, solved from the table's extents once, when the table fits
+    /// `context`'s width, and `None` when it does not. A [`Fallback`]
+    /// draws from it, so the table is measured once whichever it draws.
+    ///
+    /// [`Fallback`]: crate::Fallback
+    pub(crate) fn fitting_layout(&self, context: &Context) -> Option<Layout> {
+        if self.is_blank() {
+            return Some(Layout::default());
+        }
+        let extents = self.extents(context);
+        self.within(&extents, context)
+            .then(|| self.layout(extents, context))
+    }
+
+    /// The widths that `extents` solve to at `context`'s width.
+    fn layout(&self, extents: Vec<Extent>, context: &Context) -> Layout {
+        let available = context.width().saturating_sub(self.frame_width());
+        let widths = solve(&extents, available, self.frame.framing());
+        Layout { extents, widths }
+    }
+
+    /// The table drawn from `layout`.
+    pub(crate) fn draw(&self, layout: &Layout, context: &Context) -> Vec<Line> {
+        if self.is_blank() {
+            return Vec::new();
+        }
+        let cells = self.render_cells(&layout.widths, context);
+        let widths = narrowed(&cells, &layout.widths, &layout.extents);
+        let glyphs = Glyphs::for_chars(context.box_chars());
+        self.compose(&cells, &widths, &glyphs)
     }
 
     /// Adds a row of `&str`, `String`, [`Text`], or anything else that
@@ -221,8 +259,16 @@ impl Table {
                     floor: 0,
                     column_floor: 0,
                 };
-                for cell in self.grid().filter_map(|row| row.get(index)) {
+                let mut header = 0;
+                let cells = self
+                    .grid()
+                    .enumerate()
+                    .filter_map(|(row, cells)| Some((row, cells.get(index)?)));
+                for (row, cell) in cells {
                     let measured = cell.measure(context);
+                    if row == 0 && self.header.is_some() {
+                        header = measured.maximum();
+                    }
                     let floor = match framing {
                         Framing::Framed if column.overflow != Overflow::Fold => cell
                             .measure_as(context, Overflow::Fold)
@@ -234,11 +280,6 @@ impl Table {
                     extent.minimum = extent.minimum.max(measured.minimum());
                     extent.floor = extent.floor.max(floor);
                 }
-                let header = self
-                    .header
-                    .as_ref()
-                    .and_then(|cells| cells.get(index))
-                    .map_or(0, |cell| cell.measure(context).maximum());
                 extent.column_floor = column_floor(extent.natural, header, self.column_floor);
                 extent
             })
@@ -349,15 +390,24 @@ impl Table {
     }
 }
 
+/// The extents of a table's columns and the widths solved from them at one
+/// width.
+#[derive(Debug, Default)]
+pub(crate) struct Layout {
+    extents: Vec<Extent>,
+    widths: Vec<u16>,
+}
+
 /// Each of `widths` lowered to the widest line its column rendered, step 6 of
-/// [`Table`], but not below its column floor. A width never grows: a word kept
-/// whole past its column's width runs past it as before.
-fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16], floors: &[u16]) -> Vec<u16> {
+/// [`Table`], but not below its column floor, which `extents` hold. A width
+/// never grows: a word kept whole past its column's width runs past it as
+/// before.
+fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16], extents: &[Extent]) -> Vec<u16> {
     widths
         .iter()
-        .zip(floors)
+        .zip(extents)
         .enumerate()
-        .map(|(index, (width, floor))| {
+        .map(|(index, (width, extent))| {
             cells
                 .iter()
                 .filter_map(|row| row.get(index))
@@ -365,7 +415,7 @@ fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16], floors: &[u16]) -> Vec<u16
                 .map(Line::width)
                 .max()
                 .unwrap_or(0)
-                .max(*floor)
+                .max(extent.column_floor)
                 .min(*width)
         })
         .collect()
@@ -392,13 +442,7 @@ impl Renderable for Table {
         if self.is_blank() {
             return Vec::new();
         }
-        let extents = self.extents(context);
-        let available = context.width().saturating_sub(self.frame_width());
-        let widths = solve(&extents, available, self.frame.framing());
-        let cells = self.render_cells(&widths, context);
-        let floors: Vec<u16> = extents.iter().map(|extent| extent.column_floor).collect();
-        let widths = narrowed(&cells, &widths, &floors);
-        let glyphs = Glyphs::for_chars(context.box_chars());
-        self.compose(&cells, &widths, &glyphs)
+        let layout = self.layout(self.extents(context), context);
+        self.draw(&layout, context)
     }
 }

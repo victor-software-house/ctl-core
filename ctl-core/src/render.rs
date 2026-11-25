@@ -124,15 +124,44 @@ impl EnvChoice for RowSeparation {
     ];
 }
 
+/// The first value among the variables in `names` that `accepts`. Every
+/// kind of setting reads its variable through it.
+fn env_accepted(
+    names: &[&str],
+    value: &dyn Fn(&str) -> Option<String>,
+    accepts: &dyn Fn(&str) -> bool,
+) -> Option<String> {
+    names
+        .iter()
+        .filter_map(|name| value(name))
+        .find(|raw| accepts(raw))
+}
+
+/// One line per variable in `names` whose value `accepts` refuses, with
+/// `hint` saying what is accepted. Every kind of setting warns through it.
+#[cfg(feature = "app")]
+fn env_refused(
+    names: &[&str],
+    value: &dyn Fn(&str) -> Option<String>,
+    accepts: &dyn Fn(&str) -> bool,
+    hint: &dyn Fn() -> String,
+) -> Vec<String> {
+    names
+        .iter()
+        .filter_map(|name| {
+            let raw = value(name)?;
+            (!accepts(&raw)).then(|| format!("{name}={raw} is ignored; use {}", hint()))
+        })
+        .collect()
+}
+
 /// The first variable in `names` that holds an accepted value.
 pub(crate) fn env_choice<T: EnvChoice>(
     names: &[&str],
     value: impl Fn(&str) -> Option<String>,
 ) -> Option<T> {
-    names
-        .iter()
-        .filter_map(|name| value(name))
-        .find_map(|raw| parse_choice(&raw))
+    env_accepted(names, &value, &|raw| parse_choice::<T>(raw).is_some())
+        .and_then(|raw| parse_choice(&raw))
 }
 
 /// One line per variable in `names` whose value is not accepted.
@@ -141,44 +170,35 @@ pub(crate) fn env_choice_warnings<T: EnvChoice>(
     names: &[&str],
     value: impl Fn(&str) -> Option<String>,
 ) -> Vec<String> {
-    names
-        .iter()
-        .filter_map(|name| {
-            let raw = value(name)?;
-            parse_choice::<T>(&raw).is_none().then(|| {
-                let accepted = T::VALUES
-                    .iter()
-                    .map(|(value, _)| *value)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{name}={raw} is ignored; use one of {accepted}")
-            })
-        })
-        .collect()
+    env_refused(
+        names,
+        &value,
+        &|raw| parse_choice::<T>(raw).is_some(),
+        &|| {
+            let accepted: Vec<&str> = T::VALUES.iter().map(|(value, _)| *value).collect();
+            ["one of ", &accepted.join(", ")].concat()
+        },
+    )
+}
+
+fn parse_cells(raw: &str) -> Option<u16> {
+    raw.trim().parse().ok()
 }
 
 /// The first variable in `names` that holds a whole number of cells.
-fn env_cells(names: &[&str], value: impl Fn(&str) -> Option<String>) -> Option<u16> {
-    names
-        .iter()
-        .filter_map(|name| value(name))
-        .find_map(|raw| raw.trim().parse().ok())
+fn env_cells(names: &[&str], value: &dyn Fn(&str) -> Option<String>) -> Option<u16> {
+    env_accepted(names, value, &|raw| parse_cells(raw).is_some())
+        .as_deref()
+        .and_then(parse_cells)
 }
 
 /// One line per variable in `names` whose value is not a whole number of
 /// cells.
 #[cfg(feature = "app")]
-fn env_cells_warnings(names: &[&str], value: impl Fn(&str) -> Option<String>) -> Vec<String> {
-    names
-        .iter()
-        .filter_map(|name| {
-            let raw = value(name)?;
-            raw.trim()
-                .parse::<u16>()
-                .is_err()
-                .then(|| format!("{name}={raw} is ignored; use a whole number of cells"))
-        })
-        .collect()
+fn env_cells_warnings(names: &[&str], value: &dyn Fn(&str) -> Option<String>) -> Vec<String> {
+    env_refused(names, value, &|raw| parse_cells(raw).is_some(), &|| {
+        "a whole number of cells".to_owned()
+    })
 }
 
 /// A set, non-empty environment variable.
@@ -298,10 +318,11 @@ impl RenderOptions {
         self
     }
 
-    /// Set the column floor of every [`Table`] to `cells`: no column is
-    /// narrower than the larger of its header width and `cells`, or than its
-    /// natural width. `0` turns the floor off, so a column goes down to the
-    /// limit its overflow sets. The default is 8. This beats the environment.
+    /// Set the column floor of every [`Table`] to `cells`: no column narrows
+    /// below the larger of its header width and `cells`, and the floor is
+    /// never more than the column's natural width. `0` turns the floor off, so
+    /// a column goes down to the limit its overflow sets. The default is 8.
+    /// This beats the environment.
     ///
     /// A table with [`Table::stacked_below`] has no floor.
     #[must_use]
@@ -460,7 +481,7 @@ impl RenderOptions {
 
     fn column_floor_with(self, value: impl Fn(&str) -> Option<String>) -> u16 {
         self.column_floor
-            .or_else(|| env_cells(self.column_floor_envs, value))
+            .or_else(|| env_cells(self.column_floor_envs, &value))
             .unwrap_or(DEFAULT_COLUMN_FLOOR)
     }
 
@@ -567,12 +588,21 @@ impl RenderOptions {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Renderer {
     options: RenderOptions,
+    /// The column floor, resolved once for every table of the document.
+    column_floor: u16,
+    /// The table fit, resolved once for every table of the document.
+    table_fit: TableFit,
 }
 
 impl Renderer {
-    /// Build a renderer.
-    pub(crate) const fn new(options: &RenderOptions) -> Self {
-        Self { options: *options }
+    /// Build a renderer. It reads the environment for the column floor and the
+    /// table fit here, once, and not for each table.
+    pub(crate) fn new(options: &RenderOptions) -> Self {
+        Self {
+            options: *options,
+            column_floor: options.resolved_column_floor(),
+            table_fit: options.resolved_table_fit(),
+        }
     }
 
     /// Render one document to a newline-terminated string, as
@@ -641,7 +671,7 @@ impl Renderer {
         let floor = if policy.is_some() {
             0
         } else {
-            self.options.resolved_column_floor()
+            self.column_floor
         };
         let grid = TableWidget::new((0..count).map(|index| self.column(table, index)))
             .frame(self.options.resolved_frame())
@@ -657,13 +687,16 @@ impl Renderer {
             let definitions = self.definitions(table, policy.label_columns());
             return Box::new(Breakpoint::new(policy.width(), definitions, grid));
         }
-        let fit = table
-            .stacking_fit()
-            .unwrap_or_else(|| self.options.resolved_table_fit());
-        match fit {
-            TableFit::Wrap => Box::new(grid),
-            TableFit::Stack if table.rows().is_empty() => Box::new(grid),
-            TableFit::Stack => Box::new(Fallback::new(self.stacked(table, count), grid)),
+        match table.fit().unwrap_or(self.table_fit) {
+            TableFit::Stack if !table.rows().is_empty() => {
+                let stacked = StackedForm {
+                    renderer: self,
+                    table: table.clone(),
+                    count,
+                };
+                Box::new(Fallback::new(stacked, grid))
+            }
+            TableFit::Stack | TableFit::Wrap => Box::new(grid),
         }
     }
 
@@ -779,6 +812,28 @@ impl Renderer {
             };
             target.push(span.value(), theme.role_style(role));
         }
+    }
+}
+
+/// The stacked form of a table, built when it is measured or drawn, so a table
+/// that fits never builds it.
+struct StackedForm {
+    renderer: Renderer,
+    table: Table,
+    count: usize,
+}
+
+impl Renderable for StackedForm {
+    fn measure(&self, context: &Context) -> Measurement {
+        self.renderer
+            .stacked(&self.table, self.count)
+            .measure(context)
+    }
+
+    fn render(&self, context: &Context) -> Vec<Line> {
+        self.renderer
+            .stacked(&self.table, self.count)
+            .render(context)
     }
 }
 

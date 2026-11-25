@@ -194,6 +194,8 @@ fn open() -> RenderOptions {
         .row_separation(RowSeparation::None)
 }
 
+/// The frame takes 19 cells and the six floors 8, 6, 8, 6, 5 and 8, so every
+/// line is 60 cells.
 #[test]
 fn the_environment_picks_wrap_and_a_framed_grid_runs_past_the_width_aligned() {
     let Some(output) = child::in_child(
@@ -206,7 +208,6 @@ fn the_environment_picks_wrap_and_a_framed_grid_runs_past_the_width_aligned() {
     };
     let rendered = child::case_stdout(&output);
     let widths: Vec<usize> = rendered.lines().map(|line| line.chars().count()).collect();
-    // Frame 19, and the floors 8, 6, 8, 6, 5, 8.
     assert!(widths.iter().all(|width| *width == 60), "{rendered}");
 }
 

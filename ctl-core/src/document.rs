@@ -402,6 +402,10 @@ impl Fields {
 /// shorter row gets empty cells. Column marks, such as [`Self::id_column`],
 /// choose the role of a column's plain cells and how it is cut or aligned.
 ///
+/// A table with no [`Self::stacked_below`] threshold renders with column
+/// floors, and stacks its rows as records when it cannot fit, as
+/// `RenderOptions::table_fit` and [`Self::stacking`] decide.
+///
 /// ```
 /// use ctl_core::document::Table;
 ///
@@ -569,7 +573,7 @@ impl Table {
 
     /// The fit set by [`Self::stacking`], if any.
     #[must_use]
-    pub const fn stacking_fit(&self) -> Option<TableFit> {
+    pub const fn fit(&self) -> Option<TableFit> {
         self.stacking
     }
 
