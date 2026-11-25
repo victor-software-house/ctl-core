@@ -138,18 +138,22 @@ fn banner(code: &str, label: &str, width: u16) -> Document {
     ))
 }
 
-fn render(out: &mut impl io::Write, document: &Document, options: RenderOptions) -> io::Result<()> {
-    out.write_all(document.render(options).as_bytes())?;
+fn render(
+    out: &mut impl io::Write,
+    document: &Document,
+    options: &RenderOptions,
+) -> io::Result<()> {
+    out.write_all(document.render(*options).as_bytes())?;
     out.write_all(b"\n")
 }
 
 fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result<()> {
     let base = RenderOptions::new(color).width(width);
     for (code, style, label) in RECORDS {
-        render(out, &banner(code, label, width), base)?;
+        render(out, &banner(code, label, width), &base)?;
         let options = base.record_style(style);
-        render(out, &record(&ROWS[0]), options)?;
-        render(out, &record(&ROWS[1]), options)?;
+        render(out, &record(&ROWS[0]), &options)?;
+        render(out, &record(&ROWS[1]), &options)?;
     }
     for (list_index, (list, list_label)) in LISTS.into_iter().enumerate() {
         for (separation_index, (separation, separation_label)) in
@@ -157,9 +161,9 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
         {
             let code = format!("L{}", list_index * SEPARATIONS.len() + separation_index + 1);
             let label = format!("{list_label}, {separation_label}");
-            render(out, &banner(&code, &label, width), base)?;
+            render(out, &banner(&code, &label, width), &base)?;
             let options = base.frame(list).row_separation(separation);
-            render(out, &Document::new().table(queue_table()), options)?;
+            render(out, &Document::new().table(queue_table()), &options)?;
         }
     }
     let queue = Queue {
@@ -167,7 +171,7 @@ fn gallery(out: &mut impl io::Write, color: ColorMode, width: u16) -> io::Result
         rows: &ROWS[..2],
     };
     for (code, layout, label) in JSON {
-        render(out, &banner(code, label, width), base)?;
+        render(out, &banner(code, label, width), &base)?;
         let captured = View::new(&JSON_FORMAT, color)
             .json_layout(layout)
             .capture(&queue)?;

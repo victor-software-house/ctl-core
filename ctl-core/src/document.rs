@@ -422,6 +422,7 @@ pub struct Table {
     ellipsis_columns: Vec<usize>,
     numeric_columns: Vec<usize>,
     stacked_below: Option<Stacked>,
+    stacking: Option<TableFit>,
 }
 
 impl Table {
@@ -492,6 +493,19 @@ impl Table {
         self
     }
 
+    /// Set what this table does when its columns do not fit the width, in
+    /// place of the render options and `CTL_CORE_TABLE_FIT`.
+    ///
+    /// [`TableFit::Stack`] draws each row as a record, and [`TableFit::Wrap`]
+    /// keeps the grid at its column floors and lets it run past the width.
+    /// A table with [`Self::stacked_below`] keeps that threshold's form and
+    /// ignores this.
+    #[must_use]
+    pub const fn stacking(mut self, fit: TableFit) -> Self {
+        self.stacking = Some(fit);
+        self
+    }
+
     /// Append a row of cells, one per item.
     #[must_use]
     pub fn row(mut self, cells: impl IntoIterator<Item = impl Into<Text>>) -> Self {
@@ -553,6 +567,12 @@ impl Table {
         &self.numeric_columns
     }
 
+    /// The fit set by [`Self::stacking`], if any.
+    #[must_use]
+    pub const fn stacking_fit(&self) -> Option<TableFit> {
+        self.stacking
+    }
+
     /// The narrow-layout policy set by [`Self::stacked_below`], if any.
     #[must_use]
     pub const fn stacked(&self) -> Option<Stacked> {
@@ -564,6 +584,26 @@ impl Table {
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
+}
+
+/// What a [`Table`] does when its columns, each at its floor, do not fit the
+/// width.
+///
+/// A table sets it with [`Table::stacking`], a consumer with the render
+/// options, and a user with `CTL_CORE_TABLE_FIT`, whose values are the names
+/// `stack` and `wrap`. A level that sets nothing leaves it to the next, and
+/// the last default is [`TableFit::Stack`].
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum TableFit {
+    /// Draw each row as a record: its first cell as a title, then one line
+    /// of header and value for each other column. A table with no header
+    /// draws each row as its first cell over the others.
+    #[default]
+    Stack,
+    /// Keep the grid at its column floors and let it run past the width, as
+    /// an unframed table does when its words do not fit.
+    Wrap,
 }
 
 /// When a [`Table`] stacks its rows, and how many cells form each label.

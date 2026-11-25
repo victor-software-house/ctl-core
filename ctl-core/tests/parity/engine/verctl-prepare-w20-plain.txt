@@ -1,27 +1,17 @@
-┌────┬────┬────┬───┐
-│ na ┆ fr ┆ to ┆ b │
-│ me ┆ om ┆    ┆ u │
-│    ┆    ┆    ┆ m │
-│    ┆    ┆    ┆ p │
-╞════╪════╪════╪═══╡
-│ de ┆ 0. ┆ 0. ┆ m │
-│ mo ┆ 4. ┆ 5. ┆ i │
-│ -c ┆ 2  ┆ 0  ┆ n │
-│ or ┆    ┆    ┆ o │
-│ e  ┆    ┆    ┆ r │
-│ de ┆ 1. ┆ 1. ┆ p │
-│ mo ┆ 8. ┆ 8. ┆ a │
-│ -c ┆ 0  ┆ 1  ┆ t │
-│ li ┆    ┆    ┆ c │
-│    ┆    ┆    ┆ h │
-│ de ┆ 2. ┆ 2. ┆ m │
-│ mo ┆ 0. ┆ 0. ┆ a │
-│ -d ┆ 0- ┆ 0  ┆ j │
-│ oc ┆ rc ┆    ┆ o │
-│ s- ┆ .1 ┆    ┆ r │
-│ si ┆    ┆    ┆   │
-│ te ┆    ┆    ┆   │
-└────┴────┴────┴───┘
+demo-core
+from  0.4.2
+  to  0.5.0
+bump  minor
+
+demo-cli
+from  1.8.0
+  to  1.8.1
+bump  patch
+
+demo-docs-site
+from  2.0.0-rc.1
+  to  2.0.0
+bump  major
 
 ## demo-core 0.5.0
 

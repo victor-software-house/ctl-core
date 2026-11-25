@@ -1,13 +1,13 @@
-┌─────────────┬─────────┬──────────────┐
-│ target      ┆ runs-on ┆ asset        │
-╞═════════════╪═════════╪══════════════╡
-│ linux-x64   ┆ linux,  ┆ demo-cli-lin │
-│             ┆ x64,    ┆ ux-x64.tar.g │
-│             ┆ large   ┆ z            │
-│ macos-arm64 ┆ macos,  ┆ demo-cli-mac │
-│             ┆ arm64   ┆ os-arm64.tar │
-│             ┆         ┆ .gz          │
-└─────────────┴─────────┴──────────────┘
+┌─────────────┬──────────┬─────────────┐
+│ target      ┆ runs-on  ┆ asset       │
+╞═════════════╪══════════╪═════════════╡
+│ linux-x64   ┆ linux,   ┆ demo-cli-li │
+│             ┆ x64,     ┆ nux-x64.tar │
+│             ┆ large    ┆ .gz         │
+│ macos-arm64 ┆ macos,   ┆ demo-cli-ma │
+│             ┆ arm64    ┆ cos-arm64.t │
+│             ┆          ┆ ar.gz       │
+└─────────────┴──────────┴─────────────┘
 
     tag  demo-cli@1.8.1
 tarball  dist/demo-cli-1.8.1.tar.gz

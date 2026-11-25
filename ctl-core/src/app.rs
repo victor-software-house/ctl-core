@@ -252,10 +252,14 @@ impl<C> App<C> {
         self
     }
 
-    /// Take the theme, record style, table frame, row separation, and the
-    /// variables they read from `styles`, for help, errors, and command
-    /// output. Its colour and width settings are ignored.
+    /// Take the theme, record style, table frame, row separation, column
+    /// floor, table fit, and the variables they read from `styles`, for help,
+    /// errors, and command output. Its colour and width settings are ignored.
     #[must_use]
+    #[expect(
+        clippy::large_types_passed_by_value,
+        reason = "public signature that takes the options by value, as every RenderOptions builder does; a reference would break every caller"
+    )]
     pub fn styles(mut self, styles: RenderOptions) -> Self {
         self.styles = Some(styles);
         self
@@ -499,14 +503,14 @@ where
         }
         if words.len() == 1 && parser::requires_input(&command) {
             return self.written(
-                help::emit_bare_grouped(command, raw_view.render_options(), &self.command_groups),
+                help::emit_bare_grouped(command, &raw_view.render_options(), &self.command_groups),
                 ExitCode::from(2),
             );
         }
         match help::try_emit_grouped(
             &command,
             &words,
-            raw_view.render_options(),
+            &raw_view.render_options(),
             &self.command_groups,
         ) {
             Ok(true) => return ExitCode::SUCCESS,
@@ -608,9 +612,9 @@ where
         let written = if kind == ErrorKind::DisplayVersion {
             view::write_stdout(error.to_string().as_bytes())
         } else if kind == ErrorKind::DisplayHelp {
-            help::emit_selected(command, args, options, &self.command_groups)
+            help::emit_selected(command, args, &options, &self.command_groups)
         } else {
-            help::emit_selected_to_stderr(command, args, options, &self.command_groups)
+            help::emit_selected_to_stderr(command, args, &options, &self.command_groups)
         };
         self.written(written, code)
     }

@@ -1,0 +1,8 @@
+---
+source: ctl-core/tests/table_fit.rs
+expression: "render(table, 40, options())"
+---
+  -f
+    --format Output representation
+  -q
+    --quiet Print nothing on success

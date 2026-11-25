@@ -1,0 +1,9 @@
+---
+source: ctl-core/tests/table_fit.rs
+expression: "render(headerless(), 40, &options())"
+---
+  QCTL-014
+    ledger-core
+    crates/ctl-core/src/render.rs queued
+    example-organisation Declare row
+    separation

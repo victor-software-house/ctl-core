@@ -1,6 +1,8 @@
 //! One test per scenario of the `layout` spec, in the spec's order.
 
-use ctl_layout::{Column, Definitions, Frame, Indent, Rule, Stack, Table};
+use std::iter;
+
+use ctl_layout::{Column, Definitions, Fallback, Frame, Indent, Rule, Stack, Table};
 use ctl_text::{Context, Measurement, Overflow, Renderable, Text};
 
 use crate::common::{cells, flags, ledger, lines, paths, queue, releases, widest};
@@ -61,17 +63,30 @@ fn a_wrapped_column_narrows_to_its_widest_line() {
 
 #[test]
 fn ellipsis_columns_give_way_before_a_word_breaks() {
+    let rendered = lines(&paths().frame(Frame::Plain), 40);
+    assert_eq!(
+        rendered,
+        [
+            format!("{:<30}  title", "path"),
+            "crates/ctl-core/src/renders.rs  Let a l…".to_owned(),
+            "crates/ctl-text/src/wrap.rs     ok".to_owned(),
+        ]
+    );
+}
+
+#[test]
+fn a_grid_folds_a_path_before_an_ellipsis_column_goes_below_its_floor() {
     let rendered = lines(&paths(), 40);
-    assert!(widest(&rendered) <= 40, "{rendered:?}");
+    assert_eq!(widest(&rendered), 40, "{rendered:?}");
     assert!(
-        rendered
+        !rendered
             .iter()
             .any(|line| line.contains("crates/ctl-core/src/renders.rs")),
-        "the path stays whole: {rendered:?}"
+        "the path folds: {rendered:?}"
     );
     assert!(
-        rendered.iter().any(|line| line.contains("Le…")),
-        "the title is cut: {rendered:?}"
+        rendered.iter().any(|line| line.contains("Let a l…")),
+        "the title keeps its 8 cells: {rendered:?}"
     );
 }
 
@@ -222,4 +237,91 @@ fn an_indent_moves_its_child_right_and_narrows_it() {
     let indent = Indent::new(2, Text::plain("one two three"));
     assert_eq!(lines(&indent, 9), ["  one two", "  three"]);
     assert_eq!(indent.measure(&Context::new(9)).maximum(), 15);
+}
+
+/// Six columns of 30-cell values under 4-cell headers.
+fn six_paths() -> Table {
+    let value = "x".repeat(30);
+    Table::new((1..=6).map(|index| Column::new(format!("col{index}"))))
+        .row(iter::repeat_n(value.as_str(), 6))
+}
+
+/// The content width of each column of a grid, read from its top rule.
+fn grid_columns(rendered: &[String]) -> Vec<usize> {
+    rendered[0]
+        .trim_matches(['┌', '┐'])
+        .split('┬')
+        .map(|segment| segment.chars().count() - 2)
+        .collect()
+}
+
+#[test]
+fn a_wide_list_keeps_every_column_at_its_floor_or_more() {
+    let rendered = lines(&six_paths(), 80);
+    assert!(widest(&rendered) <= 80, "{rendered:?}");
+    let columns = grid_columns(&rendered);
+    assert_eq!(columns.len(), 6, "{rendered:?}");
+    assert!(columns.iter().all(|width| *width >= 8), "{columns:?}");
+}
+
+#[test]
+fn six_wide_columns_do_not_fit_at_40_and_run_past_it_at_their_floors() {
+    let table = six_paths();
+    assert!(!table.fits(&Context::new(40)));
+    let rendered = lines(&table, 40);
+    assert_eq!(grid_columns(&rendered), [8; 6], "{rendered:?}");
+    assert_eq!(widest(&rendered), 19 + 6 * 8, "{rendered:?}");
+}
+
+#[test]
+fn a_fallback_stacks_the_table_that_does_not_fit() {
+    let table = six_paths();
+    let stacked = Definitions::new().entry(["col1"], ["x"]);
+    let fallback = Fallback::new(&stacked, &table);
+    assert_eq!(lines(&fallback, 40), ["  col1", "    x"]);
+    assert_eq!(
+        fallback.measure(&Context::new(40)),
+        stacked.measure(&Context::new(40))
+    );
+    assert_eq!(lines(&fallback, 200), lines(&table, 200));
+    assert_eq!(
+        fallback.measure(&Context::new(200)),
+        table.measure(&Context::new(200))
+    );
+}
+
+#[test]
+fn a_short_column_keeps_its_width() {
+    let table = Table::new([Column::new("n"), Column::new("title")])
+        .row([Text::plain("abc"), Text::plain("x".repeat(60))]);
+    let rendered = lines(&table, 30);
+    assert!(widest(&rendered) <= 30, "{rendered:?}");
+    assert_eq!(grid_columns(&rendered)[0], 3, "{rendered:?}");
+}
+
+#[test]
+fn a_column_that_wraps_at_its_floor_is_not_narrowed_below_it() {
+    let table = Table::new([Column::new("a"), Column::new("b")])
+        .frame(Frame::Plain)
+        .row(cells(["abc def ghi jkl", "x"]));
+    assert_eq!(lines(&table, 11), ["a         b", "abc def   x", "ghi jkl"]);
+}
+
+#[test]
+fn a_header_wider_than_the_floor_never_wraps_mid_word() {
+    let table = Table::new([Column::new("a-long-header"), Column::new("b")])
+        .frame(Frame::Plain)
+        .row(cells(["aa bb cc dd ee ff gg hh ii jj", "y"]));
+    let rendered = lines(&table, 16);
+    assert_eq!(rendered[0], "a-long-header  b", "{rendered:?}");
+}
+
+#[test]
+fn a_floor_of_zero_lets_an_ellipsis_column_narrow_to_one_cell() {
+    let table = paths().frame(Frame::Plain).column_floor(0);
+    let rendered = lines(&table, 33);
+    assert_eq!(
+        rendered[1], "crates/ctl-core/src/renders.rs  …",
+        "{rendered:?}"
+    );
 }

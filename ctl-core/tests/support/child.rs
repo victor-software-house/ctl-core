@@ -36,6 +36,8 @@ pub(crate) fn command(variable: &str, test: &str, vars: &[(&str, &str)]) -> Opti
         .env_remove(DEFAULT_RECORD_STYLE_ENV)
         .env_remove(DEFAULT_LIST_STYLE_ENV)
         .env_remove(DEFAULT_ROW_SEPARATION_ENV)
+        .env_remove(DEFAULT_COLUMN_FLOOR_ENV)
+        .env_remove(DEFAULT_TABLE_FIT_ENV)
         .env_remove(DEFAULT_JSON_LAYOUT_ENV)
         .envs(vars.iter().copied());
     Some(child)

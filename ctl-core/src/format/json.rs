@@ -136,7 +136,7 @@ mod tests {
         let mut sink = Sink::new(
             &mut written,
             ctl_term::Stream::Stderr,
-            RenderOptions::new(ColorMode::Never),
+            &RenderOptions::new(ColorMode::Never),
             layout,
             true,
         );

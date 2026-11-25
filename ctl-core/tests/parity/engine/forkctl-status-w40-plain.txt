@@ -12,21 +12,23 @@ downstream  origin 4f9c2ab
  untracked  none
      check  passed
 
-┌───────┬───────┬───────┬───────┬──────┐
-│ state ┆ patch ┆ kind  ┆ commi ┆ acti │
-│       ┆       ┆       ┆ t     ┆ ve   │
-╞═══════╪═══════╪═══════╪═══════╪══════╡
-│ appli ┆ tidy- ┆ chang ┆ 4f9c2 ┆ yes  │
-│ ed    ┆ confi ┆ e     ┆ ab    ┆      │
-│       ┆ g     ┆       ┆       ┆      │
-│ appli ┆ pin-r ┆ chang ┆ b71e9 ┆      │
-│ ed    ┆ untim ┆ e     ┆ 0d    ┆      │
-│       ┆ e     ┆       ┆       ┆      │
-│ draft ┆ drop- ┆ fix   ┆ draft ┆      │
-│       ┆ legac ┆       ┆       ┆      │
-│       ┆ y-fla ┆       ┆       ┆      │
-│       ┆ g     ┆       ┆       ┆      │
-└───────┴───────┴───────┴───────┴──────┘
+applied
+ patch  tidy-config
+  kind  change
+commit  4f9c2ab
+active  yes
+
+applied
+ patch  pin-runtime
+  kind  change
+commit  b71e90d
+active
+
+draft
+ patch  drop-legacy-flag
+  kind  fix
+commit  draft
+active
 
 operation
       id  op-20261101-1

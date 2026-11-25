@@ -6,10 +6,13 @@ use crate::column::Column;
 use crate::frame::{Frame, RowSeparation};
 use crate::glyphs::Glyphs;
 use crate::lines::{literal, push_cell, rule_line};
-use crate::widths::{Extent, Framing, solve};
+use crate::widths::{Extent, Framing, column_floor, solve};
 
 /// Cells between two columns of an unframed table.
 const GAP: u16 = 2;
+
+/// The column floor of a table that sets none, in cells.
+const DEFAULT_COLUMN_FLOOR: u16 = 8;
 
 /// A table of rows under column headers.
 ///
@@ -19,24 +22,35 @@ const GAP: u16 = 2;
 /// 1. Each column starts at the widest cell it holds.
 /// 2. When those widths and the frame fit, the table is exactly that wide.
 /// 3. Otherwise the widest column that can still shrink narrows by 1 cell of
-///    width, again and again. A keep-words column never goes below its widest
-///    word, and a fold column never goes below its widest cluster. An ellipsis
-///    column can shrink to a width of 1 cell.
+///    width, again and again. No column goes below its column floor, set by
+///    [`column_floor`](Self::column_floor). Above that, a keep-words column
+///    never goes below its widest word, and a fold column never goes below its
+///    widest cluster. An ellipsis column can shrink to its column floor, or to
+///    1 cell when the floor is 0.
 /// 4. When the narrowest widths still do not fit, an unframed table lets its
-///    keep-words columns run past the width. A [`Frame::Grid`] table folds
-///    those columns instead, so its frame stays aligned. It folds only the
-///    columns that can fold alone to make it fit, so a short id keeps its word
-///    beside a long URL.
+///    columns run past the width at those limits. A [`Frame::Grid`] table folds
+///    its keep-words columns instead, so its frame stays aligned, down to its
+///    column floors. It folds only the columns that can fold alone to make it
+///    fit, so a short id keeps its word beside a long URL. A table whose limits
+///    and frame still do not fit the width draws at those limits and runs past
+///    it, framed or not. [`fits`](Self::fits) reports whether a table does not,
+///    and a [`Fallback`](crate::Fallback) then draws something else.
 /// 5. Each cell renders at its column's width. An ellipsis cell ends in `…`,
 ///    and a numeric column aligns right.
-/// 6. Each column then narrows to its widest rendered line. After a column
-///    wraps, its widest line fills its width, so no blank strip runs down the
-///    whole column. A table sized to its content draws no wider than it needs.
-///    An ellipsis column that cut a cell keeps its width, since the cut cell
-///    fills it.
+/// 6. Each column then narrows to its widest rendered line, but never below its
+///    column floor. After a column wraps, its widest line fills its width, so
+///    no blank strip runs down the whole column. A table sized to its content
+///    draws no wider than it needs. An ellipsis column that cut a cell keeps
+///    its width, since the cut cell fills it.
 ///
 /// Narrowing never changes the lines: text wrapped at a width wraps the same
 /// at its own widest line.
+///
+/// A column's floor is 0 when the table's floor setting is 0. Otherwise it is
+/// the larger of the column's header width and the setting, 8 cells unless
+/// [`column_floor`](Self::column_floor) changes it, and never more than the
+/// column's natural width. So a header never wraps mid-word, and a short
+/// column is never padded.
 ///
 /// A table with no rows and no header draws nothing and measures 0.
 #[derive(Clone, Debug)]
@@ -49,6 +63,7 @@ pub struct Table {
     rows: Vec<Vec<Text>>,
     frame: Frame,
     separation: RowSeparation,
+    column_floor: u16,
 }
 
 impl Table {
@@ -79,6 +94,7 @@ impl Table {
             rows: Vec::new(),
             frame: Frame::default(),
             separation: RowSeparation::default(),
+            column_floor: DEFAULT_COLUMN_FLOOR,
         }
     }
 
@@ -96,6 +112,33 @@ impl Table {
     pub fn row_separation(mut self, separation: RowSeparation) -> Self {
         self.separation = separation;
         self
+    }
+
+    /// Sets the narrowest width, in cells, a column gets when it is wider
+    /// than that: its floor is the larger of its header width and `cells`,
+    /// never more than its natural width. The default is 8. With 0 no column
+    /// has a floor, and each goes down to the limit its overflow sets, as in
+    /// step 3 of the [`Table`] steps.
+    ///
+    /// A table whose floors and frame do not fit the width draws at its floors
+    /// and runs past the width. Put it in a [`Fallback`](crate::Fallback) to
+    /// draw something else then.
+    #[must_use]
+    pub fn column_floor(mut self, cells: u16) -> Self {
+        self.column_floor = cells;
+        self
+    }
+
+    /// Whether the table fits `context`'s width at its narrowest: its
+    /// columns at their limits, plus the frame, take no more than the width.
+    ///
+    /// The limits are the ones the table solves with: a column's floor, or the
+    /// limit its overflow sets when that is larger. A grid has the fold limits
+    /// of step 4 of the [`Table`] steps and an unframed table the keep-words
+    /// limits. A table with nothing to draw fits any width.
+    #[must_use]
+    pub fn fits(&self, context: &Context) -> bool {
+        self.is_blank() || self.narrowest(&self.extents(context)) <= u64::from(context.width())
     }
 
     /// Adds a row of `&str`, `String`, [`Text`], or anything else that
@@ -176,6 +219,7 @@ impl Table {
                     natural: 0,
                     minimum: 0,
                     floor: 0,
+                    column_floor: 0,
                 };
                 for cell in self.grid().filter_map(|row| row.get(index)) {
                     let measured = cell.measure(context);
@@ -190,9 +234,26 @@ impl Table {
                     extent.minimum = extent.minimum.max(measured.minimum());
                     extent.floor = extent.floor.max(floor);
                 }
+                let header = self
+                    .header
+                    .as_ref()
+                    .and_then(|cells| cells.get(index))
+                    .map_or(0, |cell| cell.measure(context).maximum());
+                extent.column_floor = column_floor(extent.natural, header, self.column_floor);
                 extent
             })
             .collect()
+    }
+
+    /// The width of the table with every column at its limit and the frame
+    /// around them, as [`Extent::limit`] gives each limit.
+    fn narrowest(&self, extents: &[Extent]) -> u64 {
+        let framing = self.frame.framing();
+        extents
+            .iter()
+            .fold(u64::from(self.frame_width()), |total, extent| {
+                total.saturating_add(u64::from(extent.limit(framing)))
+            })
     }
 
     /// Rows of cells rendered at `widths`.
@@ -289,13 +350,14 @@ impl Table {
 }
 
 /// Each of `widths` lowered to the widest line its column rendered, step 6 of
-/// [`Table`]. A width never grows: a word kept whole past its column's width
-/// runs past it as before.
-fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16]) -> Vec<u16> {
+/// [`Table`], but not below its column floor. A width never grows: a word kept
+/// whole past its column's width runs past it as before.
+fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16], floors: &[u16]) -> Vec<u16> {
     widths
         .iter()
+        .zip(floors)
         .enumerate()
-        .map(|(index, width)| {
+        .map(|(index, (width, floor))| {
             cells
                 .iter()
                 .filter_map(|row| row.get(index))
@@ -303,6 +365,7 @@ fn narrowed(cells: &[Vec<Vec<Line>>], widths: &[u16]) -> Vec<u16> {
                 .map(Line::width)
                 .max()
                 .unwrap_or(0)
+                .max(*floor)
                 .min(*width)
         })
         .collect()
@@ -315,16 +378,10 @@ impl Renderable for Table {
         }
         let extents = self.extents(context);
         let frame = u64::from(self.frame_width());
-        let sum = |value: fn(&Extent) -> u16| {
-            extents.iter().fold(frame, |total, extent| {
-                total.saturating_add(u64::from(value(extent)))
-            })
-        };
-        let narrowest = match self.frame.framing() {
-            Framing::Framed => sum(|extent| extent.floor),
-            Framing::Unframed => sum(|extent| extent.minimum),
-        };
-        let natural = sum(|extent| extent.natural);
+        let natural = extents.iter().fold(frame, |total, extent| {
+            total.saturating_add(u64::from(extent.natural))
+        });
+        let narrowest = self.narrowest(&extents);
         Measurement::new(
             u16::try_from(narrowest).unwrap_or(u16::MAX),
             u16::try_from(natural).unwrap_or(u16::MAX),
@@ -339,7 +396,8 @@ impl Renderable for Table {
         let available = context.width().saturating_sub(self.frame_width());
         let widths = solve(&extents, available, self.frame.framing());
         let cells = self.render_cells(&widths, context);
-        let widths = narrowed(&cells, &widths);
+        let floors: Vec<u16> = extents.iter().map(|extent| extent.column_floor).collect();
+        let widths = narrowed(&cells, &widths, &floors);
         let glyphs = Glyphs::for_chars(context.box_chars());
         self.compose(&cells, &widths, &glyphs)
     }

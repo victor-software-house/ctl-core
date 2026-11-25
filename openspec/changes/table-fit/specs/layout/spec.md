@@ -9,7 +9,7 @@ It SHALL do so before a keep-words column runs past the width.
 
 #### Scenario: An ellipsis title
 
-- **WHEN** a list with a keep-words path column of 30 cells and an ellipsis title column renders at width 40
+- **WHEN** an unframed list with a keep-words path column of 30 cells and an ellipsis title column renders at width 40
 - **THEN** the path stays whole, the title column is at least 8 cells, and each title that does not fit ends in `…`
 
 ### Requirement: A framed table folds instead of overflowing

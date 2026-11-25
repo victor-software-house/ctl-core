@@ -12,21 +12,23 @@
  \u{1b}[1m\u{1b}[32muntracked\u{1b}[0m  none
      \u{1b}[1m\u{1b}[32mcheck\u{1b}[0m  passed
 
-┌───────┬───────┬───────┬───────┬──────┐
-│ \u{1b}[1m\u{1b}[36mstate\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36mkind\u{1b}[0m  ┆ \u{1b}[1m\u{1b}[36mcommi\u{1b}[0m ┆ \u{1b}[1m\u{1b}[36macti\u{1b}[0m │
-│       ┆       ┆       ┆ \u{1b}[1m\u{1b}[36mt\u{1b}[0m     ┆ \u{1b}[1m\u{1b}[36mve\u{1b}[0m   │
-╞═══════╪═══════╪═══════╪═══════╪══════╡
-│ appli ┆ \u{1b}[1mtidy-\u{1b}[0m ┆ chang ┆ 4f9c2 ┆ yes  │
-│ ed    ┆ \u{1b}[1mconfi\u{1b}[0m ┆ e     ┆ ab    ┆      │
-│       ┆ \u{1b}[1mg\u{1b}[0m     ┆       ┆       ┆      │
-│ appli ┆ \u{1b}[1mpin-r\u{1b}[0m ┆ chang ┆ b71e9 ┆      │
-│ ed    ┆ \u{1b}[1muntim\u{1b}[0m ┆ e     ┆ 0d    ┆      │
-│       ┆ \u{1b}[1me\u{1b}[0m     ┆       ┆       ┆      │
-│ draft ┆ \u{1b}[1mdrop-\u{1b}[0m ┆ fix   ┆ draft ┆      │
-│       ┆ \u{1b}[1mlegac\u{1b}[0m ┆       ┆       ┆      │
-│       ┆ \u{1b}[1my-fla\u{1b}[0m ┆       ┆       ┆      │
-│       ┆ \u{1b}[1mg\u{1b}[0m     ┆       ┆       ┆      │
-└───────┴───────┴───────┴───────┴──────┘
+\u{1b}[1m\u{1b}[36mapplied\u{1b}[0m
+ \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m  \u{1b}[1mtidy-config\u{1b}[0m
+  \u{1b}[1m\u{1b}[36mkind\u{1b}[0m  change
+\u{1b}[1m\u{1b}[36mcommit\u{1b}[0m  4f9c2ab
+\u{1b}[1m\u{1b}[36mactive\u{1b}[0m  yes
+
+\u{1b}[1m\u{1b}[36mapplied\u{1b}[0m
+ \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m  \u{1b}[1mpin-runtime\u{1b}[0m
+  \u{1b}[1m\u{1b}[36mkind\u{1b}[0m  change
+\u{1b}[1m\u{1b}[36mcommit\u{1b}[0m  b71e90d
+\u{1b}[1m\u{1b}[36mactive\u{1b}[0m
+
+\u{1b}[1m\u{1b}[36mdraft\u{1b}[0m
+ \u{1b}[1m\u{1b}[36mpatch\u{1b}[0m  \u{1b}[1mdrop-legacy-flag\u{1b}[0m
+  \u{1b}[1m\u{1b}[36mkind\u{1b}[0m  fix
+\u{1b}[1m\u{1b}[36mcommit\u{1b}[0m  draft
+\u{1b}[1m\u{1b}[36mactive\u{1b}[0m
 
 \u{1b}[1m\u{1b}[36moperation\u{1b}[0m
       \u{1b}[1m\u{1b}[32mid\u{1b}[0m  op-20261101-1

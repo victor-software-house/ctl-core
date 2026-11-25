@@ -108,11 +108,37 @@ An operator picks any option the consumer left open through these variables:
 - `CTL_CORE_RECORD_STYLE` (`keys-right`, `keys-left`, `boxed`)
 - `CTL_CORE_LIST_STYLE` (`grid`, `header-rule`, `plain`)
 - `CTL_CORE_ROW_SEPARATION` (`none`, `rule`, `blank`)
+- `CTL_CORE_COLUMN_FLOOR` (a whole number of cells, `0` turns the floor off)
+- `CTL_CORE_TABLE_FIT` (`stack`, `wrap`)
 - `CTL_CORE_JSON_LAYOUT` (`pretty`, `compact`, `pretty-on-terminal`)
 
 The consumer's setter wins over the variable.
-`record_style_envs`, `frame_envs`, `row_separation_envs`, and `json_layout_envs` replace each ordered name list, and an empty slice disables lookup.
+`record_style_envs`, `frame_envs`, `row_separation_envs`, `column_floor_envs`, `table_fit_envs`, and `json_layout_envs` replace each ordered name list, and an empty slice disables lookup.
 A value outside the list is ignored, and `App` prints one warning line that lists the accepted values.
+For the floor, the line says a whole number of cells.
+
+## Table columns and stacking
+
+No column of a table narrows below its floor, whatever its overflow.
+A column's floor is its header width or the floor setting, whichever is larger, and never more than the column's natural width.
+The setting is 8 cells.
+So a header never wraps mid-word, and a short column is never padded.
+An ellipsis or fold column stops at 8 cells where it once went down to 1.
+
+`RenderOptions::column_floor(cells)` sets the setting, and `View::styles` and `App::styles` carry it.
+`CTL_CORE_COLUMN_FLOOR` sets it when the consumer leaves it open.
+A setting of `0` gives every column a floor of 0, so each goes down to the limit its overflow sets.
+
+A table whose columns at their floors, with its frame, do not fit the width stacks.
+Each row draws as a record, with a blank line between rows.
+The record has the first cell as a title, then one line of header and value for each other column, in the record style.
+A table with no header draws each row as its first cell over the others, since it has no column names to show.
+A table with no rows draws its grid, since there is nothing to stack.
+
+`RenderOptions::table_fit(TableFit)` sets the fit, and `Table::stacking(TableFit)` sets it for one table.
+`CTL_CORE_TABLE_FIT` sets it when neither does.
+`TableFit::Wrap` (`wrap`) keeps the grid at its floors instead, and lets it run past the width, framed or not.
+A table with `Table::stacked_below`, such as a help table, has no floor and keeps its own threshold and form.
 
 ## Output formats
 

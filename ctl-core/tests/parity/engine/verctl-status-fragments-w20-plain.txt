@@ -1,24 +1,14 @@
-┌──────┬─────┬─────┐
-│ file ┆ pac ┆ bum │
-│      ┆ kag ┆ p   │
-│      ┆ e   ┆     │
-╞══════╪═════╪═════╡
-│ quie ┆ dem ┆ min │
-│ t-li ┆ o-c ┆ or  │
-│ ons- ┆ ore ┆     │
-│ sing ┆     ┆     │
-│ .md  ┆     ┆     │
-│ quie ┆ dem ┆ pat │
-│ t-li ┆ o-c ┆ ch  │
-│ ons- ┆ li  ┆     │
-│ sing ┆     ┆     │
-│ .md  ┆     ┆     │
-│ tidy ┆ dem ┆ maj │
-│ -owl ┆ o-d ┆ or  │
-│ s-wa ┆ ocs ┆     │
-│ ve.m ┆ -si ┆     │
-│ d    ┆ te  ┆     │
-└──────┴─────┴─────┘
+quiet-lions-sing.md
+package  demo-core
+   bump  minor
+
+quiet-lions-sing.md
+package  demo-cli
+   bump  patch
+
+tidy-owls-wave.md
+package  demo-docs-site
+   bump  major
 
 pending  2
     max  major
