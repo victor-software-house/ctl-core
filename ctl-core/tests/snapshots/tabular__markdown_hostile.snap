@@ -8,10 +8,17 @@ expression: "text.replace('\\r', \"<CR>\")"
 | quote | say "hi" |
 | comma | x,y |
 | pipe | p\|q |
-| backslash | c:\dir |
+| escaped pipe | p\\\|q |
+| backslash | c:\\dir |
 | break | line1<br>line2 |
+| html break | a&lt;br>b |
+| entity | x &amp;lt; y |
+| clear screen | a[2Jb |
+| clipboard | a]52;c;aGk=b |
+| bidi | ab |
+| separator | ab |
 | short |  |
 
 | field | value |
 | --- | --- |
-| a	key | a\tb<br>c |
+| a	key | a\\tb<br>c |

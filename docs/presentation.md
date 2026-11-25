@@ -142,7 +142,8 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    A cell is the text of its spans with the styling dropped.
    `tsv` writes a tab, line feed, carriage return, and backslash in a cell as `\t`, `\n`, `\r`, and `\\`.
    `csv` follows RFC 4180 and ends each record in CRLF.
-   `markdown` escapes `|` in a cell and writes a line break there as `<br>`.
+   `markdown` writes a backslash in a cell as `\\`, `|` as `\|`, `&` as `&amp;`, `<` as `&lt;`, and a line break as `<br>`.
+   A control character, directional formatting character, and line or paragraph separator is dropped from every text, except a tab, line feed, and carriage return.
    Blocks that write something are separated by one blank line.
 
 ## Output law

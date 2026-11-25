@@ -1,7 +1,8 @@
 use std::io::{self, Write as _};
+use std::mem;
 
 use crate::document::Notice;
-use crate::format::tabular::{self, Grid, Part};
+use crate::format::tabular::{self, Buffer, Dialect, Place, Source};
 use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, Sink};
 
 /// The `markdown` format: the result's document as Markdown. Every block is
@@ -9,8 +10,13 @@ use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, Sink};
 ///
 /// A table is a pipe table: a header row, a `| --- |` separator row, then one
 /// row per row. A table with no headers gets an empty header row. Fields are
-/// a two-column pipe table headed `field` and `value`. In a cell, `|` is
-/// written as `\|` and a line break as `<br>`.
+/// a two-column pipe table headed `field` and `value`.
+///
+/// In a table cell, a backslash is written as `\\`, `|` as `\|`, `&` as
+/// `&amp;`, `<` as `&lt;`, and a line break as `<br>`, so a cell that holds
+/// `<br>` or `\|` itself stays distinguishable from the escapes. No other
+/// Markdown character is escaped, so a cell that holds `*` or a backtick is
+/// written as it is.
 ///
 /// A paragraph is its text. Verbatim text is a fenced code block, with a fence
 /// longer than any run of backticks in it. A notice is a quoted line,
@@ -18,13 +24,21 @@ use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, Sink};
 ///
 /// A heading is a heading at the enclosing level: level 1 at the top, one
 /// deeper inside each section, at most 6. A section writes its title as a
-/// heading, then its body one level deeper. A rule is `---`, preceded by
-/// `**title**` on its own line when it has a title.
+/// heading, then its body one level deeper. A heading, a section title, and
+/// a rule title are one line, each line break in them a space, and one that is
+/// empty after trimming is not written. A rule is `---`, preceded by
+/// `**title**` and a blank line when it has a title, so Markdown reads a
+/// paragraph and a rule, not a heading.
+///
+/// Every control character, directional formatting character, and line or
+/// paragraph separator but a tab, line feed, and carriage return is removed
+/// from the text, so a value cannot carry an escape sequence to the terminal
+/// that shows it.
 ///
 /// Blocks are separated by one blank line, every line ends in a line feed, and
 /// an empty document writes nothing.
 ///
-/// It is a machine format, so it never carries ANSI. Its error form is the
+/// It is a machine format, so it writes no ANSI styling. Its error form is the
 /// default, `{bin}: {message}`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Markdown;
@@ -33,96 +47,137 @@ pub struct Markdown;
 /// [`View::new`](crate::view::View::new).
 pub static MARKDOWN: Markdown = Markdown;
 
-/// `cell` as the inside of a table cell.
-fn escape(cell: &str) -> String {
-    cell.replace('|', "\\|")
-        .replace("\r\n", "<br>")
-        .replace(['\r', '\n'], "<br>")
-}
+/// The fewest backticks a fence has.
+const SHORTEST_FENCE: usize = 3;
 
-/// One table row of `cells`.
-fn row(cells: &[String]) -> String {
-    let mut row = String::from("|");
-    for cell in cells {
-        row.push(' ');
-        row.push_str(&escape(cell));
-        row.push_str(" |");
-    }
-    row.push('\n');
-    row
-}
-
-/// A pipe table with `header` above `rows`.
-fn table(header: &[String], rows: &[Vec<String>]) -> String {
-    let mut table = row(header);
-    table.push_str(&row(&vec!["---".to_owned(); header.len()]));
-    table.extend(rows.iter().map(|cells| row(cells)));
-    table
-}
-
-/// Text as it is, ending in one line feed, or nothing when it is empty.
-fn text(text: &str) -> String {
-    let text = tabular::trimmed(text);
-    if text.is_empty() {
-        String::new()
-    } else {
-        format!("{text}\n")
+/// `text` as the inside of a table cell. A carriage return and line feed
+/// together are one line break.
+fn escape(out: &mut Buffer, text: Source<'_>) {
+    let mut after_return = false;
+    for character in text.chars() {
+        let was_return = mem::replace(&mut after_return, character == '\r');
+        match character {
+            '\\' => out.push_str("\\\\"),
+            '|' => out.push_str("\\|"),
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '\n' if was_return => {}
+            '\n' | '\r' => out.push_str("<br>"),
+            other => out.push(other),
+        }
     }
 }
 
 /// `text` in a fence longer than any run of backticks in it.
-fn fenced(text: &str) -> String {
-    let text = tabular::trimmed(text);
-    if text.is_empty() {
-        return String::new();
+fn fenced(out: &mut Buffer, text: Source<'_>) {
+    let length = text.trimmed_length();
+    if length == 0 {
+        return;
     }
-    let longest = text
-        .split(|character| character != '`')
-        .map(str::len)
-        .max()
-        .unwrap_or_default();
-    let fence = "`".repeat((longest + 1).max(3));
-    format!("{fence}\n{text}\n{fence}\n")
+    let mut run = 0;
+    let mut longest = 0;
+    for character in text.chars().take(length) {
+        run = if character == '`' { run + 1 } else { 0 };
+        longest = longest.max(run);
+    }
+    let fence = (longest + 1).max(SHORTEST_FENCE);
+    out.repeat('`', fence);
+    out.push('\n');
+    out.push_all(text.chars().take(length));
+    out.push('\n');
+    out.repeat('`', fence);
+    out.push('\n');
 }
 
-/// A quoted notice: every line after the first is quoted too.
-fn notice(notice: &Notice) -> String {
-    let level = tabular::level_name(notice.level());
-    let code = notice
-        .code_value()
-        .map_or_else(String::new, |code| format!(" ({code})"));
-    let message = tabular::plain(notice.message());
-    let mut lines = tabular::trimmed(&message).lines();
-    let first = lines.next().unwrap_or_default();
-    let mut quoted = format!("> **{level}**{code}: {first}\n");
-    for rest in lines {
-        quoted.push_str("> ");
-        quoted.push_str(rest);
-        quoted.push('\n');
+impl Dialect for Markdown {
+    fn eol(&self) -> &'static str {
+        "\n"
     }
-    quoted
-}
 
-fn chunk(part: &Part<'_>) -> String {
-    match part {
-        Part::Heading { level, text } => format!("{} {text}\n", "#".repeat(*level)),
-        Part::Paragraph(paragraph) => text(paragraph),
-        Part::Verbatim(verbatim) => fenced(verbatim),
-        Part::Fields(fields) => table(
-            &["field".to_owned(), "value".to_owned()],
-            &tabular::records(fields),
-        ),
-        Part::Table(cells) => {
-            let grid = Grid::of(cells);
-            if grid.is_empty() {
-                String::new()
-            } else {
-                table(&grid.header_or_blank(), grid.rows())
+    fn cell(&self, out: &mut Buffer, at: Place, text: Source<'_>) {
+        if at.index == 0 {
+            out.push('|');
+        }
+        out.push(' ');
+        escape(out, text);
+        out.push_str(" |");
+    }
+
+    fn end_record(&self, out: &mut Buffer) {
+        out.push('\n');
+    }
+
+    fn blank_header(&self) -> bool {
+        true
+    }
+
+    fn fields_header(&self) -> bool {
+        true
+    }
+
+    fn after_header(&self, out: &mut Buffer, width: usize) {
+        for index in 0..width {
+            self.cell(
+                out,
+                Place {
+                    index,
+                    count: width,
+                },
+                Source::Str("---"),
+            );
+        }
+        self.end_record(out);
+    }
+
+    fn paragraph(&self, out: &mut Buffer, text: Source<'_>) {
+        tabular::lines(out, text);
+    }
+
+    fn verbatim(&self, out: &mut Buffer, text: Source<'_>) {
+        fenced(out, text);
+    }
+
+    fn heading(&self, out: &mut Buffer, level: usize, title: Source<'_>) {
+        let Some(title) = tabular::inline(title) else {
+            return;
+        };
+        out.repeat('#', level);
+        out.push(' ');
+        out.push_all(title);
+        out.push('\n');
+    }
+
+    fn notice(&self, out: &mut Buffer, notice: &Notice) {
+        out.push_str("> **");
+        out.push_str(tabular::level_name(notice.level()));
+        out.push_str("**");
+        if let Some(code) = notice.code_value() {
+            out.push_str(" (");
+            if let Some(code) = tabular::inline(Source::Str(code)) {
+                out.push_all(code);
+            }
+            out.push(')');
+        }
+        out.push_str(": ");
+        let message = Source::Text(notice.message());
+        let mut characters = message.chars().take(message.trimmed_length()).peekable();
+        while let Some(character) = characters.next() {
+            match character {
+                '\r' if characters.peek() == Some(&'\n') => {}
+                '\n' => out.push_str("\n> "),
+                other => out.push(other),
             }
         }
-        Part::Notice(quoted) => notice(quoted),
-        Part::Rule(None) => "---\n".to_owned(),
-        Part::Rule(Some(title)) => format!("**{title}**\n---\n"),
+        out.push('\n');
+    }
+
+    fn rule(&self, out: &mut Buffer, title: Option<Source<'_>>) {
+        if let Some(title) = title.and_then(tabular::inline) {
+            out.push_str("**");
+            out.push_all(title);
+            out.push_str("**\n\n");
+        }
+        out.push_str("---\n");
     }
 }
 
@@ -136,8 +191,7 @@ impl Format for Markdown {
     }
 
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
-        let parts = tabular::parts(output.document());
-        let written = tabular::join(parts.iter().map(chunk), "\n");
+        let written = tabular::write(output.document(), self);
         sink.write_all(written.as_bytes())
     }
 }

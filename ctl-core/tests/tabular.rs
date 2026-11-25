@@ -14,9 +14,11 @@
 
 use std::iter;
 
+use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use ctl_core::format::{CSV, Format, FormatName, Formats, MARKDOWN, TSV};
 use ctl_core::prelude::*;
+use ctl_core::unsafe_chars::is_unsafe;
 use serde::Serialize;
 
 #[path = "support/child.rs"]
@@ -72,7 +74,12 @@ fn report() -> Document {
     Document::new()
         .heading("Ledger report")
         .paragraph("One row is open.")
-        .verbatim("Run:\n    ```sh\n    qctl status\n    ```\n")
+        .verbatim(indoc! {"
+            Run:
+                ```sh
+                qctl status
+                ```
+        "})
         .section(open)
         .rule(Some(Text::plain("End")))
         .notice(Notice::new(NoticeLevel::Success, "done"))
@@ -87,8 +94,15 @@ fn hostile() -> Document {
                 .row(["quote", "say \"hi\""])
                 .row(["comma", "x,y"])
                 .row(["pipe", "p|q"])
+                .row(["escaped pipe", "p\\|q"])
                 .row(["backslash", "c:\\dir"])
                 .row(["break", "line1\nline2"])
+                .row(["html break", "a<br>b"])
+                .row(["entity", "x &lt; y"])
+                .row(["clear screen", "a\u{1b}[2Jb"])
+                .row(["clipboard", "a\u{1b}]52;c;aGk=\u{7}b"])
+                .row(["bidi", "a\u{202e}b"])
+                .row(["separator", "a\u{2028}b"])
                 .row(["short"]),
         )
         .fields(Fields::new().row("a\tkey", "a\\tb\r\nc"))
@@ -124,7 +138,10 @@ fn every_format_on_every_case_is_a_reviewed_snapshot() {
     for (format, writer) in FORMATS {
         for (name, build) in CASES {
             let text = written(writer, build());
-            assert!(!text.contains('\u{1b}'), "{format} {name}: {text:?}");
+            let unsafe_character = text
+                .chars()
+                .find(|c| is_unsafe(*c) && !matches!(c, '\t' | '\n' | '\r'));
+            assert_eq!(unsafe_character, None, "{format} {name}: {text:?}");
             insta::assert_snapshot!(format!("{format}_{name}"), text.replace('\r', "<CR>"));
         }
     }
@@ -146,6 +163,52 @@ fn a_csv_field_with_a_comma_and_quotes_is_quoted() {
         Document::new().table(Table::new(["k"]).row(["a, \"b\""])),
     );
     assert_eq!(text, "k\r\n\"a, \"\"b\"\"\"\r\n");
+}
+
+#[test]
+fn a_record_of_one_empty_field_is_not_a_blank_line_in_csv() {
+    let document = || Document::new().table(Table::plain().row([""]).row(["x"]));
+    assert_eq!(written(&CSV, document()), "\"\"\r\nx\r\n");
+    assert_eq!(
+        written(&CSV, Document::new().table(Table::plain().row(["", ""]))),
+        ",\r\n"
+    );
+    assert_eq!(written(&TSV, document()), "\nx\n");
+}
+
+#[test]
+fn a_markdown_cell_escapes_so_each_value_reads_back() {
+    let document = Document::new().table(
+        Table::new(["a", "b", "c", "d", "e", "f"])
+            .row(["p|q", "p\\|q", "a<br>b", "a\r\nb", "x &lt; y", "x & y"]),
+    );
+    assert_eq!(
+        written(&MARKDOWN, document),
+        "| a | b | c | d | e | f |\n\
+         | --- | --- | --- | --- | --- | --- |\n\
+         | p\\|q | p\\\\\\|q | a&lt;br>b | a<br>b | x &amp;lt; y | x &amp; y |\n"
+    );
+}
+
+#[test]
+fn markdown_ends_in_one_line_feed_and_a_titled_rule_is_not_a_heading() {
+    let document = Document::new()
+        .paragraph("text")
+        .rule(Some(Text::plain("End")));
+    assert_eq!(written(&MARKDOWN, document), "text\n\n**End**\n\n---\n");
+}
+
+#[test]
+fn a_markdown_title_stays_on_one_line_and_an_empty_one_is_not_written() {
+    let document = Document::new()
+        .heading("one\ntwo\r\nthree")
+        .section(Section::new("  \n", Document::new().paragraph("body")))
+        .rule(Some(Text::plain(" \n ")))
+        .rule(Some(Text::plain("a\nb")));
+    assert_eq!(
+        written(&MARKDOWN, document),
+        "# one two three\n\nbody\n\n---\n\n**a b**\n\n---\n"
+    );
 }
 
 #[test]
@@ -236,7 +299,7 @@ fn quiet_hides_a_default_tsv_but_not_a_named_one() {
 }
 
 #[derive(Parser)]
-#[command(name = "toy", version, about = "toy")]
+#[command(name = "toy", version, about = "toy", env_prefix = "TOY")]
 struct Toy {
     #[command(flatten)]
     output: OutputArgs,
@@ -248,6 +311,8 @@ struct Toy {
 enum Cmd {
     /// List rows.
     List,
+    /// Fail with a message.
+    Fail,
 }
 
 const CHILD: &str = "CTL_CORE_TABULAR_CHILD";
@@ -256,11 +321,13 @@ fn run(formats: Formats, args: &[&str]) -> ExitCode {
     App::<Toy>::new("toy")
         .formats(formats)
         .view(|toy| toy.output.view())
-        .run_from(iter::once("toy").chain(args.iter().copied()), |toy| {
-            Ok(match toy.command {
-                Cmd::List => case(headers_table()),
-            })
-        })
+        .run_from(
+            iter::once("toy").chain(args.iter().copied()),
+            |toy| match toy.command {
+                Cmd::List => Ok(case(headers_table())),
+                Cmd::Fail => Err(anyhow!("ledger missing")),
+            },
+        )
 }
 
 #[test]
@@ -279,6 +346,44 @@ fn a_pipe_reads_tsv_when_no_format_is_named() {
     let stdout = child::case_stdout(&output);
     assert!(stdout.starts_with("id\ttitle\tage\n"), "{stdout:?}");
     assert!(!stdout.contains('\u{1b}'), "{stdout:?}");
+}
+
+#[test]
+fn a_format_variable_names_csv_over_the_piped_default() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_format_variable_names_csv_over_the_piped_default",
+        &[("TOY_FORMAT", "csv")],
+    ) else {
+        assert_eq!(
+            child::case(|| run(Formats::builtin(), &["list"])),
+            ExitCode::SUCCESS
+        );
+        return;
+    };
+    assert_eq!(
+        child::case_stdout(&output),
+        "id,title,age\r\nA-1,Ship the release,3\r\nA-2,Fix the parser,12\r\n"
+    );
+}
+
+#[test]
+fn a_failure_in_csv_writes_the_error_form_to_stderr_and_nothing_to_stdout() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_failure_in_csv_writes_the_error_form_to_stderr_and_nothing_to_stdout",
+        &[],
+    ) else {
+        assert_eq!(
+            child::case(|| run(Formats::builtin(), &["fail", "--format", "csv"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("toy: ledger missing\n"), "{stderr}");
+    assert!(!stderr.contains('\u{1b}'), "{stderr}");
 }
 
 #[test]

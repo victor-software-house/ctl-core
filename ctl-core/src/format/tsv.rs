@@ -1,6 +1,7 @@
 use std::io::{self, Write as _};
 
-use crate::format::tabular::{self, Grid, Part};
+use crate::document::Notice;
+use crate::format::tabular::{self, Buffer, Dialect, Place, Source};
 use crate::format::{Format, FormatName, Output, Sink, TSV_ABOUT};
 
 /// The `tsv` format: the result's document as tab-separated lines.
@@ -18,11 +19,19 @@ use crate::format::{Format, FormatName, Output, Sink, TSV_ABOUT};
 /// value, or notice is written as `\t`, `\n`, `\r`, or `\\`. A record then
 /// stays on one line.
 ///
-/// Styling is dropped. Blocks that write something are separated by one blank
-/// line, every line ends in a line feed, and an empty document writes nothing.
+/// A record of one empty cell is a blank line, which a reader takes for the
+/// end of a block. `tsv` has no escape for it, so a table with one column
+/// should not have an empty value.
 ///
-/// It is a machine format, so it never carries ANSI, and it is the default
-/// when stdout is not a terminal. Its error form is the default,
+/// Styling is dropped, and so is every control character, directional
+/// formatting character, and line or paragraph separator but a tab, line
+/// feed, and carriage return, so a value cannot carry an escape sequence to
+/// the terminal that shows it. Blocks that write something are separated by
+/// one blank line, every line ends in a line feed, and an empty document
+/// writes nothing.
+///
+/// It is a machine format, so it never writes ANSI styling, and it is the
+/// default when stdout is not a terminal. Its error form is the default,
 /// `{bin}: {message}`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Tsv;
@@ -31,11 +40,10 @@ pub struct Tsv;
 /// [`View::new`](crate::view::View::new).
 pub static TSV: Tsv = Tsv;
 
-/// `cell` with the four characters that would end or split a record written as
-/// escapes.
-fn escape(cell: &str) -> String {
-    let mut out = String::with_capacity(cell.len());
-    for character in cell.chars() {
+/// `text` with the four characters that would end or split a record written
+/// as escapes.
+fn escape(out: &mut Buffer, text: Source<'_>) {
+    for character in text.chars() {
         match character {
             '\t' => out.push_str("\\t"),
             '\n' => out.push_str("\\n"),
@@ -44,45 +52,41 @@ fn escape(cell: &str) -> String {
             other => out.push(other),
         }
     }
-    out
 }
 
-/// One line: the escaped `cells` joined by tabs.
-fn line(cells: &[String]) -> String {
-    let cells: Vec<String> = cells.iter().map(|cell| escape(cell)).collect();
-    let mut line = cells.join("\t");
-    line.push('\n');
-    line
-}
-
-/// Text as it is, ending in one line feed, or nothing when it is empty.
-fn text(text: &str) -> String {
-    let text = tabular::trimmed(text);
-    if text.is_empty() {
-        String::new()
-    } else {
-        format!("{text}\n")
+impl Dialect for Tsv {
+    fn eol(&self) -> &'static str {
+        "\n"
     }
-}
 
-fn chunk(part: &Part<'_>) -> String {
-    match part {
-        Part::Heading { .. } | Part::Rule(_) => String::new(),
-        Part::Paragraph(paragraph) => text(paragraph),
-        Part::Verbatim(verbatim) => text(verbatim),
-        Part::Fields(fields) => tabular::records(fields)
-            .iter()
-            .map(|record| line(record))
-            .collect(),
-        Part::Table(table) => Grid::of(table).lines().map(|row| line(row)).collect(),
-        Part::Notice(notice) => {
-            let message = tabular::plain(notice.message());
-            let message = match notice.code_value() {
-                Some(code) => format!("{code}: {message}"),
-                None => message,
-            };
-            line(&[tabular::level_name(notice.level()).to_owned(), message])
+    fn cell(&self, out: &mut Buffer, at: Place, text: Source<'_>) {
+        if at.index > 0 {
+            out.push('\t');
         }
+        escape(out, text);
+    }
+
+    fn end_record(&self, out: &mut Buffer) {
+        out.push('\n');
+    }
+
+    fn paragraph(&self, out: &mut Buffer, text: Source<'_>) {
+        tabular::lines(out, text);
+    }
+
+    fn verbatim(&self, out: &mut Buffer, text: Source<'_>) {
+        tabular::lines(out, text);
+    }
+
+    fn notice(&self, out: &mut Buffer, notice: &Notice) {
+        out.push_str(tabular::level_name(notice.level()));
+        out.push('\t');
+        if let Some(code) = notice.code_value() {
+            escape(out, Source::Str(code));
+            out.push_str(": ");
+        }
+        escape(out, Source::Text(notice.message()));
+        out.push('\n');
     }
 }
 
@@ -96,8 +100,7 @@ impl Format for Tsv {
     }
 
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
-        let parts = tabular::parts(output.document());
-        let written = tabular::join(parts.iter().map(chunk), "\n");
+        let written = tabular::write(output.document(), self);
         sink.write_all(written.as_bytes())
     }
 }

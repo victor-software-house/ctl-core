@@ -199,17 +199,21 @@ help = { features = "help", text = 446086 }
 # the format flags.
 # 16,672 above that: the `tsv`, `csv`, and `markdown` formats and the walker of
 # the document they share (CTC-062, the tabular formats).
-view = { features = "cli,view", text = 451161 }
+# 7,616 below that: the three formats write through one walker into one
+# `String`, in place of a list of parts, string grids, and a string per block.
+view = { features = "cli,view", text = 443545 }
 # 2,320 above the last budget, 469654: the same declared help flag and
 # subcommand as help (size-cuts decision 6). 29,955 above the last budget,
 # 471974: the view growth, and `App` reading the registry for help,
 # completion, the Usage spec, and the parse (CTC-062).
 # 16,736 above that: the same three formats (CTC-062, the tabular formats).
-app = { features = "app", text = 518665 }
+# 7,680 below that: the one walker (CTC-062, the tabular formats).
+app = { features = "app", text = 510985 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer. 29,891
 # above the last budget, 525798: the same growth as app (CTC-062).
 # 16,608 above that: the same three formats (CTC-062, the tabular formats).
-usage = { features = "app,usage", text = 572297 }
+# 7,568 below that: the one walker (CTC-062, the tabular formats).
+usage = { features = "app,usage", text = 564729 }
 # app plus input: serde-saphyr, yamled, and garde. 2,287 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
 # flattened field (flattened-field-place), 2,096, and Input::top_level with
@@ -219,7 +223,8 @@ usage = { features = "app,usage", text = 572297 }
 # yamled and the kept verdict (field-path-place), measured together. 29,472
 # above that, 1053421: the same growth as app (CTC-062).
 # 17,968 above that: the same three formats (CTC-062, the tabular formats).
-input = { features = "app,input", text = 1100861 }
+# 8,912 below that: the one walker (CTC-062, the tabular formats).
+input = { features = "app,input", text = 1091949 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 456,799 below input. 320 above the last budget,
 # 594206: Input::top_level over the toml tree (top-level-entries). The one
@@ -227,7 +232,8 @@ input = { features = "app,input", text = 1100861 }
 # (field-path-place). 29,456 above the budget before this, 594526: the same
 # growth as app (CTC-062).
 # 16,736 above that: the same three formats (CTC-062, the tabular formats).
-input-toml = { features = "app,input-toml", text = 640718 }
+# 7,680 below that: the one walker (CTC-062, the tabular formats).
+input-toml = { features = "app,input-toml", text = 633038 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
