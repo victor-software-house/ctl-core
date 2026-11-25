@@ -6,7 +6,7 @@
   Verify: `tests/env_flags.rs` covers `TOY_STREAM`, and a test reads JSON lines from `toy events --stream` on a terminal.
   Evidence, 2026-11-25 (UTC): [PR 321][ctl-core#321] merged as `11e9a24` with every check green in [its CI run][run-321].
   `a_variable_sets_stream` in `tests/env_flags.rs` covers `TOY_STREAM`.
-  A child test has no terminal, so `stream_alone_writes_json_lines_on_a_pipe` reads the JSON lines from a pipe, where the stream default beats the piped default.
+  `stream_alone_writes_json_lines_on_a_pipe` reads the JSON lines from a pipe, and `a_stream_on_a_terminal_defaults_to_json` in `tests/formats.rs` shows the stream default beating the terminal default.
 - [x] 1.2 Add `view::Records`, `format::RecordWriter`, and `Format::stream` with the default writer; let `App::run` take a value or records.
   Verify: integration tests for each scenario of the `record-stream` spec, including a toy CLI's own format and `| head -n 1` on an endless stream.
   Evidence, 2026-11-25 (UTC): `tests/records.rs` has a test for each scenario of the `record-stream` spec, run as a child process, including a test format with no stream form of its own and `an_endless_stream_ends_quietly_when_the_reader_closes_the_pipe`.

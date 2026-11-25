@@ -117,6 +117,17 @@ fn text(captured: &Captured) -> &str {
     captured.text()
 }
 
+/// `--stream` with no format names the stream default on a terminal too,
+/// where the terminal default would otherwise be `pretty`.
+#[test]
+fn a_stream_on_a_terminal_defaults_to_json() {
+    let view = View::requested(None, ColorMode::Never)
+        .stream(true)
+        .resolve(&Formats::builtin(), true)
+        .unwrap();
+    assert_eq!(view.format(), FormatName::JSON);
+}
+
 #[test]
 fn a_registered_format_writes_the_result() {
     let formats = Formats::builtin().add(&YAML);
