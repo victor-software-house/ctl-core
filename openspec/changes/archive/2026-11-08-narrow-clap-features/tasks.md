@@ -3,6 +3,7 @@
 - [x] 1. Plan: this change, and the CTC-032 row added with `qctl add`.
   Proof: `openspec validate narrow-clap-features --strict` and
   `mise run q check` pass.
+
 - [x] 2. Declare `clap` with `default-features = false`; `cli` asks for
   `std`, `derive`, `env`, and `string`, and `help` adds `clap/usage`.
   Proof: `check:features` passes in CI for every advertised set.
@@ -14,12 +15,14 @@
     [run 42447333033][run-186] on [ed01cac] and [run 42447332218][run-187]
     on [5f320ff], and in the merge queue, [run 42448670375][run-queue] on
     [b670378].
+
 - [x] 3. Render the help Clap stops for in `App::clap_error`, and remove
   the `Command::color` calls. Proof: `tests/clap_display.rs` passes in CI.
   - 2026-11-08 UTC: the code landed in [#183], and [#186] snapshot the help
     a missing argument prints. `tests/clap_display.rs` passed in CI
     [run 42447333033][run-186] on [ed01cac], the last push to [#186], and
     in the merge queue on [b670378].
+
 - [x] 4. Add `ctl_core::verbatim` behind the `verbatim` feature, call it
   from the renderer, and drop `unicode-general-category`. Proof: the
   predicate tests in `src/verbatim.rs` and the verbatim render tests pass
@@ -28,6 +31,7 @@
     task 2. `unicode-general-category` is gone from `Cargo.lock`. The
     predicate later moved to the `ctl-text` crate in [#193], and the
     `verbatim` feature now enables it.
+
 - [x] 5. Measure the toy CLI's size per tier on the commit CI verified.
   Proof: the table below, with the commit and the CI run.
   - 2026-11-08 UTC: measured on [b670378], which CI

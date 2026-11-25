@@ -237,6 +237,7 @@ and in CI, as each task says.
   - 2026-11-10 (UTC), done. [#264] published the three crates with the
     token, and [#265] turned trusted publishing back on. The repository
     holds no secret now.
+
 - The release waits on a prose check in CI. `mise run lint:prose` runs Vale
   over the Markdown, the Rust comments, and the changesets. The docs
   reach it with 0 findings. It stays out of `verify`, which runs only
@@ -247,6 +248,7 @@ and in CI, as each task says.
      runs. `verify` stays offline.
   - 2026-11-10 (UTC), still open: no workflow on main [56ec3d0] runs
     `lint:prose`. It moved to [CTC-047][ledger].
+
 - After `ctl-text` publishes, open one `ctl-layout` page on docs.rs and
   confirm that its links to `ctl-text` resolve. Until then those links
   return 404, because docs.rs has no `ctl-text` page to link to.

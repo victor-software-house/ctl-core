@@ -20,16 +20,19 @@ below.
 
    With default features off, it adds `similar` and two crates ctl-core
    already locks, `once_cell` and `tempfile`.
+
 2. [snapbox] 1.2.2 compares against a plain file named by `file![…]`, and
    `SNAPSHOTS=overwrite` rewrites it ([action.rs][snapbox-action]).
    It has no review tool: an overwrite lands in the working tree, and
    `git diff` is the review.
    Its default features add colour and diff crates.
+
 3. [expect-test] 1.5.1 keeps the expected value in the test source, or in a
    file named by `expect_file!`, and `UPDATE_EXPECT=1` rewrites it in place
    ([lib.rs][expect-lib]).
    It has no review step and no CI guard.
    Its last release was 2024-12-21.
+
 4. Plain files under `tests/` compared by a helper of our own.
    This needs no dependency, but ctl-core would write and maintain the
    update and review steps itself.
@@ -57,6 +60,7 @@ below.
    bump.
    Default features are off, so no colour crate is added and CI logs stay
    plain.
+
 2. **CI never writes a snapshot.**
    `mise.ci.toml` sets `INSTA_UPDATE=no`.
    insta would already pick `no` when `CI` is set, but setting it
@@ -64,6 +68,7 @@ below.
    A developer overrides it locally with `INSTA_UPDATE=always`, or reviews
    with `cargo insta review` from `cargo-insta` 1.49.0 in `mise.dev.toml`.
    CI never loads that file.
+
 3. **Each script passes its own shell's syntax check.**
    `tests/support/shells.rs` writes the script through
    `fixture::Suite`, then runs:
@@ -75,6 +80,7 @@ below.
    - Alternative: parse the snapshot files in a separate mise task.
      A `.snap` header is not shell syntax, and the test already holds the
      text the snapshot compares.
+
 4. **The tools are a `test` profile**: `conda:zsh` 5.9.2, `conda:fish`
    4.9.3, and `shellcheck` 0.11.0 in `mise.test.toml`, locked in
    `mise.test.lock`.
@@ -148,11 +154,13 @@ below.
    The locks are therefore generated with the default profiles,
    `mise lock --platform linux-x64,macos-arm64`, and the pre-push lock check
    runs with `MISE_ENV=dev,test`, the list `.miserc.toml` loads.
+
 5. **shellcheck exclusions are named per caller.**
    The bash script `clap_complete` writes breaks SC2207, SC2181, and
    SC2250, in its own template ([shells.rs][clap-bash]).
    The completion test excludes those three, with that reason.
    A script ctl-core writes itself passes with none.
+
 6. **The `Shell` set is closed.**
    `Shell` is not `#[non_exhaustive]`.
    Each verb that takes it must have a form for every shell, and an
@@ -162,6 +170,7 @@ below.
    - Alternative: `#[non_exhaustive]`.
      A consumer would need a wildcard arm, which hides an unhandled shell at
      run time.
+
 7. **A test crate with no exceptions carries no lint attribute.**
    The `completion` test crate's `#![allow(missing_docs, …)]` became
    `#![expect]`, and the compiler then reported the expectation as

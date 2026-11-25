@@ -50,16 +50,19 @@ layer, so the command line wins, with a warning such as "Ignoring
    Alternative: `#[arg(env = "…")]` on each option. It lost because the
    shared flags live in ctl-core and cannot carry a CLI's prefix, and because
    a CLI would repeat one attribute per option.
+
 2. **Which options are bound.** Every option with a long name, except one
    that declares its own `env`, is hidden, is the `--no-*` side of a pair,
    or is help or version. A declared `env` is the per-option override. A
    hidden option has no help to name its variable. A `--no-*` side would
    make two variables for one setting: `VERCTL_PR=false` already says what
    `VERCTL_NO_PR=true` would.
+
 3. **Names come from the long name.** `--dry-run` under `VERCTL` reads
    `VERCTL_DRY_RUN`. A long name means one thing across a CLI, so an option
    that several subcommands declare, such as `--config`, reads one
    variable.
+
 4. **The command line goes first, then the variables.**
    `ctl_core::flags::env_under_flags(command, argv)` runs just before the
    parse. It parses argv once with every variable removed and errors
@@ -104,6 +107,7 @@ layer, so the command line wins, with a warning such as "Ignoring
    Alternative: `switch(on, off)` returning `on && !off`. It lost because
    clap refuses the run with a conflict before `switch` ever sees the
    values.
+
 5. **Only `--x`/`--no-x` overrides are seen, and no group conflicts.** clap
    keeps an argument's `overrides_with` list private: `Arg` has no getter
    for it. A pair is therefore found by its long names. An `overrides_with`
@@ -112,9 +116,11 @@ layer, so the command line wins, with a warning such as "Ignoring
    pairs. An `ArgGroup`'s own `conflicts_with` is private too, so a conflict
    declared on a group still fails the parse with clap's message. No ctl
    CLI declares one.
+
 6. **Values parse as on the command line.** A variable goes through the
    option's own value parser, so a boolean flag takes `true` or `false`, and
    `1` is refused with the same error a bad flag value gets.
+
 7. **The order is flag, variable, file, default.** An option that a config
    file can also set declares no clap default and has an `Option` type.
    `None` then means neither the flag nor the variable was given, and the

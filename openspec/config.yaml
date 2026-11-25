@@ -16,17 +16,38 @@ context: |
   is a clickable reference-style link defined at the end of the file. Pin code
   and file links to a commit. No bare URLs outside command blocks.
 
+# specs:budget fails a change file over its word budget. A word is a
+# whitespace-separated token, and a reference-style link definition does not
+# count. The budgets bound a change's scope: a change that outgrows one is
+# split into smaller changes, never cut down to fit.
 rules:
   proposal:
+    - Keep proposal.md within 600 words.
+    - >-
+      Scope the change so every artifact fits its budget. When one would not,
+      split the work into smaller changes, each with its own proposal, rather
+      than cutting text to fit.
+    - >-
+      Head the proposal's sections `## Motivation`, `## Changes`,
+      `## Capabilities`, and `## Impact`.
     - State the measured problem, with numbers where they exist.
     - Name the CTC row the change belongs to.
   specs:
+    - Keep each spec.md within 1200 words.
     - Every requirement uses SHALL and has at least one WHEN/THEN scenario.
     - Scenarios use concrete widths, flags, and environment values.
   design:
+    - >-
+      Keep design.md within 2500 words, and the change's research.md within
+      2500.
     - Each decision names the alternative considered and why it lost.
     - Every automatic behaviour names its public override and its disable path.
   tasks:
+    - >-
+      Keep the task text of tasks.md, headings and Verify lines included,
+      within 1500 words.
+    - Keep each dated evidence note under a task within 60 words.
+    - Each task group lands the tests and docs its own work needs.
     - Each task names the command or observation that proves it is done.
     - Compile, format, lint, and test tasks run on the build host, not the authoring workstation.
 

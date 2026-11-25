@@ -30,6 +30,7 @@
 
   cargo-semver-checks 0.51.0 against [c0c7ac3][c0c7ac3] does not report the seal: neither `trait_newly_sealed` nor `trait_added_supertrait` fires.
   Not verified: why it does not, and that a crate outside ctl-core fails to implement the trait.
+
 - [x] 4.2 Say in one sentence why each closed enum is closed: `Outcome`, `Destination`, `BrokenPipe`, `ColorMode`, `SurfaceRequirement`, `SurfaceScope`, and `FlagClash`.
   Verify: each rustdoc holds the sentence, and `doc`, `doc:default-features`, and `doc:no-default-features` pass.
 
@@ -49,7 +50,9 @@
    - `deny`: 23 `unused-workspace-dependency` errors from cargo-deny.
    - `test`: 3 bash tests in `shell_init` (`bash_runs_the_hook_once_from_a_string`, `_from_an_array`, `_after_bash_preexec_rewrites_the_prompt_command`).
      The other 11 `shell_init` tests and every other test target passed, `completion` and `env_flags` included.
+
 2. `check:versions` passed once the clone had an `origin/main`, and `lint:prose`, `specs`, and `doc`, `doc:default-features`, and `doc:no-default-features` passed with no warning.
+
 3. `cargo semver-checks check-release -p ctl-core --baseline-rev c0c7ac3 --all-features` (0.51.0) reported 5 major checks.
    Each item it names is in the changeset:
    - `enum_marked_non_exhaustive`: `Block`, `NoticeLevel`, `OutputFormat`.
@@ -59,6 +62,7 @@
 
    It did not report `ErrorBody`, `FlagWarning`, `CompletionArgs`, `InputError`, `ServeError`, or `OutputArgs` as newly `#[non_exhaustive]`, nor the seal on `EnvPrefix`, though each changed as the changeset says.
    `mise run semver` skips the check while a minor fragment is pending.
+
 4. Not verified here: CI on the pull request.
 
 [c0c7ac3]: https://github.com/victor-software-house/ctl-core/commit/c0c7ac36e3d15c96726c9ea9a50b04a771d99a66
