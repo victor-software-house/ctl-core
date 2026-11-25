@@ -112,6 +112,22 @@ queue:
       - 2026-11-25, every format streams, writing records in the order they are produced, and a CLI's own format streams through the same interface (operator, 2026-11-25).
       - 2026-11-25, --stream alone uses a stream default, json, and a single value under --stream is a stream of one record (operator, 2026-11-25).
 
+  - id: CTC-064
+    title: "Fit every table: wrap down to a floor, then stack rows"
+    scope: ctl-layout, ctl-core render
+    outcome: >-
+      A table that does not fit the width wraps its cells down to a floor per column
+      and otherwise draws each row as a stacked record; it never crops and never
+      narrows a column below the floor.
+    blocked_by: []
+    acceptance:
+      - No column of a grid table renders narrower than its header width or 8 cells, whichever is larger, unless its widest cell is narrower.
+      - A table whose floors do not fit the width draws each row as a stacked record, with no consumer code.
+      - The floor and the stacking fallback each have a public override and a disable path.
+    plan: openspec/changes/table-fit/proposal.md
+    notes:
+      - 2026-11-24, wrap, then stack is the default rule for every table (operator, 2026-11-24).
+
   - id: CTC-043
     title: >-
       Take every command's input as JSON or YAML, from a file or stdin, as output
