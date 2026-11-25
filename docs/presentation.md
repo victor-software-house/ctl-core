@@ -123,7 +123,9 @@ No column of a table narrows below its floor, whatever its overflow.
 A column's floor is its header width or the floor setting, whichever is larger, and never more than the column's natural width.
 The setting is 8 cells.
 So a header never wraps mid-word, and a short column is never padded.
-An ellipsis or fold column stops at 8 cells where it once went down to 1.
+A fold column, and a keep-words column in a grid, once went down to its widest cluster.
+An ellipsis column once went down to 1 cell.
+Each now stops at its floor.
 
 `RenderOptions::column_floor(cells)` sets the setting, and `View::styles` and `App::styles` carry it.
 `CTL_CORE_COLUMN_FLOOR` sets it when the consumer leaves it open.

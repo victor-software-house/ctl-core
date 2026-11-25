@@ -232,7 +232,7 @@ The record style, list frame, row separation, column floor, table fit, and JSON 
 Each name list is replaceable, and an empty slice disables lookup.
 
 The column floor is 8 cells.
-No column of a table narrows below the larger of its header width and the floor, or below its natural width.
+No column of a table narrows below the larger of its header width and the floor, and the floor is never more than the column's natural width.
 `RenderOptions::column_floor(0)` or `CTL_CORE_COLUMN_FLOOR=0` turns it off.
 
 A table whose floors and frame do not fit the width stacks each row as a record.
