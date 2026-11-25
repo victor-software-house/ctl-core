@@ -1,0 +1,9 @@
+---
+source: ctl-core/tests/records.rs
+expression: stdout
+---
+type	n
+header	3
+tick	1
+tick	2
+tick	3

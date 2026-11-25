@@ -62,6 +62,10 @@ impl Formats {
 
     /// Register `format`, or replace the registered format of the same name.
     /// A replacement keeps its place in the list.
+    ///
+    /// A replacement of `json` that gives its format no stream form of its own
+    /// (`Format::stream`) writes each record under `--stream` as `write` does,
+    /// not as one line per record.
     #[must_use]
     #[expect(
         clippy::should_implement_trait,
@@ -102,6 +106,10 @@ impl Formats {
     /// The format used under `--stream` when none was named, whether stdout
     /// is a terminal or not. Setting it to a name that is not registered makes
     /// `--stream` with no format a usage error.
+    ///
+    /// The default is `json`, which writes one line per record. A CLI that
+    /// replaces `json` with a format that has no stream form of its own gets
+    /// each record written by that format's `write`, not one line per record.
     #[must_use]
     pub fn stream_default(mut self, name: FormatName) -> Self {
         self.stream = name;

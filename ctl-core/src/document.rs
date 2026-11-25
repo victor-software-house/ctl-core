@@ -114,6 +114,12 @@ impl Document {
     pub fn blocks(&self) -> &[Block] {
         &self.blocks
     }
+
+    /// The blocks, moved out of the document.
+    #[cfg(feature = "view")]
+    pub(crate) fn into_blocks(self) -> Vec<Block> {
+        self.blocks
+    }
 }
 
 /// One block of a [`Document`].
@@ -491,6 +497,12 @@ impl Table {
     pub fn row(mut self, cells: impl IntoIterator<Item = impl Into<Text>>) -> Self {
         self.rows.push(cells.into_iter().map(Into::into).collect());
         self
+    }
+
+    /// Append the rows of `other`, moved, not copied.
+    #[cfg(feature = "view")]
+    pub(crate) fn extend_rows(&mut self, other: Self) {
+        self.rows.extend(other.rows);
     }
 
     /// The header cells, empty for a table with no header row.

@@ -240,7 +240,8 @@ impl JsonLayout {
 /// A view holds one of four choices of format, and only the first two are
 /// ready to write. [`Self::new`] names a registered format. A view built by
 /// [`Self::requested`] holds a name, or none, until [`Self::resolve`] looks it
-/// up in a registry and the terminal check picks a default. [`Self::capture`]
+/// up in a registry and picks a default: the terminal or piped default, or the
+/// stream default under [`Self::stream`]. [`Self::capture`]
 /// resolves such a view against the built-in formats itself. `--quiet` hides a
 /// successful result of a format that is not a machine format, and of a
 /// default; it never hides a machine format that was named.
@@ -346,8 +347,9 @@ impl View {
 
     /// The view with the format that `registry` and the terminal check settle:
     /// a requested name is looked up, and no name takes the terminal or the
-    /// piped default. A view that already names a format is returned as it
-    /// is, and a script view writes every format but `json` as `pretty`.
+    /// piped default, or the stream default under [`Self::stream`]. A view that
+    /// already names a format is returned as it is, and a script view writes
+    /// every format but `json` as `pretty`.
     ///
     /// # Errors
     ///
@@ -499,10 +501,12 @@ impl View {
     /// Write a result as it is produced when `stream` is true: `--stream`.
     ///
     /// A view with no format named then takes the registry's stream default,
-    /// [`Formats::stream_default`], in place of the terminal or piped default.
-    /// [`Self::show`] writes a value as a stream of one record, and
-    /// [`Self::show_records`] writes each record when the command produces
-    /// it. [`Self::capture`] ignores it.
+    /// [`Formats::stream_default`], in place of the terminal or piped default,
+    /// when [`Self::resolve`] settles it. [`Self::show`] writes a value as a
+    /// stream of one record, and [`Self::show_records`] writes each record when
+    /// the command produces it. [`Self::capture`] writes nothing as records, so
+    /// the setting only decides which default format it resolves an unset view
+    /// to.
     #[must_use]
     pub const fn stream(mut self, stream: bool) -> Self {
         self.stream = stream;
@@ -698,7 +702,7 @@ impl View {
     /// copy of this body serves every result type.
     fn show_record(self, value: &dyn records::Record) -> io::Result<()> {
         if self.stream && value.outcome() == Outcome::Success {
-            return self.run_records(Records::of(value)).map(|_| ());
+            return self.stream_value(value);
         }
         let present = || value.present();
         let output = Output::new(value.data(), &present, value.outcome());

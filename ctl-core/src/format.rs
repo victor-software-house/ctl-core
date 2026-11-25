@@ -216,36 +216,36 @@ pub(crate) fn unknown_format(
     variable: Option<&str>,
     accepted: &mut dyn Iterator<Item = FormatName>,
 ) -> clap::Error {
+    let accepted = listed(accepted);
     let source = variable.map_or_else(String::new, |name| format!(" from the variable `{name}`"));
-    unknown_format_from(text, &source, accepted)
+    clap::Error::raw(
+        ErrorKind::InvalidValue,
+        format_args!("unknown format `{text}`{source}; use one of {accepted}\n"),
+    )
 }
 
-/// The usage error for a stream default that is not registered, in the shape
-/// of [`unknown_format`]: `--stream` with no format named would use it.
+/// The usage error for a stream default that is not registered: `--stream`
+/// with no format named would use it. It names the stream default and the
+/// accepted names.
 #[cfg(feature = "app")]
 pub(crate) fn unknown_stream_default(
     name: FormatName,
     accepted: &mut dyn Iterator<Item = FormatName>,
 ) -> clap::Error {
-    unknown_format_from(name.as_str(), " from the stream default", accepted)
-}
-
-/// The error line the two above share: the value, where it came from, and the
-/// accepted names.
-#[cfg(feature = "cli")]
-fn unknown_format_from(
-    text: &str,
-    source: &str,
-    accepted: &mut dyn Iterator<Item = FormatName>,
-) -> clap::Error {
-    let accepted = accepted
-        .map(FormatName::as_str)
-        .collect::<Vec<_>>()
-        .join(", ");
+    let accepted = listed(accepted);
     clap::Error::raw(
         ErrorKind::InvalidValue,
-        format_args!("unknown format `{text}`{source}; use one of {accepted}\n"),
+        format_args!("the stream default `{name}` is not registered; use one of {accepted}\n"),
     )
+}
+
+/// The accepted names, separated by commas.
+#[cfg(feature = "cli")]
+fn listed(accepted: &mut dyn Iterator<Item = FormatName>) -> String {
+    accepted
+        .map(FormatName::as_str)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[cfg(feature = "cli")]

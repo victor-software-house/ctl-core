@@ -1,14 +1,16 @@
 //! A command that produces results over time: a header record, then records,
 //! each `Result`, written when they are produced or all at once.
 
-use std::io::{self, Write as _};
+use std::cell::RefCell;
+use std::io::{self, Write};
 use std::process::ExitCode;
-use std::{fmt, iter, mem};
+use std::rc::Rc;
+use std::{fmt, mem};
 
 use serde::{Serialize, Serializer};
 
-use crate::document::{Block, Document, Table};
-use crate::format::{Output, RecordWriter};
+use crate::document::{Block, Document};
+use crate::format::{Format, Output, RecordWriter};
 use crate::view::{Outcome, Present, View, write_stdout};
 
 /// A [`Present`] result behind one object-safe trait, so everything that
@@ -42,28 +44,8 @@ impl<P: Present> Record for P {
     }
 }
 
-/// A record that is borrowed, so a value written as a stream of one record
-/// needs no copy.
-struct Borrowed<'a>(&'a dyn Record);
-
-impl Record for Borrowed<'_> {
-    fn data(&self) -> &dyn erased_serde::Serialize {
-        self.0.data()
-    }
-
-    fn present(&self) -> Document {
-        self.0.present()
-    }
-
-    fn outcome(&self) -> Outcome {
-        self.0.outcome()
-    }
-
-    fn exit_code(&self) -> u8 {
-        self.0.exit_code()
-    }
-}
-
+/// What an iterator of records yields: a record, or the error that ends the
+/// stream.
 type Item<'a> = anyhow::Result<Box<dyn Record + 'a>>;
 
 /// A header record, then records the command produces one at a time.
@@ -74,7 +56,10 @@ type Item<'a> = anyhow::Result<Box<dyn Record + 'a>>;
 /// panics on a record that does not, header included.
 ///
 /// Under `--stream` each record is written when the iterator yields it, by the
-/// format's [`RecordWriter`], and stdout is flushed after each one.
+/// format's [`RecordWriter`], and stdout is flushed after each one. A record
+/// reaches stdout whole, in one write: stdout is not locked while the iterator
+/// or a record's serialization runs, and a record that fails to serialize
+/// leaves no partial line.
 ///
 /// Without `--stream` the records are collected and written as one result.
 /// Its data is one sequence, header first, so `json` writes one array. Its
@@ -91,8 +76,9 @@ type Item<'a> = anyhow::Result<Box<dyn Record + 'a>>;
 /// with its exit code and `kind`, as for a handler error.
 ///
 /// When the reader closes stdout, ctl-core stops pulling and drops the
-/// iterator. `--quiet` with no format named drains the iterator and writes no
-/// record. Side effects and a late error still happen.
+/// iterator, unless the iterator already failed: then the error is the result,
+/// and `App` writes it. `--quiet` with no format named drains the iterator and
+/// writes no record. Side effects and a late error still happen.
 ///
 /// ```
 /// use ctl_core::document::Document;
@@ -149,15 +135,6 @@ impl<'a> Records<'a> {
             rest: Box::new(rest),
         }
     }
-
-    /// A value as a stream of one record. It carries no `type` field unless
-    /// the value has one.
-    pub(super) fn of(value: &'a dyn Record) -> Self {
-        Self {
-            header: Box::new(Borrowed(value)),
-            rest: Box::new(iter::empty()),
-        }
-    }
 }
 
 /// The panic message of a record without a string `type` field.
@@ -193,6 +170,7 @@ fn typed(record: Box<dyn Record + '_>) -> Box<dyn Record + '_> {
 #[must_use = "a reply writes nothing until it is run"]
 pub struct Reply<'a>(Inner<'a>);
 
+/// The two things a [`Reply`] is: one value, or a stream of records.
 enum Inner<'a> {
     Value(Box<dyn Record + 'a>),
     Records(Records<'a>),
@@ -235,32 +213,23 @@ impl<'a> From<Records<'a>> for Reply<'a> {
 
 /// Keeps [`Respond`] to the types ctl-core implements it for.
 mod sealed {
+    use std::io;
+
+    use crate::view::View;
+
     /// Implemented only inside ctl-core. Its path is private, so no other crate
-    /// can name it.
-    pub trait Sealed {}
+    /// can name it, and its methods are the ones `App` runs a result with.
+    pub trait Sealed: Sized {
+        /// The exit code the run ends with when the output was written.
+        fn reply_exit_code(&self) -> u8;
 
-    impl<P: super::Present> Sealed for P {}
-
-    impl Sealed for super::Reply<'_> {}
+        /// Write the result through `view`; the error is the one a stream's
+        /// iterator ended with.
+        fn deliver(self, view: &View) -> io::Result<Option<anyhow::Error>>;
+    }
 }
 
-/// What `App::run` takes from a handler: any [`Present`] value, or a
-/// [`Reply`].
-///
-/// It is sealed. A handler that returns a value compiles as it always did, and
-/// one whose subcommands return a value and records returns [`Reply`].
-pub trait Respond: sealed::Sealed + Sized {
-    /// The exit code the run ends with when the output was written.
-    #[doc(hidden)]
-    fn reply_exit_code(&self) -> u8;
-
-    /// Write the result through `view`; the error is the one a stream's
-    /// iterator ended with.
-    #[doc(hidden)]
-    fn deliver(self, view: &View) -> io::Result<Option<anyhow::Error>>;
-}
-
-impl<P: Present> Respond for P {
+impl<P: Present> sealed::Sealed for P {
     fn reply_exit_code(&self) -> u8 {
         Present::exit_code(self)
     }
@@ -270,7 +239,7 @@ impl<P: Present> Respond for P {
     }
 }
 
-impl Respond for Reply<'_> {
+impl sealed::Sealed for Reply<'_> {
     fn reply_exit_code(&self) -> u8 {
         self.exit_code()
     }
@@ -283,6 +252,17 @@ impl Respond for Reply<'_> {
     }
 }
 
+/// What `App::run` takes from a handler: any [`Present`] value, or a
+/// [`Reply`].
+///
+/// It is sealed. A handler that returns a value compiles as it always did, and
+/// one whose subcommands return a value and records returns [`Reply`].
+pub trait Respond: sealed::Sealed {}
+
+impl<P: Present> Respond for P {}
+
+impl Respond for Reply<'_> {}
+
 /// The records of a collected run as one sequence, header first.
 struct Sequence<'a, 'r>(&'a [Box<dyn Record + 'r>]);
 
@@ -294,36 +274,32 @@ impl Serialize for Sequence<'_, '_> {
 
 /// The document of a collected run: each record's document in turn, where
 /// adjacent documents that are each one table with equal headers make one
-/// table.
+/// table. Blocks and rows are moved, not copied.
 fn merged(records: &[Box<dyn Record + '_>]) -> Document {
-    let mut document = Document::new();
-    let mut open: Option<Table> = None;
+    let mut blocks = Vec::new();
+    let mut open = false;
     for record in records {
-        let part = record.present();
-        if let [Block::Table(table)] = part.blocks() {
-            if let Some(run) = open.as_mut().filter(|run| run.headers() == table.headers()) {
-                for row in table.rows() {
-                    *run = mem::take(run).row(row.iter().cloned());
+        match <[Block; 1]>::try_from(record.present().into_blocks()) {
+            Ok([Block::Table(table)]) => match blocks.last_mut() {
+                Some(Block::Table(run)) if open && run.headers() == table.headers() => {
+                    run.extend_rows(table);
                 }
-            } else {
-                document = closed(document, open.replace(table.clone()));
+                _ => {
+                    blocks.push(Block::Table(table));
+                    open = true;
+                }
+            },
+            Ok([block]) => {
+                blocks.push(block);
+                open = false;
             }
-            continue;
-        }
-        document = closed(document, open.take());
-        for block in part.blocks() {
-            document = document.block(block.clone());
+            Err(part) => {
+                blocks.extend(part);
+                open = false;
+            }
         }
     }
-    closed(document, open)
-}
-
-/// `document` with the table of a finished run, if there is one.
-fn closed(document: Document, run: Option<Table>) -> Document {
-    match run {
-        Some(table) => document.table(table),
-        None => document,
-    }
+    blocks.into_iter().fold(Document::new(), Document::block)
 }
 
 /// Pull `records` to the end or the first error and write nothing.
@@ -333,12 +309,133 @@ fn drain(records: Records<'_>) -> Option<anyhow::Error> {
     rest.find_map(Result::err)
 }
 
-/// Give `record` to `writer` and flush stdout.
-fn emit(writer: &mut dyn RecordWriter, record: &dyn Record) -> io::Result<()> {
+/// The bytes a record writer wrote, kept apart from stdout until the record is
+/// complete, so stdout is locked only to write them and a record that fails
+/// half way leaves no partial line.
+#[derive(Clone, Default)]
+struct Pending(Rc<RefCell<Vec<u8>>>);
+
+impl Write for Pending {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0.borrow_mut().extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl Pending {
+    /// Write what the writer wrote to stdout, flush it, and start over.
+    fn deliver(&self) -> io::Result<()> {
+        let bytes = mem::take(&mut *self.0.borrow_mut());
+        let mut stdout = io::stdout().lock();
+        stdout.write_all(&bytes)?;
+        stdout.flush()
+    }
+
+    /// Forget what the writer wrote.
+    fn discard(&self) {
+        self.0.borrow_mut().clear();
+    }
+}
+
+/// Give `record` to `writer` and deliver what it wrote. A record that fails
+/// to write reaches stdout in no part.
+fn emit(writer: &mut dyn RecordWriter, pending: &Pending, record: &dyn Record) -> io::Result<()> {
     let present = || record.present();
     let output = Output::new(record.data(), &present, Outcome::Success);
-    writer.record(&output)?;
-    io::stdout().flush()
+    writer
+        .record(&output)
+        .and_then(|()| pending.deliver())
+        .inspect_err(|_| pending.discard())
+}
+
+/// End `writer` and deliver what it wrote to close the stream.
+fn finish(writer: Box<dyn RecordWriter + '_>, pending: &Pending) -> io::Result<()> {
+    writer
+        .finish()
+        .and_then(|()| pending.deliver())
+        .inspect_err(|_| pending.discard())
+}
+
+/// The result of a run whose iterator ended with `failure`, if it did, after
+/// `written` wrote the output. A closed stdout never hides the failure, which
+/// carries the exit code. Any other write error is the error to report, and
+/// `App` writes it to stderr as it writes the failure.
+fn settle(
+    failure: Option<anyhow::Error>,
+    written: io::Result<()>,
+) -> io::Result<Option<anyhow::Error>> {
+    match written {
+        Ok(()) => Ok(failure),
+        Err(error) if error.kind() == io::ErrorKind::BrokenPipe => {
+            failure.map_or(Err(error), |failure| Ok(Some(failure)))
+        }
+        Err(error) => Ok(Some(error.into())),
+    }
+}
+
+/// Write each record of `records` as it is pulled.
+fn stream_records(
+    view: &View,
+    format: &dyn Format,
+    records: Records<'_>,
+) -> io::Result<Option<anyhow::Error>> {
+    let Records { header, rest } = records;
+    let mut pending = Pending::default();
+    let delivery = pending.clone();
+    let mut writer = format.stream(view.sink(&mut pending, ctl_term::Stream::Stdout, format));
+    let mut failure = None;
+    let mut written = emit(&mut *writer, &delivery, &*header);
+    if written.is_ok() {
+        for item in rest {
+            match item {
+                Ok(record) => written = emit(&mut *writer, &delivery, &*record),
+                Err(error) => {
+                    failure = Some(error);
+                    break;
+                }
+            }
+            if written.is_err() {
+                break;
+            }
+        }
+    }
+    if written.is_ok() {
+        written = finish(writer, &delivery);
+    }
+    settle(failure, written)
+}
+
+/// Pull `records` to the end or the first error, and write them as one result.
+fn collect_records(
+    view: &View,
+    format: &dyn Format,
+    records: Records<'_>,
+) -> io::Result<Option<anyhow::Error>> {
+    let Records { header, rest } = records;
+    let mut all = vec![header];
+    let mut failure = None;
+    for item in rest {
+        match item {
+            Ok(record) => all.push(record),
+            Err(error) => {
+                failure = Some(error);
+                break;
+            }
+        }
+    }
+    let data = Sequence(&all);
+    let present = || merged(&all);
+    let output = Output::new(&data, &present, Outcome::Success);
+    let mut written = Vec::new();
+    format.write(
+        &output,
+        &mut view.sink(&mut written, ctl_term::Stream::Stdout, format),
+    )?;
+    settle(failure, write_stdout(&written))
 }
 
 impl View {
@@ -356,9 +453,12 @@ impl View {
     ///
     /// # Errors
     ///
-    /// The error the iterator ended with, or the error from writing to stdout,
-    /// which is an [`io::Error`] of kind [`io::ErrorKind::BrokenPipe`] when the
-    /// reader closed it. Then the iterator is dropped without another pull.
+    /// Either the error the iterator ended with, or an [`io::Error`] from
+    /// writing to stdout, so a caller tells them apart by downcasting. A
+    /// closed stdout is an [`io::Error`] of kind [`io::ErrorKind::BrokenPipe`];
+    /// the iterator is then dropped without another pull. A closed stdout
+    /// after the iterator failed returns the iterator's error, so the failure
+    /// is never hidden.
     pub fn show_records(self, records: Records<'_>) -> anyhow::Result<ExitCode> {
         match self.run_records(records)? {
             None => Ok(ExitCode::SUCCESS),
@@ -367,53 +467,33 @@ impl View {
     }
 
     /// [`Self::show_records`] before it turns the error of the iterator into
-    /// a return value, so a write failure and an iterator error stay apart.
+    /// a return value, so a closed stdout and an iterator error stay apart.
     pub(crate) fn run_records(self, records: Records<'_>) -> io::Result<Option<anyhow::Error>> {
         let view = self.settled()?;
         let (format, defaulted) = view.chosen()?;
         if view.hides(format, defaulted) {
-            return Ok(drain(records));
+            Ok(drain(records))
+        } else if view.stream {
+            stream_records(&view, format, records)
+        } else {
+            collect_records(&view, format, records)
         }
-        let Records { header, rest } = records;
-        if view.stream {
-            let mut lock = io::stdout().lock();
-            let mut writer = format.stream(view.sink(&mut lock, ctl_term::Stream::Stdout, format));
-            emit(&mut *writer, &*header)?;
-            let mut failure = None;
-            for item in rest {
-                match item {
-                    Ok(record) => emit(&mut *writer, &*record)?,
-                    Err(error) => {
-                        failure = Some(error);
-                        break;
-                    }
-                }
-            }
-            writer.finish()?;
-            io::stdout().flush()?;
-            return Ok(failure);
+    }
+
+    /// Write `value` as a stream of one record. It goes through the format's
+    /// writer without the driver of [`Records`], so a CLI that never returns
+    /// records does not link the collecting path.
+    pub(super) fn stream_value(self, value: &dyn Record) -> io::Result<()> {
+        let view = self.settled()?;
+        let (format, defaulted) = view.chosen()?;
+        if view.hides(format, defaulted) {
+            return Ok(());
         }
-        let mut all = vec![header];
-        let mut failure = None;
-        for item in rest {
-            match item {
-                Ok(record) => all.push(record),
-                Err(error) => {
-                    failure = Some(error);
-                    break;
-                }
-            }
-        }
-        let data = Sequence(&all);
-        let present = || merged(&all);
-        let output = Output::new(&data, &present, Outcome::Success);
-        let mut written = Vec::new();
-        format.write(
-            &output,
-            &mut view.sink(&mut written, ctl_term::Stream::Stdout, format),
-        )?;
-        write_stdout(&written)?;
-        Ok(failure)
+        let mut pending = Pending::default();
+        let delivery = pending.clone();
+        let mut writer = format.stream(view.sink(&mut pending, ctl_term::Stream::Stdout, format));
+        emit(&mut *writer, &delivery, value)?;
+        finish(writer, &delivery)
     }
 }
 
@@ -421,9 +501,10 @@ impl View {
 mod tests {
     use std::iter;
 
-    use serde::Serialize;
+    use serde::ser::SerializeMap as _;
+    use serde::{Serialize, Serializer};
 
-    use super::Records;
+    use super::{Records, drain};
     use crate::document::Document;
     use crate::view::Present;
 
@@ -443,5 +524,38 @@ mod tests {
     #[should_panic(expected = "string `type` field")]
     fn a_record_without_a_type_field_panics_in_a_debug_build() {
         let _ = Records::new(Untagged::Tick { n: 1 }, iter::empty());
+    }
+
+    /// A record that has a `type` field only when `typed` is set.
+    struct Maybe {
+        typed: bool,
+    }
+
+    impl Serialize for Maybe {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            let mut map = serializer.serialize_map(Some(1))?;
+            if self.typed {
+                map.serialize_entry("type", "tick")?;
+            } else {
+                map.serialize_entry("n", &1)?;
+            }
+            map.end()
+        }
+    }
+
+    impl Present for Maybe {
+        fn present(&self) -> Document {
+            Document::new()
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "string `type` field")]
+    fn a_record_after_the_header_without_a_type_field_panics_in_a_debug_build() {
+        let records = Records::new(
+            Maybe { typed: true },
+            iter::once(Ok(Maybe { typed: false })),
+        );
+        let _ = drain(records);
     }
 }

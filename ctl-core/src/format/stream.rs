@@ -11,18 +11,19 @@ use crate::format::{Format, Output, Sink};
 /// [`Sink`], so it keeps whatever it needs between records, such as the
 /// header of a table already written.
 ///
-/// ctl-core flushes stdout after each [`Self::record`] that succeeds, so a
-/// writer needs no flush of its own. It never calls [`Self::record`] after an
-/// error, and it calls [`Self::finish`] only when every record before it was
-/// written.
+/// The sink is a buffer. When [`Self::record`] returns, ctl-core locks stdout,
+/// writes what the call wrote, and flushes, so a writer needs no flush of its
+/// own, and no lock is held while a record serializes. What a call wrote before
+/// it failed is dropped, so no part of a failed record reaches stdout. ctl-core
+/// never calls [`Self::record`] after an error, and it calls [`Self::finish`]
+/// only when every record before it was written.
 pub trait RecordWriter {
     /// Write one record.
     ///
     /// # Errors
     ///
-    /// Returns the error from serializing the record or from writing it. A
-    /// reader that closed the stream is an [`io::ErrorKind::BrokenPipe`]
-    /// error, which ends the run quietly.
+    /// Returns the error from serializing the record or from writing it to the
+    /// sink. ctl-core reports it on stderr with exit code 1.
     fn record(&mut self, output: &Output<'_>) -> io::Result<()>;
 
     /// End the stream: write what closes it, if anything.

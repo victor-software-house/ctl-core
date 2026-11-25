@@ -489,8 +489,9 @@ where
             .matches
             .as_ref()
             .is_some_and(|matches| matches!(matches.try_get_one::<bool>("stream"), Ok(Some(true))));
+        let raw_request = View::requested(named, parsed.color).stream(streamed);
         let raw_view = self.configured_view(
-            self.resolve(&View::requested(named, parsed.color).stream(streamed))
+            self.resolve(&raw_request)
                 .unwrap_or_else(|_| View::new(&PRETTY, parsed.color)),
         );
         for warning in raw_view.env_warnings(render::process_env) {
@@ -513,7 +514,7 @@ where
             Err(error) => return self.written(Err(error), ExitCode::SUCCESS),
         }
 
-        let error_view = self.parse_error_view(&raw, &raw_view, parsed.color);
+        let error_view = self.parse_error_view(&raw, &raw_request, parsed.color);
         let parse = match flags::env_under_flags(parser::apply_defaults(command.clone()), &raw) {
             Ok(parse) => parse,
             Err(error) => return self.clap_error(&error, &error_view, &words, &command),
@@ -632,15 +633,24 @@ where
     /// The short `-f` is left out, because a CLI may bind it to another
     /// flag. The scan is lexical, so a domain option whose value happens to be
     /// `--format=json` also gets a JSON error. That only changes how a failed
-    /// parse is reported. When the scan finds nothing, `view` stands.
-    fn parse_error_view(&self, raw: &[OsString], view: &View, color: ColorMode) -> View {
+    /// parse is reported.
+    ///
+    /// A `--stream` after the bad argument goes unseen the same way, and would
+    /// leave the error in the piped default. So the scan finds it too, and when
+    /// no format is named, the view is `request` resolved under `--stream`, in
+    /// the stream default's error form. `request` is the view the lenient read
+    /// built, before it settled a format. When the scan finds nothing,
+    /// `request` resolves as it did.
+    fn parse_error_view(&self, raw: &[OsString], request: &View, color: ColorMode) -> View {
         let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
         let mut last = None;
+        let mut streamed = request.is_stream();
         while let Some(arg) = args.next() {
             let Some(arg) = arg else { continue };
             if arg == "--" {
                 break;
             }
+            streamed |= arg == "--stream";
             let shorthand = arg.strip_prefix("--").and_then(|long| {
                 self.formats
                     .shorthands()
@@ -662,7 +672,10 @@ where
             }
         }
         let Some(format) = last.and_then(|name| self.formats.get(name)) else {
-            return *view;
+            return self.configured_view(
+                self.resolve(&(*request).stream(streamed))
+                    .unwrap_or_else(|_| View::new(&PRETTY, color)),
+            );
         };
         let color = if format.machine() {
             ColorMode::Never

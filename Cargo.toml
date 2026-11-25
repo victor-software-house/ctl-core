@@ -193,7 +193,8 @@ cli = { features = "cli", text = 345200 }
 # decision 6). 928 below that, 446886 (CTC-062).
 # 128 above that: the same three names (CTC-062, the tabular formats).
 # 1,152 above that: the same flag (CTC-063).
-help = { features = "help", text = 447238 }
+# 16 below that: the flag after the fix pass on records (CTC-063).
+help = { features = "help", text = 447222 }
 # 364 below the first engine budget, 409362: the ctl-text growth, offset by
 # a smaller ctl-layout Table and a smaller inlined View setup. 25,491 above the
 # last budget, 408998: erased-serde and the open format interface (CTC-062),
@@ -207,7 +208,10 @@ help = { features = "help", text = 447238 }
 # 18,336 above that: records and `--stream`, the one driver that collects or
 # streams them, the stream form of `json`, and the default record writer
 # (CTC-063).
-view = { features = "cli,view", text = 461881 }
+# 12,544 below that: a value under `--stream` writes through the format's
+# writer without the records driver, and the collected merge moves blocks and
+# rows (CTC-063, the fix pass).
+view = { features = "cli,view", text = 449337 }
 # 2,320 above the last budget, 469654: the same declared help flag and
 # subcommand as help (size-cuts decision 6). 29,955 above the last budget,
 # 471974: the view growth, and `App` reading the registry for help,
@@ -216,13 +220,15 @@ view = { features = "cli,view", text = 461881 }
 # 7,680 below that: the one walker (CTC-062, the tabular formats).
 # 18,608 above that: the same growth as view, and `App` taking a value or
 # records (CTC-063).
-app = { features = "app", text = 529593 }
+# 10,128 below that: the same cut as view (CTC-063, the fix pass).
+app = { features = "app", text = 519465 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer. 29,891
 # above the last budget, 525798: the same growth as app (CTC-062).
 # 16,608 above that: the same three formats (CTC-062, the tabular formats).
 # 7,568 below that: the one walker (CTC-062, the tabular formats).
 # 18,704 above that: the same growth as app (CTC-063).
-usage = { features = "app,usage", text = 583433 }
+# 10,592 below that: the same cut as app (CTC-063, the fix pass).
+usage = { features = "app,usage", text = 572841 }
 # app plus input: serde-saphyr, yamled, and garde. 2,287 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
 # flattened field (flattened-field-place), 2,096, and Input::top_level with
@@ -234,7 +240,8 @@ usage = { features = "app,usage", text = 583433 }
 # 17,968 above that: the same three formats (CTC-062, the tabular formats).
 # 8,912 below that: the one walker (CTC-062, the tabular formats).
 # 17,248 above that: the same growth as app (CTC-063).
-input = { features = "app,input", text = 1109197 }
+# 12,272 below that: the same cut as app (CTC-063, the fix pass).
+input = { features = "app,input", text = 1096925 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 456,799 below input. 320 above the last budget,
 # 594206: Input::top_level over the toml tree (top-level-entries). The one
@@ -244,7 +251,8 @@ input = { features = "app,input", text = 1109197 }
 # 16,736 above that: the same three formats (CTC-062, the tabular formats).
 # 7,680 below that: the one walker (CTC-062, the tabular formats).
 # 17,456 above that: the same growth as app (CTC-063).
-input-toml = { features = "app,input-toml", text = 650494 }
+# 10,048 below that: the same cut as app (CTC-063, the fix pass).
+input-toml = { features = "app,input-toml", text = 640446 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
