@@ -56,6 +56,8 @@ mod pretty;
 #[cfg(feature = "view")]
 mod registry;
 #[cfg(feature = "view")]
+mod stream;
+#[cfg(feature = "view")]
 mod tabular;
 #[cfg(feature = "view")]
 mod tsv;
@@ -78,6 +80,8 @@ pub use pretty::{PRETTY, Pretty};
 pub use registry::Formats;
 #[cfg(feature = "view")]
 pub(crate) use registry::unregistered;
+#[cfg(feature = "view")]
+pub use stream::RecordWriter;
 #[cfg(feature = "view")]
 pub use tsv::{TSV, Tsv};
 
@@ -212,11 +216,32 @@ pub(crate) fn unknown_format(
     variable: Option<&str>,
     accepted: &mut dyn Iterator<Item = FormatName>,
 ) -> clap::Error {
+    let source = variable.map_or_else(String::new, |name| format!(" from the variable `{name}`"));
+    unknown_format_from(text, &source, accepted)
+}
+
+/// The usage error for a stream default that is not registered, in the shape
+/// of [`unknown_format`]: `--stream` with no format named would use it.
+#[cfg(feature = "app")]
+pub(crate) fn unknown_stream_default(
+    name: FormatName,
+    accepted: &mut dyn Iterator<Item = FormatName>,
+) -> clap::Error {
+    unknown_format_from(name.as_str(), " from the stream default", accepted)
+}
+
+/// The error line the two above share: the value, where it came from, and the
+/// accepted names.
+#[cfg(feature = "cli")]
+fn unknown_format_from(
+    text: &str,
+    source: &str,
+    accepted: &mut dyn Iterator<Item = FormatName>,
+) -> clap::Error {
     let accepted = accepted
         .map(FormatName::as_str)
         .collect::<Vec<_>>()
         .join(", ");
-    let source = variable.map_or_else(String::new, |name| format!(" from the variable `{name}`"));
     clap::Error::raw(
         ErrorKind::InvalidValue,
         format_args!("unknown format `{text}`{source}; use one of {accepted}\n"),

@@ -51,6 +51,8 @@ pub struct OutputArgs {
     no_color: bool,
     /// Suppress successful pretty output: `-q/--quiet`.
     pub quiet: bool,
+    /// Write each record when the command produces it: `--stream`.
+    pub stream: bool,
 }
 
 impl OutputArgs {
@@ -62,12 +64,15 @@ impl OutputArgs {
     }
 
     /// Build the [`View`](crate::view::View) for these flags: the format they
-    /// request, the quiet setting, and the colour mode in force. Without a
-    /// requested format the view takes the default when it resolves.
+    /// request, the quiet and stream settings, and the colour mode in force.
+    /// Without a requested format the view takes the default when it resolves:
+    /// the stream default under `--stream`.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self) -> view::View {
-        view::View::requested(self.format, self.color()).quiet(self.quiet)
+        view::View::requested(self.format, self.color())
+            .quiet(self.quiet)
+            .stream(self.stream)
     }
 }
 
@@ -91,15 +96,19 @@ pub struct FormatArgs {
     pub format: Option<FormatName>,
     /// Suppress successful pretty output: `-q/--quiet`.
     pub quiet: bool,
+    /// Write each record when the command produces it: `--stream`.
+    pub stream: bool,
 }
 
 impl FormatArgs {
     /// Build the [`View`](crate::view::View) for these flags, with `color` as
-    /// the colour mode and the parsed format and quiet setting.
+    /// the colour mode and the parsed format, quiet, and stream settings.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> view::View {
-        view::View::requested(self.format, color).quiet(self.quiet)
+        view::View::requested(self.format, color)
+            .quiet(self.quiet)
+            .stream(self.stream)
     }
 }
 
@@ -115,15 +124,19 @@ pub struct FormatLong {
     pub format: Option<FormatName>,
     /// Suppress successful pretty output: `-q/--quiet`.
     pub quiet: bool,
+    /// Write each record when the command produces it: `--stream`.
+    pub stream: bool,
 }
 
 impl FormatLong {
     /// Build the [`View`](crate::view::View) for these flags, with `color` as
-    /// the colour mode and the parsed format and quiet setting.
+    /// the colour mode and the parsed format, quiet, and stream settings.
     #[cfg(feature = "view")]
     #[must_use]
     pub fn view(&self, color: ColorMode) -> view::View {
-        view::View::requested(self.format, color).quiet(self.quiet)
+        view::View::requested(self.format, color)
+            .quiet(self.quiet)
+            .stream(self.stream)
     }
 }
 
@@ -254,6 +267,9 @@ struct OutputFlags {
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     quiet: bool,
+    /// Write each record when the command produces it.
+    #[arg(long, global = true, help_heading = "Output")]
+    stream: bool,
 }
 
 impl OutputFlags {
@@ -263,6 +279,7 @@ impl OutputFlags {
             color: self.color,
             no_color: self.no_color,
             quiet: self.quiet,
+            stream: self.stream,
         })
     }
 }
@@ -274,6 +291,7 @@ impl From<OutputArgs> for OutputFlags {
             color: args.color,
             no_color: args.no_color,
             quiet: args.quiet,
+            stream: args.stream,
         }
     }
 }
@@ -298,6 +316,9 @@ struct FormatFlags {
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     quiet: bool,
+    /// Write each record when the command produces it.
+    #[arg(long, global = true, help_heading = "Output")]
+    stream: bool,
 }
 
 impl FormatFlags {
@@ -305,6 +326,7 @@ impl FormatFlags {
         Ok(FormatArgs {
             format: resolved_format(self.format, json_set(matches), matches)?,
             quiet: self.quiet,
+            stream: self.stream,
         })
     }
 }
@@ -314,6 +336,7 @@ impl From<FormatArgs> for FormatFlags {
         Self {
             format: args.format,
             quiet: args.quiet,
+            stream: args.stream,
         }
     }
 }
@@ -337,6 +360,9 @@ struct FormatLongFlags {
     /// Suppress successful pretty output.
     #[arg(short = 'q', long, global = true, help_heading = "Output")]
     quiet: bool,
+    /// Write each record when the command produces it.
+    #[arg(long, global = true, help_heading = "Output")]
+    stream: bool,
 }
 
 impl FormatLongFlags {
@@ -344,6 +370,7 @@ impl FormatLongFlags {
         Ok(FormatLong {
             format: resolved_format(self.format, json_set(matches), matches)?,
             quiet: self.quiet,
+            stream: self.stream,
         })
     }
 }
@@ -353,6 +380,7 @@ impl From<FormatLong> for FormatLongFlags {
         Self {
             format: args.format,
             quiet: args.quiet,
+            stream: args.stream,
         }
     }
 }

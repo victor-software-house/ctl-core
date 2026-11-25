@@ -121,6 +121,7 @@ fn in_child(test: &str, vars: &[(&str, &str)]) -> bool {
         .env_remove("ENVTOY_MAJOR")
         .env_remove("ENVTOY_MINOR")
         .env_remove("ENVTOY_LIST")
+        .env_remove("ENVTOY_STREAM")
         .envs(vars.iter().copied())
         .output()
         .expect("spawn child");
@@ -149,6 +150,14 @@ fn a_variable_sets_a_subcommand_option_and_a_shared_flag() {
         return;
     }
     assert_eq!(config(&parse(&["prepare"])), ("ci/ver.yaml", true));
+}
+
+#[test]
+fn a_variable_sets_stream() {
+    if !in_child("a_variable_sets_stream", &[("ENVTOY_STREAM", "true")]) {
+        return;
+    }
+    assert!(parse(&["show"]).output.stream);
 }
 
 #[test]

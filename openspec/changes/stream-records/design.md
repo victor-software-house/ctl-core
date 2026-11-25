@@ -71,7 +71,7 @@ The format in force under `--stream` is the one named on the command line, then 
 
 ## Risks / Trade-offs
 
-1. [A record of `Records` without a `type` field breaks the stream contract] → A debug assertion and a test helper check the field; a single value is exempt.
+1. [A record of `Records` without a `type` field breaks the stream contract] → A debug assertion checks the field, and a single value is exempt.
 2. [A stream of tables in `tsv` repeats a header when the columns change] → A reader splits on header lines, and the rustdoc says when one repeats.
 
 ## Migration Plan

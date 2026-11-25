@@ -28,6 +28,10 @@ Output
 │ -q ┆ --quiet    ┆                                     ┆ Suppress successful  │
 │    ┆            ┆                                     ┆ pretty output [env:  │
 │    ┆            ┆                                     ┆ FMTTOY_QUIET]        │
+│    ┆ --stream   ┆                                     ┆ Write each record    │
+│    ┆            ┆                                     ┆ when the command     │
+│    ┆            ┆                                     ┆ produces it [env:    │
+│    ┆            ┆                                     ┆ FMTTOY_STREAM]       │
 │    ┆ --json     ┆                                     ┆ Shorthand for        │
 │    ┆            ┆                                     ┆ `--format json`      │
 │    ┆            ┆                                     ┆ [env: FMTTOY_JSON]   │

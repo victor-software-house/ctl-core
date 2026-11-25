@@ -7,7 +7,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 ## What it owns
 
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
-- Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
+- Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, `--stream`, plus `--foo` / `--no-foo` negation helpers
   `--json` beside another `--format` on the command line is a usage error.
   `TOY_JSON` beside a `TOY_FORMAT` that names another format is a usage error too, and the command line wins over any variable.
 - The open output interface: `format::Format`, `Output`, `Sink`, and `Formats` with feature `view`, and `FormatName` (the value `--format` parses into).
@@ -133,6 +133,27 @@ These sections of [`design.md`](../openspec/changes/archive/2026-11-10-terminal-
   Tests](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#17-tests)
 - [18.
   The rule against writing these from scratch is replaced](../openspec/changes/archive/2026-11-10-terminal-render-engine/design.md#18-the-rule-against-writing-these-from-scratch-is-replaced)
+
+## Records and --stream
+
+A command returns a value or `view::Records`, a header record then records, each `Present` and serializing with a string `type` field (a debug build panics on one without).
+`view::Reply` is a value or records, and the sealed `view::Respond` lets `App::run` take either.
+`View::show_records` writes records without `App` and returns the iterator's error.
+Only `Records::new` and `Reply::value` are generic: each record is erased at once, and one driver (`View::run_records`) writes records both collected and streamed.
+
+- Without `--stream`, records are collected and written as one result: `json` writes one array, and adjacent one-table documents with equal headers merge into one table.
+- With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record as the iterator yields it, and the driver flushes stdout after each.
+  The default writer calls `write` and writes nothing between records.
+  `json` writes each record compact on one line, whatever the layout.
+- `--stream` alone uses `Formats::stream_default`, `json` unless the CLI changes it; one that is not registered is a usage error.
+- A value under `--stream` is a stream of one record with no `type` added, and keeps its own stream and exit code when it failed.
+- Every record goes to stdout, and its outcome and exit code are ignored; the run exits 0 unless the iterator yields an error.
+  An error stops the iterator, closes the output, then goes to stderr as a handler error does.
+  A closed stdout stops the pull, drops the iterator, and exits through `App::written`.
+- `--quiet` with no format named drains the iterator and writes nothing; a named machine format is written.
+- There is no `jsonl` format: JSON Lines is the stream form of `json`.
+
+A CLI that calls `Surface::require_shorts` adds `--stream` to its allow list: the flag has no short.
 
 ## Cargo features
 

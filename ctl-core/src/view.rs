@@ -59,6 +59,10 @@ use crate::render;
 use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
 use crate::theme::Theme;
 
+mod records;
+
+pub use records::{Records, Reply, Respond};
+
 /// The environment variable that sets the JSON layout when the CLI has not:
 /// `CTL_CORE_JSON_LAYOUT`. Its values are the [`JsonLayout`] names
 /// `pretty`, `compact`, and `pretty-on-terminal`.
@@ -248,6 +252,7 @@ pub struct View {
     json_layout: Option<JsonLayout>,
     json_layout_envs: &'static [&'static str],
     script: bool,
+    stream: bool,
 }
 
 /// The formats ctl-core itself offers, which a view that was never resolved
@@ -326,6 +331,7 @@ impl View {
             json_layout: None,
             json_layout_envs: DEFAULT_JSON_LAYOUT_ENVS,
             script: false,
+            stream: false,
         }
     }
 
@@ -357,6 +363,7 @@ impl View {
                     .ok_or_else(|| unregistered("the format", name))?,
             ),
             Choice::Unset if self.script => Choice::Named(&PRETTY),
+            Choice::Unset if self.stream => Choice::Defaulted(formats.stream_format()?),
             Choice::Unset => Choice::Defaulted(formats.default_format(terminal)?),
         };
         Ok(self)
@@ -489,6 +496,19 @@ impl View {
         self
     }
 
+    /// Write a result as it is produced when `stream` is true: `--stream`.
+    ///
+    /// A view with no format named then takes the registry's stream default,
+    /// [`Formats::stream_default`], in place of the terminal or piped default.
+    /// [`Self::show`] writes a value as a stream of one record, and
+    /// [`Self::show_records`] writes each record when the command produces
+    /// it. [`Self::capture`] ignores it.
+    #[must_use]
+    pub const fn stream(mut self, stream: bool) -> Self {
+        self.stream = stream;
+        self
+    }
+
     /// Suppress a successful result when `quiet` is true, unless the format is
     /// a machine format that was named. Errors are still written.
     #[must_use]
@@ -520,6 +540,27 @@ impl View {
     #[must_use]
     pub const fn is_quiet(self) -> bool {
         self.quiet
+    }
+
+    /// Whether results are written as they are produced, as [`Self::stream`]
+    /// set it.
+    #[must_use]
+    pub const fn is_stream(self) -> bool {
+        self.stream
+    }
+
+    /// Whether the view still has no format: no flag, variable, shorthand, or
+    /// caller named one.
+    #[cfg(feature = "app")]
+    pub(crate) const fn names_no_format(self) -> bool {
+        matches!(self.choice, Choice::Unset)
+    }
+
+    /// Whether this view writes nothing for a successful result of a
+    /// `format` that was `defaulted` or named: `--quiet` hides `pretty` and
+    /// a default, and never a machine format that was named.
+    fn hides(self, format: &dyn Format, defaulted: bool) -> bool {
+        self.quiet && !self.script && (defaulted || !format.machine())
     }
 
     /// Lay out pretty output to exactly `width` terminal cells, skipping
@@ -614,11 +655,7 @@ impl View {
         let view = self.settled()?;
         let (format, defaulted) = view.chosen()?;
         let outcome = output.outcome();
-        let hidden = view.quiet
-            && !view.script
-            && outcome == Outcome::Success
-            && (defaulted || !format.machine());
-        if hidden {
+        if outcome == Outcome::Success && view.hides(format, defaulted) {
             return Ok(Captured {
                 stream: Destination::None,
                 content: String::new(),
@@ -643,18 +680,34 @@ impl View {
     /// Render `value` and write it to the stream [`Self::capture`] picks.
     /// Returns the exit code for `main` to return.
     ///
+    /// Under [`Self::stream`] a successful value is written as a stream of
+    /// one record, by the format's
+    /// [`RecordWriter`](crate::format::RecordWriter), with no `type` field
+    /// added. A value that failed keeps its stream, stderr, and its exit code.
+    ///
     /// # Errors
     ///
     /// Returns an error when the format fails to write `value`, or when
     /// writing to stdout or stderr fails.
     pub fn show(self, value: &impl Present) -> io::Result<ExitCode> {
-        let captured = self.capture(value)?;
-        match captured.stream() {
-            Destination::None => {}
-            Destination::Stdout => write_stdout(captured.bytes())?,
-            Destination::Stderr => write_stderr(captured.bytes())?,
+        self.show_record(value)?;
+        Ok(ExitCode::from(value.exit_code()))
+    }
+
+    /// [`Self::show`] for a result already behind [`records::Record`], so one
+    /// copy of this body serves every result type.
+    fn show_record(self, value: &dyn records::Record) -> io::Result<()> {
+        if self.stream && value.outcome() == Outcome::Success {
+            return self.run_records(Records::of(value)).map(|_| ());
         }
-        Ok(captured.exit_code())
+        let present = || value.present();
+        let output = Output::new(value.data(), &present, value.outcome());
+        let captured = self.capture_output(&output, value.exit_code())?;
+        match captured.stream() {
+            Destination::None => Ok(()),
+            Destination::Stdout => write_stdout(captured.bytes()),
+            Destination::Stderr => write_stderr(captured.bytes()),
+        }
     }
 
     /// Write a failure that has no [`Present`] model, such as a parse error.
@@ -693,6 +746,7 @@ impl PartialEq for View {
             && self.json_layout == other.json_layout
             && self.json_layout_envs == other.json_layout_envs
             && self.script == other.script
+            && self.stream == other.stream
     }
 }
 
@@ -710,6 +764,7 @@ impl fmt::Debug for View {
             .field("options", &self.options)
             .field("json_layout", &self.json_layout)
             .field("script", &self.script)
+            .field("stream", &self.stream)
             .finish_non_exhaustive()
     }
 }

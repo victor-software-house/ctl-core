@@ -7,22 +7,23 @@ use std::process::{Command, Output};
 
 use ctl_core::prelude::*;
 
-/// Run `test` in a child with `vars` set and return its output, or `None`
-/// when this process is that child and should run the case. `variable`
-/// marks the child.
+/// The command that reruns `test` of this binary as a child with `vars` set,
+/// or `None` when this process is that child and should run the case.
+/// `variable` marks the child.
 ///
 /// The child writes to pipes, so `COLUMNS`, the colour variables, and
 /// ctl-core's layout variables would change its output; it runs without them,
-/// at the fallback width. The child's own assertions fail the parent.
+/// at the fallback width.
 #[expect(
     clippy::expect_used,
     reason = "a test helper: a failure here is the calling test failing"
 )]
-pub(crate) fn in_child(variable: &str, test: &str, vars: &[(&str, &str)]) -> Option<Output> {
+pub(crate) fn command(variable: &str, test: &str, vars: &[(&str, &str)]) -> Option<Command> {
     if env::var_os(variable).as_deref() == Some(test.as_ref()) {
         return None;
     }
-    let output = Command::new(env::current_exe().expect("test binary"))
+    let mut child = Command::new(env::current_exe().expect("test binary"));
+    child
         .args(["--exact", test, "--nocapture", "--test-threads=1"])
         .env(variable, test)
         .env_remove("CLICOLOR")
@@ -36,7 +37,19 @@ pub(crate) fn in_child(variable: &str, test: &str, vars: &[(&str, &str)]) -> Opt
         .env_remove(DEFAULT_LIST_STYLE_ENV)
         .env_remove(DEFAULT_ROW_SEPARATION_ENV)
         .env_remove(DEFAULT_JSON_LAYOUT_ENV)
-        .envs(vars.iter().copied())
+        .envs(vars.iter().copied());
+    Some(child)
+}
+
+/// Run `test` in a child with `vars` set and return its output, or `None`
+/// when this process is that child and should run the case. `variable`
+/// marks the child. The child's own assertions fail the parent.
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a failure here is the calling test failing"
+)]
+pub(crate) fn in_child(variable: &str, test: &str, vars: &[(&str, &str)]) -> Option<Output> {
+    let output = command(variable, test, vars)?
         .output()
         .expect("spawn child");
     assert!(
@@ -49,7 +62,7 @@ pub(crate) fn in_child(variable: &str, test: &str, vars: &[(&str, &str)]) -> Opt
 }
 
 /// The line the child prints to stdout before the case runs.
-const CASE_START: &str = "--- case start ---\n";
+pub(crate) const CASE_START: &str = "--- case start ---\n";
 /// The line the child prints to stdout after the case ran.
 const CASE_END: &str = "--- case end ---\n";
 

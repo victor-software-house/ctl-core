@@ -13,16 +13,23 @@
 //!
 //! A failure goes to stderr in each format's own error form, so stdout
 //! holds nothing after a failed run. That covers a handler error, a parse
-//! error, and a result whose [`Present::outcome`] is an error.
+//! error, and a result whose [`Present::outcome`](view::Present::outcome) is an
+//! error.
 //!
-//! A handler returns a [`Present`] value and prints nothing. Help, errors, and
-//! results share one renderer, one theme, and one width policy.
+//! A handler returns a [`Present`](view::Present) value, or a
+//! [`Reply`](view::Reply) that is a value or a stream of
+//! [`Records`](view::Records), and prints nothing. Help, errors, and results
+//! share one renderer, one theme, and one width policy. A stream of records
+//! is written as it is produced under `--stream`; see
+//! [`Records`](view::Records).
 //!
 //! # Exit codes
 //!
-//! - A result exits with its [`Present::exit_code`], 0 by default.
-//! - A handler error exits 1, or with the code of the [`CommandError`] in its
-//!   chain. A JSON envelope carries that error's `kind` value.
+//! - A result exits with its [`Present::exit_code`](view::Present::exit_code),
+//!   0 by default. Records exit 0.
+//! - A handler error, or an error from the iterator of a stream of records,
+//!   exits 1, or with the code of the [`CommandError`] in its chain. A JSON
+//!   envelope carries that error's `kind` value.
 //! - A parse error exits with Clap's code, 2 for a usage error, and its JSON
 //!   envelope sets `kind` to `usage`.
 //! - A bare invocation of a command that needs a subcommand or an argument
@@ -44,7 +51,7 @@ use clap::{ArgMatches, Command, CommandFactory, Parser};
 use crate::color::ColorMode;
 #[cfg(feature = "completion")]
 use crate::completion;
-use crate::format::{FormatName, Formats, PRETTY, unknown_format};
+use crate::format::{FormatName, Formats, PRETTY, unknown_format, unknown_stream_default};
 use crate::help::CommandGroup;
 #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 use crate::input::{self, Limits};
@@ -53,7 +60,7 @@ use crate::render::{self, RenderOptions};
 use crate::theme::Theme;
 #[cfg(feature = "usage")]
 use crate::usage;
-use crate::view::{self, JsonLayout, Present, View};
+use crate::view::{self, JsonLayout, Respond, View};
 use crate::{flags, help, parser};
 
 mod command_error;
@@ -429,7 +436,7 @@ where
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run<T>(self, execute: impl FnOnce(C) -> Result<T>) -> ExitCode
     where
-        T: Present,
+        T: Respond,
     {
         self.run_from(env::args_os(), execute)
     }
@@ -449,7 +456,7 @@ where
         execute: impl FnOnce(C) -> Result<T>,
     ) -> ExitCode
     where
-        T: Present,
+        T: Respond,
     {
         let raw = args.into_iter().map(Into::into).collect::<Vec<_>>();
         let words = raw
@@ -478,8 +485,12 @@ where
         let named = parsed.matches.as_ref().and_then(|matches| {
             requested_format(&command, matches, &self.formats).unwrap_or(Some(FormatName::JSON))
         });
+        let streamed = parsed
+            .matches
+            .as_ref()
+            .is_some_and(|matches| matches!(matches.try_get_one::<bool>("stream"), Ok(Some(true))));
         let raw_view = self.configured_view(
-            self.resolve(&View::requested(named, parsed.color))
+            self.resolve(&View::requested(named, parsed.color).stream(streamed))
                 .unwrap_or_else(|_| View::new(&PRETTY, parsed.color)),
         );
         for warning in raw_view.env_warnings(render::process_env) {
@@ -520,6 +531,15 @@ where
             Err(error) => return self.clap_error(&error, &error_view, &words, &command),
         };
         let view = self.configured_view((self.select_view)(&cli).with_request(requested));
+        if view.is_stream()
+            && view.names_no_format()
+            && self.formats.get(self.formats.stream_name()).is_none()
+        {
+            let error =
+                unknown_stream_default(self.formats.stream_name(), &mut self.formats.names())
+                    .format(&mut command.clone());
+            return self.clap_error(&error, &error_view, &words, &command);
+        }
         let view = match self.resolve(&view) {
             Ok(view) => view,
             Err(error) => {
@@ -528,22 +548,32 @@ where
             }
         };
         match execute(cli) {
-            Ok(value) => self.written(
-                view.show(&value).map(|_| ()),
-                ExitCode::from(value.exit_code()),
-            ),
-            Err(error) => {
-                let mut body = ErrorBody::new(&self.bin, format!("{error:#}"));
-                let mut code = ExitCode::FAILURE;
-                if let Some(failure) = CommandError::find(&error) {
-                    code = ExitCode::from(failure.code().get());
-                    if let Some(kind) = failure.kind_name() {
-                        body = body.kind(kind);
-                    }
+            Ok(value) => {
+                let code = ExitCode::from(value.reply_exit_code());
+                match value.deliver(&view) {
+                    Ok(None) => self.written(Ok(()), code),
+                    Ok(Some(error)) => self.failed(&view, &error),
+                    Err(error) => self.written(Err(error), code),
                 }
-                self.written(view.write_error(&body), code)
+            }
+            Err(error) => self.failed(&view, &error),
+        }
+    }
+
+    /// Write `error` to stderr in `view`'s error form and return its exit
+    /// code: 1, or the code of the first [`CommandError`] in its chain, whose
+    /// `kind` value the JSON envelope carries. A handler error and the error
+    /// of a stream of records both end here.
+    fn failed(&self, view: &View, error: &anyhow::Error) -> ExitCode {
+        let mut body = ErrorBody::new(&self.bin, format!("{error:#}"));
+        let mut code = ExitCode::FAILURE;
+        if let Some(failure) = CommandError::find(error) {
+            code = ExitCode::from(failure.code().get());
+            if let Some(kind) = failure.kind_name() {
+                body = body.kind(kind);
             }
         }
+        self.written(view.write_error(&body), code)
     }
 
     /// `view` with its format settled against this CLI's registry and the

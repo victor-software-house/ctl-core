@@ -59,12 +59,14 @@ help = ["cli", "render", "clap/usage", "ctl-term/detect"]
 ## open `Format` interface they are written through. Adds `erased-serde`, so a
 ## format serializes a result it holds as a trait object, and `ctl-term`'s
 ## `detect` feature, which decides colour and width for the stream each result
-## goes to.
+## goes to. Adds `anyhow`, which the error of a stream of records
+## (`view::Records`) is.
 view = [
   "render",
   "json",
   "dep:serde_json",
   "dep:erased-serde",
+  "dep:anyhow",
   "ctl-term/detect",
 ]
 

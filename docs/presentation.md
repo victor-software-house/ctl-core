@@ -146,6 +146,40 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    A control character, directional formatting character, and line or paragraph separator is dropped from every text, except a tab, line feed, and carriage return.
    Blocks that write something are separated by one blank line.
 
+## Records and --stream
+
+A command returns one value, as before, or `view::Records`: a header record, then records, each a `Result`.
+Every record is `Present` and serializes as a map with a string `type` field, which `#[serde(tag = "type")]` on an enum of the record types gives.
+A debug build panics on a record without one, the header included.
+A single value is exempt.
+A handler whose subcommands return a value and records returns `view::Reply`, and `view::Respond` is the sealed trait that lets `App::run` take either.
+`View::show_records` writes records for a consumer without `App`, and returns the error the iterator ended with.
+
+1. Without `--stream`, records are collected and written as one result.
+   Its data is one sequence, header first, so `json` writes one array.
+   Its document is the header's document followed by each record's, where adjacent documents that are each one table with equal headers merge into one table.
+2. With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record when the iterator yields it, and ctl-core flushes stdout after each.
+   The default writer calls `write` for each record and writes nothing between records, so a CLI's own format streams with no extra code.
+   `json` writes each record compact on one line ending in LF, whatever the layout.
+   The stream forms of `tsv`, `csv`, `markdown`, and `pretty` are still the default writer.
+3. A value under `--stream` is a stream of one record, as the value serializes, with no `type` field added.
+   A value that failed keeps its own stream, stderr, and exit code.
+4. Every record goes to stdout.
+   A record's `outcome()` and `exit_code()` are ignored, and the run exits 0 unless the iterator yields an error.
+5. `--stream` with no format named uses the stream default, `json`, in place of the terminal and piped defaults.
+   `Formats::stream_default` changes it.
+   A stream default that is not registered makes `--stream` with no format a usage error that lists the registered names.
+6. An error from the iterator stops it.
+   The records already pulled are written and the output is closed, so a `json` array is complete.
+   Then the error goes to stderr in the format's error form, with the exit code and `kind` of the first `CommandError` in its chain, or 1.
+7. A reader that closes stdout ends the stream: ctl-core stops pulling, drops the iterator, and exits as the `BrokenPipe` policy says.
+8. `--quiet` counts the stream default as a default format.
+   With no format named, it drains the iterator, writes no record, and still writes an error and its code.
+   A machine format named on the command line or by a variable is written.
+9. A parse error and a handler error under `--stream` with no format named use the stream default's error form, whether `--stream` came from the flag or from `<PREFIX>_STREAM`.
+
+There is no `jsonl` format and no `--jsonl` flag: JSON Lines is the stream form of `json`.
+
 ## Output law
 
 One serializable model feeds all modes:
@@ -157,7 +191,7 @@ One serializable model feeds all modes:
 4. Errors use stderr, in each format's own error form, so stdout stays empty after a failure.
    That covers the error envelope, a parse error, and a result whose outcome is an error.
    A reader that parses stdout never mistakes an error for a result.
-5. Quiet suppresses a successful result in `pretty` and in a default format.
+5. Quiet suppresses a successful result in `pretty` and in a default format, the stream default included.
    It never hides errors, and never hides a machine format that a flag, a shorthand, or a variable named.
 6. A reader that closes stdout or stderr early, as `head -1` does, leaves the exit code as the command set it and puts nothing on stderr:
    - A command that succeeded exits 0.

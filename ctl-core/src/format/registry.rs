@@ -41,19 +41,22 @@ pub struct Formats {
     registered: Vec<&'static dyn Format>,
     terminal: FormatName,
     piped: FormatName,
+    stream: FormatName,
 }
 
 impl Formats {
     /// `pretty`, `json`, `tsv`, `csv`, and `markdown`. `pretty` is the default
     /// on a terminal and `tsv` is the default when stdout is not one. A CLI
     /// that keeps `pretty` when piped calls
-    /// `piped_default(FormatName::PRETTY)`.
+    /// `piped_default(FormatName::PRETTY)`. `json` is the default under
+    /// `--stream`, which [`Self::stream_default`] changes.
     #[must_use]
     pub fn builtin() -> Self {
         Self {
             registered: vec![&PRETTY, &JSON, &TSV, &CSV, &MARKDOWN],
             terminal: FormatName::PRETTY,
             piped: FormatName::TSV,
+            stream: FormatName::JSON,
         }
     }
 
@@ -93,6 +96,15 @@ impl Formats {
     #[must_use]
     pub fn piped_default(mut self, name: FormatName) -> Self {
         self.piped = name;
+        self
+    }
+
+    /// The format used under `--stream` when none was named, whether stdout
+    /// is a terminal or not. Setting it to a name that is not registered makes
+    /// `--stream` with no format a usage error.
+    #[must_use]
+    pub fn stream_default(mut self, name: FormatName) -> Self {
+        self.stream = name;
         self
     }
 
@@ -140,6 +152,23 @@ impl Formats {
         let name = if terminal { self.terminal } else { self.piped };
         self.get(name)
             .ok_or_else(|| unregistered("the default format", name))
+    }
+
+    /// The default format for a run under `--stream`.
+    ///
+    /// # Errors
+    ///
+    /// An [`io::ErrorKind::InvalidInput`] error when the stream default names
+    /// a format that is not registered.
+    pub(crate) fn stream_format(&self) -> io::Result<&'static dyn Format> {
+        self.get(self.stream)
+            .ok_or_else(|| unregistered("the stream default", self.stream))
+    }
+
+    /// The name of the stream default, registered or not.
+    #[cfg(feature = "app")]
+    pub(crate) const fn stream_name(&self) -> FormatName {
+        self.stream
     }
 
     /// `command` with this registry's formats: the names `--format` accepts,
@@ -246,6 +275,7 @@ impl fmt::Debug for Formats {
             )
             .field("terminal", &self.terminal)
             .field("piped", &self.piped)
+            .field("stream", &self.stream)
             .finish()
     }
 }
