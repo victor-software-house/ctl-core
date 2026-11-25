@@ -6,8 +6,8 @@ A ctl command returns one typed result, and ctl-core decides how it becomes outp
 Today that decision is a closed set: `OutputFormat` has two variants, `Pretty` and `Json`, and a CLI cannot add a third without a ctl-core release.
 The cost shows in a consumer that needs more:
 
-1. One consumer's CLI needs JSON written as rows arrive, CSV, and one JSON document.
-   It writes its JSON and CSV to stdout itself and hands ctl-core an empty result.
+1. One consumer's CLI needs CSV and one JSON document.
+   It writes them to stdout itself and hands ctl-core an empty result.
    So its machine output skips ctl-core's rules: no ANSI, errors on stderr, a closed pipe ends quietly.
 2. Piped output is the colourless pretty view: boxed tables that cost tokens and need a parser to split into fields.
    Agents read every ctl CLI through a pipe.
@@ -16,7 +16,6 @@ The cost shows in a consumer that needs more:
 
 The maintainer ruled that the output layer is an open interface (operator, 2026-11-23).
 ctl-core's own formats are built-in instances of it, which any CLI can add to or replace.
-Format and delivery are two choices: `--format` picks the encoding, and `--stream` picks whether records are written as they are produced (operator, 2026-11-25).
 
 This change belongs to [CTC-062][ledger].
 
@@ -34,26 +33,16 @@ This change belongs to [CTC-062][ledger].
    `json` declares `--json`, which stays `-f json`.
    Two different formats on one command line are a usage error, as `--json` beside `--format pretty` is today.
    **BREAKING** Two variables that name different formats, such as `TOY_FORMAT=csv` and `TOY_JSON=1`, are a usage error too, where `TOY_JSON` won before.
-6. `--stream` writes a result as records, each when it is produced.
-   Each record carries a `type` field, and a header record comes first.
-   Every format streams, in the order records are produced, and a CLI's own format streams through the same interface (operator, 2026-11-25).
-   `json` writes one compact object per line; `tsv`, `csv`, and `markdown` write a table's header once, then its rows; `pretty` renders each record when it arrives.
-   `--stream` alone uses the stream default, `json`, and a single value under `--stream` is a stream of one record (operator, 2026-11-25).
-   There is no `jsonl` format and no `--jsonl` flag (operator, 2026-11-25).
-7. A command returns a value, as today, or a `view::Records` stream of typed records.
-   Without `--stream`, a stream is collected and written as one document in any format.
-8. **BREAKING** Each `is_json()` special case becomes a property of the format: a machine format never writes ANSI and writes its own error form.
+6. **BREAKING** Each `is_json()` special case becomes a property of the format: a machine format never writes ANSI and writes its own error form.
    `--quiet` hides `pretty` and a default machine format, and never a machine format named by a flag, a shorthand, or a variable (operator, 2026-11-25).
-9. **BREAKING** `View` holds the selected format, not an `OutputFormat`.
+7. **BREAKING** `View` holds the selected format, not an `OutputFormat`.
    `View::format()` returns its `FormatName`.
-
-No socket sink is added: a program that wants the data without the CLI uses an SDK or an API (operator, 2026-11-25).
 
 ## Capabilities
 
 ### New Capabilities
 
-- `output-formats`: the format interface, its registry, the built-in formats, the format and stream flags, and the piped default.
+- `output-formats`: the format interface, its registry, the built-in formats, the format flags, and the piped default.
 
 ### Modified Capabilities
 
