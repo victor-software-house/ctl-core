@@ -361,9 +361,10 @@ fn finish(writer: Box<dyn RecordWriter + '_>, pending: &Pending) -> io::Result<(
 }
 
 /// The result of a run whose iterator ended with `failure`, if it did, after
-/// `written` wrote the output. A closed stdout never hides the failure, which
-/// carries the exit code. Any other write error is the error to report, and
-/// `App` writes it to stderr as it writes the failure.
+/// `written` wrote the output. A write error never hides the failure, which
+/// carries the exit code. Without a failure, a closed stdout stays an
+/// [`io::Error`] for the closed-pipe policy, and any other write error is the
+/// error to report, which `App` writes to stderr as it writes a failure.
 fn settle(
     failure: Option<anyhow::Error>,
     written: io::Result<()>,
@@ -373,7 +374,7 @@ fn settle(
         Err(error) if error.kind() == io::ErrorKind::BrokenPipe => {
             failure.map_or(Err(error), |failure| Ok(Some(failure)))
         }
-        Err(error) => Ok(Some(error.into())),
+        Err(error) => Ok(Some(failure.unwrap_or_else(|| error.into()))),
     }
 }
 
@@ -431,11 +432,13 @@ fn collect_records(
     let present = || merged(&all);
     let output = Output::new(&data, &present, Outcome::Success);
     let mut written = Vec::new();
-    format.write(
-        &output,
-        &mut view.sink(&mut written, ctl_term::Stream::Stdout, format),
-    )?;
-    settle(failure, write_stdout(&written))
+    let result = format
+        .write(
+            &output,
+            &mut view.sink(&mut written, ctl_term::Stream::Stdout, format),
+        )
+        .and_then(|()| write_stdout(&written));
+    settle(failure, result)
 }
 
 impl View {
@@ -499,12 +502,12 @@ impl View {
 
 #[cfg(all(test, debug_assertions))]
 mod tests {
-    use std::iter;
+    use std::{io, iter};
 
     use serde::ser::SerializeMap as _;
     use serde::{Serialize, Serializer};
 
-    use super::{Records, drain};
+    use super::{Records, drain, settle};
     use crate::document::Document;
     use crate::view::Present;
 
@@ -557,5 +560,15 @@ mod tests {
             iter::once(Ok(Maybe { typed: false })),
         );
         let _ = drain(records);
+    }
+
+    #[test]
+    fn a_write_error_never_hides_the_failure_of_the_iterator() {
+        let settled = settle(
+            Some(anyhow::anyhow!("the third record failed")),
+            Err(io::Error::other("the disk is full")),
+        );
+        let failure = settled.ok().flatten().map(|error| error.to_string());
+        assert_eq!(failure.as_deref(), Some("the third record failed"));
     }
 }

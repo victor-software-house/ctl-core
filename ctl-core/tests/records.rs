@@ -619,6 +619,21 @@ fn a_record_that_fails_to_serialize_leaves_no_partial_line() {
 }
 
 #[test]
+fn a_collected_record_that_fails_to_serialize_writes_its_error_and_no_output() {
+    let test = "a_collected_record_that_fails_to_serialize_writes_its_error_and_no_output";
+    let Some(output) = child::in_child(CHILD, test, &[]) else {
+        assert_eq!(
+            child::case(|| run(&["events", "--mode", "broken", "--json"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("the record does not serialize"), "{stderr}");
+}
+
+#[test]
 fn a_parse_error_after_the_bad_argument_still_sees_stream() {
     let test = "a_parse_error_after_the_bad_argument_still_sees_stream";
     let Some(output) = child::in_child(CHILD, test, &[]) else {

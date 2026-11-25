@@ -153,7 +153,7 @@ A value under `--stream` writes through the format's `RecordWriter` without that
 - Every record goes to stdout, and its outcome and exit code are ignored; the run exits 0 unless the iterator yields an error.
   An error stops the iterator, closes the output, then goes to stderr as a handler error does.
   A closed stdout stops the pull, drops the iterator, and exits through `App::written`, unless the iterator already failed: then that failure goes to stderr with its exit code, and the closed stdout never hides it.
-  Any other write error goes to stderr as a failure with exit 1.
+  Any other write error, in either path, goes to stderr as a failure with exit 1, unless the iterator already failed: its failure and exit code win.
 - `--quiet` with no format named drains the iterator and writes nothing; a named machine format is written.
 - There is no `jsonl` format: JSON Lines is the stream form of `json`.
 
