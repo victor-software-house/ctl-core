@@ -32,13 +32,6 @@ mr-boxington = "1.30.0"
 "github:bnjbvr/cargo-machete" = "0.10.1"
 "github:obi1kenobi/cargo-semver-checks" = "0.51.0"
 jq = "1.8.2"
-# The repository checks (mise-tasks/check/repo.sh).
-taplo = "0.10.0"
-rumdl = "0.3.2"
-typos = "1.51.1"
-actionlint = "1.7.12"
-# OpenSpec's standalone release binary; it needs no node.
-"github:Fission-AI/OpenSpec" = "2.2.0"
 
 # The shared Rust tasks read their toolchains from here and name none.
 [env]
