@@ -14,7 +14,7 @@
 //! use clap::Parser;
 //! use ctl_core::color::ColorMode;
 //! use ctl_core::flags::OutputArgs;
-//! use ctl_core::format::OutputFormat;
+//! use ctl_core::format::FormatName;
 //!
 //! #[derive(Parser)]
 //! struct Cli {
@@ -23,7 +23,7 @@
 //! }
 //!
 //! let cli = Cli::parse_from(["toy", "--format", "json", "--no-color"]);
-//! assert_eq!(cli.output.format, OutputFormat::Json);
+//! assert_eq!(cli.output.format, Some(FormatName::JSON));
 //! assert_eq!(cli.output.color(), ColorMode::Never);
 //! ```
 
@@ -35,9 +35,9 @@ mod warn;
 
 pub use color::ColorLong;
 pub use dry_run::DryRunArgs;
+#[cfg(feature = "view")]
+pub(crate) use env::env_name;
 pub use env::{EnvPrefix, env_under_flags};
-#[cfg(feature = "help")]
-pub(crate) use output::resolved_format;
 pub use output::{FormatArgs, FormatLong, OutputArgs};
 pub use warn::{FlagClash, FlagWarning, chassis_warnings, emit_warnings, warn_opposites};
 

@@ -7,7 +7,12 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 ## What it owns
 
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
-- Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`; a usage error beside another `--format`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
+- Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
+  `--json` beside another `--format` on the command line is a usage error.
+  `TOY_JSON` beside a `TOY_FORMAT` that names another format is a usage error too, and the command line wins over any variable.
+- The open output interface: `format::Format`, `Output`, `Sink`, and `Formats` with feature `view`, and `FormatName` (the value `--format` parses into).
+  `pretty` and `json` are built-in `Format` implementations.
+  A CLI registers its own on `Formats` and installs them with `App::formats`
 - Environment binding: `#[command(env_prefix = "VERCTL")]` on a CLI's root parser binds every long option, shared flags included, to `<PREFIX>_<LONG>` through the `EnvPrefix` trait in the prelude.
   - A flag on the command line wins over its variable, the variable over a config file, and the file over the default.
   - `App` runs `flags::env_under_flags` before the parse.
@@ -19,7 +24,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 - `App`: pre-parse hooks, Usage, help, parsing, execution, streams, errors, and exit codes.
   When the reader closes stdout early, it keeps the command's own exit code and never reports success for a failure (`App::broken_pipe`).
 - `Document` and the fluent semantic primitives used by help and command output
-- Pretty / JSON / colorless `View` over one serializable domain model
+- `View` over one serializable domain model, written through the `Format` it holds: pretty, colorless, JSON, or a format the CLI registered
 - The one `Theme`, and the width, framing, and colour settings a CLI hands the engine (`RenderOptions`)
 - Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`, written to stdout on success and to stderr on failure
 - `CommandError`: a handler failure that carries its exit code and the envelope's `kind`, which `App` finds anywhere in the `anyhow` chain
@@ -83,7 +88,8 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
 - A setter on a builder type takes the name of its setting (`RenderOptions::width`, `View::quiet`, `Theme::style`), never a `with_` prefix.
   A reader of the same setting gets another name, such as `Theme::role_style`, or no method at all.
   A method that reads the environment starts with `resolved_`, so a caller sees which methods are not pure.
-- A public enum that can gain a variant is `#[non_exhaustive]`, as `Block`, `OutputFormat`, and `NoticeLevel` are.
+- A public enum that can gain a variant is `#[non_exhaustive]`, as `Block` and `NoticeLevel` are.
+  The set of output formats is open through the `Format` trait, so no enum names them; `FormatName` is a value.
   An enum whose set is closed by what it means stays exhaustive, and its rustdoc says why in one sentence, as `Shell` and `Outcome` do.
 - A public struct whose fields can grow is `#[non_exhaustive]`, and ctl-core builds it through a constructor.
   This covers the envelope types, `FlagWarning`, the `Surface` types, both error types, and every clap `Args` struct a CLI flattens.
@@ -169,12 +175,12 @@ Every fallible public function documents `# Errors`, with no `missing_errors_doc
 
 ## Machine output is never coloured
 
-JSON and anything else meant for a parser stays plain whatever the environment says.
-Agent shells set `CLICOLOR_FORCE=1`, `FORCE_COLOR=3`, and `COLORTERM=truecolor`; pretty output may honour them, and the JSON path never does.
+A machine format, which is every format whose `Format::machine` is true, stays plain whatever the environment says: `Sink` takes its colour away, so no format can write an escape sequence by mistake.
+Agent shells set `CLICOLOR_FORCE=1`, `FORCE_COLOR=3`, and `COLORTERM=truecolor`; pretty output may honour them, and a machine format never does.
 
-A parse error under a long `--format json` or `--json` is a JSON error even when the bad argument comes first.
+A parse error under a long `--format <name>`, or the shorthand of a registered format such as `--json`, is that format's error form even when the bad argument comes first.
 A parse error reads `<bin>: <message>`, without Clap's `error:` prefix.
-A consumer test runs the binary with `CLICOLOR_FORCE=1` and asserts that JSON output holds no ESC byte.
+A consumer test runs the binary with `CLICOLOR_FORCE=1` and asserts that machine output holds no ESC byte.
 
 ## Library control
 
@@ -202,7 +208,7 @@ Each name list is replaceable, and an empty slice disables lookup.
 
 1. **Models first.** Each command returns a serializable result; the view does not own domain data.
 2. **One model, every mode.** `Present` maps that model to a semantic `Document`.
-   JSON serializes the model directly.
+   JSON serializes the model directly, and every format reads it through `Output`: `data()` is the serializable face, `document()` the document, built on first use.
    Colorless renders the same document.
 3. **Semantic composition only.** Consumers use `Fields`, `Table`, `Section`, `Notice`, `Text`, and `Document::verbatim`; they never choose borders, ANSI, width, or streams.
    - Verbatim is for preformatted Markdown or protocol text whose line boundaries must survive rendering.
@@ -211,7 +217,7 @@ Each name list is replaceable, and an empty slice disables lookup.
      Then it normalizes trailing newlines to the document.
    - A CLI that prints text it did not write filters with the same predicate.
    - The predicate and `strip_unsafe` live in `ctl-text` (`ctl_text::unsafe_chars`), and `ctl_core::unsafe_chars` re-exports them under the `unsafe-chars` feature.
-4. **Quiet is human-success only.** It never hides JSON or errors.
+4. **Quiet hides human success and defaults only.** `--quiet` hides a successful result in `pretty` and in a default format. It never hides errors, and it never hides a machine format that a flag, a shorthand, or a variable named.
 5. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
    Usage lines wrap without splitting tokens.
    `-h` shows `about`, each argument's `help`, and `after_help` as an Examples section; `--help` and the `help` subcommand show `long_about`, `long_help`, and `after_long_help`, each falling back to its short form.

@@ -8,7 +8,7 @@ use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches, Parser};
 use ctl_core::flags::{DryRunArgs, OutputArgs, switch};
 use ctl_core::parser::apply_defaults;
-use ctl_core::{ColorMode, OutputFormat};
+use ctl_core::{ColorMode, FormatName};
 
 #[derive(Parser, Debug)]
 #[command(version, about = "toy", arg_required_else_help = true)]
@@ -90,7 +90,7 @@ fn help_subcommand_names_the_command() {
 #[test]
 fn format_and_color_short_long() {
     let cli = parse(&["-f", "json", "--color", "always", "prepare"]);
-    assert_eq!(cli.output.format, OutputFormat::Json);
+    assert_eq!(cli.output.format, Some(FormatName::JSON));
     assert_eq!(cli.output.color(), ColorMode::Always);
 }
 

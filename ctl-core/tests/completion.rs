@@ -180,11 +180,20 @@ fn fish_registers_one_line_that_calls_the_binary_by_name() {
 #[test]
 fn the_view_prints_the_script_as_it_is() {
     let script = Shell::Zsh.script("toy").unwrap();
-    let pretty = shell::view(OutputFormat::Pretty).capture(&script).unwrap();
+    let pretty = shell::view(Some(FormatName::PRETTY))
+        .capture(&script)
+        .unwrap();
     assert_eq!(pretty.text(), script.text);
     assert!(!pretty.text().contains('\u{1b}'));
 
-    let json = shell::view(OutputFormat::Json).capture(&script).unwrap();
+    for other in [None, Some(FormatName::TSV), Some(FormatName::new("yaml"))] {
+        let plain = shell::view(other).quiet(true).capture(&script).unwrap();
+        assert_eq!(plain.text(), script.text, "{other:?}");
+    }
+
+    let json = shell::view(Some(FormatName::JSON))
+        .capture(&script)
+        .unwrap();
     let value: serde_json::Value = serde_json::from_str(json.text()).unwrap();
     assert_eq!(value["shell"], "zsh");
     assert_eq!(value["text"], script.text);

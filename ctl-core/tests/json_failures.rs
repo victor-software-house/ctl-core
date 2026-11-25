@@ -12,6 +12,7 @@ use std::num::NonZeroU8;
 use std::process::Output;
 
 use anyhow::{Context as _, anyhow};
+use ctl_core::format::JSON;
 use ctl_core::prelude::*;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -104,7 +105,7 @@ fn stderr_json(output: &Output) -> Value {
 #[test]
 fn emit_err_writes_the_envelope_to_stderr() {
     let Some(output) = child::in_child(CHILD, "emit_err_writes_the_envelope_to_stderr", &[]) else {
-        let view = View::new(OutputFormat::Json, ColorMode::Never);
+        let view = View::new(&JSON, ColorMode::Never);
         assert_eq!(
             child::case(|| view.emit_err("toy", "nope").unwrap()),
             ExitCode::FAILURE

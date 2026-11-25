@@ -22,6 +22,10 @@ use ctl_core::help;
 use ctl_core::parser::apply_defaults;
 use ctl_core::prelude::*;
 
+#[cfg(feature = "app")]
+#[path = "support/child.rs"]
+mod child;
+
 #[derive(Parser, Debug)]
 #[command(version, about = "toy", env_prefix = "ENVTOY")]
 struct Toy {
@@ -156,7 +160,7 @@ fn the_flag_wins_over_its_variable() {
         return;
     }
     let toy = parse(&["--format", "pretty", "prepare", "--config", "own.yaml"]);
-    assert!(!toy.output.format.is_json());
+    assert_ne!(toy.output.format, Some(FormatName::JSON));
     assert_eq!(config(&toy).0, "own.yaml");
 }
 
@@ -168,12 +172,10 @@ fn json_and_format_on_the_command_line_beat_each_other_s_variable() {
     ) {
         return;
     }
-    assert!(parse(&["prepare"]).output.format.is_json());
-    assert!(
-        !parse(&["--format", "pretty", "prepare"])
-            .output
-            .format
-            .is_json()
+    assert_eq!(parse(&["prepare"]).output.format, Some(FormatName::JSON));
+    assert_ne!(
+        parse(&["--format", "pretty", "prepare"]).output.format,
+        Some(FormatName::JSON)
     );
 }
 
@@ -185,7 +187,60 @@ fn json_on_the_command_line_beats_the_format_variable() {
     ) {
         return;
     }
-    assert!(parse(&["--json", "prepare"]).output.format.is_json());
+    assert_eq!(
+        parse(&["--json", "prepare"]).output.format,
+        Some(FormatName::JSON)
+    );
+}
+
+/// Only `App` knows the variable names of every registered format, so it
+/// refuses two variables that name different formats, where the flag structs
+/// alone report the pair as `--format` and `--json`.
+#[cfg(feature = "app")]
+#[test]
+fn two_variables_naming_different_formats_are_a_usage_error() {
+    #[derive(serde::Serialize)]
+    struct Done;
+
+    impl Present for Done {
+        fn present(&self) -> Document {
+            Document::new()
+        }
+    }
+
+    let test = "two_variables_naming_different_formats_are_a_usage_error";
+    let Some(output) = child::in_child(
+        "CTL_CORE_ENV_FLAGS_APP_CHILD",
+        test,
+        &[("ENVTOY_FORMAT", "pretty"), ("ENVTOY_JSON", "true")],
+    ) else {
+        let code =
+            child::case(|| App::<Toy>::new("toy").run_from(["toy", "prepare"], |_| Ok(Done)));
+        assert_eq!(code, ExitCode::from(2));
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("ENVTOY_FORMAT"), "{stderr}");
+    assert!(stderr.contains("ENVTOY_JSON"), "{stderr}");
+}
+
+#[test]
+fn two_variables_naming_different_formats_are_refused_by_the_flag_structs() {
+    if !in_child(
+        "two_variables_naming_different_formats_are_refused_by_the_flag_structs",
+        &[("ENVTOY_FORMAT", "pretty"), ("ENVTOY_JSON", "true")],
+    ) {
+        return;
+    }
+    let Err(error) = try_parse(&["prepare"]) else {
+        panic!("two format variables parsed");
+    };
+    assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    assert_eq!(
+        parse(&["--json", "prepare"]).output.format,
+        Some(FormatName::JSON)
+    );
 }
 
 #[test]
@@ -196,7 +251,7 @@ fn a_global_flag_reads_its_variable() {
     ) {
         return;
     }
-    assert!(parse(&["prepare"]).output.format.is_json());
+    assert_eq!(parse(&["prepare"]).output.format, Some(FormatName::JSON));
 }
 
 #[test]
@@ -207,11 +262,9 @@ fn a_global_flag_after_the_subcommand_beats_its_variable() {
     ) {
         return;
     }
-    assert!(
-        !parse(&["prepare", "--format", "pretty"])
-            .output
-            .format
-            .is_json()
+    assert_ne!(
+        parse(&["prepare", "--format", "pretty"]).output.format,
+        Some(FormatName::JSON)
     );
 }
 

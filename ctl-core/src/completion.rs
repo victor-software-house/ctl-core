@@ -65,7 +65,7 @@ use std::io::{self, Write as _};
 use std::path::Path;
 use std::process::ExitCode;
 
-use clap::{CommandFactory, ValueEnum};
+use clap::{Command, ValueEnum};
 use clap_complete::CompleteEnv;
 use clap_complete::env::{Bash, EnvCompleter, Fish, Shells, Zsh};
 
@@ -170,13 +170,14 @@ pub struct CompletionArgs {
     pub shell: Shell,
 }
 
-/// Answer a completion request for `C` when [`VAR`] is set, or return
-/// `None` for an ordinary run.
+/// Answer a completion request for `command` when [`VAR`] is set, or return
+/// `None` for an ordinary run. `command` is the one `App` built, so the
+/// candidates list the CLI's registered formats.
 ///
 /// With no word after `--` the request is for the registration, which this
 /// prints from [`Shell::script`] so it matches the verb byte for byte. With
 /// words, `clap_complete` prints the candidates.
-pub(crate) fn complete<C: CommandFactory>(bin: &str, args: &[OsString]) -> Option<ExitCode> {
+pub(crate) fn complete(bin: &str, args: &[OsString], command: &Command) -> Option<ExitCode> {
     let requested = env::var_os(VAR).filter(|value| !value.is_empty() && value != "0")?;
     let words = args
         .iter()
@@ -185,7 +186,7 @@ pub(crate) fn complete<C: CommandFactory>(bin: &str, args: &[OsString]) -> Optio
         .nth(1)
         .is_some();
     Some(if words {
-        candidates::<C>(bin, args)
+        candidates(bin, args, command)
     } else {
         registration(bin, &requested)
     })
@@ -215,9 +216,9 @@ fn registration(bin: &str, requested: &OsStr) -> ExitCode {
         .map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS)
 }
 
-fn candidates<C: CommandFactory>(bin: &str, args: &[OsString]) -> ExitCode {
+fn candidates(bin: &str, args: &[OsString], command: &Command) -> ExitCode {
     let current_dir = env::current_dir().ok();
-    match CompleteEnv::with_factory(|| parser::with_help(C::command()))
+    match CompleteEnv::with_factory(|| parser::with_help(command.clone()))
         .var(VAR)
         .bin(bin)
         .completer(bin)

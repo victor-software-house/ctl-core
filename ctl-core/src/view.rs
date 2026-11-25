@@ -1,19 +1,19 @@
 //! Pretty, colourless, and JSON output from one typed model.
 //!
 //! A command result implements [`Present`]: it serializes for JSON and builds
-//! a [`Document`] for people. A [`View`] holds the output format, the colour
-//! mode, and the layout policy, and writes the result with [`View::show`] or
-//! returns it unwritten with [`View::capture`].
+//! a [`Document`] for people. A [`View`] holds the output [`Format`], the
+//! colour mode, and the layout policy, and writes the result with
+//! [`View::show`] or returns it unwritten with [`View::capture`].
 //!
 //! Success goes to stdout and failure to stderr, in JSON as in pretty output.
 //! A JSON failure leaves stdout empty, so a reader that parses stdout never
-//! mistakes an error for a result. JSON never contains ANSI whatever the
-//! colour mode says.
+//! mistakes an error for a result. A machine format never contains ANSI
+//! whatever the colour mode says.
 //!
 //! ```
 //! use ctl_core::color::ColorMode;
 //! use ctl_core::document::{Document, Fields};
-//! use ctl_core::format::OutputFormat;
+//! use ctl_core::format::{JSON, PRETTY};
 //! use ctl_core::view::{Destination, JsonLayout, Present, View};
 //! use serde::Serialize;
 //!
@@ -29,28 +29,29 @@
 //! }
 //!
 //! let status = Status { pending: 2 };
-//! let json = View::new(OutputFormat::Json, ColorMode::Never)
+//! let json = View::new(&JSON, ColorMode::Never)
 //!     .json_layout(JsonLayout::Pretty)
 //!     .capture(&status)?;
 //! assert_eq!(json.stream(), Destination::Stdout);
 //! assert!(json.text().contains("\"pending\": 2"));
 //!
-//! let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+//! let pretty = View::new(&PRETTY, ColorMode::Never)
 //!     .width(40)
 //!     .capture(&status)?;
 //! assert!(pretty.text().contains("pending"));
 //! # Ok::<(), std::io::Error>(())
 //! ```
 
+use std::fmt;
 use std::io::{self, IsTerminal, Write};
 use std::process::ExitCode;
 
 use serde::Serialize;
 
 use crate::color::ColorMode;
-use crate::document::{Document, Text};
-use crate::format::OutputFormat;
-use crate::model::{Envelope, ErrorBody};
+use crate::document::Document;
+use crate::format::{Format, FormatName, Formats, JSON, Output, PRETTY, Sink, unregistered};
+use crate::model::ErrorBody;
 #[cfg(feature = "app")]
 use crate::render;
 use crate::render::{EnvChoice, RenderOptions, env_choice, process_env};
@@ -204,17 +205,20 @@ impl EnvChoice for JsonLayout {
 }
 
 impl JsonLayout {
-    fn pretty(self) -> bool {
+    /// [`Self::Pretty`] or [`Self::Compact`]: `PrettyOnTerminal` settled by
+    /// whether stdout is a terminal, as it has always been, for a failure on
+    /// stderr too.
+    pub(crate) fn settled(self) -> Self {
         match self {
-            Self::Compact => false,
-            Self::Pretty => true,
-            Self::PrettyOnTerminal => io::stdout().is_terminal(),
+            Self::Pretty => Self::Pretty,
+            Self::PrettyOnTerminal if io::stdout().is_terminal() => Self::Pretty,
+            Self::Compact | Self::PrettyOnTerminal => Self::Compact,
         }
     }
 }
 
 /// How to present a [`Present`] result: the format, the colour mode, and the
-/// layout policy. JSON never contains ANSI.
+/// layout policy. A machine format never contains ANSI.
 ///
 /// Pretty output decides colour and width for the stream it goes to: a
 /// success for stdout, a failure for stderr. So a failure printed to a
@@ -226,26 +230,191 @@ impl JsonLayout {
 /// [`Self::render_options`] returns. A setter takes the name of its setting
 /// and returns the view changed, as on `RenderOptions`. [`Self::format`] and
 /// [`Self::is_quiet`] read the format and the quiet setting.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+///
+/// A view holds one of four choices of format, and only the first two are
+/// ready to write. [`Self::new`] names a registered format. A view built by
+/// [`Self::requested`] holds a name, or none, until [`Self::resolve`] looks it
+/// up in a registry and the terminal check picks a default. [`Self::capture`]
+/// resolves such a view against the built-in formats itself. `--quiet` hides a
+/// successful result of a format that is not a machine format, and of a
+/// default; it never hides a machine format that was named.
+#[derive(Clone, Copy)]
 pub struct View {
-    format: OutputFormat,
+    choice: Choice,
     quiet: bool,
     options: RenderOptions,
     json_layout: Option<JsonLayout>,
     json_layout_envs: &'static [&'static str],
+    script: bool,
+}
+
+/// The formats ctl-core itself offers, which a view that was never resolved
+/// against a registry is looked up in.
+static BUILTIN: [&dyn Format; 2] = [&PRETTY, &JSON];
+
+/// How a view knows its format. A named format was chosen by a flag, a
+/// variable, a shorthand, or the caller. A defaulted one came from the
+/// registry's default, and `--quiet` hides it even when it is a machine
+/// format.
+#[derive(Clone, Copy)]
+enum Choice {
+    Named(&'static dyn Format),
+    Defaulted(&'static dyn Format),
+    Requested(FormatName),
+    Unset,
+}
+
+impl Choice {
+    /// The name this choice stands for, when it holds one.
+    fn name(self) -> Option<FormatName> {
+        match self {
+            Self::Named(format) | Self::Defaulted(format) => Some(format.name()),
+            Self::Requested(name) => Some(name),
+            Self::Unset => None,
+        }
+    }
+
+    /// The name of this kind of choice, for `Debug`.
+    const fn kind(self) -> &'static str {
+        match self {
+            Self::Named(_) => "named",
+            Self::Defaulted(_) => "defaulted",
+            Self::Requested(_) => "requested",
+            Self::Unset => "unset",
+        }
+    }
+
+    /// Which of the four this is, with a registered format compared by name.
+    fn key(self) -> (u8, Option<FormatName>) {
+        match self {
+            Self::Named(_) => (0, self.name()),
+            Self::Defaulted(_) => (1, self.name()),
+            Self::Requested(_) => (2, self.name()),
+            Self::Unset => (3, None),
+        }
+    }
 }
 
 impl View {
-    /// Build a view in `format` and `color` that prints successes. Width,
-    /// buffer, minimum, fallback, styles, and JSON layout take their defaults.
+    /// Build a view that writes in the registered `format`, in `color`, and
+    /// prints successes. Width, buffer, minimum, fallback, styles, and JSON
+    /// layout take their defaults.
     #[must_use]
-    pub const fn new(format: OutputFormat, color: ColorMode) -> Self {
+    pub const fn new(format: &'static dyn Format, color: ColorMode) -> Self {
+        Self::with_choice(Choice::Named(format), color)
+    }
+
+    /// Build a view for the format `name` that a flag or a variable named, or
+    /// for none: [`Self::resolve`] then picks the default. Until it resolves,
+    /// [`Self::capture`] looks the name up among the built-in formats.
+    #[must_use]
+    pub const fn requested(name: Option<FormatName>, color: ColorMode) -> Self {
+        let choice = match name {
+            Some(name) => Choice::Requested(name),
+            None => Choice::Unset,
+        };
+        Self::with_choice(choice, color)
+    }
+
+    const fn with_choice(choice: Choice, color: ColorMode) -> Self {
         Self {
-            format,
+            choice,
             quiet: false,
             options: RenderOptions::new(color),
             json_layout: None,
             json_layout_envs: DEFAULT_JSON_LAYOUT_ENVS,
+            script: false,
+        }
+    }
+
+    /// The view for a script a shell verb prints: any format but `json` writes
+    /// the script as plain text, and quiet never hides it.
+    #[cfg(feature = "shell")]
+    #[must_use]
+    pub(crate) const fn script(mut self) -> Self {
+        self.script = true;
+        self
+    }
+
+    /// The view with the format that `registry` and the terminal check settle:
+    /// a requested name is looked up, and no name takes the terminal or the
+    /// piped default. A view that already names a format is returned as it
+    /// is, and a script view writes every format but `json` as `pretty`.
+    ///
+    /// # Errors
+    ///
+    /// An [`io::ErrorKind::InvalidInput`] error when the requested name, or
+    /// the default, is not registered.
+    pub fn resolve(mut self, formats: &Formats, terminal: bool) -> io::Result<Self> {
+        self.choice = match self.choice {
+            Choice::Named(_) | Choice::Defaulted(_) => self.choice,
+            Choice::Requested(name) if self.prints_as_pretty(name) => Choice::Named(&PRETTY),
+            Choice::Requested(name) => Choice::Named(
+                formats
+                    .get(name)
+                    .ok_or_else(|| unregistered("the format", name))?,
+            ),
+            Choice::Unset if self.script => Choice::Named(&PRETTY),
+            Choice::Unset => Choice::Defaulted(formats.default_format(terminal)?),
+        };
+        Ok(self)
+    }
+
+    /// The view asking for `name` in place of the request it holds, when the
+    /// caller found one and the view still holds a request. A view that names
+    /// or defaults a format is returned as it is, and so is one when no name
+    /// was found, so the view the caller chose stands.
+    #[cfg(feature = "app")]
+    pub(crate) const fn with_request(mut self, name: Option<FormatName>) -> Self {
+        if let Some(name) = name
+            && matches!(self.choice, Choice::Requested(_) | Choice::Unset)
+        {
+            self.choice = Choice::Requested(name);
+        }
+        self
+    }
+
+    /// This view with its format settled against the built-in formats and
+    /// the terminal check, as [`Self::capture`] does. A named or defaulted view
+    /// is returned at once, a requested name is looked up among the built-ins,
+    /// and only a view with no request asks the terminal.
+    fn settled(self) -> io::Result<Self> {
+        match self.choice {
+            Choice::Named(_) | Choice::Defaulted(_) => Ok(self),
+            Choice::Requested(name) if self.prints_as_pretty(name) => {
+                Ok(self.with_choice_of(Choice::Named(&PRETTY)))
+            }
+            Choice::Requested(name) => BUILTIN
+                .iter()
+                .copied()
+                .find(|format| format.name() == name)
+                .map(|format| self.with_choice_of(Choice::Named(format)))
+                .ok_or_else(|| unregistered("the format", name)),
+            Choice::Unset => self.resolve(&Formats::builtin(), io::stdout().is_terminal()),
+        }
+    }
+
+    /// Whether a script view writes `name` as `pretty`: every format but
+    /// `json`.
+    fn prints_as_pretty(self, name: FormatName) -> bool {
+        self.script && name != FormatName::JSON
+    }
+
+    /// This view with `choice` in place of its own.
+    const fn with_choice_of(mut self, choice: Choice) -> Self {
+        self.choice = choice;
+        self
+    }
+
+    /// The format a settled view writes in, and whether it came from a
+    /// default.
+    fn chosen(self) -> io::Result<(&'static dyn Format, bool)> {
+        match self.choice {
+            Choice::Named(format) => Ok((format, false)),
+            Choice::Defaulted(format) => Ok((format, true)),
+            Choice::Requested(_) | Choice::Unset => {
+                Err(io::Error::other("the view's format is not resolved"))
+            }
         }
     }
 
@@ -318,33 +487,37 @@ impl View {
         self
     }
 
-    /// Suppress a successful pretty result when `quiet` is true. Errors and
-    /// JSON are still written.
+    /// Suppress a successful result when `quiet` is true, unless the format is
+    /// a machine format that was named. Errors are still written.
     #[must_use]
     pub const fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = quiet;
         self
     }
 
-    /// Pretty or JSON output, as [`Self::new`] set it.
+    /// The name of the format in force. A view that has not resolved yet
+    /// resolves against the built-in formats and the terminal check, as
+    /// [`Self::capture`] does, and a name no built-in answers to is returned as
+    /// it was requested.
     #[must_use]
-    pub const fn format(self) -> OutputFormat {
-        self.format
+    pub fn format(self) -> FormatName {
+        let choice = self.settled().map_or(self.choice, |view| view.choice);
+        choice.name().unwrap_or(FormatName::PRETTY)
     }
 
-    /// Whether a successful pretty result is suppressed, as [`Self::quiet`]
-    /// set it.
+    /// Whether the format in force is a [machine format](Format::machine).
+    /// A name that no built-in answers to is not.
+    #[must_use]
+    pub fn is_machine(self) -> bool {
+        self.settled()
+            .and_then(Self::chosen)
+            .is_ok_and(|(format, _)| format.machine())
+    }
+
+    /// Whether a successful result is suppressed, as [`Self::quiet`] set it.
     #[must_use]
     pub const fn is_quiet(self) -> bool {
         self.quiet
-    }
-
-    /// The view in `format`, every other setting kept. The parse-error path
-    /// uses it when `--format` is read before the parser runs.
-    #[cfg(feature = "app")]
-    pub(crate) const fn in_format(mut self, format: OutputFormat) -> Self {
-        self.format = format;
-        self
     }
 
     /// Lay out pretty output to exactly `width` terminal cells, skipping
@@ -395,51 +568,55 @@ impl View {
         self.options
     }
 
-    /// One JSON document in this view's layout, ending in a newline. A success
-    /// and an error envelope share it, so both follow the same layout.
-    fn json(self, value: &impl Serialize) -> io::Result<String> {
-        let mut content = if self.resolved_json_layout().pretty() {
-            serde_json::to_string_pretty(value)?
-        } else {
-            serde_json::to_string(value)?
-        };
-        content.push('\n');
-        Ok(content)
-    }
-
-    /// `document` in the colour and at the width decided for `stream`.
-    fn pretty(self, stream: ctl_term::Stream, document: &Document) -> String {
-        self.options.render_for(stream, document)
+    /// A sink over `writer` for `stream`, with this view's options and JSON
+    /// layout, and no colour when `format` is a machine format.
+    fn sink<'a>(
+        self,
+        writer: &'a mut dyn Write,
+        stream: ctl_term::Stream,
+        format: &dyn Format,
+    ) -> Sink<'a> {
+        Sink::new(
+            writer,
+            stream,
+            self.options,
+            self.resolved_json_layout().settled(),
+            format.machine(),
+        )
     }
 
     /// Render `value` without writing it. Tests and alternate transports use
     /// this path.
     ///
-    /// JSON output is `value` serialized in the layout
-    /// [`Self::resolved_json_layout`] returns, for stdout on a success and
-    /// stderr on an error. Pretty output is rendered as [`Self::show`] would
-    /// write it. Colour and width are decided for the stream
+    /// The format writes `value` for stdout on a success and stderr on an
+    /// error, in the layout [`Self::resolved_json_layout`] returns when the
+    /// format is JSON. Colour and width are decided for the stream
     /// [`Captured::stream`] names, from the colour mode, the process
-    /// environment, and whether that stream is a terminal.
+    /// environment, and whether that stream is a terminal. A view that has not
+    /// resolved yet resolves against the built-in formats and the terminal
+    /// check.
     ///
     /// # Errors
     ///
-    /// Returns an error when `value` does not serialize to JSON.
+    /// Returns an error when the view's format is not a built-in, when the
+    /// format fails to write `value`, or when what it wrote is not UTF-8.
     pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
-        let outcome = value.outcome();
-        let exit_code = value.exit_code();
-        if self.format.is_json() {
-            let stream = match outcome {
-                Outcome::Success => Destination::Stdout,
-                Outcome::Error => Destination::Stderr,
-            };
-            return Ok(Captured {
-                stream,
-                content: self.json(value)?,
-                exit_code,
-            });
-        }
-        if self.quiet && outcome == Outcome::Success {
+        let present = || value.present();
+        let output = Output::new(value, &present, value.outcome());
+        self.capture_output(&output, value.exit_code())
+    }
+
+    /// [`Self::capture`] for a result already behind [`Output`], so one copy
+    /// of this body serves every result type.
+    fn capture_output(self, output: &Output<'_>, exit_code: u8) -> io::Result<Captured> {
+        let view = self.settled()?;
+        let (format, defaulted) = view.chosen()?;
+        let outcome = output.outcome();
+        let hidden = view.quiet
+            && !view.script
+            && outcome == Outcome::Success
+            && (defaulted || !format.machine());
+        if hidden {
             return Ok(Captured {
                 stream: Destination::None,
                 content: String::new(),
@@ -450,9 +627,13 @@ impl View {
             Outcome::Success => (Destination::Stdout, ctl_term::Stream::Stdout),
             Outcome::Error => (Destination::Stderr, ctl_term::Stream::Stderr),
         };
+        let mut written = Vec::new();
+        format.write(output, &mut view.sink(&mut written, target, format))?;
+        let content = String::from_utf8(written)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         Ok(Captured {
             stream,
-            content: self.pretty(target, &value.present()),
+            content,
             exit_code,
         })
     }
@@ -462,7 +643,7 @@ impl View {
     ///
     /// # Errors
     ///
-    /// Returns an error when `value` does not serialize to JSON, or when
+    /// Returns an error when the format fails to write `value`, or when
     /// writing to stdout or stderr fails.
     pub fn show(self, value: &impl Present) -> io::Result<ExitCode> {
         let captured = self.capture(value)?;
@@ -476,9 +657,10 @@ impl View {
 
     /// Write a failure that has no [`Present`] model, such as a parse error.
     ///
-    /// Pretty output is `{bin}: {message}` on stderr. JSON output is an
-    /// [`Envelope`] with an [`ErrorBody`] on stderr, in this view's layout,
-    /// and stdout stays empty. The exit code is [`ExitCode::FAILURE`] in both.
+    /// The format writes its own error form to stderr, and stdout stays empty.
+    /// Pretty output is `{bin}: {message}`. JSON output is an
+    /// [`Envelope`](crate::model::Envelope) with an [`ErrorBody`], in this
+    /// view's layout. The exit code is [`ExitCode::FAILURE`] in both.
     ///
     /// # Errors
     ///
@@ -488,20 +670,45 @@ impl View {
         Ok(ExitCode::FAILURE)
     }
 
-    /// Write `error` to stderr: `{bin}: {message}` in pretty output, or an
-    /// [`Envelope`] that carries it whole in JSON.
+    /// Write `error` to stderr in the format's error form.
     pub(crate) fn write_error(self, error: &ErrorBody) -> io::Result<()> {
-        if self.format.is_json() {
-            let envelope = Envelope::<()>::err(error.clone());
-            return write_stderr(self.json(&envelope)?.as_bytes());
-        }
-        let document = Document::new().paragraph(
-            Text::new()
-                .error(error.bin.as_str())
-                .then(": ")
-                .then(error.message.as_str()),
-        );
-        write_stderr(self.pretty(ctl_term::Stream::Stderr, &document).as_bytes())
+        let view = self.settled()?;
+        let (format, _) = view.chosen()?;
+        let mut written = Vec::new();
+        format.write_error(
+            error,
+            &mut view.sink(&mut written, ctl_term::Stream::Stderr, format),
+        )?;
+        write_stderr(&written)
+    }
+}
+
+impl PartialEq for View {
+    fn eq(&self, other: &Self) -> bool {
+        self.choice.key() == other.choice.key()
+            && self.quiet == other.quiet
+            && self.options == other.options
+            && self.json_layout == other.json_layout
+            && self.json_layout_envs == other.json_layout_envs
+            && self.script == other.script
+    }
+}
+
+impl Eq for View {}
+
+/// Names the format and the kind of choice that holds it: a registered format
+/// has no `Debug`.
+impl fmt::Debug for View {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("View")
+            .field("format", &self.choice.name())
+            .field("choice", &self.choice.kind())
+            .field("quiet", &self.quiet)
+            .field("options", &self.options)
+            .field("json_layout", &self.json_layout)
+            .field("script", &self.script)
+            .finish_non_exhaustive()
     }
 }
 
@@ -524,26 +731,13 @@ pub(crate) fn write_stderr(bytes: &[u8]) -> io::Result<()> {
 mod tests {
     use super::View;
     use crate::color::ColorMode;
-    use crate::format::OutputFormat;
-    use crate::model::{Envelope, ErrorBody};
+    use crate::format::{FormatName, JSON, PRETTY};
     use crate::view::JsonLayout;
-
-    #[test]
-    fn error_envelopes_follow_the_json_layout() {
-        let envelope = Envelope::<()>::err(ErrorBody::new("toy", "failed"));
-        let view = View::new(OutputFormat::Json, ColorMode::Never);
-        assert!(view.json(&envelope).unwrap().contains("\n  "));
-        let compact = view
-            .json_layout(JsonLayout::Compact)
-            .json(&envelope)
-            .unwrap();
-        assert_eq!(compact.lines().count(), 1, "{compact}");
-    }
 
     #[test]
     fn the_environment_picks_the_json_layout_the_owner_left_open() {
         let compact = |name: &str| (name == "CTL_CORE_JSON_LAYOUT").then(|| "compact".to_owned());
-        let view = View::new(OutputFormat::Json, ColorMode::Never);
+        let view = View::new(&JSON, ColorMode::Never);
         assert_eq!(view.json_layout_with(compact), JsonLayout::Compact);
         assert_eq!(
             view.json_layout(JsonLayout::Pretty)
@@ -564,7 +758,7 @@ mod tests {
             "CTL_CORE_JSON_LAYOUT" => Some("tight".to_owned()),
             _ => None,
         };
-        let view = View::new(OutputFormat::Pretty, ColorMode::Never);
+        let view = View::new(&PRETTY, ColorMode::Never);
         assert_eq!(
             view.env_warnings(typos),
             [
@@ -572,5 +766,19 @@ mod tests {
                 "CTL_CORE_JSON_LAYOUT=tight is ignored; use one of pretty, compact, pretty-on-terminal",
             ]
         );
+    }
+
+    #[test]
+    fn views_compare_by_format_name_and_by_how_it_was_chosen() {
+        let json = View::new(&JSON, ColorMode::Never);
+        assert_eq!(json, View::new(&JSON, ColorMode::Never));
+        assert_ne!(json, View::new(&PRETTY, ColorMode::Never));
+        assert_ne!(
+            json,
+            View::requested(Some(FormatName::JSON), ColorMode::Never)
+        );
+        assert_eq!(json.format(), FormatName::JSON);
+        assert!(json.is_machine());
+        assert!(!View::new(&PRETTY, ColorMode::Never).is_machine());
     }
 }

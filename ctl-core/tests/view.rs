@@ -7,9 +7,10 @@
 
 use std::process::ExitCode;
 
+use ctl_core::format::{JSON, PRETTY};
 use ctl_core::{
-    ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, Outcome,
-    OutputFormat, Present, View,
+    ColorMode, Destination, Document, Envelope, ErrorBody, Fields, JsonLayout, Outcome, Present,
+    View,
 };
 use serde::Serialize;
 
@@ -43,11 +44,11 @@ fn same_model_feeds_pretty_and_json() {
         pending: 2,
         failed: false,
     };
-    let pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+    let pretty = View::new(&PRETTY, ColorMode::Never)
         .width(60)
         .capture(&status)
         .unwrap();
-    let json = View::new(OutputFormat::Json, ColorMode::Always)
+    let json = View::new(&JSON, ColorMode::Always)
         .capture(&status)
         .unwrap();
 
@@ -69,7 +70,7 @@ fn error_pretty_uses_stderr_and_failure_exit() {
         pending: 1,
         failed: true,
     };
-    let captured = View::new(OutputFormat::Pretty, ColorMode::Never)
+    let captured = View::new(&PRETTY, ColorMode::Never)
         .width(60)
         .capture(&status)
         .unwrap();
@@ -83,7 +84,7 @@ fn error_json_uses_stderr_and_its_exit() {
         pending: 1,
         failed: true,
     };
-    let captured = View::new(OutputFormat::Json, ColorMode::Always)
+    let captured = View::new(&JSON, ColorMode::Always)
         .capture(&status)
         .unwrap();
     assert_eq!(captured.stream(), Destination::Stderr);
@@ -101,16 +102,16 @@ fn quiet_suppresses_only_successful_pretty_output() {
         pending: 1,
         failed: true,
     };
-    let quiet_pretty = View::new(OutputFormat::Pretty, ColorMode::Never)
+    let quiet_pretty = View::new(&PRETTY, ColorMode::Never)
         .quiet(true)
         .capture(&success)
         .unwrap();
-    let quiet_error = View::new(OutputFormat::Pretty, ColorMode::Never)
+    let quiet_error = View::new(&PRETTY, ColorMode::Never)
         .quiet(true)
         .width(60)
         .capture(&failure)
         .unwrap();
-    let quiet_json = View::new(OutputFormat::Json, ColorMode::Never)
+    let quiet_json = View::new(&JSON, ColorMode::Never)
         .quiet(true)
         .capture(&success)
         .unwrap();
@@ -143,7 +144,7 @@ fn pretty_json_is_indented_and_never_colored() {
         pending: 2,
         failed: false,
     };
-    let json = View::new(OutputFormat::Json, ColorMode::Always)
+    let json = View::new(&JSON, ColorMode::Always)
         .json_layout(JsonLayout::Pretty)
         .capture(&status)
         .unwrap();

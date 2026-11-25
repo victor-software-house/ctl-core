@@ -33,14 +33,8 @@ Output
   [pretty|json]
     Output
     representation
-    [default:
-    pretty] [env:
-    LEDGERCTL_FORMAT]
-  --json
-    Shorthand for
-    `--format json`
     [env:
-    LEDGERCTL_JSON]
+    LEDGERCTL_FORMAT]
   -c --color
   [auto|always|never]
     Pretty-output
@@ -61,6 +55,11 @@ Output
     pretty output
     [env:
     LEDGERCTL_QUIET]
+  --json
+    Shorthand for
+    `--format json`
+    [env:
+    LEDGERCTL_JSON]
 
 Help
   -h --help

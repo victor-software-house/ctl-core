@@ -11,7 +11,7 @@
 //! 4. parses the arguments, with environment variables yielding to flags;
 //! 5. calls the handler and writes its result, or its error, through the view.
 //!
-//! A failure goes to stderr in pretty output and in JSON alike, so stdout
+//! A failure goes to stderr in each format's own error form, so stdout
 //! holds nothing after a failed run. That covers a handler error, a parse
 //! error, and a result whose [`Present::outcome`] is an error.
 //!
@@ -31,21 +31,20 @@
 //!   [`BrokenPipe::Fail`].
 
 use std::ffi::OsString;
-use std::io::{self, Write as _};
+use std::io::{self, IsTerminal as _, Write as _};
 use std::marker::PhantomData;
 use std::process::ExitCode;
 use std::{env, fmt};
 
 use anyhow::Result;
-#[cfg(feature = "usage")]
-use clap::Command;
 use clap::error::ErrorKind;
-use clap::{CommandFactory, Parser};
+use clap::parser::ValueSource;
+use clap::{ArgMatches, Command, CommandFactory, Parser};
 
 use crate::color::ColorMode;
 #[cfg(feature = "completion")]
 use crate::completion;
-use crate::format::OutputFormat;
+use crate::format::{FormatName, Formats, PRETTY, unknown_format};
 use crate::help::CommandGroup;
 #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 use crate::input::{self, Limits};
@@ -65,7 +64,7 @@ pub use command_error::CommandError;
 /// usage error.
 const USAGE_KIND: &str = "usage";
 
-type BeforeParse = Box<dyn Fn(&[OsString]) -> Option<ExitCode>>;
+type BeforeParse = Box<dyn Fn(&[OsString], &Command) -> Option<ExitCode>>;
 type SelectView<C> = Box<dyn Fn(&C) -> View>;
 #[cfg(feature = "usage")]
 type RenderUsage = Box<dyn Fn(Command, &str) -> String>;
@@ -114,6 +113,7 @@ pub struct App<C> {
     bin: String,
     before_parse: Vec<BeforeParse>,
     select_view: SelectView<C>,
+    formats: Formats,
     automatic_width_buffer: Option<u16>,
     automatic_width_buffer_envs: Option<&'static [&'static str]>,
     minimum_automatic_width: Option<u16>,
@@ -142,16 +142,20 @@ impl<C> fmt::Debug for App<C> {
 }
 
 impl<C> App<C> {
-    /// Build a CLI named `bin` with pretty output and automatic colour.
+    /// Build a CLI named `bin` with the built-in formats and automatic colour.
     ///
     /// `bin` prefixes error lines (`bin: message`) and names the binary in
-    /// JSON error envelopes. [`Self::view`] replaces the default view.
+    /// JSON error envelopes. The default view requests no format, so a run
+    /// writes the format `--format`, a shorthand such as `--json`, or its
+    /// variable names, and otherwise the default of [`Self::formats`].
+    /// [`Self::view`] replaces the default view.
     #[must_use]
     pub fn new(bin: impl Into<String>) -> Self {
         Self {
             bin: bin.into(),
             before_parse: Vec::new(),
-            select_view: Box::new(|_| View::new(OutputFormat::Pretty, ColorMode::Auto)),
+            select_view: Box::new(|_| View::requested(None, ColorMode::Auto)),
+            formats: Formats::builtin(),
             automatic_width_buffer: None,
             automatic_width_buffer_envs: None,
             minimum_automatic_width: None,
@@ -177,9 +181,25 @@ impl<C> App<C> {
     /// errors come before it, so they read the format and colour from the raw
     /// arguments instead. The width, style, and layout settings of this `App`
     /// are applied on top of the view `select` returns.
+    ///
+    /// A view that only requests a format, as
+    /// [`OutputArgs::view`](crate::OutputArgs::view) returns, takes the format
+    /// `App` reads from `--format`, every registered shorthand, and their
+    /// variables, and then the default for the terminal check. A view that
+    /// names a registered format, as [`View::new`] builds, keeps it.
     #[must_use]
     pub fn view(mut self, select: impl Fn(&C) -> View + 'static) -> Self {
         self.select_view = Box::new(select);
+        self
+    }
+
+    /// Install the formats this CLI offers, in place of
+    /// [`Formats::builtin`]. `--format`'s help, completion, the Usage spec, and
+    /// parse errors list exactly the registered names, each shorthand becomes
+    /// a flag, and the registry's defaults apply when no format is named.
+    #[must_use]
+    pub fn formats(mut self, formats: Formats) -> Self {
+        self.formats = formats;
         self
     }
 
@@ -345,7 +365,7 @@ impl<C> App<C> {
         mut self,
         hook: impl Fn(&[OsString]) -> Option<ExitCode> + 'static,
     ) -> Self {
-        self.before_parse.push(Box::new(hook));
+        self.before_parse.push(Box::new(move |args, _| hook(args)));
         self
     }
 
@@ -356,12 +376,15 @@ impl<C> App<C> {
     /// See [the `completion` module](crate::completion).
     #[cfg(feature = "completion")]
     #[must_use]
-    pub fn completion(self) -> Self
+    pub fn completion(mut self) -> Self
     where
         C: CommandFactory + 'static,
     {
         let bin = self.bin.clone();
-        self.before_parse(move |args| completion::complete::<C>(&bin, args))
+        self.before_parse.push(Box::new(move |args, command| {
+            completion::complete(&bin, args, command)
+        }));
+        self
     }
 
     /// Answer a `--usage-spec` request from mise for the task named `task`.
@@ -433,59 +456,77 @@ where
             .iter()
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect::<Vec<_>>();
+        let command = self.formats.augment(C::command());
 
         #[cfg(feature = "usage")]
         if let Some(task) = &self.mounted_as
             && let Some(spec_bin) = usage::spec_bin(words.iter().skip(1), task)
         {
-            let mut command = C::command();
+            let mut command = command.clone();
             command.set_bin_name(&spec_bin);
             let spec = (self.render_usage)(command, &spec_bin);
             return self.written(view::write_stdout(spec.as_bytes()), ExitCode::SUCCESS);
         }
 
         for hook in &self.before_parse {
-            if let Some(code) = hook(&raw) {
+            if let Some(code) = hook(&raw, &command) {
                 return code;
             }
         }
 
-        let raw_view = self.configured_view(raw_view::<C>(&raw));
+        let parsed = parser::parsed_output(command.clone(), &raw);
+        let named = parsed.matches.as_ref().and_then(|matches| {
+            requested_format(&command, matches, &self.formats).unwrap_or(Some(FormatName::JSON))
+        });
+        let raw_view = self.configured_view(
+            self.resolve(&View::requested(named, parsed.color))
+                .unwrap_or_else(|_| View::new(&PRETTY, parsed.color)),
+        );
         for warning in raw_view.env_warnings(render::process_env) {
             let _ = writeln!(io::stderr().lock(), "{}: warning: {warning}", self.bin);
         }
-        if words.len() == 1 && parser::requires_input::<C>() {
+        if words.len() == 1 && parser::requires_input(&command) {
             return self.written(
-                help::emit_bare_grouped::<C>(raw_view.render_options(), &self.command_groups),
+                help::emit_bare_grouped(command, raw_view.render_options(), &self.command_groups),
                 ExitCode::from(2),
             );
         }
-        match help::try_emit_grouped::<C>(&words, raw_view.render_options(), &self.command_groups) {
+        match help::try_emit_grouped(
+            &command,
+            &words,
+            raw_view.render_options(),
+            &self.command_groups,
+        ) {
             Ok(true) => return ExitCode::SUCCESS,
             Ok(false) => {}
             Err(error) => return self.written(Err(error), ExitCode::SUCCESS),
         }
 
-        let command = parser::apply_defaults(C::command());
-        let command = match flags::env_under_flags(command, &raw) {
-            Ok(command) => command,
-            Err(error) => {
-                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
-            }
+        let error_view = self.parse_error_view(&raw, &raw_view, parsed.color);
+        let parse = match flags::env_under_flags(parser::apply_defaults(command.clone()), &raw) {
+            Ok(parse) => parse,
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
         };
-        let matches = match command.try_get_matches_from(&raw) {
+        let matches = match parse.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => {
-                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
-            }
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+        };
+        let requested = match requested_format(&command, &matches, &self.formats) {
+            Ok(requested) => requested,
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+        };
+        let view = self.configured_view((self.select_view)(&cli).with_request(requested));
+        let view = match self.resolve(&view) {
+            Ok(view) => view,
             Err(error) => {
-                return self.clap_error(&error, &parse_error_view(&raw, raw_view), &words);
+                let body = ErrorBody::new(&self.bin, error.to_string());
+                return self.written(raw_view.write_error(&body), ExitCode::FAILURE);
             }
         };
-        let view = self.configured_view((self.select_view)(&cli));
         match execute(cli) {
             Ok(value) => self.written(
                 view.show(&value).map(|_| ()),
@@ -505,10 +546,23 @@ where
         }
     }
 
+    /// `view` with its format settled against this CLI's registry and the
+    /// terminal check on stdout.
+    fn resolve(&self, view: &View) -> io::Result<View> {
+        (*view).resolve(&self.formats, io::stdout().is_terminal())
+    }
+
     /// Report a parse error, or print the help or version Clap stopped for.
     /// Help always comes from ctl-core's renderer, so it needs none of Clap's
-    /// `help` or `color` features.
-    fn clap_error(&self, error: &clap::Error, view: &View, args: &[String]) -> ExitCode {
+    /// `help` or `color` features. `command` is the one `App` augmented with
+    /// the registered formats.
+    fn clap_error(
+        &self,
+        error: &clap::Error,
+        view: &View,
+        args: &[String],
+        command: &Command,
+    ) -> ExitCode {
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
@@ -523,63 +577,167 @@ where
         let written = if kind == ErrorKind::DisplayVersion {
             view::write_stdout(error.to_string().as_bytes())
         } else if kind == ErrorKind::DisplayHelp {
-            help::emit_selected::<C>(args, options, &self.command_groups)
+            help::emit_selected(command, args, options, &self.command_groups)
         } else {
-            help::emit_selected_to_stderr::<C>(args, options, &self.command_groups)
+            help::emit_selected_to_stderr(command, args, options, &self.command_groups)
         };
         self.written(written, code)
     }
-}
 
-fn raw_view<C: CommandFactory>(raw: &[OsString]) -> View {
-    let parsed = parser::parsed_output::<C>(raw);
-    View::new(parsed.format, parsed.color)
-}
-
-/// The view for a parse error.
-///
-/// Clap's lenient read stops at the bad argument. A `--format json` after it
-/// goes unseen. The error would then print as text, coloured when
-/// `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller that asked for JSON
-/// and pipes it to `jq`.
-///
-/// So `--json`, or a long `--format json` or `--format=json`, before `--`
-/// makes the error JSON, which never carries ANSI. Among `--format` values the
-/// last one Clap accepts wins in either direction, as it does in a full parse,
-/// so a later `--format pretty` undoes an earlier `--format json`. `--json`
-/// asks for JSON wherever it stands.
-///
-/// The short `-f` is left out, because a CLI may bind it to another
-/// flag. The scan is lexical, so a domain option whose value happens to be
-/// `--format=json` also gets a JSON error. That only changes how a failed
-/// parse is reported.
-fn parse_error_view(raw: &[OsString], mut view: View) -> View {
-    let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
-    let mut last = None;
-    while let Some(arg) = args.next() {
-        let value = match arg {
-            Some("--") => break,
-            Some("--json") => {
-                last = Some(OutputFormat::Json);
+    /// The view for a parse error.
+    ///
+    /// Clap's lenient read stops at the bad argument. A `--format json` after
+    /// it goes unseen. The error would then print as text, coloured when
+    /// `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller that asked for a
+    /// machine format and pipes it to `jq`.
+    ///
+    /// So the shorthand of a registered format, `--json`, or a long
+    /// `--format <name>` or `--format=<name>` that names a registered format,
+    /// before `--` picks that format's error form, and a machine format never
+    /// carries ANSI. Among `--format` values the last one Clap accepts wins in
+    /// either direction, as it does in a full parse, so a later
+    /// `--format pretty` undoes an earlier `--format json`. A shorthand asks
+    /// for its format wherever it stands.
+    ///
+    /// The short `-f` is left out, because a CLI may bind it to another
+    /// flag. The scan is lexical, so a domain option whose value happens to be
+    /// `--format=json` also gets a JSON error. That only changes how a failed
+    /// parse is reported. When the scan finds nothing, `view` stands.
+    fn parse_error_view(&self, raw: &[OsString], view: &View, color: ColorMode) -> View {
+        let mut args = raw.iter().skip(1).map(|arg| arg.to_str());
+        let mut last = None;
+        while let Some(arg) = args.next() {
+            let Some(arg) = arg else { continue };
+            if arg == "--" {
                 break;
             }
-            Some("--format") => args.next().flatten(),
-            Some(arg) => arg.strip_prefix("--format="),
-            None => None,
+            let shorthand = arg.strip_prefix("--").and_then(|long| {
+                self.formats
+                    .shorthands()
+                    .find_map(|(flag, name)| (flag == long).then_some(name))
+            });
+            if shorthand.is_some() {
+                last = shorthand;
+                break;
+            }
+            let value = if arg == "--format" {
+                args.next().flatten()
+            } else {
+                arg.strip_prefix("--format=")
+            };
+            let named =
+                value.and_then(|value| self.formats.names().find(|name| name.as_str() == value));
+            if named.is_some() {
+                last = named;
+            }
+        }
+        let Some(format) = last.and_then(|name| self.formats.get(name)) else {
+            return *view;
         };
-        if let Some(format) =
-            value.and_then(|value| <OutputFormat as clap::ValueEnum>::from_str(value, false).ok())
+        let color = if format.machine() {
+            ColorMode::Never
+        } else {
+            color
+        };
+        self.configured_view(View::new(format, color))
+    }
+}
+
+/// The format the command line, or else the variables, name, among `--format`,
+/// `--json`, and the shorthand of every registered format.
+///
+/// A value from the command line outranks one from a variable. Two flags, or
+/// two variables, that name different formats are a usage error that names
+/// both, because neither can be told to win. The derived flag structs
+/// reconcile `--format` with `--json` the same way for a CLI without `App`,
+/// but only `App` knows the shorthands and variables of a custom registry.
+///
+/// `--json` names `json` whatever the registry holds, so a CLI that replaces
+/// `json` with a format that has no shorthand still selects it with `--json`.
+///
+/// # Errors
+///
+/// An `ArgumentConflict` error for two flags or two variables that name
+/// different formats, and an `InvalidValue` error, exit code 2, for a name
+/// the registry lacks, such as `--json` once `json` is removed. It names the
+/// value, the variable it came from, and the registered names.
+fn requested_format(
+    command: &Command,
+    matches: &ArgMatches,
+    formats: &Formats,
+) -> Result<Option<FormatName>, clap::Error> {
+    struct Given {
+        flag: String,
+        env: String,
+        name: FormatName,
+        from_line: bool,
+    }
+    let env_of = |id: &str| {
+        command
+            .get_arguments()
+            .find(|arg| arg.get_id() == id)
+            .and_then(|arg| arg.get_env())
+            .map_or_else(|| id.to_owned(), |name| name.to_string_lossy().into_owned())
+    };
+    let from = |id: &str| match matches.value_source(id) {
+        Some(ValueSource::CommandLine) => Some(true),
+        Some(ValueSource::EnvVariable) => Some(false),
+        _ => None,
+    };
+    let mut given = Vec::new();
+    if let Ok(Some(name)) = matches.try_get_one::<FormatName>("format")
+        && let Some(from_line) = from("format")
+    {
+        given.push(Given {
+            flag: format!("--format {name}"),
+            env: env_of("format"),
+            name: *name,
+            from_line,
+        });
+    }
+    for (long, name) in formats.shorthands() {
+        if matches!(matches.try_get_one::<bool>(long), Ok(Some(true)))
+            && let Some(from_line) = from(long)
         {
-            last = Some(format);
+            given.push(Given {
+                flag: format!("--{long}"),
+                env: env_of(long),
+                name,
+                from_line,
+            });
         }
     }
-    if let Some(format) = last {
-        view = view.in_format(format);
-        if format.is_json() {
-            view = view.color(ColorMode::Never);
+    for from_line in [true, false] {
+        let mut set = given.iter().filter(|given| given.from_line == from_line);
+        let Some(first) = set.next() else {
+            continue;
+        };
+        if let Some(other) = set.find(|other| other.name != first.name) {
+            let message = if from_line {
+                format!(
+                    "the arguments `{}` and `{}` name different formats\n",
+                    first.flag, other.flag
+                )
+            } else {
+                format!(
+                    "the variables `{}` and `{}` name different formats\n",
+                    first.env, other.env
+                )
+            };
+            return Err(
+                clap::Error::raw(ErrorKind::ArgumentConflict, message).format(&mut command.clone())
+            );
         }
+        if formats.get(first.name).is_none() {
+            let variable = (!from_line).then_some(first.env.as_str());
+            return Err(
+                unknown_format(first.name.as_str(), variable, &mut formats.names())
+                    .format(&mut command.clone()),
+            );
+        }
+        return Ok(Some(first.name));
     }
-    view
+    Ok(None)
 }
 
 /// Clap's rendered error without its leading `error: `, so a parse error reads
@@ -609,17 +767,16 @@ mod tests {
     use std::process::ExitCode;
     use std::rc::Rc;
 
-    use clap::{Parser, Subcommand};
+    use clap::{CommandFactory, Parser, Subcommand};
     use ctl_text::anstyle::Effects;
     use serde::Serialize;
 
-    use super::{
-        App, BrokenPipe, is_clap_display, parse_error_message, parse_error_view, raw_view,
-    };
+    use super::{App, BrokenPipe, is_clap_display, parse_error_message, requested_format};
     use crate::document::{Document, Fields};
+    use crate::format::{FormatName, Formats, JSON, PRETTY};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
-    use crate::{ColorMode, OutputArgs, OutputFormat, Role, Theme};
+    use crate::{ColorMode, OutputArgs, Role, Theme, parser};
 
     #[derive(Parser)]
     #[command(version, about = "toy")]
@@ -686,7 +843,7 @@ mod tests {
         let observed = Rc::clone(&ran);
         let code = App::<Cli>::new("toy")
             .view(|cli| {
-                View::new(cli.output.format, cli.output.color())
+                View::requested(cli.output.format, cli.output.color())
                     .quiet(cli.output.quiet)
                     .width(80)
             })
@@ -702,7 +859,8 @@ mod tests {
     /// machine output stays plain whatever the colour environment says.
     #[test]
     fn a_parse_error_honours_a_later_json_format() {
-        let pretty = View::new(OutputFormat::Pretty, ColorMode::Always);
+        let app = App::<Cli>::new("toy");
+        let pretty = View::new(&PRETTY, ColorMode::Always);
         let cases = [
             (&["toy", "status", "--bogus", "--format", "json"][..], true),
             (&["toy", "status", "--bogus", "--format=json"][..], true),
@@ -730,11 +888,13 @@ mod tests {
                 true,
             ),
             (&["toy", "status", "--bogus", "--", "--json"][..], false),
+            (&["toy", "status", "--bogus", "--format", "yaml"][..], false),
         ];
         for (argv, json) in cases {
             let raw: Vec<OsString> = argv.iter().map(OsString::from).collect();
-            let view = parse_error_view(&raw, pretty);
-            assert_eq!(view.format().is_json(), json, "{argv:?}");
+            let view = app.parse_error_view(&raw, &pretty, ColorMode::Always);
+            assert_eq!(view.format() == FormatName::JSON, json, "{argv:?}");
+            assert_eq!(view.is_machine(), json, "{argv:?}");
             if json {
                 assert_eq!(
                     view.render_options(),
@@ -743,13 +903,15 @@ mod tests {
                 );
             }
         }
-        let json_first = View::new(OutputFormat::Json, ColorMode::Never);
+        let json_first = View::new(&JSON, ColorMode::Never);
         let raw: Vec<OsString> = ["toy", "--format", "json", "--bogus", "--format", "pretty"]
             .iter()
             .map(OsString::from)
             .collect();
-        assert!(
-            !parse_error_view(&raw, json_first).format().is_json(),
+        assert_eq!(
+            app.parse_error_view(&raw, &json_first, ColorMode::Always)
+                .format(),
+            FormatName::PRETTY,
             "a later --format pretty undoes the pre-parse's JSON"
         );
     }
@@ -805,7 +967,7 @@ mod tests {
             .automatic_width_buffer(0)
             .automatic_width_buffer_envs(&["TOY_BUFFER", "LEGACY_BUFFER"])
             .minimum_automatic_width(8);
-        let view = app.configured_view(View::new(OutputFormat::Pretty, ColorMode::Never));
+        let view = app.configured_view(View::new(&PRETTY, ColorMode::Never));
         assert_eq!(
             view.render_options(),
             RenderOptions::new(ColorMode::Never)
@@ -820,11 +982,11 @@ mod tests {
         let compact = |name: &str| (name == "TOY_JSON").then(|| "compact".to_owned());
         let view = App::<Cli>::new("toy")
             .json_layout_envs(&["TOY_JSON"])
-            .configured_view(View::new(OutputFormat::Json, ColorMode::Never));
+            .configured_view(View::new(&JSON, ColorMode::Never));
         assert_eq!(view.json_layout_with(compact), JsonLayout::Compact);
         let disabled = App::<Cli>::new("toy")
             .json_layout_envs(&[])
-            .configured_view(View::new(OutputFormat::Json, ColorMode::Never));
+            .configured_view(View::new(&JSON, ColorMode::Never));
         assert_eq!(disabled.json_layout_with(compact), JsonLayout::Pretty);
     }
 
@@ -835,7 +997,7 @@ mod tests {
             .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed))
             .json_layout(JsonLayout::Compact);
         let options = app
-            .configured_view(View::new(OutputFormat::Pretty, ColorMode::Never))
+            .configured_view(View::new(&PRETTY, ColorMode::Never))
             .render_options();
         assert_eq!(
             options,
@@ -845,7 +1007,7 @@ mod tests {
         );
         assert_eq!(options.resolved_record_style(), RecordStyle::Boxed);
         let json = app
-            .configured_view(View::new(OutputFormat::Json, ColorMode::Never))
+            .configured_view(View::new(&JSON, ColorMode::Never))
             .capture(&Status { pending: 1 })
             .unwrap();
         assert_eq!(json.text(), "{\"pending\":1}\n");
@@ -859,7 +1021,7 @@ mod tests {
             .theme(theme)
             .styles(RenderOptions::new(ColorMode::Never).record_style(RecordStyle::Boxed));
         let options = app
-            .configured_view(View::new(OutputFormat::Pretty, ColorMode::Always))
+            .configured_view(View::new(&PRETTY, ColorMode::Always))
             .render_options();
         assert_eq!(
             options,
@@ -900,11 +1062,8 @@ mod tests {
 
     #[test]
     fn defaults_are_pretty_auto() {
-        let app = App::<Cli>::new("toy").view(|_| {
-            View::new(OutputFormat::Pretty, ColorMode::Auto)
-                .quiet(true)
-                .width(80)
-        });
+        let app = App::<Cli>::new("toy")
+            .view(|_| View::new(&PRETTY, ColorMode::Auto).quiet(true).width(80));
         let code = app.run_from(["toy", "status"], |_| Ok(Status { pending: 0 }));
         assert_eq!(code, ExitCode::SUCCESS);
     }
@@ -959,16 +1118,21 @@ mod tests {
     }
 
     #[test]
-    fn raw_view_uses_clap_to_separate_globals_from_domain_values() {
+    fn parsed_output_uses_clap_to_separate_globals_from_domain_values() {
         let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
-        let view = raw_view::<Cli>(&domain_value);
-        assert_eq!(view.format(), OutputFormat::Pretty);
-        assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Auto));
+        let formats = Formats::builtin();
+        let named = |parsed: &parser::ParsedOutput| {
+            let matches = parsed.matches.as_ref().unwrap();
+            requested_format(&Cli::command(), matches, &formats).unwrap()
+        };
+        let parsed = parser::parsed_output(Cli::command(), &domain_value);
+        assert_eq!(named(&parsed), None);
+        assert_eq!(parsed.color, ColorMode::Auto);
 
         let global_after_subcommand =
             ["toy", "status", "-fjson", "-cnever", "--bogus"].map(OsString::from);
-        let view = raw_view::<Cli>(&global_after_subcommand);
-        assert_eq!(view.format(), OutputFormat::Json);
-        assert_eq!(view.render_options(), RenderOptions::new(ColorMode::Never));
+        let parsed = parser::parsed_output(Cli::command(), &global_after_subcommand);
+        assert_eq!(named(&parsed), Some(FormatName::JSON));
+        assert_eq!(parsed.color, ColorMode::Never);
     }
 }

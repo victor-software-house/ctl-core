@@ -85,7 +85,8 @@ Two variables that name different formats SHALL be a usage error that names both
 
 A format SHALL be able to declare a shorthand long flag that selects it.
 `json` SHALL declare `--json`.
-Naming two different formats on one command line SHALL be a usage error, exit 2.
+Two different format flags on one command line, such as `--json` and `--format csv`, SHALL be a usage error, exit 2.
+A repeated `--format` keeps its last value, as every repeated flag does.
 
 #### Scenario: --json
 

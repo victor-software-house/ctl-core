@@ -65,12 +65,13 @@
 //!   result or the error. [`prelude`] is the one ctl-core import a binary
 //!   needs.
 //! - [`Present`] maps a serializable result to a [`Document`], and its
-//!   [`Outcome`] says whether the result succeeded. [`View`] writes it as
-//!   pretty text, colourless text, or JSON.
+//!   [`Outcome`] says whether the result succeeded. [`View`] writes it through
+//!   a [`Format`]: `pretty` text, colourless text, or `json`, or a format the
+//!   CLI registers on [`Formats`].
 //! - [`Document`] builds human output from headings, paragraphs, [`Fields`],
 //!   [`Table`]s, [`Section`]s, and [`Notice`]s. It has no layout in it.
 //! - [`OutputArgs`], [`DryRunArgs`], and [`EnvPrefix`] are the shared flags and
-//!   the environment binding. [`ColorMode`] and [`OutputFormat`] are the values
+//!   the environment binding. [`ColorMode`] and [`FormatName`] are the values
 //!   the flags parse to. A [`FlagWarning`] reports a [`FlagClash`] between two
 //!   of them, where the last one given wins.
 //! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
@@ -85,17 +86,18 @@
 //! ## How output flows
 //!
 //! ```text
-//! Clap types ──→ App ──→ typed domain result ──┬──→ JSON
-//!                                              └──→ Document ──→ pretty/colourless
+//! Clap types ──→ App ──→ typed domain result ──→ Format ──┬──→ data ──→ JSON
+//!                                                          └──→ Document ──→ pretty
 //! ```
 //!
 //! - Domain handlers return data. They do not print, read terminal state, or
 //!   choose the output format.
 //! - [`Present`] maps a serializable result to a semantic [`Document`].
-//! - [`View`] serializes the result for JSON and renders its document for
-//!   pretty and colourless output.
+//! - [`View`] hands the result to its [`Format`], which serializes it or
+//!   renders its document. `pretty` and `json` are such formats, and a CLI adds
+//!   its own on [`Formats`].
 //! - Success goes to stdout and failure to stderr, in JSON as in pretty output.
-//!   JSON never contains ANSI.
+//!   A machine format, such as JSON, never contains ANSI.
 //! - A reader that closes stdout early, such as `head -1`, does not change the
 //!   exit code. A command that succeeded exits 0, and a failure keeps its code.
 //!   [`App::broken_pipe`] can make every closed pipe a failure.
@@ -158,6 +160,12 @@
     doc = "[`Notice`]: crate#cargo-features",
     doc = "[`Role`]: crate#cargo-features",
     doc = "[`document::Text`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "view"),
+    doc = "",
+    doc = "[`Format`]: crate#cargo-features",
+    doc = "[`Formats`]: crate#cargo-features"
 )]
 #![cfg_attr(
     not(feature = "cli"),
@@ -261,7 +269,10 @@ pub use flags::{
     chassis_warnings, emit_warnings, resolve_color, switch, warn_opposites,
 };
 #[doc(hidden)]
-pub use format::OutputFormat;
+pub use format::FormatName;
+#[cfg(feature = "view")]
+#[doc(hidden)]
+pub use format::{Format, Formats};
 #[doc(hidden)]
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 #[doc(hidden)]

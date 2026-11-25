@@ -19,7 +19,7 @@ use crate::color::ColorMode;
 #[cfg(feature = "view")]
 use crate::document::Document;
 #[cfg(feature = "view")]
-use crate::format::OutputFormat;
+use crate::format::FormatName;
 #[cfg(feature = "view")]
 use crate::view::{Present, View};
 
@@ -67,12 +67,15 @@ impl Present for Script {
     }
 }
 
-/// The view a shell verb prints its [`Script`] through: `format`, no colour,
-/// and never quiet.
+/// The view a shell verb prints its [`Script`] through: the format requested
+/// by `format`, no colour, and never quiet.
 ///
-/// The script is the verb's whole result. `source <(toy completion zsh)` or
-/// `eval "$(toy init zsh)"` would load nothing if `--quiet` or a quiet
-/// variable hid it. Route the verb here from [`App::view`].
+/// `json` prints the script in its envelope. Every other format, built-in or
+/// registered, and no format at all, print the script text unchanged, so a
+/// default that is a machine format cannot turn `eval "$(toy init zsh)"` into
+/// a table. The script is the verb's whole result: `source <(toy completion
+/// zsh)` would load nothing if `--quiet` or a quiet variable hid it. Route
+/// the verb here from [`App::view`].
 #[cfg_attr(
     feature = "app",
     doc = "",
@@ -85,6 +88,6 @@ impl Present for Script {
 )]
 #[cfg(feature = "view")]
 #[must_use]
-pub const fn view(format: OutputFormat) -> View {
-    View::new(format, ColorMode::Never)
+pub const fn view(format: Option<FormatName>) -> View {
+    View::requested(format, ColorMode::Never).script()
 }
