@@ -44,7 +44,7 @@ use clap::{ArgMatches, Command, CommandFactory, Parser};
 use crate::color::ColorMode;
 #[cfg(feature = "completion")]
 use crate::completion;
-use crate::format::{FormatName, Formats, PRETTY};
+use crate::format::{FormatName, Formats, PRETTY, unknown_format};
 use crate::help::CommandGroup;
 #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
 use crate::input::{self, Limits};
@@ -475,8 +475,11 @@ where
         }
 
         let parsed = parser::parsed_output(command.clone(), &raw);
+        let named = parsed.matches.as_ref().and_then(|matches| {
+            requested_format(&command, matches, &self.formats).unwrap_or(Some(FormatName::JSON))
+        });
         let raw_view = self.configured_view(
-            self.resolve(&View::requested(parsed.format, parsed.color))
+            self.resolve(&View::requested(named, parsed.color))
                 .unwrap_or_else(|_| View::new(&PRETTY, parsed.color)),
         );
         for warning in raw_view.env_warnings(render::process_env) {
@@ -588,12 +591,13 @@ where
     /// `CLICOLOR_FORCE` or `FORCE_COLOR` is set, to a caller that asked for a
     /// machine format and pipes it to `jq`.
     ///
-    /// So the shorthand of a registered format, or a long `--format <name>` or
-    /// `--format=<name>` that names one, before `--` picks that format's error
-    /// form, and a machine format never carries ANSI. Among `--format` values
-    /// the last one Clap accepts wins in either direction, as it does in a full
-    /// parse, so a later `--format pretty` undoes an earlier `--format json`. A
-    /// shorthand asks for its format wherever it stands.
+    /// So the shorthand of a registered format, `--json`, or a long
+    /// `--format <name>` or `--format=<name>` that names a registered format,
+    /// before `--` picks that format's error form, and a machine format never
+    /// carries ANSI. Among `--format` values the last one Clap accepts wins in
+    /// either direction, as it does in a full parse, so a later
+    /// `--format pretty` undoes an earlier `--format json`. A shorthand asks
+    /// for its format wherever it stands.
     ///
     /// The short `-f` is left out, because a CLI may bind it to another
     /// flag. The scan is lexical, so a domain option whose value happens to be
@@ -609,8 +613,8 @@ where
             }
             let shorthand = arg.strip_prefix("--").and_then(|long| {
                 self.formats
-                    .iter()
-                    .find(|format| format.shorthand() == Some(long))
+                    .shorthands()
+                    .find_map(|(flag, name)| (flag == long).then_some(name))
             });
             if shorthand.is_some() {
                 last = shorthand;
@@ -621,16 +625,13 @@ where
             } else {
                 arg.strip_prefix("--format=")
             };
-            let named = value.and_then(|value| {
-                self.formats
-                    .iter()
-                    .find(|format| format.name().as_str() == value)
-            });
+            let named =
+                value.and_then(|value| self.formats.names().find(|name| name.as_str() == value));
             if named.is_some() {
                 last = named;
             }
         }
-        let Some(format) = last else {
+        let Some(format) = last.and_then(|name| self.formats.get(name)) else {
             return *view;
         };
         let color = if format.machine() {
@@ -642,14 +643,24 @@ where
     }
 }
 
-/// The format the command line, or else the variables, name, among `--format`
-/// and the shorthand of every registered format.
+/// The format the command line, or else the variables, name, among `--format`,
+/// `--json`, and the shorthand of every registered format.
 ///
 /// A value from the command line outranks one from a variable. Two flags, or
 /// two variables, that name different formats are a usage error that names
 /// both, because neither can be told to win. The derived flag structs
 /// reconcile `--format` with `--json` the same way for a CLI without `App`,
 /// but only `App` knows the shorthands and variables of a custom registry.
+///
+/// `--json` names `json` whatever the registry holds, so a CLI that replaces
+/// `json` with a format that has no shorthand still selects it with `--json`.
+///
+/// # Errors
+///
+/// An `ArgumentConflict` error for two flags or two variables that name
+/// different formats, and an `InvalidValue` error, exit code 2, for a name
+/// the registry lacks, such as `--json` once `json` is removed. It names the
+/// value, the variable it came from, and the registered names.
 fn requested_format(
     command: &Command,
     matches: &ArgMatches,
@@ -684,17 +695,14 @@ fn requested_format(
             from_line,
         });
     }
-    for format in formats.iter() {
-        let Some(long) = format.shorthand() else {
-            continue;
-        };
+    for (long, name) in formats.shorthands() {
         if matches!(matches.try_get_one::<bool>(long), Ok(Some(true)))
             && let Some(from_line) = from(long)
         {
             given.push(Given {
                 flag: format!("--{long}"),
                 env: env_of(long),
-                name: format.name(),
+                name,
                 from_line,
             });
         }
@@ -718,6 +726,13 @@ fn requested_format(
             };
             return Err(
                 clap::Error::raw(ErrorKind::ArgumentConflict, message).format(&mut command.clone())
+            );
+        }
+        if formats.get(first.name).is_none() {
+            let variable = (!from_line).then_some(first.env.as_str());
+            return Err(
+                unknown_format(first.name.as_str(), variable, &mut formats.names())
+                    .format(&mut command.clone()),
             );
         }
         return Ok(Some(first.name));
@@ -756,9 +771,9 @@ mod tests {
     use ctl_text::anstyle::Effects;
     use serde::Serialize;
 
-    use super::{App, BrokenPipe, is_clap_display, parse_error_message};
+    use super::{App, BrokenPipe, is_clap_display, parse_error_message, requested_format};
     use crate::document::{Document, Fields};
-    use crate::format::{FormatName, JSON, PRETTY};
+    use crate::format::{FormatName, Formats, JSON, PRETTY};
     use crate::render::{RecordStyle, RenderOptions};
     use crate::view::{JsonLayout, Present, View};
     use crate::{ColorMode, OutputArgs, Role, Theme, parser};
@@ -1105,14 +1120,19 @@ mod tests {
     #[test]
     fn parsed_output_uses_clap_to_separate_globals_from_domain_values() {
         let domain_value = ["toy", "status", "-m", "--format=json", "--bogus"].map(OsString::from);
+        let formats = Formats::builtin();
+        let named = |parsed: &parser::ParsedOutput| {
+            let matches = parsed.matches.as_ref().unwrap();
+            requested_format(&Cli::command(), matches, &formats).unwrap()
+        };
         let parsed = parser::parsed_output(Cli::command(), &domain_value);
-        assert_eq!(parsed.format, None);
+        assert_eq!(named(&parsed), None);
         assert_eq!(parsed.color, ColorMode::Auto);
 
         let global_after_subcommand =
             ["toy", "status", "-fjson", "-cnever", "--bogus"].map(OsString::from);
         let parsed = parser::parsed_output(Cli::command(), &global_after_subcommand);
-        assert_eq!(parsed.format, Some(FormatName::JSON));
+        assert_eq!(named(&parsed), Some(FormatName::JSON));
         assert_eq!(parsed.color, ColorMode::Never);
     }
 }

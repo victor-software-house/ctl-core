@@ -34,6 +34,8 @@ use clap::builder::{PossibleValue, TypedValueParser};
 #[cfg(feature = "cli")]
 use clap::error::ErrorKind;
 #[cfg(feature = "cli")]
+use clap::parser::ValueSource;
+#[cfg(feature = "cli")]
 use clap::{Arg, Command};
 #[cfg(feature = "json")]
 use serde::{Serialize, Serializer};
@@ -148,29 +150,9 @@ impl FormatParser {
         ])
     }
 
-    /// The names, as a sentence fragment: `pretty, json`.
-    fn accepted(&self) -> String {
-        self.names
-            .iter()
-            .map(|(name, _)| name.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-}
-
-#[cfg(feature = "cli")]
-impl TypedValueParser for FormatParser {
-    type Value = FormatName;
-
-    /// Clap's own error for a rejected value prints only a generic line when
-    /// its error context is off, as it is here. So the message names the value
-    /// and the accepted names itself.
-    fn parse_ref(
-        &self,
-        _command: &Command,
-        _arg: Option<&Arg>,
-        value: &OsStr,
-    ) -> Result<FormatName, clap::Error> {
+    /// `value` as a registered name, or the error that names it, the
+    /// variable it came from when there is one, and the accepted names.
+    fn parse(&self, value: &OsStr, variable: Option<&str>) -> Result<FormatName, clap::Error> {
         let Some(text) = value.to_str() else {
             return Err(clap::Error::raw(
                 ErrorKind::InvalidUtf8,
@@ -181,11 +163,63 @@ impl TypedValueParser for FormatParser {
             .iter()
             .find_map(|(name, _)| (name.as_str() == text).then_some(*name))
             .ok_or_else(|| {
-                clap::Error::raw(
-                    ErrorKind::InvalidValue,
-                    format_args!("unknown format `{text}`; use one of {}\n", self.accepted()),
+                unknown_format(
+                    text,
+                    variable,
+                    &mut self.names.iter().map(|(name, _)| *name),
                 )
             })
+    }
+}
+
+/// The usage error for a format name that is not registered: it names the
+/// value, the variable it came from when there is one, and the accepted
+/// names. Clap's own error for a rejected value prints only a generic line
+/// when its error context is off, as it is here.
+#[cfg(feature = "cli")]
+pub(crate) fn unknown_format(
+    text: &str,
+    variable: Option<&str>,
+    accepted: &mut dyn Iterator<Item = FormatName>,
+) -> clap::Error {
+    let accepted = accepted
+        .map(FormatName::as_str)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let source = variable.map_or_else(String::new, |name| format!(" from the variable `{name}`"));
+    clap::Error::raw(
+        ErrorKind::InvalidValue,
+        format_args!("unknown format `{text}`{source}; use one of {accepted}\n"),
+    )
+}
+
+#[cfg(feature = "cli")]
+impl TypedValueParser for FormatParser {
+    type Value = FormatName;
+
+    fn parse_ref(
+        &self,
+        _command: &Command,
+        _arg: Option<&Arg>,
+        value: &OsStr,
+    ) -> Result<FormatName, clap::Error> {
+        self.parse(value, None)
+    }
+
+    /// A value from a variable names that variable in its error, so a caller
+    /// who never typed `--format` can find what to unset.
+    fn parse_ref_(
+        &self,
+        _command: &Command,
+        arg: Option<&Arg>,
+        value: &OsStr,
+        source: ValueSource,
+    ) -> Result<FormatName, clap::Error> {
+        let variable = (source == ValueSource::EnvVariable)
+            .then(|| arg.and_then(Arg::get_env))
+            .flatten()
+            .and_then(OsStr::to_str);
+        self.parse(value, variable)
     }
 
     fn possible_values(&self) -> Option<Box<dyn Iterator<Item = PossibleValue> + '_>> {

@@ -50,7 +50,7 @@ use serde::Serialize;
 
 use crate::color::ColorMode;
 use crate::document::Document;
-use crate::format::{Format, FormatName, Formats, Output, PRETTY, Sink, unregistered};
+use crate::format::{Format, FormatName, Formats, JSON, Output, PRETTY, Sink, unregistered};
 use crate::model::ErrorBody;
 #[cfg(feature = "app")]
 use crate::render;
@@ -248,6 +248,10 @@ pub struct View {
     script: bool,
 }
 
+/// The formats ctl-core itself offers, which a view that was never resolved
+/// against a registry is looked up in.
+static BUILTIN: [&dyn Format; 2] = [&PRETTY, &JSON];
+
 /// How a view knows its format. A named format was chosen by a flag, a
 /// variable, a shorthand, or the caller. A defaulted one came from the
 /// registry's default, and `--quiet` hides it even when it is a machine
@@ -267,6 +271,16 @@ impl Choice {
             Self::Named(format) | Self::Defaulted(format) => Some(format.name()),
             Self::Requested(name) => Some(name),
             Self::Unset => None,
+        }
+    }
+
+    /// The name of this kind of choice, for `Debug`.
+    const fn kind(self) -> &'static str {
+        match self {
+            Self::Named(_) => "named",
+            Self::Defaulted(_) => "defaulted",
+            Self::Requested(_) => "requested",
+            Self::Unset => "unset",
         }
     }
 
@@ -334,9 +348,7 @@ impl View {
     pub fn resolve(mut self, formats: &Formats, terminal: bool) -> io::Result<Self> {
         self.choice = match self.choice {
             Choice::Named(_) | Choice::Defaulted(_) => self.choice,
-            Choice::Requested(name) if self.script && name != FormatName::JSON => {
-                Choice::Named(&PRETTY)
-            }
+            Choice::Requested(name) if self.prints_as_pretty(name) => Choice::Named(&PRETTY),
             Choice::Requested(name) => Choice::Named(
                 formats
                     .get(name)
@@ -348,24 +360,50 @@ impl View {
         Ok(self)
     }
 
-    /// The view asking for `name` in place of the request it holds, when it
-    /// still holds one. A view that names or defaults a format is returned as
-    /// it is, so a caller's own choice stands.
+    /// The view asking for `name` in place of the request it holds, when the
+    /// caller found one and the view still holds a request. A view that names
+    /// or defaults a format is returned as it is, and so is one when no name
+    /// was found, so the view the caller chose stands.
     #[cfg(feature = "app")]
     pub(crate) const fn with_request(mut self, name: Option<FormatName>) -> Self {
-        if matches!(self.choice, Choice::Requested(_) | Choice::Unset) {
-            self.choice = match name {
-                Some(name) => Choice::Requested(name),
-                None => Choice::Unset,
-            };
+        if let Some(name) = name
+            && matches!(self.choice, Choice::Requested(_) | Choice::Unset)
+        {
+            self.choice = Choice::Requested(name);
         }
         self
     }
 
     /// This view with its format settled against the built-in formats and
-    /// the terminal check, as [`Self::capture`] does.
+    /// the terminal check, as [`Self::capture`] does. A named or defaulted view
+    /// is returned at once, a requested name is looked up among the built-ins,
+    /// and only a view with no request asks the terminal.
     fn settled(self) -> io::Result<Self> {
-        self.resolve(&Formats::builtin(), io::stdout().is_terminal())
+        match self.choice {
+            Choice::Named(_) | Choice::Defaulted(_) => Ok(self),
+            Choice::Requested(name) if self.prints_as_pretty(name) => {
+                Ok(self.with_choice_of(Choice::Named(&PRETTY)))
+            }
+            Choice::Requested(name) => BUILTIN
+                .iter()
+                .copied()
+                .find(|format| format.name() == name)
+                .map(|format| self.with_choice_of(Choice::Named(format)))
+                .ok_or_else(|| unregistered("the format", name)),
+            Choice::Unset => self.resolve(&Formats::builtin(), io::stdout().is_terminal()),
+        }
+    }
+
+    /// Whether a script view writes `name` as `pretty`: every format but
+    /// `json`.
+    fn prints_as_pretty(self, name: FormatName) -> bool {
+        self.script && name != FormatName::JSON
+    }
+
+    /// This view with `choice` in place of its own.
+    const fn with_choice_of(mut self, choice: Choice) -> Self {
+        self.choice = choice;
+        self
     }
 
     /// The format a settled view writes in, and whether it came from a
@@ -563,10 +601,17 @@ impl View {
     /// Returns an error when the view's format is not a built-in, when the
     /// format fails to write `value`, or when what it wrote is not UTF-8.
     pub fn capture(self, value: &impl Present) -> io::Result<Captured> {
+        let present = || value.present();
+        let output = Output::new(value, &present, value.outcome());
+        self.capture_output(&output, value.exit_code())
+    }
+
+    /// [`Self::capture`] for a result already behind [`Output`], so one copy
+    /// of this body serves every result type.
+    fn capture_output(self, output: &Output<'_>, exit_code: u8) -> io::Result<Captured> {
         let view = self.settled()?;
         let (format, defaulted) = view.chosen()?;
-        let outcome = value.outcome();
-        let exit_code = value.exit_code();
+        let outcome = output.outcome();
         let hidden = view.quiet
             && !view.script
             && outcome == Outcome::Success
@@ -582,10 +627,8 @@ impl View {
             Outcome::Success => (Destination::Stdout, ctl_term::Stream::Stdout),
             Outcome::Error => (Destination::Stderr, ctl_term::Stream::Stderr),
         };
-        let present = || value.present();
-        let output = Output::new(value, &present, outcome);
         let mut written = Vec::new();
-        format.write(&output, &mut view.sink(&mut written, target, format))?;
+        format.write(output, &mut view.sink(&mut written, target, format))?;
         let content = String::from_utf8(written)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         Ok(Captured {
@@ -653,12 +696,14 @@ impl PartialEq for View {
 
 impl Eq for View {}
 
-/// Names the format: a registered format has no `Debug`.
+/// Names the format and the kind of choice that holds it: a registered format
+/// has no `Debug`.
 impl fmt::Debug for View {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("View")
             .field("format", &self.choice.name())
+            .field("choice", &self.choice.kind())
             .field("quiet", &self.quiet)
             .field("options", &self.options)
             .field("json_layout", &self.json_layout)

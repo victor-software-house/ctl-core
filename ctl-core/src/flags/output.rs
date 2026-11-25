@@ -164,7 +164,7 @@ fn json_set(matches: &ArgMatches) -> bool {
 /// An `ArgumentConflict` error when the command line holds `--json` and a
 /// `--format` other than `json`, or when the variables of the two name
 /// different formats.
-pub(crate) fn resolved_format(
+fn resolved_format(
     format: Option<FormatName>,
     json: bool,
     matches: &ArgMatches,

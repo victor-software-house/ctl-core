@@ -1,3 +1,5 @@
+#[cfg(feature = "app")]
+use std::iter;
 use std::{fmt, io};
 
 #[cfg(feature = "cli")]
@@ -98,10 +100,24 @@ impl Formats {
         self.registered.iter().map(|format| format.name())
     }
 
-    /// The registered formats, in the order help lists them.
+    /// Each long flag that names a format, with the name: `json` first, then
+    /// the shorthand of every other registered format.
+    ///
+    /// The flag structs declare `--json` and the matches record it as `json`,
+    /// so it names `json` whatever the registry holds. A format that replaces
+    /// `json` is chosen by that flag, and one that removes it makes the flag
+    /// a usage error.
     #[cfg(feature = "app")]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &'static dyn Format> + '_ {
-        self.registered.iter().copied()
+    pub(crate) fn shorthands(&self) -> impl Iterator<Item = (&'static str, FormatName)> + '_ {
+        let json = FormatName::JSON.as_str();
+        iter::once((json, FormatName::JSON)).chain(self.registered.iter().filter_map(
+            move |format| {
+                format
+                    .shorthand()
+                    .filter(|long| *long != json)
+                    .map(|long| (long, format.name()))
+            },
+        ))
     }
 
     /// The default format for a run whose stdout is, or is not, a terminal.
@@ -119,11 +135,14 @@ impl Formats {
     /// `command` with this registry's formats: the names `--format` accepts,
     /// and one global flag for each shorthand the command lacks.
     ///
-    /// A command with no `format` argument is returned as it is. Each shorthand
-    /// flag reads `<PREFIX>_<LONG>`, with the prefix taken from the variable
-    /// `--format` reads: `TOY_FORMAT` gives `TOY`. A `--format` with no
-    /// variable binds none. The `--json` flag the flag structs add is hidden
-    /// when `json` is not registered.
+    /// A command with no `format` argument is returned as it is. A shorthand
+    /// that the command or any subcommand already declares, as a long flag or
+    /// an argument id, gets no flag of its own. Each shorthand flag reads
+    /// `<PREFIX>_<LONG>`, with the prefix taken from the variable `--format`
+    /// reads: `TOY_FORMAT` gives `TOY`. A `--format` with no variable binds
+    /// none. The `--json` flag the flag structs add is hidden when `json` is
+    /// not registered, and its variable stays bound, so setting it is a usage
+    /// error that lists the registered names.
     ///
     /// Without `App`, call it on the command a CLI parses so a custom set
     /// applies there too.
@@ -158,10 +177,7 @@ impl Formats {
             let Some(long) = format.shorthand() else {
                 continue;
             };
-            if command
-                .get_arguments()
-                .any(|arg| arg.get_long() == Some(long))
-            {
+            if declares(&command, long) {
                 continue;
             }
             let mut flag = Arg::new(long)
@@ -177,6 +193,19 @@ impl Formats {
         }
         command
     }
+}
+
+/// Whether `command` or a subcommand at any depth declares `name` as a long
+/// flag or an argument id, so a second flag of that name would make Clap's
+/// own checks fail.
+#[cfg(feature = "cli")]
+fn declares(command: &Command, name: &str) -> bool {
+    command
+        .get_arguments()
+        .any(|arg| arg.get_long() == Some(name) || arg.get_id() == name)
+        || command
+            .get_subcommands()
+            .any(|subcommand| declares(subcommand, name))
 }
 
 /// The error for a name that is not registered.

@@ -34,25 +34,26 @@ use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, Command};
 
 #[cfg(feature = "help")]
-use crate::flags;
+use crate::ColorMode;
 #[cfg(feature = "help")]
-use crate::{ColorMode, FormatName};
+use crate::flags;
 
 /// Output policy recovered with the authoritative Clap graph before a full
 /// parse succeeds.
 #[cfg(feature = "help")]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct ParsedOutput {
-    pub(crate) format: Option<FormatName>,
+    #[cfg(feature = "app")]
+    pub(crate) matches: Option<ArgMatches>,
     pub(crate) color: ColorMode,
 }
 
 /// Best-effort output policy for help and parse errors, read from `command`.
 ///
 /// Clap still owns option placement, attached short values, domain option
-/// values, global propagation, and `--` semantics. The format is the one
-/// `--format` and `--json` name, and none when they name nothing, so the
-/// caller applies its own default.
+/// values, global propagation, and `--` semantics. The matches are what its
+/// lenient read found, or none when it failed, so the caller reads the format
+/// from them with its own registry and applies its own default.
 #[cfg(feature = "help")]
 pub(crate) fn parsed_output(command: Command, raw: &[OsString]) -> ParsedOutput {
     let command = command
@@ -63,28 +64,17 @@ pub(crate) fn parsed_output(command: Command, raw: &[OsString]) -> ParsedOutput 
         .ignore_errors(true);
     let Ok(matches) = command.try_get_matches_from(raw) else {
         return ParsedOutput {
-            format: None,
+            #[cfg(feature = "app")]
+            matches: None,
             color: ColorMode::Auto,
         };
     };
-    let format = matches
-        .try_get_one::<FormatName>("format")
-        .ok()
-        .flatten()
-        .copied();
     let color = matches
         .try_get_one::<ColorMode>("color")
         .ok()
         .flatten()
         .copied()
         .unwrap_or_default();
-    let json = matches
-        .try_get_one::<bool>("json")
-        .ok()
-        .flatten()
-        .copied()
-        .unwrap_or(false);
-    let format = flags::resolved_format(format, json, &matches).unwrap_or(Some(FormatName::JSON));
     let no_color = matches
         .try_get_one::<bool>("no_color")
         .ok()
@@ -92,7 +82,8 @@ pub(crate) fn parsed_output(command: Command, raw: &[OsString]) -> ParsedOutput 
         .copied()
         .unwrap_or(false);
     ParsedOutput {
-        format,
+        #[cfg(feature = "app")]
+        matches: Some(matches),
         color: flags::resolve_color(color, no_color),
     }
 }

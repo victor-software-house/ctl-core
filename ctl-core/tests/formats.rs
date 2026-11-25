@@ -243,9 +243,13 @@ fn formats() -> Formats {
 }
 
 fn run(args: &[&str]) -> ExitCode {
+    run_with(formats(), |toy| toy.output.view(), args)
+}
+
+fn run_with(formats: Formats, select: fn(&Toy) -> View, args: &[&str]) -> ExitCode {
     App::<Toy>::new("toy")
-        .formats(formats())
-        .view(|toy| toy.output.view())
+        .formats(formats)
+        .view(select)
         .run_from(iter::once("toy").chain(args.iter().copied()), |_| {
             Ok(status())
         })
@@ -460,4 +464,127 @@ fn removing_json_hides_its_flag() {
         .find(|arg| arg.get_id() == "json")
         .unwrap();
     assert!(json.is_hide_set());
+}
+
+#[test]
+fn the_json_flag_selects_a_format_that_replaces_json_without_a_shorthand() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "the_json_flag_selects_a_format_that_replaces_json_without_a_shorthand",
+        &[],
+    ) else {
+        let code = child::case(|| {
+            run_with(
+                Formats::builtin().add(&REPLACEMENT),
+                |toy| toy.output.view(),
+                &["status", "--json"],
+            )
+        });
+        assert_eq!(code, ExitCode::SUCCESS);
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "replaced\n");
+}
+
+#[test]
+fn the_json_flag_is_a_usage_error_once_json_is_removed() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "the_json_flag_is_a_usage_error_once_json_is_removed",
+        &[],
+    ) else {
+        let code = child::case(|| {
+            run_with(
+                Formats::builtin().add(&YAML).remove(FormatName::JSON),
+                |toy| toy.output.view(),
+                &["status", "--json"],
+            )
+        });
+        assert_eq!(code, ExitCode::from(2));
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("unknown format `json`; use one of pretty, yaml"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn the_json_variable_is_a_usage_error_once_json_is_removed() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "the_json_variable_is_a_usage_error_once_json_is_removed",
+        &[("FMTTOY_JSON", "true")],
+    ) else {
+        let code = child::case(|| {
+            run_with(
+                Formats::builtin().add(&YAML).remove(FormatName::JSON),
+                |toy| toy.output.view(),
+                &["status"],
+            )
+        });
+        assert_eq!(code, ExitCode::from(2));
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    let stderr = String::from_utf8_lossy(&output.stderr)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(
+        stderr.contains(
+            "unknown format `json` from the variable `FMTTOY_JSON`; use one of pretty, yaml"
+        ),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn a_flag_a_subcommand_declares_keeps_a_shorthand_off_the_root() {
+    let command = clap::Command::new("toy")
+        .arg(
+            clap::Arg::new("format")
+                .long("format")
+                .global(true)
+                .env("FMTTOY_FORMAT"),
+        )
+        .subcommand(
+            clap::Command::new("status").arg(
+                clap::Arg::new("legacy")
+                    .long("yaml")
+                    .action(clap::ArgAction::SetTrue),
+            ),
+        );
+    let augmented = formats().augment(command);
+    augmented.clone().debug_assert();
+    let matches = augmented
+        .try_get_matches_from(["toy", "status", "--yaml"])
+        .unwrap();
+    assert!(
+        matches
+            .subcommand_matches("status")
+            .is_some_and(|status| status.get_flag("legacy"))
+    );
+}
+
+#[test]
+fn a_view_that_requested_a_format_keeps_it_when_no_flag_names_one() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_view_that_requested_a_format_keeps_it_when_no_flag_names_one",
+        &[],
+    ) else {
+        let code = child::case(|| {
+            run_with(
+                formats(),
+                |_| View::requested(Some(FormatName::JSON), ColorMode::Never),
+                &["status"],
+            )
+        });
+        assert_eq!(code, ExitCode::SUCCESS);
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "{\n  \"pending\": 2\n}\n");
 }

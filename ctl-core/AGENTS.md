@@ -8,7 +8,8 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 
 - `-h` / `--help` and `-V` / `--version` (never `disable_help_flag`)
 - Shared flags: `-c`/`--color`, `-f`/`--format`, `--json` (`--format json`), `-n`/`--dry-run`/`--preview`, `-q`/`--quiet`, plus `--foo` / `--no-foo` negation helpers
-  `--json` beside another `--format`, or beside a variable that names another format, is a usage error.
+  `--json` beside another `--format` on the command line is a usage error.
+  `TOY_JSON` beside a `TOY_FORMAT` that names another format is a usage error too, and the command line wins over any variable.
 - The open output interface: `format::Format`, `Output`, `Sink`, and `Formats` with feature `view`, and `FormatName` (the value `--format` parses into).
   `pretty` and `json` are built-in `Format` implementations.
   A CLI registers its own on `Formats` and installs them with `App::formats`
