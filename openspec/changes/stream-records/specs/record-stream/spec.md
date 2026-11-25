@@ -44,7 +44,7 @@ A CLI's own format SHALL stream through the same interface as a built-in.
 #### Scenario: Pretty streams
 
 - **WHEN** `toy events --stream --format pretty` runs and the command yields three records a second apart
-- **THEN** each record is rendered before the next one is produced
+- **THEN** each record is rendered before the next one is produced, with a blank line between records
 
 ### Requirement: --stream alone uses the stream default
 
@@ -55,10 +55,15 @@ A CLI's own format SHALL stream through the same interface as a built-in.
 - **WHEN** `toy events --stream` runs on a terminal with no format variable set
 - **THEN** stdout holds one JSON object per line, the header first
 
+### Requirement: A single value streams as it serializes
+
+Under `--stream`, a command that returns one value SHALL write it as one record, in the form the value serializes to.
+ctl-core SHALL NOT add a `type` field to it; the `type` field is required only of the records a command returns as `Records`.
+
 #### Scenario: A single value under --stream
 
-- **WHEN** `toy status --stream --json` runs and the command returns one value
-- **THEN** stdout holds that value as one compact JSON object on one line
+- **WHEN** `toy status --stream --json` runs and the command returns one value with no `type` field
+- **THEN** stdout holds that value as one compact JSON value on one line, with no `type` field
 
 ### Requirement: A stream written whole is one document
 

@@ -154,7 +154,8 @@ It lost because a test that builds two CLIs in one process would share it.
 `OutputArgs::view()` records the requested name, which may be unset.
 `App` resolves it against its registry and the terminal check before the handler runs.
 A `View` used without `App` resolves against the built-ins.
-`View::format()` returns the resolved `FormatName`, and `View::is_machine()` replaces `format().is_json()`.
+`View::format()` returns the resolved `FormatName`.
+`View::is_machine()` replaces `format().is_json()` where a check guards ANSI or `--quiet`; a check that writes JSON compares `format()` with `FormatName::JSON`.
 
 ## Risks / Trade-offs
 
@@ -168,7 +169,8 @@ A `View` used without `App` resolves against the built-ins.
 Each consumer pins the released candidate in its own pull request, one at a time.
 The maintainer releases the candidate first (operator, 2026-11-24).
 
-1. Replace `OutputFormat::Json` with `FormatName::JSON`, and `format.is_json()` with `view.is_machine()`.
+1. Replace `OutputFormat::Json` with `FormatName::JSON`.
+   Replace `format.is_json()` with `view.format() == FormatName::JSON` where the branch writes JSON, and with `view.is_machine()` only where it guards ANSI or `--quiet`.
 2. Replace `View::new(OutputFormat::X, color)` with `View::new(&format::X, color)`.
 3. Update tests that capture piped output: they now read `tsv`, or pass `--format pretty`.
 4. Return typed values where the CLI writes machine output itself, and drop that code.

@@ -3,7 +3,7 @@
 ### Requirement: The column floor is a public option
 
 ctl-core SHALL take the column floor from `RenderOptions`, `View`, and `App`, then from `CTL_CORE_COLUMN_FLOOR`, then 8 cells.
-A floor of 0 SHALL leave each column at the limit its overflow sets.
+A floor of 0 SHALL leave each column at the limit its overflow sets, header included.
 
 #### Scenario: Floor from the environment
 
@@ -13,17 +13,22 @@ A floor of 0 SHALL leave each column at the limit its overflow sets.
 #### Scenario: Floor off
 
 - **WHEN** a consumer sets a floor of 0
-- **THEN** an ellipsis column can narrow to 1 cell, as before this change
+- **THEN** an ellipsis column with a 5-cell header can narrow to 1 cell, as before this change
 
 ### Requirement: The table fit is a public option
 
 ctl-core SHALL take the table fit from the table, then `RenderOptions`, `View`, and `App`, then `CTL_CORE_TABLE_FIT`, then `stack`.
-Under `wrap`, a table that cannot fit at its floors SHALL keep its grid and run past the width.
+Under `wrap`, a table that cannot fit at its floors SHALL keep its grid at its floors and run past the width, framed or not.
 
 #### Scenario: Wrap from the environment
 
 - **WHEN** `CTL_CORE_TABLE_FIT=wrap` is set and a six-column list with 8-cell floors renders at width 40
 - **THEN** the grid is drawn, with every column at its floor
+
+#### Scenario: A framed grid under wrap
+
+- **WHEN** `CTL_CORE_TABLE_FIT=wrap` is set and a framed six-column grid with 8-cell floors renders at width 40
+- **THEN** the framed grid is drawn with every column at its floor, wider than 40 cells, and its frame aligned
 
 #### Scenario: An unaccepted value
 
