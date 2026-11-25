@@ -71,6 +71,27 @@ queue:
       - A loop that pushes each copy, with no generic iterator, may cost less. Nobody has measured it.
       - Design decision 16 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md holds the attribution.
 
+  - id: CTC-061
+    title: "Open the output layer: formats any CLI adds or replaces, and streamed records"
+    scope: "ctl-core: format, view, flags/output, app"
+    outcome: >-
+      ctl-core defines how a result becomes output through a public format interface,
+      ships pretty, json, tsv, csv and markdown as implementations of it, and writes a
+      stream of typed records under --stream.
+    blocked_by: []
+    acceptance:
+      - A CLI adds or replaces a format through the public interface with no change to ctl-core, and its name shows in --format help, completion and the usage spec.
+      - The built-in formats are pretty, json, tsv, csv and markdown; --json is -f json, and naming two different formats is a usage error.
+      - With no --format, output is pretty when stdout is a terminal and tsv otherwise, and a CLI can change either default.
+      - The --stream flag writes each record as it is produced, in JSON one object per line with a type field and a header record first; a format that does not stream refuses it as a usage error.
+      - No machine format writes an ESC byte with CLICOLOR_FORCE=1, and a failure after streamed records still reaches stderr with its exit code.
+      - The qctl, verctl, forkctl, hakkiri and rgbctl migrations are written down in the change, and each one has a PR once the candidate is released.
+    plan: openspec/changes/open-output/proposal.md
+    notes:
+      - 2026-11-23, the output layer is an open interface whose built-ins are instances of it, not a closed set (operator, 2026-11-23).
+      - 2026-11-24, tsv rows are the piped default, and the public ctl CLIs migrate after the candidate is released (operator, 2026-11-24).
+      - 2026-11-25, --format picks the encoding and --stream the delivery; no jsonl format or flag, and no socket sink (operator, 2026-11-25).
+
   - id: CTC-043
     title: >-
       Take every command's input as JSON or YAML, from a file or stdin, as output
@@ -87,6 +108,7 @@ queue:
       - "2026-11-07, operator, while adding rows to a private repository's queue with long qctl flag lists: qctl should take nicer input formats, such as JSON or from files; that is partly or even mostly a ctl-core thing; we need to support JSON inputs and from files, the same way as multiple output formats are."
       - CTC-008 owns the declared-input layer for config files; this row extends input to command arguments.
       - 2026-11-09, it ships as a patch after 0.7.0 (operator).
+      - 2026-11-24, this row ships in the 0.8.0 candidate right after the open output layer (operator, 2026-11-24).
 
   - id: CTC-047
     title: Run the prose check in CI
