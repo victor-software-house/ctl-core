@@ -93,6 +93,25 @@ queue:
       - 2026-11-25, this change's pull request stacks on CTC-061's (operator, 2026-11-25).
       - 2026-11-25, records and --stream moved to their own change, CTC-063, to keep each change within the repository's word budgets.
 
+  - id: CTC-063
+    title: Stream records as they are produced, in every format
+    scope: "ctl-core: view, format, flags/output, app"
+    outcome: >-
+      A command can return a stream of typed records, and --stream writes each one
+      when it is produced, in the order produced, in every format.
+    blocked_by:
+      - CTC-062
+    acceptance:
+      - Under --stream every format, built-in or a CLI's own, writes each record as it is produced and in that order; json writes one object per line with a type field, header record first.
+      - --stream alone uses the stream default, json, which a CLI can change, and a single value under --stream is a stream of one record.
+      - Without --stream, records are written as one document, a JSON array in json; a failure after written records still reaches stderr with its exit code.
+      - There is no jsonl format or flag.
+    plan: openspec/changes/stream-records/proposal.md
+    notes:
+      - 2026-11-25, --format picks the encoding and --stream the delivery; no jsonl format or flag, and no socket sink (operator, 2026-11-25).
+      - 2026-11-25, every format streams, writing records in the order they are produced, and a CLI's own format streams through the same interface (operator, 2026-11-25).
+      - 2026-11-25, --stream alone uses a stream default, json, and a single value under --stream is a stream of one record (operator, 2026-11-25).
+
   - id: CTC-043
     title: >-
       Take every command's input as JSON or YAML, from a file or stdin, as output
