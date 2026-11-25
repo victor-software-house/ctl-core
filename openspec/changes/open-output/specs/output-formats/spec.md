@@ -121,21 +121,30 @@ In `json`, each record SHALL be one compact JSON object with a string `type` fie
 - **WHEN** a reader parses each line of `toy events --stream --json`
 - **THEN** each line is a JSON object whose `type` field is a string
 
-### Requirement: Each format declares its deliveries
+### Requirement: Any format can give a stream form
 
-Each format SHALL declare whether it has a stream form.
-`json` and `tsv` SHALL have one.
+A format SHALL give a stream form through the public format interface, on the same terms for a CLI's own format as for a built-in.
+`json` SHALL have a stream form.
 `--stream` with a format that has none SHALL be a usage error, exit 2, before the command runs.
+
+#### Scenario: A CLI's format streams
+
+- **WHEN** a CLI registers `yaml` with a stream form and runs `toy events --stream --format yaml`
+- **THEN** the `yaml` format receives each record when the command produces it
 
 #### Scenario: Pretty does not stream
 
 - **WHEN** `toy events --stream --format pretty` runs
 - **THEN** the run exits 2 with a usage error, and the command does not run
 
-#### Scenario: tsv streams rows
+### Requirement: --stream alone uses the stream default
 
-- **WHEN** `toy events --stream --format tsv` runs and three records of one table arrive
-- **THEN** stdout holds one header line, then one line per record as it arrives
+`--stream` with no format named SHALL use the stream default, `json`, and a CLI SHALL be able to change it.
+
+#### Scenario: --stream on a terminal
+
+- **WHEN** `toy events --stream` runs on a terminal with no format variable set
+- **THEN** stdout holds one JSON object per line, the header first
 
 ### Requirement: A stream written whole is one document
 
@@ -170,17 +179,31 @@ When the reader closes stdout during a stream, ctl-core SHALL stop asking the co
 ### Requirement: Machine formats never carry ANSI
 
 A machine format SHALL write no escape sequence, whatever the colour mode and the colour variables say.
-`--quiet` SHALL NOT hide the output of a machine format.
 
 #### Scenario: Forced colour, piped
 
 - **WHEN** `CLICOLOR_FORCE=1 FORCE_COLOR=3 toy list --format tsv --color always` runs
 - **THEN** stdout contains no ESC byte
 
-#### Scenario: Quiet machine output
+### Requirement: --quiet never hides a machine format that was named
+
+`--quiet` SHALL hide a successful result in `pretty` and in a default format.
+It SHALL NOT hide a machine format named by a flag, a shorthand, or a variable.
+
+#### Scenario: Quiet with a named format
 
 - **WHEN** `toy status --format csv --quiet` runs and succeeds
 - **THEN** stdout holds the CSV output
+
+#### Scenario: Quiet with a format variable
+
+- **WHEN** `TOY_FORMAT=json toy status --quiet` runs and succeeds
+- **THEN** stdout holds the JSON document
+
+#### Scenario: Quiet with the piped default
+
+- **WHEN** `toy apply --quiet | cat` runs with no format named and succeeds
+- **THEN** stdout is empty
 
 ### Requirement: Tabular formats follow the view
 

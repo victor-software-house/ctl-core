@@ -28,9 +28,10 @@ Three constraints shape the approach:
 
 1. A socket or network sink (operator, 2026-11-25).
 2. Projection and filtering on the JSON form, such as `--query`.
-3. Streaming in `pretty`, `csv`, and `markdown`; each format declares it, and these three can add it later without a break.
+3. A stream form for a built-in other than `json`; any format can add one later without a break.
 4. Validated input from flags, files and stdin ([CTC-043][ledger]), which follows as its own change (operator, 2026-11-24).
-5. The table fit rules, which are [CTC-062][ledger].
+5. The table fit rules, which are [CTC-063][ledger].
+6. Printing a command's handle bare when stdout is not a terminal, which is [CTC-061][ledger]; this change's pull request stacks on that one (operator, 2026-11-25).
 
 ## Decisions
 
@@ -43,10 +44,9 @@ Three constraints shape the approach:
 | `name()` | none | The `--format` value, lowercase, such as `tsv` |
 | `about()` | none | One line for help and completion |
 | `shorthand()` | `None` | A long flag that selects it, such as `json` for `--json` |
-| `machine()` | `true` | Never writes ANSI and ignores `--quiet` |
-| `streams()` | `false` | Has a `--stream` form |
+| `machine()` | `true` | Never writes ANSI, and `--quiet` does not hide it when named |
 | `write(output, sink)` | none | Write one whole result |
-| `write_record(output, sink)` | refuses | Write one streamed record |
+| `stream(sink)` | `None` | A `RecordWriter` for `--stream`, or `None` when the format has no stream form |
 | `write_error(error, sink)` | `bin: message` | Write a failure to stderr |
 
 A consumer declares a format as a `static` and registers a reference to it, so `View` stays `Copy` and no format is allocated.
@@ -94,11 +94,11 @@ It lost because the column order would follow struct fields rather than the view
 
 ### 4. One registry per CLI: `Formats`
 
-`Formats::builtin()` holds `pretty`, `json`, `tsv`, `csv`, and `markdown`, with `pretty` the terminal default and `tsv` the piped default.
+`Formats::builtin()` holds `pretty`, `json`, `tsv`, `csv`, and `markdown`, with `pretty` the terminal default, `tsv` the piped default, and `json` the stream default.
 
 1. `add(format)` adds a format, or replaces the one with the same name.
 2. `remove(name)` takes one out.
-3. `terminal_default(name)` and `piped_default(name)` set the default for each case.
+3. `terminal_default(name)`, `piped_default(name)`, and `stream_default(name)` set the default for each case.
    Setting both to `pretty` turns the piped default off.
 4. `App::formats(formats)` installs the set for help, completion, the usage spec, parse errors, and the run.
 
@@ -127,7 +127,7 @@ Each piece sits in the narrowest feature that needs it:
 |:--|:--|:--|
 | `FormatName` and the built-in names | `cli` | The flag structs parse names without the renderer |
 | The flag structs' `format` and `stream` | `cli` | As today |
-| `Format`, `Output`, `Sink`, `Formats`, and the built-ins | `view` | They render a `Document` and serialize data |
+| `Format`, `RecordWriter`, `Output`, `Sink`, `Formats`, and the built-ins | `view` | They render a `Document` and serialize data |
 | `erased-serde` | `view` | Only `Output::data` uses it |
 
 The format in force is, in order:
@@ -142,26 +142,33 @@ A format variable and a shorthand variable that name different formats, such as 
 The alternative was a process-wide registry set before parsing.
 It lost because a test that builds two CLIs in one process would share it.
 
-### 6. `--stream` writes typed records
+### 6. The stream form is part of the format interface
 
 A command returns either a value, as today, or `view::Records`: a header record, then an iterator of records, each `Result`.
-Each record is `Present` and serializes to a JSON object with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record types.
+Each record is `Present` and serializes with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record types.
+
+A format gives a stream form by returning a `format::RecordWriter` from `stream(sink)`.
+ctl-core hands the writer each record as an `Output` when the iterator yields it, then calls `finish`.
+ctl-core fixes no list of formats that stream: a CLI's own format streams on the same terms as a built-in (operator, 2026-11-25).
 
 | Result | Without `--stream` | With `--stream` |
 |:--|:--|:--|
-| A value | the format's whole output | `json`: the value compact on one line; `tsv`: as without |
-| `Records` | collected, then written whole | each record written when the iterator yields it |
+| A value | the format's whole output | the format's whole output |
+| `Records` | collected, then written whole by `write` | each record written by the format's `RecordWriter` when the iterator yields it |
 
-1. In `json`, the whole form of `Records` is one array of the same records, header first, so one parser reads both deliveries.
-2. In `json` with `--stream`, each record is compact JSON on its own line, split on LF only.
-3. In `tsv` with `--stream`, each record writes its document's lines; a table header line is written again only when the headers change.
-4. In the other formats, the collected document is the header's document, then each record's.
-   Adjacent one-table documents with equal headers merge into one table.
-5. `--stream` with a format whose `streams()` is false is a usage error, exit 2, raised before the handler runs.
-6. When the iterator yields an error, the records already written stay on stdout.
+1. Collected records reach `write` as one `Output`.
+   Its `data()` serializes the records as one sequence, header first, and its `document()` is the header's document, then each record's.
+   So `json` writes one array that one parser reads like the stream, and adjacent one-table documents with equal headers merge into one table.
+2. `json` is the built-in with a stream form: each record is compact JSON on its own line, split on LF only.
+3. `--stream` with no format named uses the registry's stream default, `json`, which `Formats::stream_default(name)` changes.
+4. `--stream` with a format whose `stream` returns `None` is a usage error, exit 2, raised before the handler runs.
+5. When the iterator yields an error, the records before it are written, streamed or collected.
    The error goes to stderr in the format's error form, and the run exits with the error's code.
-   A `json` array is closed first, so stdout still parses.
-7. When the reader closes stdout, the run stops pulling records, drops the iterator, and exits as the `BrokenPipe` policy says.
+   So a collected `json` array is closed and stdout still parses.
+6. When the reader closes stdout, the run stops pulling records, drops the iterator, and exits as the `BrokenPipe` policy says.
+
+The alternative was a fixed set of deliveries per built-in, declared by a flag such as `streams()`.
+It lost because a CLI's format could then only stream in the ways ctl-core foresaw.
 
 There is no `jsonl` format: JSON Lines is the framing of a stream of typed records, not a second rendering of one value (operator, 2026-11-25).
 
@@ -170,7 +177,7 @@ There is no `jsonl` format: JSON Lines is the framing of a stream of typed recor
 | Today | After |
 |:--|:--|
 | JSON never carries ANSI | A `machine()` format never carries ANSI |
-| `--quiet` never hides JSON | `--quiet` never hides a `machine()` format |
+| `--quiet` never hides JSON | `--quiet` never hides a `machine()` format named by a flag, a shorthand, or a variable; it hides `pretty` and a default format (operator, 2026-11-25) |
 | A JSON failure is an envelope on stderr | Each format writes its own error form; `json` keeps the envelope |
 | `--json` before a bad argument makes the parse error JSON | Any registered format or shorthand before it picks the error form |
 

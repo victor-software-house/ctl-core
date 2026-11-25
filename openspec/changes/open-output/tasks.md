@@ -2,7 +2,7 @@
 
 ## 1. The format interface and registry
 
-- [ ] 1.1 Add `format::Format`, `Output`, `Sink`, `FormatName`, and `Formats` with `builtin`, `add`, `remove`, `terminal_default`, `piped_default`, and `augment`; add `erased-serde` to the `view` feature; remove `OutputFormat`.
+- [ ] 1.1 Add `format::Format`, `Output`, `Sink`, `FormatName`, and `RecordWriter`, and `Formats` with `builtin`, `add`, `remove`, `terminal_default`, `piped_default`, `stream_default`, and `augment`; add `erased-serde` to the `view` feature; remove `OutputFormat`.
   Verify: unit tests add, replace, and remove a format and resolve each default; the feature-set checks pass in CI.
 - [ ] 1.2 Write `pretty` and `json` as `Format` implementations, with today's output byte for byte.
   Verify: `tests/view.rs` and `tests/json_failures.rs` pass unchanged apart from the type names.
@@ -14,8 +14,8 @@
 - [ ] 2.2 Add `Formats::augment`, which binds each flag it adds under the prefix of `--format`'s variable.
   Make help, completion, the usage spec, and the pre-parse view take the command as a value, built once by `App` from `formats.augment(C::command())`.
   Verify: tests find a custom format and its shorthand in help, completion, the usage spec, a `Surface`, a parse error, and `TOY_<LONG>`.
-- [ ] 2.3 Resolve the default from the terminal check, and replace every `is_json()` case with `machine()`.
-  Verify: a test runs the toy binary piped and reads `tsv`; the colour test with `CLICOLOR_FORCE=1` finds no ESC byte in any machine format.
+- [ ] 2.3 Resolve the default from the terminal check, and replace every `is_json()` case with `machine()`; let `--quiet` hide only `pretty` and a default format.
+  Verify: a test runs the toy binary piped and reads `tsv`; the colour test with `CLICOLOR_FORCE=1` finds no ESC byte in any machine format; the quiet scenarios of the `output-formats` spec pass.
 
 ## 3. Tabular built-ins
 
@@ -24,8 +24,8 @@
 
 ## 4. Records and --stream
 
-- [ ] 4.1 Add `view::Records` and let `App::run` take a value or records; write whole and streamed forms, the error mid-stream, and the closed pipe.
-  Verify: integration tests for each scenario of the `output-formats` spec under --stream, including `| head -n 1` on an endless stream.
+- [ ] 4.1 Add `view::Records` and let `App::run` take a value or records; hand collected records to `write` as one `Output` and streamed ones to the format's `RecordWriter`; write the error mid-stream and handle the closed pipe.
+  Verify: integration tests for each scenario of the `output-formats` spec under --stream, including a toy CLI's own streaming format and `| head -n 1` on an endless stream.
 - [ ] 4.2 Refuse `--stream` before the handler runs when the format has no stream form.
   Verify: a test whose handler panics if called exits 2 under `--stream --format pretty`.
 

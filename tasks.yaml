@@ -71,7 +71,7 @@ queue:
       - A loop that pushes each copy, with no generic iterator, may cost less. Nobody has measured it.
       - Design decision 16 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md holds the attribution.
 
-  - id: CTC-061
+  - id: CTC-062
     title: "Open the output layer: formats any CLI adds or replaces, and streamed records"
     scope: "ctl-core: format, view, flags/output, app"
     outcome: >-
@@ -83,7 +83,8 @@ queue:
       - A CLI adds or replaces a format through the public interface with no change to ctl-core, and its name shows in --format help, completion and the usage spec.
       - The built-in formats are pretty, json, tsv, csv and markdown; --json is -f json, and naming two different formats is a usage error.
       - With no --format, output is pretty when stdout is a terminal and tsv otherwise, and a CLI can change either default.
-      - The --stream flag writes each record as it is produced, in JSON one object per line with a type field and a header record first; a format that does not stream refuses it as a usage error.
+      - The --stream flag writes each record as it is produced through the format's stream form, which any format, built-in or a CLI's own, can give; json writes one object per line with a type field, header record first, and a format without a stream form refuses --stream as a usage error.
+      - --quiet hides pretty output and a default format's output, and never hides a machine format named by a flag, a shorthand or a variable.
       - No machine format writes an ESC byte with CLICOLOR_FORCE=1, and a failure after streamed records still reaches stderr with its exit code.
       - The qctl, verctl, forkctl, hakkiri and rgbctl migrations are written down in the change, and each one has a PR once the candidate is released.
     plan: openspec/changes/open-output/proposal.md
@@ -91,6 +92,9 @@ queue:
       - 2026-11-23, the output layer is an open interface whose built-ins are instances of it, not a closed set (operator, 2026-11-23).
       - 2026-11-24, tsv rows are the piped default, and the public ctl CLIs migrate after the candidate is released (operator, 2026-11-24).
       - 2026-11-25, --format picks the encoding and --stream the delivery; no jsonl format or flag, and no socket sink (operator, 2026-11-25).
+      - 2026-11-25, the stream form is part of the format interface and ctl-core fixes no list of formats that stream; json is the built-in with one (operator, 2026-11-25).
+      - 2026-11-25, --quiet never hides a machine format that was named, and hides a default one (operator, 2026-11-25).
+      - 2026-11-25, this change's pull request stacks on CTC-061's (operator, 2026-11-25).
 
   - id: CTC-043
     title: >-

@@ -18,7 +18,7 @@ The maintainer ruled that the output layer is an open interface (operator, 2026-
 ctl-core's own formats are built-in instances of it, which any CLI can add to or replace.
 Format and delivery are two choices: `--format` picks the encoding, and `--stream` picks whether records are written as they are produced (operator, 2026-11-25).
 
-This change belongs to [CTC-061][ledger].
+This change belongs to [CTC-062][ledger].
 
 ## What Changes
 
@@ -36,12 +36,14 @@ This change belongs to [CTC-061][ledger].
    **BREAKING** Two variables that name different formats, such as `TOY_FORMAT=csv` and `TOY_JSON=1`, are a usage error too, where `TOY_JSON` won before.
 6. `--stream` writes a result as records, each when it is produced.
    Each record carries a `type` field, and a header record comes first.
-   In `json`, each record is one compact object on its own line.
-   A format declares the deliveries it supports; `--stream` with a format that has no stream form is a usage error.
+   The stream form is part of the format interface, so a CLI's own format can stream on the same terms as a built-in (operator, 2026-11-25).
+   `json` is the built-in with a stream form: each record is one compact object on its own line, and `--stream` alone means `json`.
+   `--stream` with a format that has no stream form is a usage error.
    There is no `jsonl` format and no `--jsonl` flag (operator, 2026-11-25).
 7. A command returns a value, as today, or a `view::Records` stream of typed records.
    Without `--stream`, a stream is collected and written as one document in any format.
-8. **BREAKING** Each `is_json()` special case becomes a property of the format: a machine format never writes ANSI, ignores `--quiet`, and writes its own error form.
+8. **BREAKING** Each `is_json()` special case becomes a property of the format: a machine format never writes ANSI and writes its own error form.
+   `--quiet` hides `pretty` and a default format, and never a machine format named by a flag, a shorthand, or a variable (operator, 2026-11-25).
 9. **BREAKING** `View` holds the selected format, not an `OutputFormat`.
    `View::format()` returns its `FormatName`.
 
