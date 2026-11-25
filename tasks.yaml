@@ -92,6 +92,7 @@ queue:
       - 2026-11-25, --quiet always hides pretty and a default machine format, and never hides a machine format that was named (operator, 2026-11-25).
       - 2026-11-25, this change's pull request stacks on CTC-061's (operator, 2026-11-25).
       - 2026-11-25, records and --stream moved to their own change, CTC-063, to keep each change within the repository's word budgets.
+      - 2026-11-25, PR 316 and PR 318 merged the format interface and the five built-ins; the row stays queued until the maintainer releases the candidate and the Version PR lists the changesets.
 
   - id: CTC-063
     title: Stream records as they are produced, in every format

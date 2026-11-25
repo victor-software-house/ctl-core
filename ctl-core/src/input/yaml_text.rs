@@ -64,7 +64,7 @@ enum Reading {
     /// and a non-finite float with no type named for it are refused.
     Config,
     /// A listing of a text the caller did not write, such as the front matter
-    /// of a Markdown file: it refuses nothing that YAML allows, so a repeated
+    /// of a Markdown file. It refuses nothing that YAML allows, so a repeated
     /// key, a merge key and a non-finite float are values like the rest.
     Listing,
 }
