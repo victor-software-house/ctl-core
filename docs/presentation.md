@@ -158,7 +158,9 @@ A handler whose subcommands return a value and records returns `view::Reply`, an
 1. Without `--stream`, records are collected and written as one result.
    Its data is one sequence, header first, so `json` writes one array.
    Its document is the header's document followed by each record's, where adjacent documents that are each one table with equal headers merge into one table.
-2. With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record when the iterator yields it, and ctl-core flushes stdout after each.
+2. With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record when the iterator yields it.
+   ctl-core takes what the writer wrote for one record, locks stdout, writes it whole, flushes, and unlocks.
+   It holds no lock while the iterator or a serialization runs, and a record that fails to write leaves no partial line on stdout.
    The default writer calls `write` for each record and writes nothing between records, so a CLI's own format streams with no extra code.
    `json` writes each record compact on one line ending in LF, whatever the layout.
    The stream forms of `tsv`, `csv`, `markdown`, and `pretty` are still the default writer.
@@ -172,11 +174,15 @@ A handler whose subcommands return a value and records returns `view::Reply`, an
 6. An error from the iterator stops it.
    The records already pulled are written and the output is closed, so a `json` array is complete.
    Then the error goes to stderr in the format's error form, with the exit code and `kind` of the first `CommandError` in its chain, or 1.
+   Any other error that ends the stream, such as a record that does not serialize, goes there the same way with exit 1.
 7. A reader that closes stdout ends the stream: ctl-core stops pulling, drops the iterator, and exits as the `BrokenPipe` policy says.
+   When the iterator had already failed, the closed stdout does not hide that failure: its error goes to stderr, with its exit code.
 8. `--quiet` counts the stream default as a default format.
    With no format named, it drains the iterator, writes no record, and still writes an error and its code.
    A machine format named on the command line or by a variable is written.
 9. A parse error and a handler error under `--stream` with no format named use the stream default's error form, whether `--stream` came from the flag or from `<PREFIX>_STREAM`.
+   The variable takes `true` or `false`, as every shared flag's variable does.
+   A `--stream` after the bad argument counts, as a format after it does.
 
 There is no `jsonl` format and no `--jsonl` flag: JSON Lines is the stream form of `json`.
 

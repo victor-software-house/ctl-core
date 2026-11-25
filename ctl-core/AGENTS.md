@@ -138,18 +138,22 @@ These sections of [`design.md`](../openspec/changes/archive/2026-11-10-terminal-
 
 A command returns a value or `view::Records`, a header record then records, each `Present` and serializing with a string `type` field (a debug build panics on one without).
 `view::Reply` is a value or records, and the sealed `view::Respond` lets `App::run` take either.
-`View::show_records` writes records without `App` and returns the iterator's error.
-Only `Records::new` and `Reply::value` are generic: each record is erased at once, and one driver (`View::run_records`) writes records both collected and streamed.
+`View::show_records` writes records without `App` and returns the iterator's error, or the `io::Error` of a write to stdout, which a caller tells apart by downcasting.
+Only `Records::new` and `Reply::value` are generic: each record is erased at once, and `View::run_records` writes records collected or streamed in two separate functions.
+A value under `--stream` writes through the format's `RecordWriter` without that driver, so a CLI that returns only values does not link the collecting path.
 
 - Without `--stream`, records are collected and written as one result: `json` writes one array, and adjacent one-table documents with equal headers merge into one table.
-- With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record as the iterator yields it, and the driver flushes stdout after each.
+- With `--stream`, `Format::stream` returns the `RecordWriter` that writes each record as the iterator yields it.
+  The writer writes into a buffer the driver owns; the driver then locks stdout, writes the record whole, flushes, and unlocks.
+  No lock is held while the iterator, `present`, or a serialization runs, and a record that fails to write reaches stdout in no part.
   The default writer calls `write` and writes nothing between records.
   `json` writes each record compact on one line, whatever the layout.
 - `--stream` alone uses `Formats::stream_default`, `json` unless the CLI changes it; one that is not registered is a usage error.
 - A value under `--stream` is a stream of one record with no `type` added, and keeps its own stream and exit code when it failed.
 - Every record goes to stdout, and its outcome and exit code are ignored; the run exits 0 unless the iterator yields an error.
   An error stops the iterator, closes the output, then goes to stderr as a handler error does.
-  A closed stdout stops the pull, drops the iterator, and exits through `App::written`.
+  A closed stdout stops the pull, drops the iterator, and exits through `App::written`, unless the iterator already failed: then that failure goes to stderr with its exit code, and the closed stdout never hides it.
+  Any other write error goes to stderr as a failure with exit 1.
 - `--quiet` with no format named drains the iterator and writes nothing; a named machine format is written.
 - There is no `jsonl` format: JSON Lines is the stream form of `json`.
 
