@@ -1,3 +1,9 @@
+# Spec Delta
+
+## Purpose
+
+Lets a command write its records as it produces them, in the order produced, in any registered format.
+
 ## ADDED Requirements
 
 ### Requirement: There is no JSON Lines format

@@ -1,6 +1,6 @@
-# Stream records as they are produced
+# Proposal
 
-## Why
+## Motivation
 
 A ctl command returns one result, and ctl-core writes it once the handler returns.
 A command that produces results over time, such as one that follows events or walks a large tree, shows nothing until the last one.
@@ -12,7 +12,7 @@ JSON Lines is the stream delivery of `json`, not a format of its own (operator, 
 
 This change belongs to [CTC-063][ledger] and builds on the format interface of [open-output][open-output].
 
-## What Changes
+## Changes
 
 1. A command returns a value, as today, or a `view::Records` stream: a header record, then records, each with a string `type` field.
 2. `--stream` writes each record when it is produced, in that order, in every format (operator, 2026-11-25).

@@ -1,6 +1,6 @@
-# Fit every table
+# Proposal
 
-## Why
+## Motivation
 
 A table wider than the terminal narrows its widest column one cell at a time, down to the widest word.
 A fold or ellipsis column goes down to 1 cell.
@@ -17,7 +17,7 @@ A table never crops and never narrows a column to a few characters.
 
 This change belongs to [CTC-064][ledger].
 
-## What Changes
+## Changes
 
 1. Each column gets a floor: its header width or 8 cells, whichever is larger, and never more than its natural width.
    No column of a table narrows below its floor, whatever its overflow.
