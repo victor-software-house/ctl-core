@@ -136,13 +136,15 @@ impl Formats {
     /// and one global flag for each shorthand the command lacks.
     ///
     /// A command with no `format` argument is returned as it is. A shorthand
-    /// that the command or any subcommand already declares, as a long flag or
-    /// an argument id, gets no flag of its own. Each shorthand flag reads
-    /// `<PREFIX>_<LONG>`, with the prefix taken from the variable `--format`
-    /// reads: `TOY_FORMAT` gives `TOY`. A `--format` with no variable binds
-    /// none. The `--json` flag the flag structs add is hidden when `json` is
-    /// not registered, and its variable stays bound, so setting it is a usage
-    /// error that lists the registered names.
+    /// that the command or any subcommand already declares, as a long flag, a
+    /// long alias, or an argument id, gets no flag anywhere in the CLI, since
+    /// a global flag reaches every subcommand; `--format <name>` still selects
+    /// that format. Call it once every subcommand is attached, as `App` does.
+    /// Each shorthand flag reads `<PREFIX>_<LONG>`, with the prefix taken from
+    /// the variable `--format` reads: `TOY_FORMAT` gives `TOY`. A `--format`
+    /// with no variable binds none. The `--json` flag the flag structs add is
+    /// hidden when `json` is not registered, and its variable stays bound, so
+    /// setting it is a usage error that lists the registered names.
     ///
     /// Without `App`, call it on the command a CLI parses so a custom set
     /// applies there too.
@@ -196,16 +198,19 @@ impl Formats {
 }
 
 /// Whether `command` or a subcommand at any depth declares `name` as a long
-/// flag or an argument id, so a second flag of that name would make Clap's
-/// own checks fail.
+/// flag, a long alias, or an argument id, so a second flag of that name would
+/// make Clap's own checks fail.
 #[cfg(feature = "cli")]
 fn declares(command: &Command, name: &str) -> bool {
-    command
-        .get_arguments()
-        .any(|arg| arg.get_long() == Some(name) || arg.get_id() == name)
-        || command
-            .get_subcommands()
-            .any(|subcommand| declares(subcommand, name))
+    command.get_arguments().any(|arg| {
+        arg.get_long() == Some(name)
+            || arg.get_id() == name
+            || arg
+                .get_all_aliases()
+                .is_some_and(|aliases| aliases.contains(&name))
+    }) || command
+        .get_subcommands()
+        .any(|subcommand| declares(subcommand, name))
 }
 
 /// The error for a name that is not registered.
