@@ -11,8 +11,9 @@
 
 - [ ] 2.1 Make `OutputArgs`, `FormatArgs`, and `FormatLong` hold `format: Option<FormatName>` and `stream: bool`; add built-in shorthands in `augment_args`; reject two different formats as a usage error.
   Verify: `tests/cli/flags_cli.rs` and `tests/env_flags.rs` cover `--json`, `TOY_FORMAT`, `TOY_STREAM`, and the conflict.
-- [ ] 2.2 Make `App::formats` apply the registry to the one command that help, completion, the usage spec, and the parse use; read registered names and shorthands in the pre-parse and parse-error views.
-  Verify: tests show a custom format in help, in completion candidates, in the usage spec, and in a parse error's form.
+- [ ] 2.2 Add `Formats::augment`, which binds each flag it adds under the prefix of `--format`'s variable.
+  Make help, completion, the usage spec, and the pre-parse view take the command as a value, built once by `App` from `formats.augment(C::command())`.
+  Verify: tests find a custom format and its shorthand in help, completion, the usage spec, a `Surface`, a parse error, and `TOY_<LONG>`.
 - [ ] 2.3 Resolve the default from the terminal check, and replace every `is_json()` case with `machine()`.
   Verify: a test runs the toy binary piped and reads `tsv`; the colour test with `CLICOLOR_FORCE=1` finds no ESC byte in any machine format.
 
@@ -31,7 +32,7 @@
 ## 5. Docs and release
 
 - [ ] 5.1 Update `docs/presentation.md`, `ctl-core/AGENTS.md`, the root `AGENTS.md`, the crate docs, and the prelude.
-  Verify: `mise run lint:prose` and the doc tasks pass in CI.
+  Verify: `mise run lint:prose` and `mise run lint:md` pass locally, and the doc tasks pass in CI.
 - [ ] 5.2 Write a `ctl-core: minor` changeset that lists each break and the migration of design.md.
   Verify: `openspec validate open-output --strict` passes and the Version PR lists the entry.
 - [ ] 5.3 Record the release binary size of the toy example before and after.
@@ -39,4 +40,6 @@
 
 ## Workflow follow-up
 
-- After the maintainer releases the candidate, open one pull request each on qctl, verctl, forkctl, hakkiri, and rgbctl that moves it, as design.md's migration plan says.
+- After the maintainer releases the candidate, open one pull request each on qctl, verctl, forkctl, hakkiri, and rgbctl, following design.md's migration plan.
+- In each of those pull requests, update the CLI's bundled skill and installed instructions where they call output pretty by default or name `OutputFormat`.
+  Update the shared agent skills that document the format flags too.

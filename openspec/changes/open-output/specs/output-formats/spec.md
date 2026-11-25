@@ -37,7 +37,7 @@ Help, completion, the usage spec, and a parse error SHALL list the same names.
 
 #### Scenario: Completion lists a custom format
 
-- **WHEN** a CLI registers `yaml` and a shell completes `toy status --format `
+- **WHEN** a CLI registers `yaml` and a shell completes the value after `toy status --format`
 - **THEN** the candidates include `yaml`
 
 ### Requirement: The default follows the terminal
@@ -58,11 +58,17 @@ A CLI SHALL be able to set either default, and setting the piped default to `pre
 ### Requirement: A name on the command line wins
 
 The format in force SHALL be the one named on the command line, then the one named by a variable, then the default.
+Two variables that name different formats SHALL be a usage error that names both.
 
 #### Scenario: Variable under a flag
 
 - **WHEN** `TOY_FORMAT=csv toy status --format json` runs
 - **THEN** the output is JSON
+
+#### Scenario: Two format variables
+
+- **WHEN** `TOY_FORMAT=csv TOY_JSON=1 toy status` runs
+- **THEN** the run exits 2 with a usage error that names `TOY_FORMAT` and `TOY_JSON`
 
 #### Scenario: Variable over the default
 
@@ -143,7 +149,8 @@ In `json`, that document SHALL be one array of the same records, header first.
 
 ### Requirement: A failure during a stream
 
-When a record fails after others were written, the written records SHALL stay on stdout, the failure SHALL go to stderr in the format's error form, and the run SHALL exit with the failure's code.
+When a record fails after others were written, the written records SHALL stay on stdout.
+The failure SHALL go to stderr in the format's error form, and the run SHALL exit with the failure's code.
 A `json` array SHALL be closed before the failure is written.
 
 #### Scenario: The third record fails

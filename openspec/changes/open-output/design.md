@@ -29,7 +29,7 @@ Three constraints shape the approach:
 1. A socket or network sink (operator, 2026-11-25).
 2. Projection and filtering on the JSON form, such as `--query`.
 3. Streaming in `pretty`, `csv`, and `markdown`; each format declares it, and these three can add it later without a break.
-4. Validated input (CTC-043), which follows as its own change (operator, 2026-11-24).
+4. Validated input from flags, files and stdin ([CTC-043][ledger]), which follows as its own change (operator, 2026-11-24).
 5. The table fit rules, which are [CTC-062][ledger].
 
 ## Decisions
@@ -109,10 +109,26 @@ Without `App`, `View` resolves a name against `Formats::builtin()`, and `Formats
 `OutputArgs`, `FormatArgs`, and `FormatLong` hold `format: Option<FormatName>` and `stream: bool`.
 
 1. The derived `--format` accepts the built-in names, so a CLI that parses with Clap alone still rejects a typo.
-2. `App` calls `Command::mut_arg("format", ...)` with the registry's names, and adds one global flag per shorthand.
-   Help, completion, and the usage spec then read the same list, because each one builds from that one command.
-3. The flags' `augment_args` adds the built-in shorthands, `--json` among them, so the shorthand flags are not fields that each new format would need.
-4. Every flag reads `<PREFIX>_<LONG>` through the existing binding, such as `QCTL_FORMAT` and `QCTL_STREAM`.
+2. `Formats::augment(command)` sets `--format`'s accepted names to the registry's, and adds one global flag per shorthand that the command lacks.
+3. The flags' `augment_args` adds the built-in shorthands, `--json` among them, so a shorthand is not a field that each new format would need.
+4. Every flag reads `<PREFIX>_<LONG>`, such as `QCTL_FORMAT` and `QCTL_STREAM`.
+   Clap's derive applies `env_prefix` after it has added every argument ([env.rs][env-rs]), so the derived flags are bound before `augment` runs.
+   `augment` binds each flag it adds under the prefix it reads from `--format`'s variable, and adds none when `--format` has no variable.
+
+`App` builds one command, `formats.augment(C::command())`, and hands that command to help, completion, the usage spec, the pre-parse view, and the parse.
+Today each of those calls `C::command()` itself; they take the command as a value instead.
+
+A consumer whose test builds a `Surface` or its operator docs without `App` builds them from `formats.augment(Cli::command())`, from the same `formats()` function it hands `App`.
+Then the committed docs list the CLI's own formats.
+
+Each piece sits in the narrowest feature that needs it:
+
+| Public item | Feature | Why |
+|:--|:--|:--|
+| `FormatName` and the built-in names | `cli` | The flag structs parse names without the renderer |
+| The flag structs' `format` and `stream` | `cli` | As today |
+| `Format`, `Output`, `Sink`, `Formats`, and the built-ins | `view` | They render a `Document` and serialize data |
+| `erased-serde` | `view` | Only `Output::data` uses it |
 
 The format in force is, in order:
 
@@ -120,13 +136,16 @@ The format in force is, in order:
 2. `<PREFIX>_FORMAT` or a shorthand's variable.
 3. The terminal default when stdout is a terminal, and the piped default otherwise.
 
+A format variable and a shorthand variable that name different formats, such as `TOY_FORMAT=csv` and `TOY_JSON=1`, are a usage error that names both.
+`env-flags` refuses other conflicting variables by name the same way today.
+
 The alternative was a process-wide registry set before parsing.
 It lost because a test that builds two CLIs in one process would share it.
 
 ### 6. `--stream` writes typed records
 
 A command returns either a value, as today, or `view::Records`: a header record, then an iterator of records, each `Result`.
-Each record is `Present` and serializes to a JSON object with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record kinds.
+Each record is `Present` and serializes to a JSON object with a string field `type`; a consumer writes `#[serde(tag = "type")]` on an enum of record types.
 
 | Result | Without `--stream` | With `--stream` |
 |:--|:--|:--|
@@ -136,9 +155,11 @@ Each record is `Present` and serializes to a JSON object with a string field `ty
 1. In `json`, the whole form of `Records` is one array of the same records, header first, so one parser reads both deliveries.
 2. In `json` with `--stream`, each record is compact JSON on its own line, split on LF only.
 3. In `tsv` with `--stream`, each record writes its document's lines; a table header line is written again only when the headers change.
-4. In the other formats, the collected document is the header's document, then each record's, and adjacent one-table documents with equal headers merge into one table.
+4. In the other formats, the collected document is the header's document, then each record's.
+   Adjacent one-table documents with equal headers merge into one table.
 5. `--stream` with a format whose `streams()` is false is a usage error, exit 2, raised before the handler runs.
-6. When the iterator yields an error, the records already written stay on stdout, the error goes to stderr in the format's error form, and the run exits with the error's code.
+6. When the iterator yields an error, the records already written stay on stdout.
+   The error goes to stderr in the format's error form, and the run exits with the error's code.
    A `json` array is closed first, so stdout still parses.
 7. When the reader closes stdout, the run stops pulling records, drops the iterator, and exits as the `BrokenPipe` policy says.
 
@@ -162,8 +183,9 @@ A `View` used without `App` resolves against the built-ins.
 
 ## Risks / Trade-offs
 
-1. [Piped output changes for every consumer] → The changeset says so first, and a consumer that needs the old output sets `piped_default("pretty")`.
-2. [A tabular format drops text a person reads, such as a heading] → `markdown` keeps every block, and the dropped kinds are listed in the rustdoc of `tsv` and `csv`.
+1. [Piped output changes for every consumer] → The changeset names this first, and a consumer that needs the old output sets `piped_default("pretty")`.
+2. [A tabular format drops text a person reads, such as a heading] → `markdown` keeps every block.
+   The rustdoc of `tsv` and `csv` lists the blocks each one drops.
 3. [`erased-serde` adds code to every binary] → It sits behind `view`, which already carries `serde_json`; the size check on the build host records the change.
 4. [A record without a `type` field breaks the stream contract] → A debug assertion and a test helper check the field.
 
@@ -188,11 +210,16 @@ The maintainer releases the candidate first (operator, 2026-11-24).
 
 After the candidate is released, one pull request per row above moves that CLI (operator, 2026-11-24).
 Private consumers move in their own work, from these notes.
-One of them writes JSON and CSV to stdout itself today; it drops that code and returns `Records`.
+
+One private CLI writes its own JSON and CSV today, to keep the byte-exact output of an earlier tool.
+It registers its own `json` and `csv` in place of the built-ins.
+Those formats read the result through `Output::data()`, which hands any serde serializer every field.
+So the CLI no longer writes to stdout itself.
 
 Rollback: a consumer keeps its current pin.
 
 [view-rs]: ../../../ctl-core/src/view.rs
+[env-rs]: ../../../ctl-core/src/flags/env.rs
 [output-rs]: ../../../ctl-core/src/flags/output.rs
 [app-rs]: ../../../ctl-core/src/app.rs
 [agents]: ../../../AGENTS.md

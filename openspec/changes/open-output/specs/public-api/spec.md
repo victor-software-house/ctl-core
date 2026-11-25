@@ -1,5 +1,16 @@
 ## MODIFIED Requirements
 
+### Requirement: View settings are read through methods
+
+`View`'s format and quiet setting SHALL be private.
+`View::format()` SHALL return the name of the format in force, and `View::is_quiet()` the quiet setting.
+`View::quiet(bool)` SHALL stay the setter.
+
+#### Scenario: A quiet JSON view
+
+- **WHEN** a caller builds a `json` view with `ColorMode::Never` and `quiet(true)`
+- **THEN** `format()` returns the `json` name and `is_quiet()` returns `true`
+
 ### Requirement: Open enums take a wildcard arm
 
 `document::Block` and `document::NoticeLevel` SHALL be `#[non_exhaustive]`.

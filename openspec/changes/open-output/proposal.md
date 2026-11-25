@@ -7,12 +7,15 @@ Today that decision is a closed set: `OutputFormat` has two variants, `Pretty` a
 The cost shows in a consumer that needs more:
 
 1. One consumer's CLI needs JSON written as rows arrive, CSV, and one JSON document.
-   It writes its JSON and CSV to stdout itself and hands ctl-core an empty result, so its machine output skips ctl-core's rules: no ANSI, errors on stderr, a closed pipe ends quietly.
+   It writes its JSON and CSV to stdout itself and hands ctl-core an empty result.
+   So its machine output skips ctl-core's rules: no ANSI, errors on stderr, a closed pipe ends quietly.
 2. Piped output is the colourless pretty view: boxed tables that cost tokens and need a parser to split into fields.
    Agents read every ctl CLI through a pipe.
-3. Nine places assume the set is closed: `OutputFormat`, `is_json()`, the `--json` reconciliation, the pre-parse error view, the parse-error format scan, `View`, `shell::view`, the prelude, and the public-api spec.
+3. Nine places assume the set is closed.
+   They are `OutputFormat`, `is_json()`, the `--json` reconciliation, the pre-parse view, the parse-error scan, `View`, `shell::view`, the prelude, and the public-api spec.
 
-The maintainer ruled that the output layer is an open interface, and that ctl-core's own formats are built-in instances of it, which any CLI can add to or replace (operator, 2026-11-23).
+The maintainer ruled that the output layer is an open interface (operator, 2026-11-23).
+ctl-core's own formats are built-in instances of it, which any CLI can add to or replace.
 Format and delivery are two choices: `--format` picks the encoding, and `--stream` picks whether records are written as they are produced (operator, 2026-11-25).
 
 This change belongs to [CTC-061][ledger].
@@ -30,6 +33,7 @@ This change belongs to [CTC-061][ledger].
 5. A format may declare a shorthand flag.
    `json` declares `--json`, which stays `-f json`.
    Two different formats on one command line are a usage error, as `--json` beside `--format pretty` is today.
+   **BREAKING** Two variables that name different formats, such as `TOY_FORMAT=csv` and `TOY_JSON=1`, are a usage error too, where `TOY_JSON` won before.
 6. `--stream` writes a result as records, each when it is produced.
    Each record carries a `type` field, and a header record comes first.
    In `json`, each record is one compact object on its own line.
@@ -52,12 +56,14 @@ No socket sink is added: a program that wants the data without the CLI uses an S
 ### Modified Capabilities
 
 - `presentation`: the JSON layout requirement names the `json` format and every machine format.
-- `public-api`: `OutputFormat` leaves the list of open enums.
+- `public-api`: `OutputFormat` leaves the list of open enums, and `View::format()` returns a format name.
+- `completion`: a shell script prints as text in `tsv`, the piped default, as in `pretty`.
 
 ## Impact
 
 1. Code: `ctl-core/src/` `format.rs` and a new `format/` folder, `view.rs`, `flags/output.rs`, `parser.rs`, `app.rs`, `help.rs`, `usage.rs`, `completion.rs`, `shell.rs`, `prelude.rs`, and `lib.rs`.
-2. Dependencies: [erased-serde][erased-serde] 0.4 (MIT OR Apache-2.0, built on `serde_core`) in the `view` feature, so a format serializes a result it receives as a trait object (operator, 2026-11-24).
+2. Dependencies: [erased-serde][erased-serde] 0.4 (MIT OR Apache-2.0, built on `serde_core`) joins the `view` feature (operator, 2026-11-24).
+   A format serializes through it a result it receives as a trait object.
 3. Tests: the tests that name `OutputFormat`, and the tests that capture piped output, which turns from pretty to `tsv`.
 4. Docs: `docs/presentation.md`, `ctl-core/AGENTS.md`, the root `AGENTS.md`, and the rustdoc of every changed type.
 5. Consumers: [design.md](design.md) lists the migration step by step.
