@@ -211,7 +211,10 @@ help = { features = "help", text = 447222 }
 # 12,544 below that: a value under `--stream` writes through the format's
 # writer without the records driver, and the collected merge moves blocks and
 # rows (CTC-063, the fix pass).
-view = { features = "cli,view", text = 449337 }
+# 1,792 above that: the stream forms of `tsv`, `csv`, `markdown`, and `pretty`
+# (CTC-063, the stream forms): one tabular writer over the walker, and the
+# pretty writer.
+view = { features = "cli,view", text = 451129 }
 # 2,320 above the last budget, 469654: the same declared help flag and
 # subcommand as help (size-cuts decision 6). 29,955 above the last budget,
 # 471974: the view growth, and `App` reading the registry for help,
@@ -221,14 +224,20 @@ view = { features = "cli,view", text = 449337 }
 # 18,608 above that: the same growth as view, and `App` taking a value or
 # records (CTC-063).
 # 10,128 below that: the same cut as view (CTC-063, the fix pass).
-app = { features = "app", text = 519465 }
+# 1,792 above that: the stream forms of `tsv`, `csv`, `markdown`, and `pretty`
+# (CTC-063, the stream forms): one tabular writer over the walker, and the
+# pretty writer.
+app = { features = "app", text = 521257 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer. 29,891
 # above the last budget, 525798: the same growth as app (CTC-062).
 # 16,608 above that: the same three formats (CTC-062, the tabular formats).
 # 7,568 below that: the one walker (CTC-062, the tabular formats).
 # 18,704 above that: the same growth as app (CTC-063).
 # 10,592 below that: the same cut as app (CTC-063, the fix pass).
-usage = { features = "app,usage", text = 572841 }
+# 1,792 above that: the stream forms of `tsv`, `csv`, `markdown`, and `pretty`
+# (CTC-063, the stream forms): one tabular writer over the walker, and the
+# pretty writer.
+usage = { features = "app,usage", text = 574633 }
 # app plus input: serde-saphyr, yamled, and garde. 2,287 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
 # flattened field (flattened-field-place), 2,096, and Input::top_level with
@@ -241,7 +250,10 @@ usage = { features = "app,usage", text = 572841 }
 # 8,912 below that: the one walker (CTC-062, the tabular formats).
 # 17,248 above that: the same growth as app (CTC-063).
 # 12,272 below that: the same cut as app (CTC-063, the fix pass).
-input = { features = "app,input", text = 1096925 }
+# 1,808 above that: the stream forms of `tsv`, `csv`, `markdown`, and `pretty`
+# (CTC-063, the stream forms): one tabular writer over the walker, and the
+# pretty writer.
+input = { features = "app,input", text = 1098733 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 456,799 below input. 320 above the last budget,
 # 594206: Input::top_level over the toml tree (top-level-entries). The one
@@ -252,7 +264,10 @@ input = { features = "app,input", text = 1096925 }
 # 7,680 below that: the one walker (CTC-062, the tabular formats).
 # 17,456 above that: the same growth as app (CTC-063).
 # 10,048 below that: the same cut as app (CTC-063, the fix pass).
-input-toml = { features = "app,input-toml", text = 640446 }
+# 1,792 above that: the stream forms of `tsv`, `csv`, `markdown`, and `pretty`
+# (CTC-063, the stream forms): one tabular writer over the walker, and the
+# pretty writer.
+input-toml = { features = "app,input-toml", text = 642238 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

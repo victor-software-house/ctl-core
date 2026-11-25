@@ -163,7 +163,16 @@ A handler whose subcommands return a value and records returns `view::Reply`, an
    It holds no lock while the iterator or a serialization runs, and a record that fails to write leaves no partial line on stdout.
    The default writer calls `write` for each record and writes nothing between records, so a CLI's own format streams with no extra code.
    `json` writes each record compact on one line ending in LF, whatever the layout.
-   The stream forms of `tsv`, `csv`, `markdown`, and `pretty` are still the default writer.
+   `tsv`, `csv`, and `markdown` share one stream writer, and `pretty` has its own.
+   The tabular writer writes each record's document as the whole output writes it, with the same blank line between blocks, and keeps the header of the table it last wrote.
+   A table whose header row equals that header, with the same column count, goes on with only its rows and no blank line before them.
+   A plain table goes on from the last plain table of the same column count.
+   Any other table writes its header again after a blank line, and in `markdown` its separator row too.
+   A block that writes something other than a table ends the table, so the same table after it writes its header again.
+   A block the format leaves out writes nothing, adds no blank line, and does not end the table.
+   So records that are each one row of one table are, byte for byte, the collected output.
+   `pretty` renders each record's document as the whole output renders it, with a blank line between records and none before the first or after the last.
+   Its tables are not aligned across records.
 3. A value under `--stream` is a stream of one record, as the value serializes, with no `type` field added.
    A value that failed keeps its own stream, stderr, and exit code.
 4. Every record goes to stdout.

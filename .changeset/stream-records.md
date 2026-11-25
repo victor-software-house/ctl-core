@@ -15,6 +15,7 @@ With `--stream`, `json` writes each record compact on one line.
 `--stream` alone uses the stream default, `json`, which `Formats::stream_default` changes.
 `Format::stream` returns the `format::RecordWriter` that writes each record.
 Its default writes each record as `write` does, so existing formats compile unchanged.
+`tsv`, `csv`, `markdown`, and `pretty` write records as they arrive, with a table's header once and again when the table changes.
 The `view` feature now depends on `anyhow`, the error type of a stream of records.
 
 Breaking changes:

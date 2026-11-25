@@ -1,9 +1,12 @@
 //! What `tsv`, `csv`, and `markdown` share: one walk over a document that
-//! writes into one `String`, through the [`Dialect`] each format implements.
+//! writes into one `String`, through the [`Dialect`] each format implements,
+//! and the one writer of their stream form.
 
+use std::io::{self, Write as _};
 use std::{mem, str};
 
 use crate::document::{Block, Document, Fields, Notice, NoticeLevel, Span, Table, Text};
+use crate::format::{Output, RecordWriter, Sink};
 use crate::unsafe_chars::is_unsafe;
 
 /// The deepest heading level Markdown has.
@@ -64,6 +67,20 @@ pub(super) trait Dialect {
     fn rule(&self, _out: &mut Buffer, _title: Option<Source<'_>>) {}
 }
 
+/// The header row and width of the table last written.
+struct Header {
+    cells: Vec<Text>,
+    width: usize,
+}
+
+/// What a stream keeps from one record to the next: the header of the table
+/// it last wrote, or none, and whether it wrote anything.
+#[derive(Default)]
+struct Run {
+    last: Option<Header>,
+    written: bool,
+}
+
 /// The output so far, and the blank line owed before the next block's first
 /// byte. A block that writes nothing leaves the debt unpaid, so it adds no
 /// blank line.
@@ -71,6 +88,10 @@ pub(super) struct Buffer {
     text: String,
     blank: &'static str,
     owed: bool,
+    /// Whether a table can continue the last one written. Only a stream's
+    /// buffer sets it; the whole output writes every table's header.
+    stream: bool,
+    run: Run,
 }
 
 impl Buffer {
@@ -79,12 +100,43 @@ impl Buffer {
             text: String::new(),
             blank,
             owed: false,
+            stream: false,
+            run: Run::default(),
         }
     }
 
-    /// Starts a block: it owes a blank line when something was written.
+    /// A buffer for one record of a stream, which carries `run` over from the
+    /// records before it.
+    fn resume(blank: &'static str, run: Run) -> Self {
+        Self {
+            stream: true,
+            run,
+            ..Self::new(blank)
+        }
+    }
+
+    /// Starts a block: it owes a blank line when something was written, here
+    /// or in an earlier record of the stream.
     fn block(&mut self) {
-        self.owed = !self.text.is_empty();
+        self.owed = self.run.written || !self.text.is_empty();
+    }
+
+    /// Ends the current table when the block that began at byte `start` wrote
+    /// something.
+    fn end_table_if_written(&mut self, start: usize) {
+        if self.text.len() > start {
+            self.run.last = None;
+        }
+    }
+
+    /// Whether `table`, `width` cells wide, continues the table last written.
+    fn continues(&self, table: &Table, width: usize) -> bool {
+        self.stream
+            && self
+                .run
+                .last
+                .as_ref()
+                .is_some_and(|last| last.width == width && last.cells == table.headers())
     }
 
     fn pay(&mut self) {
@@ -242,10 +294,45 @@ pub(super) fn write(document: &Document, dialect: &dyn Dialect) -> String {
     out.text
 }
 
+/// The stream form of `tsv`, `csv`, and `markdown`: the writer that
+/// [`Format::stream`](crate::format::Format::stream) returns for each, over
+/// the format's [`Dialect`].
+pub(super) fn stream<'s>(dialect: &'s dyn Dialect, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+    Box::new(Stream {
+        dialect,
+        sink,
+        run: Run::default(),
+    })
+}
+
+/// Writes each record's document as the whole output writes it, and keeps the
+/// header of the last table across records, so a table that goes on is only
+/// its rows.
+struct Stream<'s> {
+    dialect: &'s dyn Dialect,
+    sink: Sink<'s>,
+    run: Run,
+}
+
+impl RecordWriter for Stream<'_> {
+    fn record(&mut self, output: &Output<'_>) -> io::Result<()> {
+        let mut out = Buffer::resume(self.dialect.eol(), mem::take(&mut self.run));
+        blocks(output.document(), 1, self.dialect, &mut out);
+        self.run = out.run;
+        self.run.written |= !out.text.is_empty();
+        self.sink.write_all(out.text.as_bytes())
+    }
+
+    fn finish(self: Box<Self>) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 fn blocks(document: &Document, level: usize, dialect: &dyn Dialect, out: &mut Buffer) {
     let heading = level.min(DEEPEST_HEADING);
     for block in document.blocks() {
         out.block();
+        let start = out.text.len();
         match block {
             Block::Heading(text) => dialect.heading(out, heading, Source::Text(text)),
             Block::Paragraph(text) => dialect.paragraph(out, Source::Text(text)),
@@ -254,10 +341,14 @@ fn blocks(document: &Document, level: usize, dialect: &dyn Dialect, out: &mut Bu
             Block::Table(table) => write_table(table, dialect, out),
             Block::Section(section) => {
                 dialect.heading(out, heading, Source::Text(section.title()));
+                out.end_table_if_written(start);
                 blocks(section.body(), level + 1, dialect, out);
             }
             Block::Notice(notice) => dialect.notice(out, notice),
             Block::Rule(rule) => dialect.rule(out, rule.title().map(Source::Text)),
+        }
+        if !matches!(block, Block::Table(_) | Block::Section(_)) {
+            out.end_table_if_written(start);
         }
     }
 }
@@ -306,7 +397,8 @@ fn write_fields(fields: &Fields, dialect: &dyn Dialect, out: &mut Buffer) {
 }
 
 /// A table is as wide as its longest row or its header row, and a table with
-/// no columns writes nothing.
+/// no columns writes nothing. In a stream, a table with the header and width
+/// of the last one written is only its rows, with no blank line before them.
 fn write_table(table: &Table, dialect: &dyn Dialect, out: &mut Buffer) {
     let width = table
         .rows()
@@ -318,9 +410,19 @@ fn write_table(table: &Table, dialect: &dyn Dialect, out: &mut Buffer) {
     if width == 0 {
         return;
     }
-    if !table.headers().is_empty() || dialect.blank_header() {
-        record(dialect, out, table.headers(), width);
-        dialect.after_header(out, width);
+    if out.continues(table, width) {
+        out.owed = false;
+    } else {
+        if !table.headers().is_empty() || dialect.blank_header() {
+            record(dialect, out, table.headers(), width);
+            dialect.after_header(out, width);
+        }
+        if out.stream {
+            out.run.last = Some(Header {
+                cells: table.headers().to_vec(),
+                width,
+            });
+        }
     }
     for row in table.rows() {
         record(dialect, out, row, width);

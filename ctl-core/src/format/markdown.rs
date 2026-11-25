@@ -3,7 +3,7 @@ use std::mem;
 
 use crate::document::Notice;
 use crate::format::tabular::{self, Buffer, Dialect, Place, Source};
-use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, Sink};
+use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, RecordWriter, Sink};
 
 /// The `markdown` format: the result's document as Markdown. Every block is
 /// written, and styling is dropped.
@@ -37,6 +37,18 @@ use crate::format::{Format, FormatName, MARKDOWN_ABOUT, Output, Sink};
 ///
 /// Blocks are separated by one blank line, every line ends in a line feed, and
 /// an empty document writes nothing.
+///
+/// Under `--stream`, each record is written as it arrives, as the whole
+/// output writes its document, with the same blank line between blocks. A
+/// table with the header row and column count of the last table written goes
+/// on with only its rows, and no blank line before them. A plain table goes
+/// on from the last plain table of the same column count. So records that are
+/// each one row of one table are, byte for byte, the collected output. Any
+/// other table writes its header row and separator row again, after a blank
+/// line. Every other block, such as fields, a paragraph, a heading, or a rule,
+/// ends the table, so the same table after one of them writes its header
+/// again. A heading that is empty after trimming writes nothing and does not
+/// end the table.
 ///
 /// It is a machine format, so it writes no ANSI styling. Its error form is the
 /// default, `{bin}: {message}`.
@@ -193,5 +205,9 @@ impl Format for Markdown {
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
         let written = tabular::write(output.document(), self);
         sink.write_all(written.as_bytes())
+    }
+
+    fn stream<'s>(&'s self, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+        tabular::stream(self, sink)
     }
 }

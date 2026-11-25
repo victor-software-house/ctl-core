@@ -1,0 +1,9 @@
+---
+source: ctl-core/tests/records.rs
+expression: "stdout.replace('\\r', \"<CR>\")"
+---
+type,n<CR>
+header,3<CR>
+tick,1<CR>
+tick,2<CR>
+tick,3<CR>

@@ -108,6 +108,18 @@ enum Event {
     Refused {
         n: usize,
     },
+    /// A record that is a table of other columns than the others.
+    Note {
+        text: String,
+    },
+    /// A record that is fields, so it is no table.
+    Detail {
+        n: usize,
+    },
+    /// A record that is a table with no header row.
+    Plain {
+        n: usize,
+    },
     /// A record that fails half way through its serialization.
     Broken {
         #[serde(serialize_with = "unserializable")]
@@ -115,30 +127,52 @@ enum Event {
     },
 }
 
+/// A one-row table, with the same headers for every record that uses it, so
+/// the collected records merge into one table.
+fn counted(kind: &str, count: usize) -> Document {
+    Document::new().table(Table::new(["type", "n"]).row([kind.to_owned(), count.to_string()]))
+}
+
 impl Present for Event {
-    /// A one-row table, with the same headers for every record, so the
-    /// collected records merge into one table.
     fn present(&self) -> Document {
-        let (kind, count) = match self {
-            Self::Header { total } => ("header", *total),
-            Self::Tick { n } => ("tick", *n),
-            Self::Refused { n } => ("refused", *n),
-            Self::Broken { n } => ("broken", *n),
-        };
-        Document::new().table(Table::new(["type", "n"]).row([kind.to_owned(), count.to_string()]))
+        match self {
+            Self::Header { total } => counted("header", *total),
+            Self::Tick { n } => counted("tick", *n),
+            Self::Refused { n } => counted("refused", *n),
+            Self::Broken { n } => counted("broken", *n),
+            Self::Note { text } => {
+                Document::new().table(Table::new(["type", "text"]).row(["note", text.as_str()]))
+            }
+            Self::Detail { n } => {
+                Document::new().fields(Fields::new().row("detail", n.to_string()))
+            }
+            Self::Plain { n } => {
+                Document::new().table(Table::plain().row(["plain".to_owned(), n.to_string()]))
+            }
+        }
     }
 
     fn outcome(&self) -> Outcome {
         match self {
             Self::Refused { .. } => Outcome::Error,
-            Self::Header { .. } | Self::Tick { .. } | Self::Broken { .. } => Outcome::Success,
+            Self::Header { .. }
+            | Self::Tick { .. }
+            | Self::Broken { .. }
+            | Self::Note { .. }
+            | Self::Detail { .. }
+            | Self::Plain { .. } => Outcome::Success,
         }
     }
 
     fn exit_code(&self) -> u8 {
         match self {
             Self::Refused { .. } => 5,
-            Self::Header { .. } | Self::Tick { .. } | Self::Broken { .. } => 0,
+            Self::Header { .. }
+            | Self::Tick { .. }
+            | Self::Broken { .. }
+            | Self::Note { .. }
+            | Self::Detail { .. }
+            | Self::Plain { .. } => 0,
         }
     }
 }
@@ -166,7 +200,9 @@ enum Cmd {
         /// after a line on stdin), `endless`, `fail` (the third fails),
         /// `counted` (three, then a failure, counting each pull), `refused`
         /// (a record whose own outcome is an error), `broken` (a record that
-        /// fails half way through its serialization), or `refuse` (the
+        /// fails half way through its serialization), `alternate` (tables
+        /// of two kinds, A, A, B, A), `between` (fields between two tables of
+        /// one kind), `plain` (a table with no header row), or `refuse` (the
         /// handler fails).
         #[arg(long, default_value = "fixed")]
         mode: String,
@@ -230,6 +266,30 @@ fn events(mode: &str) -> anyhow::Result<Records<'static>> {
                 .into_iter()
                 .map(Ok),
         ),
+        "alternate" => Records::new(
+            header,
+            [
+                Event::Tick { n: 1 },
+                Event::Note {
+                    text: "first".to_owned(),
+                },
+                Event::Tick { n: 2 },
+            ]
+            .into_iter()
+            .map(Ok),
+        ),
+        "between" => Records::new(
+            header,
+            [Event::Detail { n: 1 }, Event::Tick { n: 2 }]
+                .into_iter()
+                .map(Ok),
+        ),
+        "plain" => Records::new(
+            header,
+            [Event::Plain { n: 1 }, Event::Plain { n: 2 }]
+                .into_iter()
+                .map(Ok),
+        ),
         "broken" => Records::new(
             header,
             [
@@ -284,13 +344,24 @@ fn has_string_type(value: &Value) -> bool {
 /// collects its records before it writes the first never answers, and the
 /// read ends at the deadline.
 fn lockstep(test: &str, args: &[&str], vars: &[(&str, &str)]) -> Vec<String> {
+    lockstep_lines(test, args, vars, [1, 1])
+}
+
+/// [`lockstep`] for a format that writes `first` lines for the header
+/// record, then `each` lines for each record after it.
+fn lockstep_lines(
+    test: &str,
+    args: &[&str],
+    vars: &[(&str, &str)],
+    [first, each]: [usize; 2],
+) -> Vec<String> {
     let Some(mut live) = live::spawn(CHILD, test, vars) else {
         live::serve(ExitCode::SUCCESS, || run(args));
     };
-    let mut lines = vec![live.read_line()];
+    let mut lines: Vec<String> = (0..first).map(|_| live.read_line()).collect();
     for _ in 0..3 {
         live.write_line("go");
-        lines.push(live.read_line());
+        lines.extend((0..each).map(|_| live.read_line()));
     }
     let ended = live.finish();
     assert!(ended.status.success(), "{}", ended.stderr);
@@ -308,6 +379,37 @@ fn json_records_arrive_one_line_at_a_time() {
     let records = json_lines(&lines.join("\n"));
     assert!(records.iter().all(has_string_type), "{lines:?}");
     assert_eq!(records.len(), 4);
+}
+
+#[test]
+fn tsv_writes_its_header_and_first_row_then_one_line_per_record() {
+    let lines = lockstep_lines(
+        "tsv_writes_its_header_and_first_row_then_one_line_per_record",
+        &[
+            "events", "--mode", "lockstep", "--stream", "--format", "tsv",
+        ],
+        &[],
+        [2, 1],
+    );
+    assert_eq!(
+        lines,
+        ["type\tn", "header\t3", "tick\t1", "tick\t2", "tick\t3"]
+    );
+}
+
+#[test]
+fn pretty_writes_each_record_before_the_next_is_produced() {
+    let lines = lockstep_lines(
+        "pretty_writes_each_record_before_the_next_is_produced",
+        &[
+            "events", "--mode", "lockstep", "--stream", "--format", "pretty",
+        ],
+        &[],
+        [5, 6],
+    );
+    let blank: Vec<_> = lines.iter().filter(|line| line.is_empty()).collect();
+    assert_eq!(blank.len(), 3, "{lines:?}");
+    assert_eq!(lines.len(), 23, "{lines:?}");
 }
 
 #[test]
@@ -765,4 +867,97 @@ fn forced_colour_never_reaches_json_lines() {
     };
     assert!(!stdout.contains('\u{1b}'), "{stdout:?}");
     assert_eq!(json_lines(&stdout).len(), 4);
+}
+
+/// The formats whose stream form is written for `--stream`.
+const BUILT_IN: [&str; 4] = ["tsv", "csv", "markdown", "pretty"];
+
+/// One snapshot per built-in format of the records of `$mode` under
+/// `--stream`. A CSV snapshot shows each carriage return as `<CR>`, since
+/// insta normalizes line breaks.
+macro_rules! stream_snapshots {
+    ($($test:ident: $mode:literal;)*) => {$(
+        #[test]
+        fn $test() {
+            for format in BUILT_IN {
+                let args = &["events", "--mode", $mode, "--stream"];
+                let Some(stdout) = written(stringify!($test), args, &[("TOY_FORMAT", format)])
+                else {
+                    return;
+                };
+                insta::assert_snapshot!(
+                    format!("{}_{format}", stringify!($test)),
+                    stdout.replace('\r', "<CR>")
+                );
+            }
+        }
+    )*};
+}
+
+stream_snapshots! {
+    stream_of_records_of_one_table: "fixed";
+    stream_of_records_of_two_tables_that_alternate: "alternate";
+    stream_of_fields_between_two_tables_of_one_header: "between";
+    stream_of_a_plain_table: "plain";
+}
+
+#[test]
+fn a_streamed_table_is_the_collected_table_in_tsv_csv_and_markdown() {
+    let test = "a_streamed_table_is_the_collected_table_in_tsv_csv_and_markdown";
+    for format in ["tsv", "csv", "markdown"] {
+        let Some(streamed) = written(
+            test,
+            &["events"],
+            &[("TOY_STREAM", "true"), ("TOY_FORMAT", format)],
+        ) else {
+            return;
+        };
+        let Some(collected) = written(test, &["events"], &[("TOY_FORMAT", format)]) else {
+            return;
+        };
+        assert_eq!(streamed, collected, "{format}");
+    }
+}
+
+#[test]
+fn forced_colour_never_reaches_a_tabular_stream() {
+    let test = "forced_colour_never_reaches_a_tabular_stream";
+    for format in ["tsv", "csv", "markdown"] {
+        let vars = [
+            ("CLICOLOR_FORCE", "1"),
+            ("FORCE_COLOR", "3"),
+            ("COLORTERM", "truecolor"),
+            ("TOY_FORMAT", format),
+        ];
+        let Some(stdout) = written(test, &["events", "--stream"], &vars) else {
+            return;
+        };
+        assert!(!stdout.contains('\u{1b}'), "{format}: {stdout:?}");
+        assert!(stdout.contains("tick"), "{format}: {stdout:?}");
+    }
+}
+
+#[test]
+fn a_pretty_stream_writes_colour_when_asked() {
+    let test = "a_pretty_stream_writes_colour_when_asked";
+    let args = &[
+        "events", "--stream", "--format", "pretty", "--color", "always",
+    ];
+    let Some(stdout) = written(test, args, &[]) else {
+        return;
+    };
+    assert!(stdout.contains('\u{1b}'), "{stdout:?}");
+}
+
+#[test]
+fn a_pretty_stream_writes_no_colour_when_refused() {
+    let test = "a_pretty_stream_writes_no_colour_when_refused";
+    let args = &[
+        "events", "--stream", "--format", "pretty", "--color", "never",
+    ];
+    let vars = [("CLICOLOR_FORCE", "1"), ("FORCE_COLOR", "3")];
+    let Some(stdout) = written(test, args, &vars) else {
+        return;
+    };
+    assert!(!stdout.contains('\u{1b}'), "{stdout:?}");
 }

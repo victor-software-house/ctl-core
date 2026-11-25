@@ -1,7 +1,7 @@
 use std::io::{self, Write as _};
 
 use crate::format::tabular::{self, Buffer, Dialect, Place, Source};
-use crate::format::{CSV_ABOUT, Format, FormatName, Output, Sink};
+use crate::format::{CSV_ABOUT, Format, FormatName, Output, RecordWriter, Sink};
 
 /// The `csv` format: the result's tables and fields as comma-separated values,
 /// as RFC 4180 writes them.
@@ -28,6 +28,17 @@ use crate::format::{CSV_ABOUT, Format, FormatName, Output, Sink};
 /// change the data every other reader gets. A CLI that writes CSV for a
 /// spreadsheet registers a format of its own, under the name `csv` or
 /// another, that guards those cells.
+///
+/// Under `--stream`, each record is written as it arrives, as the whole
+/// output writes its document, with the same blank line between blocks. A
+/// table with the header record and column count of the last table written
+/// goes on with only its rows, and no blank line before them. A plain table
+/// goes on from the last plain table of the same column count. So records
+/// that are each one row of one table are, byte for byte, the collected
+/// output. Any other table writes its header record again, after a blank
+/// line. Fields end the table, so the same table after them writes its header
+/// again. A block `csv` leaves out, such as a paragraph or a notice, writes
+/// nothing and does not end the table.
 ///
 /// It is a machine format, so it writes no ANSI styling. Its error form is the
 /// default, `{bin}: {message}`.
@@ -84,5 +95,9 @@ impl Format for Csv {
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
         let written = tabular::write(output.document(), self);
         sink.write_all(written.as_bytes())
+    }
+
+    fn stream<'s>(&'s self, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+        tabular::stream(self, sink)
     }
 }
