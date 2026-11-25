@@ -1,6 +1,6 @@
-# Open the output layer
+# Proposal
 
-## Why
+## Motivation
 
 A ctl command returns one typed result, and ctl-core decides how it becomes output.
 Today that decision is a closed set: `OutputFormat` has two variants, `Pretty` and `Json`, and a CLI cannot add a third without a ctl-core release.
@@ -19,7 +19,7 @@ ctl-core's own formats are built-in instances of it, which any CLI can add to or
 
 This change belongs to [CTC-062][ledger].
 
-## What Changes
+## Changes
 
 1. **BREAKING** `format::OutputFormat` is removed.
    A public `format::Format` trait defines how a result becomes output, and `format::FormatName` names one.

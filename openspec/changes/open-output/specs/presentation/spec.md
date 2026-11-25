@@ -1,3 +1,5 @@
+# Spec Delta
+
 ## MODIFIED Requirements
 
 ### Requirement: Undetected width uses a fallback width

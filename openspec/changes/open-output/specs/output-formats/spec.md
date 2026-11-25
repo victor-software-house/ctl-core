@@ -1,3 +1,9 @@
+# Spec Delta
+
+## Purpose
+
+Lets a CLI choose, add, replace, or remove the formats its results are written in, and keeps machine formats plain.
+
 ## ADDED Requirements
 
 ### Requirement: A format is an implementation of a public interface

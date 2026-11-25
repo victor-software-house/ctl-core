@@ -6,6 +6,8 @@
   Verify: `widths.rs` and `table.rs` tests for the scenarios of the `layout` delta pass in CI.
 - [ ] 1.2 Add `RenderOptions::column_floor`, its `View` and `App` setters, `CTL_CORE_COLUMN_FLOOR`, and `column_floor_envs`.
   Verify: tests for the environment, the override, 0, and an unaccepted value.
+- [ ] 1.3 Describe the column floor and `CTL_CORE_COLUMN_FLOOR` in `docs/presentation.md` and the rustdoc of `RenderOptions::column_floor`.
+  Verify: `mise run lint:prose` and `mise run lint:md` pass locally, and the doc tasks pass in CI.
 
 ## 2. Stacking by fit
 
@@ -13,10 +15,10 @@
   Verify: snapshot tests for a six-column list at widths 40, 80, and 160.
 - [ ] 2.2 Add `TableFit`, `RenderOptions::table_fit`, `Table::stacking`, `CTL_CORE_TABLE_FIT`, and `table_fit_envs`; keep `stacked_below` as it is.
   Verify: the help snapshots do not change, and tests cover `wrap` and the warning.
-
-## 3. Docs and release
-
-- [ ] 3.1 Update `docs/presentation.md` and the rustdoc of `Table` in both crates.
+- [ ] 2.3 Describe stacking by fit and `CTL_CORE_TABLE_FIT` in `docs/presentation.md` and the rustdoc of `Table` in both crates.
   Verify: `mise run lint:prose` and `mise run lint:md` pass locally, and the doc tasks pass in CI.
-- [ ] 3.2 Write a `ctl-core: minor` changeset naming the rule and both variables.
+
+## 3. Release
+
+- [ ] 3.1 Write a `ctl-core: minor` changeset naming the rule and both variables.
   Verify: `openspec validate table-fit --strict` passes.
