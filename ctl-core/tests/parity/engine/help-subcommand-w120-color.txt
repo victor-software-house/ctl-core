@@ -19,6 +19,8 @@
 │    ┆            ┆                                ┆ \u{1b}[90mauto]\u{1b}[0m \u{1b}[90m[env: LEDGERCTL_COLOR]\u{1b}[0m                                    │
 │    ┆ \u{1b}[1m\u{1b}[32m--no-color\u{1b}[0m ┆                                ┆ Force colourless pretty output. Wins over `--color`             │
 │ \u{1b}[1m\u{1b}[32m-q\u{1b}[0m ┆ \u{1b}[1m\u{1b}[32m--quiet\u{1b}[0m    ┆                                ┆ Suppress successful pretty output \u{1b}[90m[env: LEDGERCTL_QUIET]\u{1b}[0m        │
+│    ┆ \u{1b}[1m\u{1b}[32m--stream\u{1b}[0m   ┆                                ┆ Write each record when the command produces it \u{1b}[90m[env:\u{1b}[0m            │
+│    ┆            ┆                                ┆ \u{1b}[90mLEDGERCTL_STREAM]\u{1b}[0m                                               │
 │    ┆ \u{1b}[1m\u{1b}[32m--json\u{1b}[0m     ┆                                ┆ Shorthand for `--format json` \u{1b}[90m[env: LEDGERCTL_JSON]\u{1b}[0m             │
 └────┴────────────┴────────────────────────────────┴─────────────────────────────────────────────────────────────────┘
 

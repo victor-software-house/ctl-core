@@ -33,6 +33,9 @@ Output
   -q --quiet
     Suppress successful pretty output
     [env: LEDGERCTL_QUIET]
+  --stream
+    Write each record when the command
+    produces it [env: LEDGERCTL_STREAM]
   --json
     Shorthand for `--format json` [env:
     LEDGERCTL_JSON]

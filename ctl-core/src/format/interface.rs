@@ -1,7 +1,8 @@
 use std::io::{self, Write as _};
 
 use crate::document::{Document, Text};
-use crate::format::{FormatName, Output, Sink};
+use crate::format::stream::Each;
+use crate::format::{FormatName, Output, RecordWriter, Sink};
 use crate::model::ErrorBody;
 
 /// How a result becomes output: one implementation per `--format` name.
@@ -48,6 +49,19 @@ pub trait Format: Sync {
     ///
     /// Returns the error from serializing the result or from writing it.
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()>;
+
+    /// The writer for a run under `--stream`, which writes each record when
+    /// the command produces it.
+    ///
+    /// The default writer calls [`Self::write`] for each record and writes
+    /// nothing between records or at the end, so a format that has no stream
+    /// form of its own streams as it writes a whole result. A format
+    /// overrides this to write records differently, such as `json`, which
+    /// writes each record compact on its own line. The writer owns `sink` and
+    /// is dropped when the stream ends.
+    fn stream<'s>(&'s self, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+        Box::new(Each::new(self, sink))
+    }
 
     /// Write a failure that has no typed result, such as a parse error or an
     /// error the handler returned. The default is `{bin}: {message}` laid out

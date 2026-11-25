@@ -4,7 +4,7 @@ use serde::Serialize as _;
 use serde_json::Serializer;
 use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
-use crate::format::{Format, FormatName, JSON_ABOUT, Output, Sink};
+use crate::format::{Format, FormatName, JSON_ABOUT, Output, RecordWriter, Sink};
 use crate::model::{Envelope, ErrorBody};
 use crate::view::JsonLayout;
 
@@ -14,6 +14,11 @@ use crate::view::JsonLayout;
 /// sink's layout and ends in a newline. A failure is an [`Envelope`] with the
 /// [`ErrorBody`], so a reader that parses stderr gets the same shape for every
 /// failure. Its shorthand is `--json`.
+///
+/// Under `--stream` it writes each record compact on its own line, ending in
+/// LF, whatever the layout. That is JSON Lines, as the stream form of `json`
+/// and not a format of its own. Every record of a stream of
+/// [`Records`](crate::view::Records) is an object with a string `type` field.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Json;
 
@@ -70,6 +75,26 @@ fn document(value: &dyn erased_serde::Serialize, sink: &mut Sink<'_>) -> io::Res
     sink.write_all(b"\n")
 }
 
+/// The writer of `json` under `--stream`: each record compact on one line
+/// ending in LF, whatever the layout, so a reader splits records on LF.
+struct Lines<'s> {
+    sink: Sink<'s>,
+}
+
+impl RecordWriter for Lines<'_> {
+    fn record(&mut self, output: &Output<'_>) -> io::Result<()> {
+        output.data().serialize(&mut Serializer::with_formatter(
+            &mut self.sink,
+            Layout(None),
+        ))?;
+        self.sink.write_all(b"\n")
+    }
+
+    fn finish(self: Box<Self>) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 impl Format for Json {
     fn name(&self) -> FormatName {
         FormatName::JSON
@@ -85,6 +110,10 @@ impl Format for Json {
 
     fn write(&self, output: &Output<'_>, sink: &mut Sink<'_>) -> io::Result<()> {
         document(output.data(), sink)
+    }
+
+    fn stream<'s>(&'s self, sink: Sink<'s>) -> Box<dyn RecordWriter + 's> {
+        Box::new(Lines { sink })
     }
 
     fn write_error(&self, error: &ErrorBody, sink: &mut Sink<'_>) -> io::Result<()> {

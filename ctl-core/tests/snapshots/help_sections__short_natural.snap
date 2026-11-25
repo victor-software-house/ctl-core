@@ -30,6 +30,7 @@ Output
 │ -c ┆ --color    ┆ [auto|always|never]            ┆ Pretty-output colour policy. JSON never contains ANSI [default: auto] │
 │    ┆ --no-color ┆                                ┆ Force colourless pretty output. Wins over `--color`                   │
 │ -q ┆ --quiet    ┆                                ┆ Suppress successful pretty output                                     │
+│    ┆ --stream   ┆                                ┆ Write each record when the command produces it                        │
 │    ┆ --json     ┆                                ┆ Shorthand for `--format json`                                         │
 └────┴────────────┴────────────────────────────────┴───────────────────────────────────────────────────────────────────────┘
 
