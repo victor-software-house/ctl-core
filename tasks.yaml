@@ -286,10 +286,11 @@ queue:
       the decorated output.
     blocked_by: []
     acceptance:
-      - A View can mark its result as a handle; with stdout not a terminal, pretty output prints only that value, plain, whatever CLICOLOR_FORCE, FORCE_COLOR or --color hold.
+      - A View can mark its result as a handle; with stdout not a terminal, the piped default format prints only that value, plain, whatever CLICOLOR_FORCE, FORCE_COLOR or --color hold.
       - Each CLI's handle-returning verbs use it, and a test runs one under CLICOLOR_FORCE=1 into a pipe and finds no ESC byte.
     notes:
       - "2026-11-17, a CLI that creates a sandbox, run under the agent shell's CLICOLOR_FORCE=1, printed the new sandbox's name in bold into a captured variable; the next copy and remove commands named a sandbox that does not exist. The fix belongs in ctl-core (operator, 2026-11-17)."
+      - 2026-11-25, CTC-062 makes tsv the piped default, so the handle rule applies to whatever format is the piped default, pretty included when a CLI keeps it for pipes (operator, 2026-11-25).
       - 'Detection is not the gap: the CLICOLOR_FORCE convention exists to colour piped output, and agent shells set it on purpose; docker run -d and gh pr create print their id or URL bare.'
 horizon:
   - id: CTC-027
