@@ -321,6 +321,11 @@ input-toml = { features = "app,input-toml", text = 667326 }
 # the JSON input format).
 # 13,008 above that: the same growth as input (CTC-067).
 input-json = { features = "app,input-json", text = 611482 }
+# app plus input and input-document: the two input flags, the document code,
+# and clap's error-context. 50,624 above input at its base, measured on the
+# build host in one box (CTC-043), after three cuts: the two sorts, the
+# `--input-format` parser and the cloned tree.
+input-document = { features = "app,input,input-document", text = 1039894 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
