@@ -26,6 +26,16 @@
 //! the two built-in formats. `Input` does not read through any of these yet:
 //! it still reads with the `Format` enum below.
 //!
+//! ## The Deserializer, the messages and `Tagged`
+//!
+//! `de::deserialize` reads a typed value from a tree, asking the format to
+//! resolve each scalar for the type its field needs.
+//! A problem is a `format::Fault` with the bytes it sits at, and
+//! `Messages` words it, in English by default and in another voice after
+//! `set_messages`.
+//! `de::Tagged` reads a node's tag beside its value.
+//! `Input` does not read through these yet.
+//!
 //! ```
 //! # #[cfg(all(feature = "yaml", feature = "validate"))]
 //! # {
