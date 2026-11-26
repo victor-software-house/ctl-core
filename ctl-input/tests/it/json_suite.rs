@@ -10,7 +10,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ctl_input::{Input, Limits};
+use ctl_input::format::{Fault, JSON, Reading};
+use ctl_input::{Format, Input, Limits};
 use serde::de::IgnoredAny;
 
 /// What reading a file must give.
@@ -171,6 +172,27 @@ fn every_file_of_the_suite_has_the_verdict_the_reader_gives() {
         count(|verdict| matches!(verdict, Verdict::ReadsFromDepth(_))),
         1
     );
+}
+
+#[test]
+fn a_strict_reading_refuses_each_duplicate_key_file_as_a_duplicate_key() {
+    for name in DUPLICATE_KEYS {
+        let path = suite().join(format!("{name}.json"));
+        let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("{error}"));
+        let refusal = JSON
+            .read(&text, &Limits::NONE, Reading::Strict)
+            .unwrap_err();
+        assert_eq!(
+            refusal.fault(),
+            &Fault::DuplicateKey {
+                key: "a".to_owned()
+            },
+            "{name}"
+        );
+        let span = refusal.span().unwrap_or_else(|| panic!("{name}: no span"));
+        assert_eq!(&text[span.clone()], "\"a\"", "{name}");
+        assert_eq!(span.start, 9, "{name}");
+    }
 }
 
 #[test]
