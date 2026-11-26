@@ -2,9 +2,11 @@
 //! built from them.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use ctl_input::format::{Fault, Format, TOML, YAML};
 use serde::Deserialize;
+use serde::de::{Deserializer, IgnoredAny, MapAccess, Visitor};
 use serde_json::{Value, json};
 
 use crate::common::{at, refused, typed};
@@ -218,8 +220,49 @@ fn a_flattened_map_and_an_untagged_enum_read_through_a_typeless_buffer() {
 }
 
 #[test]
-fn a_typeless_read_of_a_mapping_keeps_the_order_and_nesting() {
+fn a_typeless_read_of_a_mapping_keeps_the_nesting() {
     let text = "z: 1\na: {c: [1, {d: 2}]}\n";
     let value = typed::<Value>(&YAML, text).unwrap();
     assert_eq!(value, json!({"z": 1, "a": {"c": [1, {"d": 2}]}}));
+}
+
+/// The keys of a mapping, in the order the Deserializer visits them.
+#[derive(Debug, PartialEq)]
+struct Visited(Vec<String>);
+
+impl<'de> Deserialize<'de> for Visited {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Keys;
+
+        impl<'de> Visitor<'de> for Keys {
+            type Value = Visited;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a mapping")
+            }
+
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Visited, A::Error> {
+                let mut keys = Vec::new();
+                while let Some(key) = map.next_key::<String>()? {
+                    map.next_value::<IgnoredAny>()?;
+                    keys.push(key);
+                }
+                Ok(Visited(keys))
+            }
+        }
+        deserializer.deserialize_map(Keys)
+    }
+}
+
+#[test]
+fn entries_are_visited_in_the_order_they_are_written() {
+    let written = |keys: &[&str]| Visited(keys.iter().map(|key| (*key).to_owned()).collect());
+    assert_eq!(
+        typed::<Visited>(&YAML, "z: 1\na: {c: 1}\nm: [1]\n").unwrap(),
+        written(&["z", "a", "m"])
+    );
+    assert_eq!(
+        typed::<Visited>(&TOML, "z = 1\na = 2\n[m]\nb = 3\n").unwrap(),
+        written(&["z", "a", "m"])
+    );
 }
