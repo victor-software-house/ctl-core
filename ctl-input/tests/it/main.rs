@@ -1,6 +1,7 @@
 //! The located tree, the format trait and the registry, through the public API.
 
 mod common;
+mod messages;
 mod refusals;
 mod registry;
 mod resolve_toml;

@@ -10,34 +10,8 @@ use serde_saphyr::options::AliasLimits;
 #[cfg(feature = "yaml")]
 use serde_saphyr::{Budget, Error};
 
-use super::format::Fault;
-#[cfg(feature = "yaml")]
-use super::limits::REPO_FILE;
-
-/// Where a user raises a limit a text went past.
-#[derive(Clone, Copy)]
-pub(super) enum Raise {
-    /// In the repository's [`REPO_FILE`].
-    #[cfg(feature = "yaml")]
-    InRepository,
-    /// In the tool's process default, for [`REPO_FILE`] itself, which is
-    /// read before any repository override applies.
-    #[cfg(feature = "yaml")]
-    InProcess,
-    /// Nowhere the user can reach: a build without `yaml` reads no
-    /// repository file, so only the tool sets limits.
-    #[cfg(not(feature = "yaml"))]
-    InTool,
-}
-
-impl Raise {
-    /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(feature = "yaml")]
-    pub(super) const FOR_TEXT: Self = Self::InRepository;
-    /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(not(feature = "yaml"))]
-    pub(super) const FOR_TEXT: Self = Self::InTool;
-}
+use super::format::{Fault, Raise};
+use super::messages::{EnglishMessages, Messages};
 
 /// A limit a text went past: the field and the value in force.
 pub(super) struct Exceeded {
@@ -108,6 +82,7 @@ impl Exceeded {
         Fault::Limit {
             name: self.field,
             value: self.limit.clone(),
+            raise: self.raise,
         }
     }
 
@@ -178,20 +153,6 @@ impl Exceeded {
 
 impl fmt::Display for Exceeded {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "exceeds {} ({}); ", self.field, self.limit)?;
-        match self.raise {
-            #[cfg(feature = "yaml")]
-            Raise::InRepository => {
-                write!(formatter, "raise limits.{} in {REPO_FILE}", self.field)
-            }
-            #[cfg(feature = "yaml")]
-            Raise::InProcess => write!(
-                formatter,
-                "raise {} in the tool's process default, which reads {REPO_FILE}",
-                self.field
-            ),
-            #[cfg(not(feature = "yaml"))]
-            Raise::InTool => write!(formatter, "the tool sets this limit"),
-        }
+        formatter.write_str(&EnglishMessages.message(&self.fault()))
     }
 }

@@ -11,8 +11,8 @@ use serde_saphyr::located::{self, MappingNode, ScalarNode, SequenceNode};
 use serde_saphyr::scalars::{Inferred, Rules, Scalar as Spelled};
 use serde_saphyr::{DefaultMessageFormatter, Error, Location};
 
-use super::exceeded::{Exceeded, Raise};
-use super::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, Wanted};
+use super::exceeded::Exceeded;
+use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
 use super::limits::Limits;
 use super::tree::{Node, Scalar, ScalarStyle, Tag};
 use super::yaml_text::{self, Unplaced};

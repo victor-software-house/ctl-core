@@ -76,6 +76,7 @@ mod field_path;
 pub mod format;
 mod formats;
 mod limits;
+mod messages;
 #[cfg(feature = "toml")]
 mod toml_entries;
 #[cfg(feature = "toml")]
@@ -91,12 +92,14 @@ mod yaml_format;
 mod yaml_text;
 
 pub use entries::{Entry, Written};
-use exceeded::{Exceeded, Raise};
+use exceeded::Exceeded;
 pub use field_path::{FieldPath, Place, Step};
+use format::Raise;
 pub use formats::{Formats, set_default_formats};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
+pub use messages::{EnglishMessages, Messages, set_messages};
 /// A value and the YAML tag written on its node, such as `!override` in
 /// `code_span_size: !override 0`: `Tagged(0, Some("!override".into()))`.
 /// A node with no tag reads as `Tagged(value, None)`, and an untagged enum

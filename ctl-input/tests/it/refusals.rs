@@ -4,7 +4,7 @@
 use std::iter;
 
 use ctl_input::Limits;
-use ctl_input::format::{Fault, Format, Reading, Refusal, TOML, YAML};
+use ctl_input::format::{Fault, Format, Raise, Reading, Refusal, TOML, YAML};
 use ctl_input::tree::Node;
 use serde::de::IgnoredAny;
 
@@ -118,6 +118,7 @@ fn limit(name: &'static str, value: &str) -> Fault {
     Fault::Limit {
         name,
         value: value.to_owned(),
+        raise: Raise::InRepository,
     }
 }
 
