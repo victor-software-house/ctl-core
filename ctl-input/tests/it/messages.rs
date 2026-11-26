@@ -92,6 +92,19 @@ fn a_limit_names_where_to_raise_it() {
     );
 }
 
+#[test]
+fn a_limit_a_cli_format_found_is_worded_as_one_of_a_text_in_memory() {
+    let fault = Fault::limit("max_depth", 2);
+    assert!(matches!(
+        &fault,
+        Fault::Limit { name: "max_depth", value, raise: Raise::InRepository } if value == "2"
+    ));
+    assert_eq!(
+        say(&fault),
+        "exceeds max_depth (2); raise limits.max_depth in .ctl/input.yaml"
+    );
+}
+
 struct Shout;
 
 impl Messages for Shout {

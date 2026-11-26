@@ -305,6 +305,21 @@ pub enum Raise {
     InTool,
 }
 
+impl Fault {
+    /// A [`Fault::Limit`] for a text of a CLI's own format that went past
+    /// the limit `name` of the value `value`, worded as it is for a text in
+    /// memory: where a person raises it is the same as for the built-in
+    /// formats.
+    #[must_use]
+    pub fn limit(name: &'static str, value: impl ToString) -> Self {
+        Self::Limit {
+            name,
+            value: value.to_string(),
+            raise: Raise::FOR_TEXT,
+        }
+    }
+}
+
 impl Raise {
     /// Where a limit hit by a CLI's own text is raised.
     #[cfg(feature = "yaml")]
