@@ -71,14 +71,22 @@ pub(super) struct Items<'de> {
     rest: slice::Iter<'de, Node>,
     format: &'static dyn Format,
     total: usize,
+    length: Option<usize>,
 }
 
 impl<'de> Items<'de> {
-    pub(super) fn new(items: &'de [Node], format: &'static dyn Format) -> Self {
+    /// The items of a sequence, which a tuple of `length` items reads, or
+    /// else any number.
+    pub(super) fn new(
+        items: &'de [Node],
+        format: &'static dyn Format,
+        length: Option<usize>,
+    ) -> Self {
         Self {
             rest: items.iter(),
             format,
             total: items.len(),
+            length,
         }
     }
 
@@ -86,10 +94,14 @@ impl<'de> Items<'de> {
     /// the sequence does.
     pub(super) fn finish(&self) -> Result<(), Error> {
         if self.rest.as_slice().is_empty() {
-            Ok(())
-        } else {
-            Err(de::Error::invalid_length(self.total, &"a shorter sequence"))
+            return Ok(());
         }
+        Err(match self.length {
+            Some(length) => {
+                de::Error::invalid_length(self.total, &format!("{length} items").as_str())
+            }
+            None => de::Error::invalid_length(self.total, &"a shorter sequence"),
+        })
     }
 }
 

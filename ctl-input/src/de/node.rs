@@ -129,7 +129,7 @@ impl<'de> NodeDe<'de> {
     fn any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
         match self.node.kind() {
             NodeKind::Mapping(_) => self.mapping(visitor),
-            NodeKind::Sequence(_) => self.sequence(visitor),
+            NodeKind::Sequence(_) => self.sequence(None, visitor),
             NodeKind::Scalar(_) => self.scalar_as(Wanted::Any, visitor),
         }
     }
@@ -188,11 +188,17 @@ impl<'de> NodeDe<'de> {
         }
     }
 
-    fn sequence<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
+    /// The items of a sequence, as serde reads a sequence, or a tuple of
+    /// `length` items, or an error that expects a sequence.
+    fn sequence<V: Visitor<'de>>(
+        self,
+        length: Option<usize>,
+        visitor: V,
+    ) -> Result<V::Value, Error> {
         let NodeKind::Sequence(items) = self.node.kind() else {
             return Err(Error::expected_kind("a sequence", self.found()));
         };
-        let mut access = Items::new(items, self.format);
+        let mut access = Items::new(items, self.format, length);
         let value = visitor.visit_seq(&mut access)?;
         access.finish()?;
         Ok(value)
@@ -312,24 +318,20 @@ impl<'de> Deserializer<'de> for NodeDe<'de> {
     }
 
     fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
-        self.located(|node| node.sequence(visitor))
+        self.located(|node| node.sequence(None, visitor))
     }
 
-    fn deserialize_tuple<V: Visitor<'de>>(
-        self,
-        _len: usize,
-        visitor: V,
-    ) -> Result<V::Value, Error> {
-        self.deserialize_seq(visitor)
+    fn deserialize_tuple<V: Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value, Error> {
+        self.located(|node| node.sequence(Some(len), visitor))
     }
 
     fn deserialize_tuple_struct<V: Visitor<'de>>(
         self,
         _name: &'static str,
-        _len: usize,
+        len: usize,
         visitor: V,
     ) -> Result<V::Value, Error> {
-        self.deserialize_seq(visitor)
+        self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {

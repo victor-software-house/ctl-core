@@ -103,7 +103,7 @@ fn a_tuple_must_match_the_length_of_its_sequence() {
     assert_eq!(
         refusal.fault(),
         &Fault::InvalidValue {
-            detail: "expected a shorter sequence, found 3 items".to_owned()
+            detail: "expected 2 items, found 3 items".to_owned()
         }
     );
 }
