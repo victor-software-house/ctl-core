@@ -5,6 +5,8 @@ mod de_faults;
 mod de_scalars;
 mod de_shapes;
 mod de_tagged;
+mod fixtures;
+mod input_tree;
 mod messages;
 mod refusals;
 mod registry;

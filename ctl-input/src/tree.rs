@@ -186,18 +186,19 @@ impl Node {
     /// step and the root have no key, so they give their value.
     ///
     /// A key step matches the first entry, in the order written, whose key
-    /// node is a scalar with exactly that value.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "the next change places every problem through the tree"
-        )
-    )]
+    /// node is a scalar with exactly that value, and that no alias wrote.
+    ///
+    /// A node an alias replayed sits where the alias is written, and so does
+    /// every node beneath it, because the text holds no other place for them.
+    /// A path stops at the replayed node, so a path through it gives that
+    /// node's place, and with [`At::Key`] the key of its entry.
     pub(crate) fn nearest(&self, steps: &[Step], at: At) -> Range<usize> {
         let mut found = self;
         let mut key = None;
         for step in steps {
+            if found.used_at.is_some() {
+                break;
+            }
             let next = match (&found.kind, step) {
                 (NodeKind::Mapping(entries), Step::Key(name)) => entries
                     .iter()
@@ -213,14 +214,22 @@ impl Node {
             (found, key) = (next, named);
         }
         match at {
-            At::Value => found.span(),
-            At::Key => key.unwrap_or(found).span(),
+            At::Value => found.written_at(),
+            At::Key => key.unwrap_or(found).written_at(),
         }
     }
 
-    /// Whether this node is a scalar whose value is exactly `name`.
+    /// Where the node is written: the alias that replayed it, or its own
+    /// bytes.
+    fn written_at(&self) -> Range<usize> {
+        self.used_at.clone().unwrap_or_else(|| self.span())
+    }
+
+    /// Whether this node is a scalar the text wrote whose value is exactly
+    /// `name`: a key an alias wrote is no name a path can reach.
     fn names(&self, name: &str) -> bool {
-        matches!(&self.kind, NodeKind::Scalar(scalar) if scalar.value == name)
+        self.used_at.is_none()
+            && matches!(&self.kind, NodeKind::Scalar(scalar) if scalar.value == name)
     }
 }
 
@@ -281,13 +290,6 @@ impl Tag {
 /// `text`. An offset past the end, as at an unclosed array, is the end.
 ///
 /// A leading byte order mark (U+FEFF) is no column, as the YAML parser counts.
-#[cfg_attr(
-    not(any(test, feature = "toml")),
-    expect(
-        dead_code,
-        reason = "the next change places every problem through the tree"
-    )
-)]
 pub(crate) fn position(text: &str, offset: usize) -> (usize, usize) {
     let (text, offset) = match text.strip_prefix('\u{feff}') {
         Some(rest) => (rest, offset.saturating_sub('\u{feff}'.len_utf8())),
@@ -301,10 +303,6 @@ pub(crate) fn position(text: &str, offset: usize) -> (usize, usize) {
         .map_or(0, |last| last.chars().count());
     (line, column)
 }
-
-#[cfg(test)]
-#[cfg(all(feature = "yaml", feature = "toml"))]
-pub(crate) mod differential;
 
 #[cfg(test)]
 mod tests {

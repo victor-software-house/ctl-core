@@ -1,0 +1,1300 @@
+---
+source: ctl-input/tests/it/fixtures.rs
+expression: "lines.join(\"\\n\")"
+---
+anchors-tags.yaml as IgnoredAny: value IgnoredAny
+anchors-tags.yaml as Json: value {"base":{"x":1,"y":[2,3]},"copy":{"x":1,"y":[2,3]},"tagged":0,"text":"12"}
+anchors-tags.yaml as Ledger: refused 1:1: missing field `schema_version`
+anchors-tags.yaml as Port: refused 1:1: missing field `port`
+anchors-tags.yaml as Strict: refused 1:1: unknown field `base`, expected one of `name`
+anchors-tags.yaml as Moded: refused 1:1: missing field `mode`
+anchors-tags.yaml as Copied: refused 3:6: expected a string, found a sequence
+anchors-tags.yaml as Nested: refused 3:6: expected a string, found a sequence
+anchors-tags.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+anchors-tags.yaml as Ports: refused 2:3: expected u16, found a mapping
+anchors-tags.yaml as Names: refused 2:3: expected a string, found a mapping
+anchors-tags.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+anchors-tags.yaml as Globs: refused 1:1: missing field `files`
+anchors-tags.yaml as Shipped: refused 1:1: missing field `assets`
+anchors-tags.yaml as Tags: refused 1:1: missing field `styles`
+anchors-tags.yaml as Config: refused 1:1: missing field `name`
+anchors-tags.yaml as TomlConfig: refused 1:1: missing field `name`
+anchors-tags.yaml as Dated: value Dated { when: "", date: "" }
+block-scalars.yaml as IgnoredAny: value IgnoredAny
+block-scalars.yaml as Json: value {"after":"plain","folded":"folded text continues here","keep":"kept\n\n","literal":"line one\nline two\n"}
+block-scalars.yaml as Ledger: refused 1:1: missing field `schema_version`
+block-scalars.yaml as Port: refused 1:1: missing field `port`
+block-scalars.yaml as Strict: refused 1:1: unknown field `literal`, expected one of `name`
+block-scalars.yaml as Moded: refused 1:1: missing field `mode`
+block-scalars.yaml as Copied: refused 1:1: missing field `base`
+block-scalars.yaml as Nested: refused 1:1: missing field `base`
+block-scalars.yaml as Flags: refused 1:10: expected true or false
+block-scalars.yaml as Ports: refused 1:10: expected an integer
+block-scalars.yaml as Names: value {"after": "plain", "folded": "folded text continues here", "keep": "kept\n\n", "literal": "line one\nline two\n"}
+block-scalars.yaml as Anythings: value {"after": Text("plain"), "folded": Text("folded text continues here"), "keep": Text("kept\n\n"), "literal": Text("line one\nline two\n")}
+block-scalars.yaml as Globs: refused 1:1: missing field `files`
+block-scalars.yaml as Shipped: refused 1:1: missing field `assets`
+block-scalars.yaml as Tags: refused 1:1: missing field `styles`
+block-scalars.yaml as Config: refused 1:1: missing field `name`
+block-scalars.yaml as TomlConfig: refused 1:1: missing field `name`
+block-scalars.yaml as Dated: value Dated { when: "", date: "" }
+bom-scanner-error.yaml as IgnoredAny: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Json: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Ledger: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Port: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Strict: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Moded: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Copied: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Nested: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Flags: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Ports: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Names: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Anythings: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Globs: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Shipped: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Tags: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Config: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as TomlConfig: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as Dated: refused 1:5: unexpected character: `@'
+bom.toml as IgnoredAny: value IgnoredAny
+bom.toml as Json: value {"name":"release"}
+bom.toml as Ledger: refused 1:1: missing field `schema_version`
+bom.toml as Port: refused 1:1: missing field `port`
+bom.toml as Strict: value Strict { name: "release" }
+bom.toml as Moded: refused 1:1: missing field `mode`
+bom.toml as Copied: refused 1:1: missing field `base`
+bom.toml as Nested: refused 1:1: missing field `base`
+bom.toml as Flags: refused 1:9: expected true or false
+bom.toml as Ports: refused 1:9: expected an integer
+bom.toml as Names: value {"name": "release"}
+bom.toml as Anythings: value {"name": Text("release")}
+bom.toml as Globs: refused 1:1: missing field `files`
+bom.toml as Shipped: refused 1:1: missing field `assets`
+bom.toml as Tags: refused 1:1: missing field `styles`
+bom.toml as Config: refused 1:1: missing field `labels`
+bom.toml as TomlConfig: refused 1:1: missing field `labels`
+bom.toml as Dated: value Dated { when: "", date: "" }
+bom.yaml as IgnoredAny: value IgnoredAny
+bom.yaml as Json: value {"labels":["ship"],"name":"release"}
+bom.yaml as Ledger: refused 1:1: missing field `schema_version`
+bom.yaml as Port: refused 1:1: missing field `port`
+bom.yaml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+bom.yaml as Moded: refused 1:1: missing field `mode`
+bom.yaml as Copied: refused 1:1: missing field `base`
+bom.yaml as Nested: refused 1:1: missing field `base`
+bom.yaml as Flags: refused 1:8: expected true or false
+bom.yaml as Ports: refused 1:8: expected an integer
+bom.yaml as Names: refused 2:9: expected a string, found a sequence
+bom.yaml as Anythings: refused 2:9: data did not match any variant of untagged enum Anything
+bom.yaml as Globs: refused 1:1: missing field `files`
+bom.yaml as Shipped: refused 1:1: missing field `assets`
+bom.yaml as Tags: refused 1:1: missing field `styles`
+bom.yaml as Config: value Config { name: "release", labels: ["ship"], outputs: [] }
+bom.yaml as TomlConfig: refused 1:1: missing field `release`
+bom.yaml as Dated: value Dated { when: "", date: "" }
+comments.yaml as IgnoredAny: value IgnoredAny
+comments.yaml as Json: value {"labels":["ship","docs"],"name":"release"}
+comments.yaml as Ledger: refused 1:1: missing field `schema_version`
+comments.yaml as Port: refused 1:1: missing field `port`
+comments.yaml as Strict: refused 4:1: unknown field `labels`, expected one of `name`
+comments.yaml as Moded: refused 1:1: missing field `mode`
+comments.yaml as Copied: refused 1:1: missing field `base`
+comments.yaml as Nested: refused 1:1: missing field `base`
+comments.yaml as Flags: refused 2:7: expected true or false
+comments.yaml as Ports: refused 2:7: expected an integer
+comments.yaml as Names: refused 5:3: expected a string, found a sequence
+comments.yaml as Anythings: refused 5:3: data did not match any variant of untagged enum Anything
+comments.yaml as Globs: refused 1:1: missing field `files`
+comments.yaml as Shipped: refused 1:1: missing field `assets`
+comments.yaml as Tags: refused 1:1: missing field `styles`
+comments.yaml as Config: value Config { name: "release", labels: ["ship", "docs"], outputs: [] }
+comments.yaml as TomlConfig: refused 1:1: missing field `release`
+comments.yaml as Dated: value Dated { when: "", date: "" }
+dotted-inline.toml as IgnoredAny: value IgnoredAny
+dotted-inline.toml as Json: value {"a":{"b":{"c":1}},"literal key":"w","point":{"x":1,"y":2},"products":[{"name":"a"},{"name":"b","tags":["x","y"]}],"quoted.key":"v","server":{"port":8080},"when":"1979-05-27T07:32:00Z"}
+dotted-inline.toml as Ledger: refused 1:1: missing field `schema_version`
+dotted-inline.toml as Port: refused 1:1: missing field `port`
+dotted-inline.toml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+dotted-inline.toml as Moded: refused 1:1: missing field `mode`
+dotted-inline.toml as Copied: refused 1:1: missing field `base`
+dotted-inline.toml as Nested: refused 1:1: missing field `base`
+dotted-inline.toml as Flags: refused 1:1: expected a boolean, found a mapping
+dotted-inline.toml as Ports: refused 1:1: expected u16, found a mapping
+dotted-inline.toml as Names: refused 1:1: expected a string, found a mapping
+dotted-inline.toml as Anythings: refused 1:1: data did not match any variant of untagged enum Anything
+dotted-inline.toml as Globs: refused 1:1: missing field `files`
+dotted-inline.toml as Shipped: refused 1:1: missing field `assets`
+dotted-inline.toml as Tags: refused 1:1: missing field `styles`
+dotted-inline.toml as Config: refused 1:1: missing field `name`
+dotted-inline.toml as TomlConfig: refused 1:1: missing field `name`
+dotted-inline.toml as Dated: value Dated { when: "1979-05-27T07:32:00Z", date: "" }
+flow-collections.yaml as IgnoredAny: value IgnoredAny
+flow-collections.yaml as Json: value {"empty":{},"list":[],"map":{"a":1,"b.c":["x","y"],"d":{"e":"f"}},"seq":[1,"two","three",[4,5],{"six":6}]}
+flow-collections.yaml as Ledger: refused 1:1: missing field `schema_version`
+flow-collections.yaml as Port: refused 1:1: missing field `port`
+flow-collections.yaml as Strict: refused 1:1: unknown field `seq`, expected one of `name`
+flow-collections.yaml as Moded: refused 1:1: missing field `mode`
+flow-collections.yaml as Copied: refused 1:1: missing field `base`
+flow-collections.yaml as Nested: refused 1:1: missing field `base`
+flow-collections.yaml as Flags: refused 1:6: expected a boolean, found a sequence
+flow-collections.yaml as Ports: refused 1:6: expected u16, found a sequence
+flow-collections.yaml as Names: refused 1:6: expected a string, found a sequence
+flow-collections.yaml as Anythings: refused 1:6: data did not match any variant of untagged enum Anything
+flow-collections.yaml as Globs: refused 1:1: missing field `files`
+flow-collections.yaml as Shipped: refused 1:1: missing field `assets`
+flow-collections.yaml as Tags: refused 1:1: missing field `styles`
+flow-collections.yaml as Config: refused 1:1: missing field `name`
+flow-collections.yaml as TomlConfig: refused 1:1: missing field `name`
+flow-collections.yaml as Dated: value Dated { when: "", date: "" }
+input-01.yaml as IgnoredAny: value IgnoredAny
+input-01.yaml as Json: value {"services":{"dev":{"image":"nixos","privileged":true}}}
+input-01.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-01.yaml as Port: refused 1:1: missing field `port`
+input-01.yaml as Strict: refused 1:1: unknown field `services`, expected one of `name`
+input-01.yaml as Moded: refused 1:1: missing field `mode`
+input-01.yaml as Copied: refused 1:1: missing field `base`
+input-01.yaml as Nested: refused 1:1: missing field `base`
+input-01.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input-01.yaml as Ports: refused 2:3: expected u16, found a mapping
+input-01.yaml as Names: refused 2:3: expected a string, found a mapping
+input-01.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input-01.yaml as Globs: refused 1:1: missing field `files`
+input-01.yaml as Shipped: refused 1:1: missing field `assets`
+input-01.yaml as Tags: refused 1:1: missing field `styles`
+input-01.yaml as Config: refused 1:1: missing field `name`
+input-01.yaml as TomlConfig: refused 1:1: missing field `name`
+input-01.yaml as Dated: value Dated { when: "", date: "" }
+input-02.yaml as IgnoredAny: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Json: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Ledger: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Port: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Strict: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Moded: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Copied: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Nested: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Flags: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Ports: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Names: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Anythings: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Globs: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Shipped: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Tags: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Config: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as TomlConfig: refused 1:43: mapping values are not allowed in this context
+input-02.yaml as Dated: refused 1:43: mapping values are not allowed in this context
+input-03.yaml as IgnoredAny: value IgnoredAny
+input-03.yaml as Json: value {"labels":["ship"],"name":"release"}
+input-03.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-03.yaml as Port: refused 1:1: missing field `port`
+input-03.yaml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input-03.yaml as Moded: refused 1:1: missing field `mode`
+input-03.yaml as Copied: refused 1:1: missing field `base`
+input-03.yaml as Nested: refused 1:1: missing field `base`
+input-03.yaml as Flags: refused 1:7: expected true or false
+input-03.yaml as Ports: refused 1:7: expected an integer
+input-03.yaml as Names: refused 2:9: expected a string, found a sequence
+input-03.yaml as Anythings: refused 2:9: data did not match any variant of untagged enum Anything
+input-03.yaml as Globs: refused 1:1: missing field `files`
+input-03.yaml as Shipped: refused 1:1: missing field `assets`
+input-03.yaml as Tags: refused 1:1: missing field `styles`
+input-03.yaml as Config: value Config { name: "release", labels: ["ship"], outputs: [] }
+input-03.yaml as TomlConfig: refused 1:1: missing field `release`
+input-03.yaml as Dated: value Dated { when: "", date: "" }
+input-04.yaml as IgnoredAny: value IgnoredAny
+input-04.yaml as Json: value {"labels":[],"name":"","outputs":[{"file":"a.md","path":"docs"},{"file":"nested/b.md","path":"../outside"}]}
+input-04.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-04.yaml as Port: refused 1:1: missing field `port`
+input-04.yaml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input-04.yaml as Moded: refused 1:1: missing field `mode`
+input-04.yaml as Copied: refused 1:1: missing field `base`
+input-04.yaml as Nested: refused 1:1: missing field `base`
+input-04.yaml as Flags: refused 1:7: expected true or false
+input-04.yaml as Ports: refused 1:7: expected an integer
+input-04.yaml as Names: refused 2:9: expected a string, found a sequence
+input-04.yaml as Anythings: refused 2:9: data did not match any variant of untagged enum Anything
+input-04.yaml as Globs: refused 1:1: missing field `files`
+input-04.yaml as Shipped: refused 1:1: missing field `assets`
+input-04.yaml as Tags: refused 1:1: missing field `styles`
+input-04.yaml as Config: value Config { name: "", labels: [], outputs: [Output { path: "docs", file: "a.md" }, Output { path: "../outside", file: "nested/b.md" }] }
+input-04.yaml as TomlConfig: refused 1:1: missing field `release`
+input-04.yaml as Dated: value Dated { when: "", date: "" }
+input-05.yaml as IgnoredAny: value IgnoredAny
+input-05.yaml as Json: value {"flag":"yes"}
+input-05.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-05.yaml as Port: refused 1:1: missing field `port`
+input-05.yaml as Strict: refused 1:1: unknown field `flag`, expected one of `name`
+input-05.yaml as Moded: refused 1:1: missing field `mode`
+input-05.yaml as Copied: refused 1:1: missing field `base`
+input-05.yaml as Nested: refused 1:1: missing field `base`
+input-05.yaml as Flags: refused 1:7: expected true or false
+input-05.yaml as Ports: refused 1:7: expected an integer
+input-05.yaml as Names: value {"flag": "yes"}
+input-05.yaml as Anythings: value {"flag": Text("yes")}
+input-05.yaml as Globs: refused 1:1: missing field `files`
+input-05.yaml as Shipped: refused 1:1: missing field `assets`
+input-05.yaml as Tags: refused 1:1: missing field `styles`
+input-05.yaml as Config: refused 1:1: missing field `name`
+input-05.yaml as TomlConfig: refused 1:1: missing field `name`
+input-05.yaml as Dated: value Dated { when: "", date: "" }
+input-06.yaml as IgnoredAny: refused 2:1: duplicate key `flag`
+input-06.yaml as Json: refused 2:1: duplicate key `flag`
+input-06.yaml as Ledger: refused 2:1: duplicate key `flag`
+input-06.yaml as Port: refused 2:1: duplicate key `flag`
+input-06.yaml as Strict: refused 2:1: duplicate key `flag`
+input-06.yaml as Moded: refused 2:1: duplicate key `flag`
+input-06.yaml as Copied: refused 2:1: duplicate key `flag`
+input-06.yaml as Nested: refused 2:1: duplicate key `flag`
+input-06.yaml as Flags: refused 2:1: duplicate key `flag`
+input-06.yaml as Ports: refused 2:1: duplicate key `flag`
+input-06.yaml as Names: refused 2:1: duplicate key `flag`
+input-06.yaml as Anythings: refused 2:1: duplicate key `flag`
+input-06.yaml as Globs: refused 2:1: duplicate key `flag`
+input-06.yaml as Shipped: refused 2:1: duplicate key `flag`
+input-06.yaml as Tags: refused 2:1: duplicate key `flag`
+input-06.yaml as Config: refused 2:1: duplicate key `flag`
+input-06.yaml as TomlConfig: refused 2:1: duplicate key `flag`
+input-06.yaml as Dated: refused 2:1: duplicate key `flag`
+input-07.yaml as IgnoredAny: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Json: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Ledger: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Port: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Strict: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Moded: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Copied: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Nested: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Flags: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Ports: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Names: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Anythings: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Globs: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Shipped: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Tags: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Config: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as TomlConfig: refused 4:3: merge key `<<` is not allowed
+input-07.yaml as Dated: refused 4:3: merge key `<<` is not allowed
+input-08.yaml as IgnoredAny: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Json: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Ledger: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Port: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Strict: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Moded: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Copied: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Nested: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Flags: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Ports: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Names: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Anythings: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Globs: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Shipped: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Tags: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Config: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as TomlConfig: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as Dated: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as IgnoredAny: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Json: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Ledger: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Port: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Strict: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Moded: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Copied: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Nested: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Flags: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Ports: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Names: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Anythings: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Globs: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Shipped: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Tags: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Config: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as TomlConfig: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-09.yaml as Dated: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-10.yaml as IgnoredAny: value IgnoredAny
+input-10.yaml as Json: value "No frontmatter here."
+input-10.yaml as Ledger: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Port: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Strict: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Moded: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Copied: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Nested: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Flags: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Ports: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Names: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Anythings: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Globs: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Shipped: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Tags: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Config: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as TomlConfig: refused 1:1: expected a mapping, found a scalar
+input-10.yaml as Dated: refused 1:1: expected a mapping, found a scalar
+input-11.yaml as IgnoredAny: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Json: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Ledger: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Port: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Strict: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Moded: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Copied: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Nested: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Flags: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Ports: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Names: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Anythings: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Globs: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Shipped: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Tags: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Config: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as TomlConfig: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as Dated: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as IgnoredAny: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Json: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Ledger: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Port: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Strict: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Moded: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Copied: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Nested: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Flags: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Ports: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Names: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Anythings: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Globs: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Shipped: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Tags: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Config: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as TomlConfig: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-12.yaml as Dated: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-13.yaml as IgnoredAny: refused 3:1: duplicate key `prefix`
+input-13.yaml as Json: refused 3:1: duplicate key `prefix`
+input-13.yaml as Ledger: refused 3:1: duplicate key `prefix`
+input-13.yaml as Port: refused 3:1: duplicate key `prefix`
+input-13.yaml as Strict: refused 3:1: duplicate key `prefix`
+input-13.yaml as Moded: refused 3:1: duplicate key `prefix`
+input-13.yaml as Copied: refused 3:1: duplicate key `prefix`
+input-13.yaml as Nested: refused 3:1: duplicate key `prefix`
+input-13.yaml as Flags: refused 3:1: duplicate key `prefix`
+input-13.yaml as Ports: refused 3:1: duplicate key `prefix`
+input-13.yaml as Names: refused 3:1: duplicate key `prefix`
+input-13.yaml as Anythings: refused 3:1: duplicate key `prefix`
+input-13.yaml as Globs: refused 3:1: duplicate key `prefix`
+input-13.yaml as Shipped: refused 3:1: duplicate key `prefix`
+input-13.yaml as Tags: refused 3:1: duplicate key `prefix`
+input-13.yaml as Config: refused 3:1: duplicate key `prefix`
+input-13.yaml as TomlConfig: refused 3:1: duplicate key `prefix`
+input-13.yaml as Dated: refused 3:1: duplicate key `prefix`
+input-14.yaml as IgnoredAny: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Json: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Ledger: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Port: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Strict: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Moded: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Copied: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Nested: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Flags: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Ports: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Names: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Anythings: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Globs: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Shipped: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Tags: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Config: refused 4:3: "-" is only valid inside a block
+input-14.yaml as TomlConfig: refused 4:3: "-" is only valid inside a block
+input-14.yaml as Dated: refused 4:3: "-" is only valid inside a block
+input-15.yaml as IgnoredAny: refused 3:8: unclosed bracket '['
+input-15.yaml as Json: refused 3:8: unclosed bracket '['
+input-15.yaml as Ledger: refused 3:8: unclosed bracket '['
+input-15.yaml as Port: refused 3:8: unclosed bracket '['
+input-15.yaml as Strict: refused 3:8: unclosed bracket '['
+input-15.yaml as Moded: refused 3:8: unclosed bracket '['
+input-15.yaml as Copied: refused 3:8: unclosed bracket '['
+input-15.yaml as Nested: refused 3:8: unclosed bracket '['
+input-15.yaml as Flags: refused 3:8: unclosed bracket '['
+input-15.yaml as Ports: refused 3:8: unclosed bracket '['
+input-15.yaml as Names: refused 3:8: unclosed bracket '['
+input-15.yaml as Anythings: refused 3:8: unclosed bracket '['
+input-15.yaml as Globs: refused 3:8: unclosed bracket '['
+input-15.yaml as Shipped: refused 3:8: unclosed bracket '['
+input-15.yaml as Tags: refused 3:8: unclosed bracket '['
+input-15.yaml as Config: refused 3:8: unclosed bracket '['
+input-15.yaml as TomlConfig: refused 3:8: unclosed bracket '['
+input-15.yaml as Dated: refused 3:8: unclosed bracket '['
+input-16.yaml as IgnoredAny: value IgnoredAny
+input-16.yaml as Json: value {"base":{"port":"eighty"},"copy":{"port":"eighty"}}
+input-16.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-16.yaml as Port: refused 1:1: missing field `port`
+input-16.yaml as Strict: refused 1:1: unknown field `base`, expected one of `name`
+input-16.yaml as Moded: refused 1:1: missing field `mode`
+input-16.yaml as Copied: refused 3:7: expected an integer
+input-16.yaml as Nested: refused 3:1: missing field `nested`
+input-16.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input-16.yaml as Ports: refused 2:3: expected u16, found a mapping
+input-16.yaml as Names: refused 2:3: expected a string, found a mapping
+input-16.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input-16.yaml as Globs: refused 1:1: missing field `files`
+input-16.yaml as Shipped: refused 1:1: missing field `assets`
+input-16.yaml as Tags: refused 1:1: missing field `styles`
+input-16.yaml as Config: refused 1:1: missing field `name`
+input-16.yaml as TomlConfig: refused 1:1: missing field `name`
+input-16.yaml as Dated: value Dated { when: "", date: "" }
+input-17.yaml as IgnoredAny: value IgnoredAny
+input-17.yaml as Json: value {"assets":{"a.b/c":{"files":[]},"linux-x64":{"files":[]},"targets":{"files":[]}},"ci":{"lint":{"files":[]}}}
+input-17.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-17.yaml as Port: refused 1:1: missing field `port`
+input-17.yaml as Strict: refused 1:1: unknown field `assets`, expected one of `name`
+input-17.yaml as Moded: refused 1:1: missing field `mode`
+input-17.yaml as Copied: refused 1:1: missing field `base`
+input-17.yaml as Nested: refused 1:1: missing field `base`
+input-17.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input-17.yaml as Ports: refused 2:3: expected u16, found a mapping
+input-17.yaml as Names: refused 2:3: expected a string, found a mapping
+input-17.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input-17.yaml as Globs: refused 1:1: missing field `files`
+input-17.yaml as Shipped: value Shipped { assets: Assets { targets: {"a.b/c": Target { files: [] }, "linux-x64": Target { files: [] }, "targets": Target { files: [] }} }, ci: Jobs { jobs: {"lint": Target { files: [] }} } }
+input-17.yaml as Tags: refused 1:1: missing field `styles`
+input-17.yaml as Config: refused 1:1: missing field `name`
+input-17.yaml as TomlConfig: refused 1:1: missing field `name`
+input-17.yaml as Dated: value Dated { when: "", date: "" }
+input-18.yaml as IgnoredAny: value IgnoredAny
+input-18.yaml as Json: value {"double":"tab\there","flag":true,"folded":"one two\n","list":["a","b"],"literal":"line\n","map":{"k":"v"},"nothing":null,"number":12,"plain":"a plain value","single":"it's","yes_text":"yes"}
+input-18.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-18.yaml as Port: refused 1:1: missing field `port`
+input-18.yaml as Strict: refused 1:1: unknown field `plain`, expected one of `name`
+input-18.yaml as Moded: refused 1:1: missing field `mode`
+input-18.yaml as Copied: refused 1:1: missing field `base`
+input-18.yaml as Nested: refused 1:1: missing field `base`
+input-18.yaml as Flags: refused 1:8: expected true or false
+input-18.yaml as Ports: refused 1:8: expected an integer
+input-18.yaml as Names: refused 11:10: expected text
+input-18.yaml as Anythings: refused 10:7: data did not match any variant of untagged enum Anything
+input-18.yaml as Globs: refused 1:1: missing field `files`
+input-18.yaml as Shipped: refused 1:1: missing field `assets`
+input-18.yaml as Tags: refused 1:1: missing field `styles`
+input-18.yaml as Config: refused 1:1: missing field `name`
+input-18.yaml as TomlConfig: refused 1:1: missing field `name`
+input-18.yaml as Dated: value Dated { when: "", date: "" }
+input-19.yaml as IgnoredAny: value IgnoredAny
+input-19.yaml as Json: value {"a":"text","b":"text","c":"12","d":"t"}
+input-19.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-19.yaml as Port: refused 1:1: missing field `port`
+input-19.yaml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+input-19.yaml as Moded: refused 1:1: missing field `mode`
+input-19.yaml as Copied: refused 1:1: missing field `base`
+input-19.yaml as Nested: refused 1:1: missing field `base`
+input-19.yaml as Flags: refused 1:7: expected true or false
+input-19.yaml as Ports: refused 1:7: expected an integer
+input-19.yaml as Names: value {"a": "text", "b": "text", "c": "12", "d": "t"}
+input-19.yaml as Anythings: value {"a": Text("text"), "b": Text("text"), "c": Text("12"), "d": Text("t")}
+input-19.yaml as Globs: refused 1:1: missing field `files`
+input-19.yaml as Shipped: refused 1:1: missing field `assets`
+input-19.yaml as Tags: refused 1:1: missing field `styles`
+input-19.yaml as Config: refused 1:1: missing field `name`
+input-19.yaml as TomlConfig: refused 1:1: missing field `name`
+input-19.yaml as Dated: value Dated { when: "", date: "" }
+input-20.yaml as IgnoredAny: value IgnoredAny
+input-20.yaml as Json: value {"4":4,"both":5,"double":3,"explicit":7,"plain":1,"reversed":6,"single":2}
+input-20.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-20.yaml as Port: refused 1:1: missing field `port`
+input-20.yaml as Strict: refused 1:4: unknown field `plain`, expected one of `name`
+input-20.yaml as Moded: refused 1:1: missing field `mode`
+input-20.yaml as Copied: refused 1:1: missing field `base`
+input-20.yaml as Nested: refused 1:1: missing field `base`
+input-20.yaml as Flags: refused 1:11: expected true or false
+input-20.yaml as Ports: value {"4": 4, "both": 5, "double": 3, "explicit": 7, "plain": 1, "reversed": 6, "single": 2}
+input-20.yaml as Names: value {"4": "4", "both": "5", "double": "3", "explicit": "7", "plain": "1", "reversed": "6", "single": "2"}
+input-20.yaml as Anythings: value {"4": Number(4.0), "both": Number(5.0), "double": Number(3.0), "explicit": Number(7.0), "plain": Number(1.0), "reversed": Number(6.0), "single": Number(2.0)}
+input-20.yaml as Globs: refused 1:1: missing field `files`
+input-20.yaml as Shipped: refused 1:1: missing field `assets`
+input-20.yaml as Tags: refused 1:1: missing field `styles`
+input-20.yaml as Config: refused 1:1: missing field `name`
+input-20.yaml as TomlConfig: refused 1:1: missing field `name`
+input-20.yaml as Dated: value Dated { when: "", date: "" }
+input-21.yaml as IgnoredAny: value IgnoredAny
+input-21.yaml as Json: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-21.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-21.yaml as Port: refused 1:1: missing field `port`
+input-21.yaml as Strict: refused 1:1: unknown field `up`, expected one of `name`
+input-21.yaml as Moded: refused 1:1: missing field `mode`
+input-21.yaml as Copied: refused 1:1: missing field `base`
+input-21.yaml as Nested: refused 1:1: missing field `base`
+input-21.yaml as Flags: refused 1:5: expected true or false
+input-21.yaml as Ports: refused 1:5: expected an integer
+input-21.yaml as Names: value {"after": "text", "down": "-.inf", "none": ".NaN", "up": ".inf"}
+input-21.yaml as Anythings: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-21.yaml as Globs: refused 1:1: missing field `files`
+input-21.yaml as Shipped: refused 1:1: missing field `assets`
+input-21.yaml as Tags: refused 1:1: missing field `styles`
+input-21.yaml as Config: refused 1:1: missing field `name`
+input-21.yaml as TomlConfig: refused 1:1: missing field `name`
+input-21.yaml as Dated: value Dated { when: "", date: "" }
+input-22.yaml as IgnoredAny: value IgnoredAny
+input-22.yaml as Json: refused 3:1: expected text
+input-22.yaml as Ledger: refused 3:1: expected text
+input-22.yaml as Port: refused 3:1: expected text
+input-22.yaml as Strict: refused 1:1: unknown field `1`, expected one of `name`
+input-22.yaml as Moded: refused 3:1: expected text
+input-22.yaml as Copied: refused 3:1: expected text
+input-22.yaml as Nested: refused 3:1: expected text
+input-22.yaml as Flags: refused 1:4: expected true or false
+input-22.yaml as Ports: refused 1:4: expected an integer
+input-22.yaml as Names: refused 3:1: expected text
+input-22.yaml as Anythings: refused 3:1: expected text
+input-22.yaml as Globs: refused 3:1: expected text
+input-22.yaml as Shipped: refused 3:1: expected text
+input-22.yaml as Tags: refused 3:1: expected text
+input-22.yaml as Config: refused 3:1: expected text
+input-22.yaml as TomlConfig: refused 3:1: expected text
+input-22.yaml as Dated: refused 3:1: expected text
+input-23.yaml as IgnoredAny: value IgnoredAny
+input-23.yaml as Json: refused 3:1: expected text
+input-23.yaml as Ledger: refused 3:1: expected text
+input-23.yaml as Port: refused 3:1: expected text
+input-23.yaml as Strict: refused 1:1: unknown field `1`, expected one of `name`
+input-23.yaml as Moded: refused 3:1: expected text
+input-23.yaml as Copied: refused 3:1: expected text
+input-23.yaml as Nested: refused 3:1: expected text
+input-23.yaml as Flags: refused 1:4: expected true or false
+input-23.yaml as Ports: refused 1:4: expected an integer
+input-23.yaml as Names: refused 3:1: expected text
+input-23.yaml as Anythings: refused 3:1: expected text
+input-23.yaml as Globs: refused 3:1: expected text
+input-23.yaml as Shipped: refused 3:1: expected text
+input-23.yaml as Tags: refused 3:1: expected text
+input-23.yaml as Config: refused 3:1: expected text
+input-23.yaml as TomlConfig: refused 3:1: expected text
+input-23.yaml as Dated: refused 3:1: expected text
+input-24.yaml as IgnoredAny: value IgnoredAny
+input-24.yaml as Json: refused 1:3: expected a string key, found a sequence
+input-24.yaml as Ledger: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Port: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Strict: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Moded: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Copied: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Nested: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Flags: refused 1:3: expected a string, found a sequence
+input-24.yaml as Ports: refused 1:3: expected a string, found a sequence
+input-24.yaml as Names: refused 1:3: expected a string, found a sequence
+input-24.yaml as Anythings: refused 1:3: expected a string, found a sequence
+input-24.yaml as Globs: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Shipped: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Tags: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Config: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as TomlConfig: refused 1:3: expected field identifier, found a sequence
+input-24.yaml as Dated: refused 1:3: expected field identifier, found a sequence
+input-25.yaml as IgnoredAny: value IgnoredAny
+input-25.yaml as Json: value {"k":"key","key":"v","z":"w"}
+input-25.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-25.yaml as Port: refused 1:1: missing field `port`
+input-25.yaml as Strict: refused 1:1: unknown field `k`, expected one of `name`
+input-25.yaml as Moded: refused 1:1: missing field `mode`
+input-25.yaml as Copied: refused 1:1: missing field `base`
+input-25.yaml as Nested: refused 1:1: missing field `base`
+input-25.yaml as Flags: refused 1:7: expected true or false
+input-25.yaml as Ports: refused 1:7: expected an integer
+input-25.yaml as Names: value {"k": "key", "key": "v", "z": "w"}
+input-25.yaml as Anythings: value {"k": Text("key"), "key": Text("v"), "z": Text("w")}
+input-25.yaml as Globs: refused 1:1: missing field `files`
+input-25.yaml as Shipped: refused 1:1: missing field `assets`
+input-25.yaml as Tags: refused 1:1: missing field `styles`
+input-25.yaml as Config: refused 1:1: missing field `name`
+input-25.yaml as TomlConfig: refused 1:1: missing field `name`
+input-25.yaml as Dated: value Dated { when: "", date: "" }
+input-26.yaml as IgnoredAny: value IgnoredAny
+input-26.yaml as Json: value {"level":"warning","styles":["Acme"]}
+input-26.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-26.yaml as Port: refused 1:1: missing field `port`
+input-26.yaml as Strict: refused 1:1: unknown field `styles`, expected one of `name`
+input-26.yaml as Moded: refused 1:1: missing field `mode`
+input-26.yaml as Copied: refused 1:1: missing field `base`
+input-26.yaml as Nested: refused 1:1: missing field `base`
+input-26.yaml as Flags: refused 1:19: expected a boolean, found a sequence
+input-26.yaml as Ports: refused 1:19: expected u16, found a sequence
+input-26.yaml as Names: refused 1:19: expected a string, found a sequence
+input-26.yaml as Anythings: refused 1:19: data did not match any variant of untagged enum Anything
+input-26.yaml as Globs: refused 1:1: missing field `files`
+input-26.yaml as Shipped: refused 1:1: missing field `assets`
+input-26.yaml as Tags: value Tags { styles: Tagged(List(["Acme"]), Some("!override")), level: Tagged(Word("warning"), None) }
+input-26.yaml as Config: refused 1:1: missing field `name`
+input-26.yaml as TomlConfig: refused 1:1: missing field `name`
+input-26.yaml as Dated: value Dated { when: "", date: "" }
+input-27.yaml as IgnoredAny: value IgnoredAny
+input-27.yaml as Json: value {"port":"eighty"}
+input-27.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-27.yaml as Port: refused 1:7: expected an integer
+input-27.yaml as Strict: refused 1:1: unknown field `port`, expected one of `name`
+input-27.yaml as Moded: refused 1:1: missing field `mode`
+input-27.yaml as Copied: refused 1:1: missing field `base`
+input-27.yaml as Nested: refused 1:1: missing field `base`
+input-27.yaml as Flags: refused 1:7: expected true or false
+input-27.yaml as Ports: refused 1:7: expected an integer
+input-27.yaml as Names: value {"port": "eighty"}
+input-27.yaml as Anythings: value {"port": Text("eighty")}
+input-27.yaml as Globs: refused 1:1: missing field `files`
+input-27.yaml as Shipped: refused 1:1: missing field `assets`
+input-27.yaml as Tags: refused 1:1: missing field `styles`
+input-27.yaml as Config: refused 1:1: missing field `name`
+input-27.yaml as TomlConfig: refused 1:1: missing field `name`
+input-27.yaml as Dated: value Dated { when: "", date: "" }
+input-28.yaml as IgnoredAny: value IgnoredAny
+input-28.yaml as Json: value {"ex tra":"b","name":"a"}
+input-28.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-28.yaml as Port: refused 1:1: missing field `port`
+input-28.yaml as Strict: refused 2:1: unknown field `ex tra`, expected one of `name`
+input-28.yaml as Moded: refused 1:1: missing field `mode`
+input-28.yaml as Copied: refused 1:1: missing field `base`
+input-28.yaml as Nested: refused 1:1: missing field `base`
+input-28.yaml as Flags: refused 1:7: expected true or false
+input-28.yaml as Ports: refused 1:7: expected an integer
+input-28.yaml as Names: value {"ex\u{2028}tra": "b", "name": "a"}
+input-28.yaml as Anythings: value {"ex\u{2028}tra": Text("b"), "name": Text("a")}
+input-28.yaml as Globs: refused 1:1: missing field `files`
+input-28.yaml as Shipped: refused 1:1: missing field `assets`
+input-28.yaml as Tags: refused 1:1: missing field `styles`
+input-28.yaml as Config: refused 1:1: missing field `labels`
+input-28.yaml as TomlConfig: refused 1:1: missing field `labels`
+input-28.yaml as Dated: value Dated { when: "", date: "" }
+input-29.yaml as IgnoredAny: value IgnoredAny
+input-29.yaml as Json: value {"mode":"sl\u0007ow"}
+input-29.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-29.yaml as Port: refused 1:1: missing field `port`
+input-29.yaml as Strict: refused 1:1: unknown field `mode`, expected one of `name`
+input-29.yaml as Moded: refused 1:7: unknown variant `slow`, expected one of `fast`
+input-29.yaml as Copied: refused 1:1: missing field `base`
+input-29.yaml as Nested: refused 1:1: missing field `base`
+input-29.yaml as Flags: refused 1:7: expected true or false
+input-29.yaml as Ports: refused 1:7: expected an integer
+input-29.yaml as Names: value {"mode": "sl\u{7}ow"}
+input-29.yaml as Anythings: value {"mode": Text("sl\u{7}ow")}
+input-29.yaml as Globs: refused 1:1: missing field `files`
+input-29.yaml as Shipped: refused 1:1: missing field `assets`
+input-29.yaml as Tags: refused 1:1: missing field `styles`
+input-29.yaml as Config: refused 1:1: missing field `name`
+input-29.yaml as TomlConfig: refused 1:1: missing field `name`
+input-29.yaml as Dated: value Dated { when: "", date: "" }
+input-30.yaml as IgnoredAny: value IgnoredAny
+input-30.yaml as Json: value {"flow":{"styles":["x"],"vocab":[]},"vocab":["a","b"]}
+input-30.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-30.yaml as Port: refused 1:1: missing field `port`
+input-30.yaml as Strict: refused 1:1: unknown field `vocab`, expected one of `name`
+input-30.yaml as Moded: refused 1:1: missing field `mode`
+input-30.yaml as Copied: refused 1:1: missing field `base`
+input-30.yaml as Nested: refused 1:1: missing field `base`
+input-30.yaml as Flags: refused 2:3: expected a boolean, found a sequence
+input-30.yaml as Ports: refused 2:3: expected u16, found a sequence
+input-30.yaml as Names: refused 2:3: expected a string, found a sequence
+input-30.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input-30.yaml as Globs: refused 1:1: missing field `files`
+input-30.yaml as Shipped: refused 1:1: missing field `assets`
+input-30.yaml as Tags: refused 1:1: missing field `styles`
+input-30.yaml as Config: refused 1:1: missing field `name`
+input-30.yaml as TomlConfig: refused 1:1: missing field `name`
+input-30.yaml as Dated: value Dated { when: "", date: "" }
+input-31.yaml as IgnoredAny: refused 1:8: unclosed bracket '['
+input-31.yaml as Json: refused 1:8: unclosed bracket '['
+input-31.yaml as Ledger: refused 1:8: unclosed bracket '['
+input-31.yaml as Port: refused 1:8: unclosed bracket '['
+input-31.yaml as Strict: refused 1:8: unclosed bracket '['
+input-31.yaml as Moded: refused 1:8: unclosed bracket '['
+input-31.yaml as Copied: refused 1:8: unclosed bracket '['
+input-31.yaml as Nested: refused 1:8: unclosed bracket '['
+input-31.yaml as Flags: refused 1:8: unclosed bracket '['
+input-31.yaml as Ports: refused 1:8: unclosed bracket '['
+input-31.yaml as Names: refused 1:8: unclosed bracket '['
+input-31.yaml as Anythings: refused 1:8: unclosed bracket '['
+input-31.yaml as Globs: refused 1:8: unclosed bracket '['
+input-31.yaml as Shipped: refused 1:8: unclosed bracket '['
+input-31.yaml as Tags: refused 1:8: unclosed bracket '['
+input-31.yaml as Config: refused 1:8: unclosed bracket '['
+input-31.yaml as TomlConfig: refused 1:8: unclosed bracket '['
+input-31.yaml as Dated: refused 1:8: unclosed bracket '['
+input-32.yaml as IgnoredAny: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Json: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Ledger: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Port: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Strict: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Moded: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Copied: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Nested: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Flags: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Ports: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Names: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Anythings: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Globs: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Shipped: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Tags: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Config: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as TomlConfig: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as Dated: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-33.yaml as IgnoredAny: value IgnoredAny
+input-33.yaml as Json: value {"x":1,"y":2,"z":3}
+input-33.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-33.yaml as Port: refused 1:1: missing field `port`
+input-33.yaml as Strict: refused 1:6: unknown field `x`, expected one of `name`
+input-33.yaml as Moded: refused 1:1: missing field `mode`
+input-33.yaml as Copied: refused 1:1: missing field `base`
+input-33.yaml as Nested: refused 1:1: missing field `base`
+input-33.yaml as Flags: refused 1:9: expected true or false
+input-33.yaml as Ports: value {"x": 1, "y": 2, "z": 3}
+input-33.yaml as Names: value {"x": "1", "y": "2", "z": "3"}
+input-33.yaml as Anythings: value {"x": Number(1.0), "y": Number(2.0), "z": Number(3.0)}
+input-33.yaml as Globs: refused 1:1: missing field `files`
+input-33.yaml as Shipped: refused 1:1: missing field `assets`
+input-33.yaml as Tags: refused 1:1: missing field `styles`
+input-33.yaml as Config: refused 1:1: missing field `name`
+input-33.yaml as TomlConfig: refused 1:1: missing field `name`
+input-33.yaml as Dated: value Dated { when: "", date: "" }
+input-34.yaml as IgnoredAny: value IgnoredAny
+input-34.yaml as Json: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-34.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-34.yaml as Port: refused 1:1: missing field `port`
+input-34.yaml as Strict: refused 1:1: unknown field `up`, expected one of `name`
+input-34.yaml as Moded: refused 1:1: missing field `mode`
+input-34.yaml as Copied: refused 1:1: missing field `base`
+input-34.yaml as Nested: refused 1:1: missing field `base`
+input-34.yaml as Flags: refused 1:5: expected true or false
+input-34.yaml as Ports: refused 1:5: expected an integer
+input-34.yaml as Names: value {"up": ".inf"}
+input-34.yaml as Anythings: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-34.yaml as Globs: refused 1:1: missing field `files`
+input-34.yaml as Shipped: refused 1:1: missing field `assets`
+input-34.yaml as Tags: refused 1:1: missing field `styles`
+input-34.yaml as Config: refused 1:1: missing field `name`
+input-34.yaml as TomlConfig: refused 1:1: missing field `name`
+input-34.yaml as Dated: value Dated { when: "", date: "" }
+input-35.yaml as IgnoredAny: refused 2:1: duplicate key `a`
+input-35.yaml as Json: refused 2:1: duplicate key `a`
+input-35.yaml as Ledger: refused 2:1: duplicate key `a`
+input-35.yaml as Port: refused 2:1: duplicate key `a`
+input-35.yaml as Strict: refused 2:1: duplicate key `a`
+input-35.yaml as Moded: refused 2:1: duplicate key `a`
+input-35.yaml as Copied: refused 2:1: duplicate key `a`
+input-35.yaml as Nested: refused 2:1: duplicate key `a`
+input-35.yaml as Flags: refused 2:1: duplicate key `a`
+input-35.yaml as Ports: refused 2:1: duplicate key `a`
+input-35.yaml as Names: refused 2:1: duplicate key `a`
+input-35.yaml as Anythings: refused 2:1: duplicate key `a`
+input-35.yaml as Globs: refused 2:1: duplicate key `a`
+input-35.yaml as Shipped: refused 2:1: duplicate key `a`
+input-35.yaml as Tags: refused 2:1: duplicate key `a`
+input-35.yaml as Config: refused 2:1: duplicate key `a`
+input-35.yaml as TomlConfig: refused 2:1: duplicate key `a`
+input-35.yaml as Dated: refused 2:1: duplicate key `a`
+input-36.yaml as IgnoredAny: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Json: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Ledger: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Port: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Strict: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Moded: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Copied: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Nested: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Flags: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Ports: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Names: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Anythings: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Globs: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Shipped: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Tags: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Config: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as TomlConfig: refused 2:1: merge key `<<` is not allowed
+input-36.yaml as Dated: refused 2:1: merge key `<<` is not allowed
+input-37.yaml as IgnoredAny: value IgnoredAny
+input-37.yaml as Json: value {"a":{"b":{"c":{"d":1}}}}
+input-37.yaml as Ledger: refused 1:1: missing field `schema_version`
+input-37.yaml as Port: refused 1:1: missing field `port`
+input-37.yaml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+input-37.yaml as Moded: refused 1:1: missing field `mode`
+input-37.yaml as Copied: refused 1:1: missing field `base`
+input-37.yaml as Nested: refused 1:1: missing field `base`
+input-37.yaml as Flags: refused 1:4: expected a boolean, found a mapping
+input-37.yaml as Ports: refused 1:4: expected u16, found a mapping
+input-37.yaml as Names: refused 1:4: expected a string, found a mapping
+input-37.yaml as Anythings: refused 1:4: data did not match any variant of untagged enum Anything
+input-37.yaml as Globs: refused 1:1: missing field `files`
+input-37.yaml as Shipped: refused 1:1: missing field `assets`
+input-37.yaml as Tags: refused 1:1: missing field `styles`
+input-37.yaml as Config: refused 1:1: missing field `name`
+input-37.yaml as TomlConfig: refused 1:1: missing field `name`
+input-37.yaml as Dated: value Dated { when: "", date: "" }
+input-38.yaml as IgnoredAny: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Json: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Ledger: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Port: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Strict: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Moded: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Copied: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Nested: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Flags: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Ports: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Names: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Anythings: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Globs: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Shipped: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Tags: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Config: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as TomlConfig: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as Dated: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input_limits-01.yaml as IgnoredAny: value IgnoredAny
+input_limits-01.yaml as Json: value {"limits":{"max_depth":8}}
+input_limits-01.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-01.yaml as Port: refused 1:1: missing field `port`
+input_limits-01.yaml as Strict: refused 1:1: unknown field `limits`, expected one of `name`
+input_limits-01.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-01.yaml as Copied: refused 1:1: missing field `base`
+input_limits-01.yaml as Nested: refused 1:1: missing field `base`
+input_limits-01.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input_limits-01.yaml as Ports: refused 2:3: expected u16, found a mapping
+input_limits-01.yaml as Names: refused 2:3: expected a string, found a mapping
+input_limits-01.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input_limits-01.yaml as Globs: refused 1:1: missing field `files`
+input_limits-01.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-01.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-01.yaml as Config: refused 1:1: missing field `name`
+input_limits-01.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-01.yaml as Dated: value Dated { when: "", date: "" }
+input_limits-02.yaml as IgnoredAny: value IgnoredAny
+input_limits-02.yaml as Json: value {"limits":{"max_depth":1}}
+input_limits-02.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-02.yaml as Port: refused 1:1: missing field `port`
+input_limits-02.yaml as Strict: refused 1:1: unknown field `limits`, expected one of `name`
+input_limits-02.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-02.yaml as Copied: refused 1:1: missing field `base`
+input_limits-02.yaml as Nested: refused 1:1: missing field `base`
+input_limits-02.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input_limits-02.yaml as Ports: refused 2:3: expected u16, found a mapping
+input_limits-02.yaml as Names: refused 2:3: expected a string, found a mapping
+input_limits-02.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input_limits-02.yaml as Globs: refused 1:1: missing field `files`
+input_limits-02.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-02.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-02.yaml as Config: refused 1:1: missing field `name`
+input_limits-02.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-02.yaml as Dated: value Dated { when: "", date: "" }
+input_limits-03.yaml as IgnoredAny: value IgnoredAny
+input_limits-03.yaml as Json: value {"limits":{"max_dept":8}}
+input_limits-03.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-03.yaml as Port: refused 1:1: missing field `port`
+input_limits-03.yaml as Strict: refused 1:1: unknown field `limits`, expected one of `name`
+input_limits-03.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-03.yaml as Copied: refused 1:1: missing field `base`
+input_limits-03.yaml as Nested: refused 1:1: missing field `base`
+input_limits-03.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input_limits-03.yaml as Ports: refused 2:3: expected u16, found a mapping
+input_limits-03.yaml as Names: refused 2:3: expected a string, found a mapping
+input_limits-03.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input_limits-03.yaml as Globs: refused 1:1: missing field `files`
+input_limits-03.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-03.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-03.yaml as Config: refused 1:1: missing field `name`
+input_limits-03.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-03.yaml as Dated: value Dated { when: "", date: "" }
+input_limits-04.yaml as IgnoredAny: value IgnoredAny
+input_limits-04.yaml as Json: value {"limits":{"enforce_alias_anchor_ratio":false}}
+input_limits-04.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-04.yaml as Port: refused 1:1: missing field `port`
+input_limits-04.yaml as Strict: refused 1:1: unknown field `limits`, expected one of `name`
+input_limits-04.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-04.yaml as Copied: refused 1:1: missing field `base`
+input_limits-04.yaml as Nested: refused 1:1: missing field `base`
+input_limits-04.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input_limits-04.yaml as Ports: refused 2:3: expected u16, found a mapping
+input_limits-04.yaml as Names: refused 2:3: expected a string, found a mapping
+input_limits-04.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input_limits-04.yaml as Globs: refused 1:1: missing field `files`
+input_limits-04.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-04.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-04.yaml as Config: refused 1:1: missing field `name`
+input_limits-04.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-04.yaml as Dated: value Dated { when: "", date: "" }
+input_limits-05.yaml as IgnoredAny: value IgnoredAny
+input_limits-05.yaml as Json: value {"limits":{"alias_anchor_ratio_multiplier":1000,"max_depth":128,"max_nodes":10,"max_reader_input_bytes":536870912}}
+input_limits-05.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-05.yaml as Port: refused 1:1: missing field `port`
+input_limits-05.yaml as Strict: refused 1:1: unknown field `limits`, expected one of `name`
+input_limits-05.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-05.yaml as Copied: refused 1:1: missing field `base`
+input_limits-05.yaml as Nested: refused 1:1: missing field `base`
+input_limits-05.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+input_limits-05.yaml as Ports: refused 2:3: expected u16, found a mapping
+input_limits-05.yaml as Names: refused 2:3: expected a string, found a mapping
+input_limits-05.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+input_limits-05.yaml as Globs: refused 1:1: missing field `files`
+input_limits-05.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-05.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-05.yaml as Config: refused 1:1: missing field `name`
+input_limits-05.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-05.yaml as Dated: value Dated { when: "", date: "" }
+input_limits-06.yaml as IgnoredAny: value IgnoredAny
+input_limits-06.yaml as Json: value {"a":12345678901234}
+input_limits-06.yaml as Ledger: refused 1:1: missing field `schema_version`
+input_limits-06.yaml as Port: refused 1:1: missing field `port`
+input_limits-06.yaml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+input_limits-06.yaml as Moded: refused 1:1: missing field `mode`
+input_limits-06.yaml as Copied: refused 1:1: missing field `base`
+input_limits-06.yaml as Nested: refused 1:1: missing field `base`
+input_limits-06.yaml as Flags: refused 1:4: expected true or false
+input_limits-06.yaml as Ports: refused 1:4: expected u16, found integer `12345678901234`
+input_limits-06.yaml as Names: value {"a": "12345678901234"}
+input_limits-06.yaml as Anythings: value {"a": Number(12345678901234.0)}
+input_limits-06.yaml as Globs: refused 1:1: missing field `files`
+input_limits-06.yaml as Shipped: refused 1:1: missing field `assets`
+input_limits-06.yaml as Tags: refused 1:1: missing field `styles`
+input_limits-06.yaml as Config: refused 1:1: missing field `name`
+input_limits-06.yaml as TomlConfig: refused 1:1: missing field `name`
+input_limits-06.yaml as Dated: value Dated { when: "", date: "" }
+input_toml-01.toml as IgnoredAny: value IgnoredAny
+input_toml-01.toml as Json: value {"labels":["ship"],"name":"release","outputs":[{"file":"a.md","path":"docs"}],"owner":{"name":"victor"},"release":{"tag":"v1"}}
+input_toml-01.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-01.toml as Port: refused 1:1: missing field `port`
+input_toml-01.toml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input_toml-01.toml as Moded: refused 1:1: missing field `mode`
+input_toml-01.toml as Copied: refused 1:1: missing field `base`
+input_toml-01.toml as Nested: refused 1:1: missing field `base`
+input_toml-01.toml as Flags: refused 1:8: expected true or false
+input_toml-01.toml as Ports: refused 1:8: expected an integer
+input_toml-01.toml as Names: refused 2:10: expected a string, found a sequence
+input_toml-01.toml as Anythings: refused 2:10: data did not match any variant of untagged enum Anything
+input_toml-01.toml as Globs: refused 1:1: missing field `files`
+input_toml-01.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-01.toml as Tags: refused 1:1: missing field `styles`
+input_toml-01.toml as Config: value Config { name: "release", labels: ["ship"], outputs: [Output { path: "docs", file: "a.md" }] }
+input_toml-01.toml as TomlConfig: value TomlConfig { name: "release", labels: ["ship"], release: Release { tag: "v1" }, owner: Owner { name: "victor" }, outputs: [TomlOutput { path: "docs", file: "a.md" }] }
+input_toml-01.toml as Dated: value Dated { when: "", date: "" }
+input_toml-02.toml as IgnoredAny: value IgnoredAny
+input_toml-02.toml as Json: value {"labels":[],"name":"","outputs":[{"file":"a.md","path":"docs"},{"file":"nested/b.md","path":"../outside"}],"owner":{"name":""},"release":{"tag":""}}
+input_toml-02.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-02.toml as Port: refused 1:1: missing field `port`
+input_toml-02.toml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input_toml-02.toml as Moded: refused 1:1: missing field `mode`
+input_toml-02.toml as Copied: refused 1:1: missing field `base`
+input_toml-02.toml as Nested: refused 1:1: missing field `base`
+input_toml-02.toml as Flags: refused 1:8: expected true or false
+input_toml-02.toml as Ports: refused 1:8: expected an integer
+input_toml-02.toml as Names: refused 2:10: expected a string, found a sequence
+input_toml-02.toml as Anythings: refused 2:10: data did not match any variant of untagged enum Anything
+input_toml-02.toml as Globs: refused 1:1: missing field `files`
+input_toml-02.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-02.toml as Tags: refused 1:1: missing field `styles`
+input_toml-02.toml as Config: value Config { name: "", labels: [], outputs: [Output { path: "docs", file: "a.md" }, Output { path: "../outside", file: "nested/b.md" }] }
+input_toml-02.toml as TomlConfig: value TomlConfig { name: "", labels: [], release: Release { tag: "" }, owner: Owner { name: "" }, outputs: [TomlOutput { path: "docs", file: "a.md" }, TomlOutput { path: "../outside", file: "nested/b.md" }] }
+input_toml-02.toml as Dated: value Dated { when: "", date: "" }
+input_toml-03.toml as IgnoredAny: value IgnoredAny
+input_toml-03.toml as Json: value {"labels":["ship"],"name":"release","owner":{"name":""},"release":{"tag":"v1"}}
+input_toml-03.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-03.toml as Port: refused 1:1: missing field `port`
+input_toml-03.toml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input_toml-03.toml as Moded: refused 1:1: missing field `mode`
+input_toml-03.toml as Copied: refused 1:1: missing field `base`
+input_toml-03.toml as Nested: refused 1:1: missing field `base`
+input_toml-03.toml as Flags: refused 1:8: expected true or false
+input_toml-03.toml as Ports: refused 1:8: expected an integer
+input_toml-03.toml as Names: refused 2:10: expected a string, found a sequence
+input_toml-03.toml as Anythings: refused 2:10: data did not match any variant of untagged enum Anything
+input_toml-03.toml as Globs: refused 1:1: missing field `files`
+input_toml-03.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-03.toml as Tags: refused 1:1: missing field `styles`
+input_toml-03.toml as Config: value Config { name: "release", labels: ["ship"], outputs: [] }
+input_toml-03.toml as TomlConfig: value TomlConfig { name: "release", labels: ["ship"], release: Release { tag: "v1" }, owner: Owner { name: "" }, outputs: [] }
+input_toml-03.toml as Dated: value Dated { when: "", date: "" }
+input_toml-04.toml as IgnoredAny: value IgnoredAny
+input_toml-04.toml as Json: value {"labels":["ship"],"name":"release","outputs":[{"path":"docs"}],"owner":{"name":"victor"},"release":{"tag":"v1"}}
+input_toml-04.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-04.toml as Port: refused 1:1: missing field `port`
+input_toml-04.toml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
+input_toml-04.toml as Moded: refused 1:1: missing field `mode`
+input_toml-04.toml as Copied: refused 1:1: missing field `base`
+input_toml-04.toml as Nested: refused 1:1: missing field `base`
+input_toml-04.toml as Flags: refused 1:8: expected true or false
+input_toml-04.toml as Ports: refused 1:8: expected an integer
+input_toml-04.toml as Names: refused 2:10: expected a string, found a sequence
+input_toml-04.toml as Anythings: refused 2:10: data did not match any variant of untagged enum Anything
+input_toml-04.toml as Globs: refused 1:1: missing field `files`
+input_toml-04.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-04.toml as Tags: refused 1:1: missing field `styles`
+input_toml-04.toml as Config: refused 6:1: missing field `file`
+input_toml-04.toml as TomlConfig: value TomlConfig { name: "release", labels: ["ship"], release: Release { tag: "v1" }, owner: Owner { name: "victor" }, outputs: [TomlOutput { path: "docs", file: "" }] }
+input_toml-04.toml as Dated: value Dated { when: "", date: "" }
+input_toml-05.toml as IgnoredAny: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Json: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Ledger: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Port: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Strict: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Moded: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Copied: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Nested: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Flags: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Ports: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Names: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Anythings: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Globs: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Shipped: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Tags: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Config: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as TomlConfig: refused 2:17: unclosed array, expected `]`
+input_toml-05.toml as Dated: refused 2:17: unclosed array, expected `]`
+input_toml-06.toml as IgnoredAny: value IgnoredAny
+input_toml-06.toml as Json: value {"port":"eighty"}
+input_toml-06.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-06.toml as Port: refused 1:8: expected an integer
+input_toml-06.toml as Strict: refused 1:1: unknown field `port`, expected one of `name`
+input_toml-06.toml as Moded: refused 1:1: missing field `mode`
+input_toml-06.toml as Copied: refused 1:1: missing field `base`
+input_toml-06.toml as Nested: refused 1:1: missing field `base`
+input_toml-06.toml as Flags: refused 1:8: expected true or false
+input_toml-06.toml as Ports: refused 1:8: expected an integer
+input_toml-06.toml as Names: value {"port": "eighty"}
+input_toml-06.toml as Anythings: value {"port": Text("eighty")}
+input_toml-06.toml as Globs: refused 1:1: missing field `files`
+input_toml-06.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-06.toml as Tags: refused 1:1: missing field `styles`
+input_toml-06.toml as Config: refused 1:1: missing field `name`
+input_toml-06.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-06.toml as Dated: value Dated { when: "", date: "" }
+input_toml-07.toml as IgnoredAny: value IgnoredAny
+input_toml-07.toml as Json: value {"labels":["ship"]}
+input_toml-07.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-07.toml as Port: refused 1:1: missing field `port`
+input_toml-07.toml as Strict: refused 1:1: unknown field `labels`, expected one of `name`
+input_toml-07.toml as Moded: refused 1:1: missing field `mode`
+input_toml-07.toml as Copied: refused 1:1: missing field `base`
+input_toml-07.toml as Nested: refused 1:1: missing field `base`
+input_toml-07.toml as Flags: refused 1:10: expected a boolean, found a sequence
+input_toml-07.toml as Ports: refused 1:10: expected u16, found a sequence
+input_toml-07.toml as Names: refused 1:10: expected a string, found a sequence
+input_toml-07.toml as Anythings: refused 1:10: data did not match any variant of untagged enum Anything
+input_toml-07.toml as Globs: refused 1:1: missing field `files`
+input_toml-07.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-07.toml as Tags: refused 1:1: missing field `styles`
+input_toml-07.toml as Config: refused 1:1: missing field `name`
+input_toml-07.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-07.toml as Dated: value Dated { when: "", date: "" }
+input_toml-08.toml as IgnoredAny: refused 2:1: duplicate key
+input_toml-08.toml as Json: refused 2:1: duplicate key
+input_toml-08.toml as Ledger: refused 2:1: duplicate key
+input_toml-08.toml as Port: refused 2:1: duplicate key
+input_toml-08.toml as Strict: refused 2:1: duplicate key
+input_toml-08.toml as Moded: refused 2:1: duplicate key
+input_toml-08.toml as Copied: refused 2:1: duplicate key
+input_toml-08.toml as Nested: refused 2:1: duplicate key
+input_toml-08.toml as Flags: refused 2:1: duplicate key
+input_toml-08.toml as Ports: refused 2:1: duplicate key
+input_toml-08.toml as Names: refused 2:1: duplicate key
+input_toml-08.toml as Anythings: refused 2:1: duplicate key
+input_toml-08.toml as Globs: refused 2:1: duplicate key
+input_toml-08.toml as Shipped: refused 2:1: duplicate key
+input_toml-08.toml as Tags: refused 2:1: duplicate key
+input_toml-08.toml as Config: refused 2:1: duplicate key
+input_toml-08.toml as TomlConfig: refused 2:1: duplicate key
+input_toml-08.toml as Dated: refused 2:1: duplicate key
+input_toml-09.toml as IgnoredAny: value IgnoredAny
+input_toml-09.toml as Json: value {"name":"release"}
+input_toml-09.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-09.toml as Port: refused 1:1: missing field `port`
+input_toml-09.toml as Strict: value Strict { name: "release" }
+input_toml-09.toml as Moded: refused 1:1: missing field `mode`
+input_toml-09.toml as Copied: refused 1:1: missing field `base`
+input_toml-09.toml as Nested: refused 1:1: missing field `base`
+input_toml-09.toml as Flags: refused 1:8: expected true or false
+input_toml-09.toml as Ports: refused 1:8: expected an integer
+input_toml-09.toml as Names: value {"name": "release"}
+input_toml-09.toml as Anythings: value {"name": Text("release")}
+input_toml-09.toml as Globs: refused 1:1: missing field `files`
+input_toml-09.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-09.toml as Tags: refused 1:1: missing field `styles`
+input_toml-09.toml as Config: refused 1:1: missing field `labels`
+input_toml-09.toml as TomlConfig: refused 1:1: missing field `labels`
+input_toml-09.toml as Dated: value Dated { when: "", date: "" }
+input_toml-10.toml as IgnoredAny: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Json: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Ledger: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Port: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Strict: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Moded: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Copied: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Nested: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Flags: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Ports: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Names: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Anythings: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Globs: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Shipped: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Tags: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Config: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as TomlConfig: refused 1:4: key with no value, expected `=`
+input_toml-10.toml as Dated: refused 1:4: key with no value, expected `=`
+input_toml-11.toml as IgnoredAny: value IgnoredAny
+input_toml-11.toml as Json: value {"a":[{"b":1}]}
+input_toml-11.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-11.toml as Port: refused 1:1: missing field `port`
+input_toml-11.toml as Strict: refused 1:3: unknown field `a`, expected one of `name`
+input_toml-11.toml as Moded: refused 1:1: missing field `mode`
+input_toml-11.toml as Copied: refused 1:1: missing field `base`
+input_toml-11.toml as Nested: refused 1:1: missing field `base`
+input_toml-11.toml as Flags: refused 1:1: expected a boolean, found a sequence
+input_toml-11.toml as Ports: refused 1:1: expected u16, found a sequence
+input_toml-11.toml as Names: refused 1:1: expected a string, found a sequence
+input_toml-11.toml as Anythings: refused 1:1: data did not match any variant of untagged enum Anything
+input_toml-11.toml as Globs: refused 1:1: missing field `files`
+input_toml-11.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-11.toml as Tags: refused 1:1: missing field `styles`
+input_toml-11.toml as Config: refused 1:1: missing field `name`
+input_toml-11.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-11.toml as Dated: value Dated { when: "", date: "" }
+input_toml-12.toml as IgnoredAny: value IgnoredAny
+input_toml-12.toml as Json: value {"assets":{"linux-x64":{"files":[]}}}
+input_toml-12.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-12.toml as Port: refused 1:1: missing field `port`
+input_toml-12.toml as Strict: refused 1:2: unknown field `assets`, expected one of `name`
+input_toml-12.toml as Moded: refused 1:1: missing field `mode`
+input_toml-12.toml as Copied: refused 1:1: missing field `base`
+input_toml-12.toml as Nested: refused 1:1: missing field `base`
+input_toml-12.toml as Flags: refused 1:2: expected a boolean, found a mapping
+input_toml-12.toml as Ports: refused 1:2: expected u16, found a mapping
+input_toml-12.toml as Names: refused 1:2: expected a string, found a mapping
+input_toml-12.toml as Anythings: refused 1:2: data did not match any variant of untagged enum Anything
+input_toml-12.toml as Globs: refused 1:1: missing field `files`
+input_toml-12.toml as Shipped: value Shipped { assets: Assets { targets: {"linux-x64": Target { files: [] }} }, ci: Jobs { jobs: {} } }
+input_toml-12.toml as Tags: refused 1:1: missing field `styles`
+input_toml-12.toml as Config: refused 1:1: missing field `name`
+input_toml-12.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-12.toml as Dated: value Dated { when: "", date: "" }
+input_toml-13.toml as IgnoredAny: value IgnoredAny
+input_toml-13.toml as Json: value {"date":"2001-01-01","list":[1,2],"literal":"x","multi":"a\nb","number":12,"quoted":"double","table":{"inner":"x"},"title":"Basic"}
+input_toml-13.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-13.toml as Port: refused 1:1: missing field `port`
+input_toml-13.toml as Strict: refused 1:1: unknown field `title`, expected one of `name`
+input_toml-13.toml as Moded: refused 1:1: missing field `mode`
+input_toml-13.toml as Copied: refused 1:1: missing field `base`
+input_toml-13.toml as Nested: refused 1:1: missing field `base`
+input_toml-13.toml as Flags: refused 1:9: expected true or false
+input_toml-13.toml as Ports: refused 1:9: expected an integer
+input_toml-13.toml as Names: refused 7:10: expected text
+input_toml-13.toml as Anythings: refused 9:8: data did not match any variant of untagged enum Anything
+input_toml-13.toml as Globs: refused 1:1: missing field `files`
+input_toml-13.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-13.toml as Tags: refused 1:1: missing field `styles`
+input_toml-13.toml as Config: refused 1:1: missing field `name`
+input_toml-13.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-13.toml as Dated: value Dated { when: "", date: "2001-01-01" }
+input_toml-14.toml as IgnoredAny: value IgnoredAny
+input_toml-14.toml as Json: value {"a":"x","b":"y"}
+input_toml-14.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml-14.toml as Port: refused 1:1: missing field `port`
+input_toml-14.toml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+input_toml-14.toml as Moded: refused 1:1: missing field `mode`
+input_toml-14.toml as Copied: refused 1:1: missing field `base`
+input_toml-14.toml as Nested: refused 1:1: missing field `base`
+input_toml-14.toml as Flags: refused 1:5: expected true or false
+input_toml-14.toml as Ports: refused 1:5: expected an integer
+input_toml-14.toml as Names: value {"a": "x", "b": "y"}
+input_toml-14.toml as Anythings: value {"a": Text("x"), "b": Text("y")}
+input_toml-14.toml as Globs: refused 1:1: missing field `files`
+input_toml-14.toml as Shipped: refused 1:1: missing field `assets`
+input_toml-14.toml as Tags: refused 1:1: missing field `styles`
+input_toml-14.toml as Config: refused 1:1: missing field `name`
+input_toml-14.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml-14.toml as Dated: value Dated { when: "", date: "" }
+input_toml-15.toml as IgnoredAny: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Json: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Ledger: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Port: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Strict: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Moded: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Copied: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Nested: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Flags: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Ports: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Names: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Anythings: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Globs: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Shipped: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Tags: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Config: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as TomlConfig: refused 1:5: string values must be quoted, expected literal string
+input_toml-15.toml as Dated: refused 1:5: string values must be quoted, expected literal string
+input_toml_alone-01.toml as IgnoredAny: value IgnoredAny
+input_toml_alone-01.toml as Json: value {"a":{"b":{"c":{"d":{"e":1}}}}}
+input_toml_alone-01.toml as Ledger: refused 1:1: missing field `schema_version`
+input_toml_alone-01.toml as Port: refused 1:1: missing field `port`
+input_toml_alone-01.toml as Strict: refused 1:1: unknown field `a`, expected one of `name`
+input_toml_alone-01.toml as Moded: refused 1:1: missing field `mode`
+input_toml_alone-01.toml as Copied: refused 1:1: missing field `base`
+input_toml_alone-01.toml as Nested: refused 1:1: missing field `base`
+input_toml_alone-01.toml as Flags: refused 1:5: expected a boolean, found a mapping
+input_toml_alone-01.toml as Ports: refused 1:5: expected u16, found a mapping
+input_toml_alone-01.toml as Names: refused 1:5: expected a string, found a mapping
+input_toml_alone-01.toml as Anythings: refused 1:5: data did not match any variant of untagged enum Anything
+input_toml_alone-01.toml as Globs: refused 1:1: missing field `files`
+input_toml_alone-01.toml as Shipped: refused 1:1: missing field `assets`
+input_toml_alone-01.toml as Tags: refused 1:1: missing field `styles`
+input_toml_alone-01.toml as Config: refused 1:1: missing field `name`
+input_toml_alone-01.toml as TomlConfig: refused 1:1: missing field `name`
+input_toml_alone-01.toml as Dated: value Dated { when: "", date: "" }
+numbers.toml as IgnoredAny: value IgnoredAny
+numbers.toml as Json: value {"binary":5,"bool":true,"decimal":1000,"exp":1000.0,"float":3.14,"hex":255,"inf":null,"neg":-5,"octal":15}
+numbers.toml as Ledger: refused 1:1: missing field `schema_version`
+numbers.toml as Port: refused 1:1: missing field `port`
+numbers.toml as Strict: refused 1:1: unknown field `hex`, expected one of `name`
+numbers.toml as Moded: refused 1:1: missing field `mode`
+numbers.toml as Copied: refused 1:1: missing field `base`
+numbers.toml as Nested: refused 1:1: missing field `base`
+numbers.toml as Flags: refused 1:7: expected true or false
+numbers.toml as Ports: refused 5:7: expected u16, found integer `-5`
+numbers.toml as Names: refused 1:7: expected text
+numbers.toml as Anythings: refused 9:8: data did not match any variant of untagged enum Anything
+numbers.toml as Globs: refused 1:1: missing field `files`
+numbers.toml as Shipped: refused 1:1: missing field `assets`
+numbers.toml as Tags: refused 1:1: missing field `styles`
+numbers.toml as Config: refused 1:1: missing field `name`
+numbers.toml as TomlConfig: refused 1:1: missing field `name`
+numbers.toml as Dated: value Dated { when: "", date: "" }
+quoted-keys.yaml as IgnoredAny: value IgnoredAny
+quoted-keys.yaml as Json: value {"a.b":{"c.d":1,"e":2},"complex":"value","f g":[3,4]}
+quoted-keys.yaml as Ledger: refused 1:1: missing field `schema_version`
+quoted-keys.yaml as Port: refused 1:1: missing field `port`
+quoted-keys.yaml as Strict: refused 1:1: unknown field `a.b`, expected one of `name`
+quoted-keys.yaml as Moded: refused 1:1: missing field `mode`
+quoted-keys.yaml as Copied: refused 1:1: missing field `base`
+quoted-keys.yaml as Nested: refused 1:1: missing field `base`
+quoted-keys.yaml as Flags: refused 2:3: expected a boolean, found a mapping
+quoted-keys.yaml as Ports: refused 2:3: expected u16, found a mapping
+quoted-keys.yaml as Names: refused 2:3: expected a string, found a mapping
+quoted-keys.yaml as Anythings: refused 2:3: data did not match any variant of untagged enum Anything
+quoted-keys.yaml as Globs: refused 1:1: missing field `files`
+quoted-keys.yaml as Shipped: refused 1:1: missing field `assets`
+quoted-keys.yaml as Tags: refused 1:1: missing field `styles`
+quoted-keys.yaml as Config: refused 1:1: missing field `name`
+quoted-keys.yaml as TomlConfig: refused 1:1: missing field `name`
+quoted-keys.yaml as Dated: value Dated { when: "", date: "" }
+strings.toml as IgnoredAny: value IgnoredAny
+strings.toml as Json: value {"basic":"a\tb","literal":"c:\\d","multi":"two\nlines","raw":"raw lines"}
+strings.toml as Ledger: refused 1:1: missing field `schema_version`
+strings.toml as Port: refused 1:1: missing field `port`
+strings.toml as Strict: refused 1:1: unknown field `basic`, expected one of `name`
+strings.toml as Moded: refused 1:1: missing field `mode`
+strings.toml as Copied: refused 1:1: missing field `base`
+strings.toml as Nested: refused 1:1: missing field `base`
+strings.toml as Flags: refused 1:9: expected true or false
+strings.toml as Ports: refused 1:9: expected an integer
+strings.toml as Names: value {"basic": "a\tb", "literal": "c:\\d", "multi": "two\nlines", "raw": "raw lines"}
+strings.toml as Anythings: value {"basic": Text("a\tb"), "literal": Text("c:\\d"), "multi": Text("two\nlines"), "raw": Text("raw lines")}
+strings.toml as Globs: refused 1:1: missing field `files`
+strings.toml as Shipped: refused 1:1: missing field `assets`
+strings.toml as Tags: refused 1:1: missing field `styles`
+strings.toml as Config: refused 1:1: missing field `name`
+strings.toml as TomlConfig: refused 1:1: missing field `name`
+strings.toml as Dated: value Dated { when: "", date: "" }
+unicode.yaml as IgnoredAny: value IgnoredAny
+unicode.yaml as Json: value {"emoji":"🔑","é":["ü","ö"],"名前":"値"}
+unicode.yaml as Ledger: refused 1:1: missing field `schema_version`
+unicode.yaml as Port: refused 1:1: missing field `port`
+unicode.yaml as Strict: refused 1:1: unknown field `名前`, expected one of `name`
+unicode.yaml as Moded: refused 1:1: missing field `mode`
+unicode.yaml as Copied: refused 1:1: missing field `base`
+unicode.yaml as Nested: refused 1:1: missing field `base`
+unicode.yaml as Flags: refused 1:5: expected true or false
+unicode.yaml as Ports: refused 1:5: expected an integer
+unicode.yaml as Names: refused 2:6: expected a string, found a sequence
+unicode.yaml as Anythings: refused 2:6: data did not match any variant of untagged enum Anything
+unicode.yaml as Globs: refused 1:1: missing field `files`
+unicode.yaml as Shipped: refused 1:1: missing field `assets`
+unicode.yaml as Tags: refused 1:1: missing field `styles`
+unicode.yaml as Config: refused 1:1: missing field `name`
+unicode.yaml as TomlConfig: refused 1:1: missing field `name`
+unicode.yaml as Dated: value Dated { when: "", date: "" }

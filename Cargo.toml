@@ -57,7 +57,6 @@ toml = { version = "1.1.8", default-features = false, features = [
   "parse",
   "serde",
 ] }
-yamled = { version = "=0.0.13", default-features = false }
 ctl-input = { path = "ctl-input", version = "=0.8.0-rc.1" }
 ctl-layout = { path = "ctl-layout", version = "=0.8.0-rc.1" }
 # Without `detect`: ctl-core's `render` tier needs only the encoder, and its
@@ -263,7 +262,7 @@ app = { features = "app", text = 526377 }
 # 5,616 above that: the same growth as app (CTC-064).
 # 32 below that: the same fix pass (CTC-064).
 usage = { features = "app,usage", text = 579977 }
-# app plus input: serde-saphyr, yamled, and garde. 2,287 above the last budget,
+# app plus input: serde-saphyr and garde. 2,287 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
 # flattened field (flattened-field-place), 2,096, and Input::top_level with
 # yamled 0.0.13 (top-level-entries), 191, each measured on its own from a clean

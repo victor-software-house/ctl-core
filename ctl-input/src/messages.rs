@@ -68,6 +68,21 @@ impl Messages for EnglishMessages {
     }
 }
 
+/// `text` with each control character escaped as Rust's `escape_debug` does,
+/// so a name or a value a text wrote cannot move a terminal that prints the
+/// problem.
+pub(crate) fn printable(text: &str) -> String {
+    let mut shown = String::with_capacity(text.len());
+    for character in text.chars() {
+        if character.is_control() || matches!(character, '\u{2028}' | '\u{2029}') {
+            shown.extend(character.escape_debug());
+        } else {
+            shown.push(character);
+        }
+    }
+    shown
+}
+
 /// What follows an unknown name: the names that exist, or that there are none.
 fn choices(expected: &[&str], plural: &str) -> String {
     if expected.is_empty() {

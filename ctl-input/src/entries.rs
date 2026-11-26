@@ -1,19 +1,16 @@
-//! The top-level entries of a YAML or TOML text, each with the byte range of
-//! its value, how the value is written and, for a string, its text.
+//! The top-level entries of a text, each with the byte range of its value,
+//! how the value is written and, for a string, its text.
 //!
 //! A caller that reads a mapping it did not write, such as the front matter of
 //! a Markdown file, learns where each value sits and what it reads as, with no
-//! scanner of its own. The format crates decide the types: serde-saphyr for
-//! YAML, which resolves anchors, aliases and tags, and the `toml` crate for
-//! TOML. The spans come from yamled and from the `toml` tree.
+//! scanner of its own. The tree gives the spans and the style, and the
+//! text's format decides what a scalar reads as.
 
 use std::ops::Range;
 
-#[cfg(feature = "toml")]
-use super::toml_entries;
-#[cfg(feature = "yaml")]
-use super::yaml_entries;
-use super::{Format, Input, InputError};
+use super::format::{Format, Reading, Resolved, Wanted};
+use super::tree::{Node, NodeKind, ScalarStyle, ScalarSyntax};
+use super::{Input, InputError, Raise, limits};
 
 /// How the value of an [`Entry`] is written.
 ///
@@ -77,8 +74,8 @@ impl Input {
     /// The listing refuses nothing that YAML allows, so a key written twice,
     /// a merge key (`<<`) and a `.inf` or `.NaN` are entries like the rest,
     /// where [`Input::parse`] refuses them. The text must pass the limits in
-    /// force, as [`Input::parse`] holds it to, and a YAML input builds the
-    /// document that [`Input::place`] keeps.
+    /// force, as [`Input::parse`] holds it to, and the input reads the tree
+    /// that [`Input::place`] keeps.
     ///
     /// ```
     /// # #[cfg(feature = "yaml")]
@@ -98,15 +95,88 @@ impl Input {
     ///
     /// # Errors
     ///
-    /// An [`InputError`] with the parser's problem and its line, as
-    /// [`Input::parse`] gives, for a text that is no YAML or TOML or goes past
-    /// a limit.
+    /// An [`InputError`] with the problem and its line, as [`Input::parse`]
+    /// gives, for a text its format refuses or that goes past a limit.
     pub fn top_level(&self) -> Result<Vec<Entry>, InputError> {
-        match self.format {
-            #[cfg(feature = "yaml")]
-            Format::Yaml => yaml_entries::entries(self),
-            #[cfg(feature = "toml")]
-            Format::Toml => toml_entries::entries(self),
-        }
+        let limits = limits::effective(&self.limits);
+        self.fits(&limits, Raise::FOR_TEXT)?;
+        let read = self
+            .kept
+            .tree(self.format, &self.text, &limits, Reading::Listing);
+        let tree = read
+            .as_ref()
+            .as_ref()
+            .map_err(|refusal| self.refused(refusal, Raise::FOR_TEXT))?;
+        Ok(entries(tree, self.format))
+    }
+}
+
+/// The entries of the mapping `root`, or none when it is no mapping.
+fn entries(root: &Node, format: &dyn Format) -> Vec<Entry> {
+    let NodeKind::Mapping(pairs) = root.kind() else {
+        return Vec::new();
+    };
+    pairs
+        .iter()
+        .filter_map(|(key, value)| entry(key, value, format))
+        .collect()
+}
+
+/// The entry of `key` and `value`, unless the key is no scalar the text
+/// wrote: a sequence, a mapping, an alias, or a null written as nothing.
+fn entry(key: &Node, value: &Node, format: &dyn Format) -> Option<Entry> {
+    let NodeKind::Scalar(name) = key.kind() else {
+        return None;
+    };
+    if key.used_at().is_some() || key.span().is_empty() {
+        return None;
+    }
+    let (range, written) = match value.used_at() {
+        Some(alias) => (alias, Written::Alias),
+        None => (value.span(), written_as(value)),
+    };
+    Some(Entry {
+        key: name.value().to_owned(),
+        value: range,
+        written,
+        string: string_of(value, format),
+    })
+}
+
+/// How `value` is written.
+fn written_as(value: &Node) -> Written {
+    match value.kind() {
+        NodeKind::Scalar(scalar) => match scalar.style() {
+            ScalarStyle::Plain => Written::Plain,
+            ScalarStyle::SingleQuoted => Written::SingleQuoted,
+            ScalarStyle::DoubleQuoted => Written::DoubleQuoted,
+            ScalarStyle::Literal => Written::Literal,
+            ScalarStyle::Folded => Written::Folded,
+            ScalarStyle::MultilineBasic => Written::MultilineBasic,
+            ScalarStyle::MultilineLiteral => Written::MultilineLiteral,
+        },
+        NodeKind::Sequence(_) | NodeKind::Mapping(_) => Written::Collection,
+    }
+}
+
+/// The text of `value` when its format reads it as a string. A TOML datetime
+/// is a date, not a string, though its format can read its text.
+fn string_of(value: &Node, format: &dyn Format) -> Option<String> {
+    let NodeKind::Scalar(scalar) = value.kind() else {
+        return None;
+    };
+    if scalar.syntax() == Some(ScalarSyntax::Datetime) {
+        return None;
+    }
+    match format.resolve(scalar, value.tag(), Wanted::Any) {
+        Ok(Resolved::Str(text)) => Some(text.into_owned()),
+        Ok(
+            Resolved::Null
+            | Resolved::Bool(_)
+            | Resolved::Int(_)
+            | Resolved::Uint(_)
+            | Resolved::Float(_),
+        )
+        | Err(_) => None,
     }
 }

@@ -9,13 +9,15 @@ use std::sync::OnceLock;
 use serde_saphyr::granit_parser::ScalarStyle as Written;
 use serde_saphyr::located::{self, MappingNode, ScalarNode, SequenceNode};
 use serde_saphyr::scalars::{Inferred, Rules, Scalar as Spelled};
-use serde_saphyr::{DefaultMessageFormatter, Error, Location};
+use serde_saphyr::{
+    DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
+    MessageFormatter, NonFiniteFloatPolicy, Options,
+};
 
 use super::exceeded::Exceeded;
 use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
 use super::limits::Limits;
 use super::tree::{Node, Scalar, ScalarStyle, Tag};
-use super::yaml_text::{self, Unplaced};
 
 /// YAML, read by serde-saphyr's located reader. Its extensions are `yaml` and
 /// `yml`.
@@ -40,7 +42,7 @@ impl Format for Yaml {
             let exceeded = Exceeded::input_bytes(bounds.input_bytes, Raise::FOR_TEXT);
             return Err(Refusal::new(exceeded.fault(), None, None));
         }
-        located::read(text, yaml_text::options(limits, reading))
+        located::read(text, options(limits, reading))
             .map(|node| convert(text, &node))
             .map_err(|error| refusal(text, limits, &error))
     }
@@ -59,7 +61,7 @@ impl Format for Yaml {
         let rules = rules();
         let at = Location::UNKNOWN;
         let mismatch = |error: Error| {
-            Mismatch::new(wanted).with_detail(yaml_text::plain(
+            Mismatch::new(wanted).with_detail(plain(
                 &DefaultMessageFormatter.with_localizer(&Unplaced),
                 &error,
             ))
@@ -106,7 +108,7 @@ impl Format for Yaml {
 /// The scalar rules under the strict options, built once.
 fn rules() -> &'static Rules {
     static RULES: OnceLock<Rules> = OnceLock::new();
-    RULES.get_or_init(|| Rules::new(&yaml_text::options(&Limits::NONE, Reading::Strict)))
+    RULES.get_or_init(|| Rules::new(&options(&Limits::NONE, Reading::Strict)))
 }
 
 /// The scalar style the YAML rules read, for a style of the tree.
@@ -263,9 +265,77 @@ fn fault(text: &str, limits: &Limits, error: &Error) -> Fault {
         )
         .map_or_else(
             || Fault::Syntax {
-                detail: yaml_text::plain(&DefaultMessageFormatter.with_localizer(&Unplaced), error),
+                detail: plain(&DefaultMessageFormatter.with_localizer(&Unplaced), error),
             },
             |exceeded| exceeded.fault(),
         ),
+    }
+}
+
+/// What every read of a YAML text uses, under `limits`: its budget and its
+/// alias replay limits. A [`Reading::Listing`] also reads a non-finite float
+/// as a value.
+fn options(limits: &Limits, reading: Reading) -> Options {
+    let (duplicates, merges, floats) = match reading {
+        Reading::Strict => (
+            DuplicateKeyPolicy::Error,
+            MergeKeyPolicy::Error,
+            NonFiniteFloatPolicy::Default,
+        ),
+        Reading::Listing => (
+            DuplicateKeyPolicy::PassThrough,
+            MergeKeyPolicy::AsOrdinary,
+            NonFiniteFloatPolicy::PassThrough,
+        ),
+    };
+    serde_saphyr::options! {
+        budget: Some(limits.budget()),
+        alias_limits: limits.alias_limits(),
+        strict_booleans: true,
+        duplicate_keys: duplicates,
+        merge_keys: merges,
+        non_finite_float_policy: floats,
+        with_snippet: false,
+    }
+}
+
+/// serde-saphyr's wording for `error`, with each control character escaped
+/// as serde-saphyr's renderer escapes it.
+///
+/// It takes the text from [`MessageFormatter::format_message`] and never calls
+/// the renderer, whose snippet code would otherwise stay in every binary that
+/// loads input. The loader turns snippets off, so the renderer writes the same
+/// line ([vsh-serde-saphyr 0.0.1][plain]).
+///
+/// [plain]: https://docs.rs/crate/vsh-serde-saphyr/0.0.2/source/src/de/error.rs#1970
+fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
+    while let Error::AliasError { error: inner, .. } | Error::WithSnippet { error: inner, .. } =
+        error
+    {
+        error = inner;
+    }
+    let mut text = String::new();
+    for character in formatter.format_message(error).chars() {
+        if character.is_control() || matches!(character, '\u{2028}' | '\u{2029}') {
+            text.extend(character.escape_debug());
+        } else {
+            text.push(character);
+        }
+    }
+    text
+}
+
+/// serde-saphyr's wording without the position it appends. That position
+/// counts from the parsed text, which for frontmatter is not the file, and a
+/// [`Refusal`] already carries the bytes it sits at.
+struct Unplaced;
+
+impl Localizer for Unplaced {
+    fn attach_location<'a>(&self, base: Cow<'a, str>, _: Location) -> Cow<'a, str> {
+        base
+    }
+
+    fn alias_used_at(&self, _: Location) -> String {
+        String::new()
     }
 }

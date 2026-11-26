@@ -10,8 +10,7 @@ use toml::de::{DeInteger, DeString, DeTable, DeValue};
 
 use super::exceeded::Exceeded;
 use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
-use super::limits::Limits;
-use super::toml_text::Measure;
+use super::limits::{Bounds, Limits};
 use super::tree::{Node, Scalar, ScalarStyle, ScalarSyntax, Tag};
 
 /// TOML, read by the `toml` crate. Its extension is `toml`.
@@ -167,5 +166,90 @@ fn style(text: &str, span: &Range<usize>) -> ScalarStyle {
         ScalarStyle::SingleQuoted
     } else {
         ScalarStyle::Plain
+    }
+}
+
+/// A limit a tree went past, and where in the text.
+struct Refused {
+    exceeded: Exceeded,
+    at: Range<usize>,
+}
+
+/// Walks a tree in the order it was written, counting depth and nodes
+/// against the limits in force. `max_depth` is YAML's rule too: a table or
+/// an array is one level, and the root table is the first.
+struct Measure {
+    max_depth: usize,
+    max_nodes: usize,
+    nodes: usize,
+    raise: Raise,
+}
+
+impl Measure {
+    /// A count at zero nodes under `bounds`.
+    fn new(bounds: Bounds, raise: Raise) -> Self {
+        Self {
+            max_depth: bounds.depth,
+            max_nodes: bounds.nodes,
+            nodes: 0,
+            raise,
+        }
+    }
+
+    /// A table at `depth`, then its entries in the order they were written:
+    /// a parsed table iterates by key, not by position.
+    fn table(
+        &mut self,
+        span: &Range<usize>,
+        table: &DeTable<'_>,
+        depth: usize,
+    ) -> Result<(), Refused> {
+        self.container(span, depth)?;
+        let mut entries: Vec<_> = table.iter().collect();
+        entries.sort_by_key(|(key, _)| key.span().start);
+        entries
+            .into_iter()
+            .try_for_each(|(_, value)| self.value(value, depth + 1))
+    }
+
+    fn value(&mut self, value: &Spanned<DeValue<'_>>, depth: usize) -> Result<(), Refused> {
+        let span = value.span();
+        match value.get_ref() {
+            DeValue::Table(table) => self.table(&span, table, depth),
+            DeValue::Array(items) => {
+                self.container(&span, depth)?;
+                items
+                    .iter()
+                    .try_for_each(|item| self.value(item, depth + 1))
+            }
+            DeValue::String(_)
+            | DeValue::Integer(_)
+            | DeValue::Float(_)
+            | DeValue::Boolean(_)
+            | DeValue::Datetime(_) => self.node(&span),
+        }
+    }
+
+    /// A table or an array: one level deeper, and one node.
+    fn container(&mut self, span: &Range<usize>, depth: usize) -> Result<(), Refused> {
+        if depth > self.max_depth {
+            return Err(self.refuse("max_depth", self.max_depth, span));
+        }
+        self.node(span)
+    }
+
+    fn node(&mut self, span: &Range<usize>) -> Result<(), Refused> {
+        self.nodes += 1;
+        if self.nodes > self.max_nodes {
+            return Err(self.refuse("max_nodes", self.max_nodes, span));
+        }
+        Ok(())
+    }
+
+    fn refuse(&self, field: &'static str, limit: usize, span: &Range<usize>) -> Refused {
+        Refused {
+            exceeded: Exceeded::new(field, limit, self.raise),
+            at: span.clone(),
+        }
     }
 }

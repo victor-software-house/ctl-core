@@ -12,9 +12,11 @@
 //! names, places its problem with a [`FieldPath`] and [`Input::problem_at`],
 //! the way the loader places garde's.
 //!
-//! A text's [`Format`] is chosen, never guessed. [`Input::open`] reads it from
-//! the file's extension, and [`Input::new_with_format`] takes it for text in
-//! memory. With `yaml`, `Input::new` and `Input::read` are YAML.
+//! A text's [`Format`] is chosen, never guessed. [`Input::open`] takes it from
+//! the file's extension through the process's [`Formats`] registry,
+//! [`Formats::open`] through a registry of the caller's, and
+//! [`Input::new_with_format`] takes it for text in memory. With `yaml`,
+//! `Input::new` and `Input::read` are YAML.
 //!
 //! ## The tree, the format trait and the registry
 //!
@@ -22,9 +24,13 @@
 //! its processed value and style, and each mapping its key and value nodes.
 //! `format::Format` is the trait that reads a text into that tree and
 //! resolves one scalar for the type a field needs, and `Formats` is the
-//! registry a CLI adds its own format to. `format::YAML` and `format::TOML` are
-//! the two built-in formats. `Input` does not read through any of these yet:
-//! it still reads with the `Format` enum below.
+//! registry a CLI adds its own format to. `YAML` and `TOML` are the two
+//! built-in formats, each a value of its feature.
+//!
+//! An [`Input`] reads its text into that tree once and keeps it. Parsing,
+//! placing a problem, listing the top-level entries and checking with garde
+//! all work on it, so every format, a CLI's own included, is read, placed and
+//! worded the same way.
 //!
 //! ## The Deserializer, the messages and `Tagged`
 //!
@@ -33,8 +39,7 @@
 //! A problem is a `format::Fault` with the bytes it sits at, and
 //! `Messages` words it, in English by default and in another voice after
 //! `set_messages`.
-//! `de::Tagged` reads a node's tag beside its value.
-//! `Input` does not read through these yet.
+//! `Tagged` reads a node's tag beside its value.
 //!
 //! ```
 //! # #[cfg(all(feature = "yaml", feature = "validate"))]
@@ -65,6 +70,9 @@
     doc = "[`FieldPath`]: crate#cargo-features",
     doc = "[`Input::problem_at`]: crate#cargo-features",
     doc = "[`Format`]: crate#cargo-features",
+    doc = "[`Formats`]: crate#cargo-features",
+    doc = "[`Formats::open`]: crate#cargo-features",
+    doc = "[`Input`]: crate#cargo-features",
     doc = "[`Input::open`]: crate#cargo-features",
     doc = "[`Input::new_with_format`]: crate#cargo-features"
 )]
@@ -86,37 +94,32 @@ mod exceeded;
 mod field_path;
 pub mod format;
 mod formats;
+mod kept;
 mod limits;
 mod messages;
 #[cfg(feature = "toml")]
-mod toml_entries;
-#[cfg(feature = "toml")]
 mod toml_format;
-#[cfg(feature = "toml")]
-mod toml_text;
 pub mod tree;
 #[cfg(feature = "yaml")]
-mod yaml_entries;
-#[cfg(feature = "yaml")]
 mod yaml_format;
-#[cfg(feature = "yaml")]
-mod yaml_text;
 
+pub use de::Tagged;
 pub use entries::{Entry, Written};
 use exceeded::Exceeded;
 pub use field_path::{FieldPath, Place, Step};
-use format::Raise;
+pub use format::Format;
+#[cfg(feature = "toml")]
+pub use format::TOML;
+#[cfg(feature = "yaml")]
+pub use format::YAML;
+use format::{Fault, Raise, Reading, Refusal};
 pub use formats::{Formats, set_default_formats};
+use kept::Kept;
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
+use messages::messages;
 pub use messages::{EnglishMessages, Messages, set_messages};
-/// A value and the YAML tag written on its node, such as `!override` in
-/// `code_span_size: !override 0`: `Tagged(0, Some("!override".into()))`.
-/// A node with no tag reads as `Tagged(value, None)`, and an untagged enum
-/// inside reads the plain value of a tagged node.
-#[cfg(feature = "yaml")]
-pub use serde_saphyr::Tagged;
 
 /// What a placing answers with for a key of the path: where its value starts,
 /// or where the key itself is written.
@@ -126,93 +129,61 @@ enum At {
     Key,
 }
 
-/// How a text is written.
-///
-/// Non-exhaustive: each variant exists only with its format's feature.
-/// Cargo unifies features across a build, so a caller's `match` needs a
-/// wildcard arm.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Format {
-    /// YAML, read by serde-saphyr and placed by yamled.
-    #[cfg(feature = "yaml")]
-    Yaml,
-    /// TOML, read and placed by the `toml` crate.
-    #[cfg(feature = "toml")]
-    Toml,
-}
-
-impl Format {
-    /// The format a file's extension names, compared without regard to case:
-    /// `.toml` is TOML, and `.yaml` and `.yml` are YAML.
-    ///
-    /// # Errors
-    ///
-    /// An [`InputError`] with no line for any other extension or none, naming
-    /// the extension and the accepted ones. One naming the feature for an
-    /// extension whose format's feature is off.
-    pub fn of(path: &Path) -> Result<Self, InputError> {
-        let name = path.display().to_string();
-        let extension = path
-            .extension()
-            .map(|extension| extension.to_string_lossy().to_ascii_lowercase());
-        match extension.as_deref() {
-            #[cfg(feature = "yaml")]
-            Some("yaml" | "yml") => Ok(Self::Yaml),
-            #[cfg(not(feature = "yaml"))]
-            Some(yaml @ ("yaml" | "yml")) => Err(InputError::whole(
-                name,
-                format!("`.{yaml}` needs ctl-core's input-yaml feature; {ACCEPTED}"),
-            )),
-            #[cfg(feature = "toml")]
-            Some("toml") => Ok(Self::Toml),
-            #[cfg(not(feature = "toml"))]
-            Some("toml") => Err(InputError::whole(
-                name,
-                format!("`.toml` needs ctl-core's input-toml feature; {ACCEPTED}"),
-            )),
-            Some(other) => Err(InputError::whole(
-                name,
-                format!("unsupported extension .{other}; {ACCEPTED}"),
-            )),
-            None => Err(InputError::whole(
-                name,
-                format!("no file extension; {ACCEPTED}"),
-            )),
-        }
-    }
-}
-
-/// What a refusal tells a person to name the file: the extensions this build
-/// reads.
-#[cfg(all(feature = "yaml", feature = "toml"))]
-const ACCEPTED: &str = "name the file *.toml, *.yaml, or *.yml";
-#[cfg(all(feature = "yaml", not(feature = "toml")))]
-const ACCEPTED: &str = "name the file *.yaml or *.yml";
-#[cfg(all(feature = "toml", not(feature = "yaml")))]
-const ACCEPTED: &str = "name the file *.toml";
-
 /// A named text, ready to parse and validate.
 ///
 /// The name is usually the file's path, and appears in every problem. Build
 /// one with [`Input::new_with_format`] for text in memory, or [`Input::open`]
 /// for a file. With `yaml`, `Input::new` and `Input::read` build a YAML
 /// one.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct Input {
     name: String,
     text: String,
     lines_before: usize,
     limits: Limits,
-    format: Format,
+    format: &'static dyn Format,
     /// The schema fields serde flattens into their parents, which
     /// [`Input::flattened`] declares.
     #[cfg(feature = "validate")]
     flattened: Vec<FieldPath>,
-    /// The YAML document that placing reads, built on first use.
-    #[cfg(feature = "yaml")]
-    yaml_document: yaml_text::Located,
+    /// The tree the text was read into, for every operation to share.
+    kept: Kept,
 }
+
+/// A format has no `Debug`, so it shows by its name, and the kept tree is
+/// left out.
+impl fmt::Debug for Input {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut shown = formatter.debug_struct("Input");
+        shown
+            .field("name", &self.name)
+            .field("text", &self.text)
+            .field("lines_before", &self.lines_before)
+            .field("limits", &self.limits)
+            .field("format", &self.format.name());
+        #[cfg(feature = "validate")]
+        shown.field("flattened", &self.flattened);
+        shown.finish_non_exhaustive()
+    }
+}
+
+/// Two inputs are equal when they read the same text the same way. A format
+/// is compared by its name, and the kept tree is derived from the rest, so
+/// placing on one input does not make it differ from its clone.
+impl PartialEq for Input {
+    fn eq(&self, other: &Self) -> bool {
+        let same = self.name == other.name
+            && self.text == other.text
+            && self.lines_before == other.lines_before
+            && self.limits == other.limits
+            && self.format.name() == other.format.name();
+        #[cfg(feature = "validate")]
+        let same = same && self.flattened == other.flattened;
+        same
+    }
+}
+
+impl Eq for Input {}
 
 /// Why an input was refused: every problem found, each placed on a line when
 /// the text allows it.
@@ -254,17 +225,18 @@ impl Input {
     #[cfg(feature = "yaml")]
     #[must_use]
     pub fn new(name: impl Into<String>, text: impl Into<String>) -> Self {
-        Self::new_with_format(name, text, Format::Yaml)
+        Self::new_with_format(name, text, &YAML)
     }
 
     /// An input of `format` from text already in memory, whatever the
-    /// extension of `name`. It needs only `format`'s feature, so a build
-    /// without YAML builds text in memory with it.
+    /// extension of `name`. The format is any [`Format`], one a CLI wrote
+    /// included, and a build needs only its own feature: a build without YAML
+    /// builds text in memory with it.
     #[must_use]
     pub fn new_with_format(
         name: impl Into<String>,
         text: impl Into<String>,
-        format: Format,
+        format: &'static dyn Format,
     ) -> Self {
         Self {
             name: name.into(),
@@ -274,8 +246,7 @@ impl Input {
             format,
             #[cfg(feature = "validate")]
             flattened: Vec::new(),
-            #[cfg(feature = "yaml")]
-            yaml_document: yaml_text::Located::default(),
+            kept: Kept::default(),
         }
     }
 
@@ -290,23 +261,24 @@ impl Input {
         Ok(Self::new(name, text))
     }
 
-    /// Read a file and take its [`Format`] from its extension, as
-    /// [`Format::of`] does. The extension is checked before the file is read.
+    /// Read a file and take its [`Format`] from its extension, through the
+    /// registry the process uses: what [`set_default_formats`] installed, or
+    /// else [`Formats::builtin`]. [`Formats::open`] reads through a registry
+    /// of the caller's instead.
     ///
     /// # Errors
     ///
-    /// An [`InputError`] for an extension [`Format::of`] refuses, or with the
-    /// I/O failure.
+    /// An [`InputError`] for an extension [`Formats::of`] refuses, which is
+    /// checked before the file is read, or with the I/O failure.
     pub fn open(path: &Path) -> Result<Self, InputError> {
-        let format = Format::of(path)?;
-        let (name, text) = read_text(path)?;
-        Ok(Self::new_with_format(name, text, format))
+        formats::default_formats().open(path)
     }
 
     /// Set how the text is written, over what the constructor took.
     #[must_use]
-    pub fn format(mut self, format: Format) -> Self {
+    pub fn format(mut self, format: &'static dyn Format) -> Self {
         self.format = format;
+        self.kept = Kept::default();
         self
     }
 
@@ -344,10 +316,10 @@ impl Input {
                     text: rest[..offset].to_owned(),
                     lines_before: self.lines_before + 1,
                     limits: self.limits.clone(),
-                    format: Format::Yaml,
+                    format: &YAML,
                     #[cfg(feature = "validate")]
                     flattened: self.flattened.clone(),
-                    yaml_document: yaml_text::Located::default(),
+                    kept: Kept::default(),
                 };
                 return Some((matter, &rest[offset + line.len()..]));
             }
@@ -451,9 +423,12 @@ impl Input {
 
     /// Parse the text into `T`, without validating it.
     ///
-    /// In YAML only `true` and `false` are booleans, and a duplicate key or a
-    /// merge key (`<<`) is refused. In TOML the format itself refuses a
-    /// duplicate key.
+    /// The text is read into the input's tree, which the input keeps for
+    /// placing and listing, and `T` is read from that tree. The first problem
+    /// found is the one reported, in the order the text is written. The format
+    /// decides what a scalar can be: in YAML only `true` and `false` are
+    /// booleans, and a TOML string fills only a string. A duplicate key or a
+    /// merge key (`<<`) is refused.
     ///
     /// The text must fit the limits in force, decided field by field through
     /// the tiers [`Limits`] lists. TOML reads only `max_reader_input_bytes`,
@@ -462,26 +437,58 @@ impl Input {
     ///
     /// # Errors
     ///
-    /// An [`InputError`] with the parser's problem and its line. A limit
-    /// problem names the limit, its value, and where to raise it, or, without
-    /// `yaml`, that the tool sets it.
+    /// An [`InputError`] with the problem and its line. A limit problem names
+    /// the limit, its value, and where to raise it, or, without `yaml`, that
+    /// the tool sets it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
         self.parse_within(&limits::effective(&self.limits), Raise::FOR_TEXT)
     }
 
     /// [`Self::parse`] under exactly `limits`, whatever the tiers say.
+    /// `raise` is where a person raises a limit the text goes past.
     fn parse_within<T: DeserializeOwned>(
         &self,
         limits: &Limits,
         raise: Raise,
     ) -> Result<T, InputError> {
         self.fits(limits, raise)?;
-        match self.format {
-            #[cfg(feature = "yaml")]
-            Format::Yaml => yaml_text::parse(self, limits, raise),
-            #[cfg(feature = "toml")]
-            Format::Toml => toml_text::parse(self, limits.bounds(), raise),
+        let read = self
+            .kept
+            .tree(self.format, &self.text, limits, Reading::Strict);
+        let tree = read
+            .as_ref()
+            .as_ref()
+            .map_err(|refusal| self.refused(refusal, raise))?;
+        de::deserialize(tree, self.format).map_err(|refusal| self.refused(&refusal, raise))
+    }
+
+    /// The input's problem for `refusal`, placed on its line and column, and
+    /// worded by [`Messages`]. A refusal in a node an alias replayed also
+    /// names where its value is defined, counted from the file.
+    fn refused(&self, refusal: &Refusal, raise: Raise) -> InputError {
+        let fault = if let Fault::Limit { name, value, .. } = refusal.fault().clone() {
+            Fault::Limit { name, value, raise }
+        } else {
+            refusal.fault().clone()
+        };
+        let mut message = messages::printable(&messages().message(&fault));
+        if let Some(defined) = refusal.defined_at() {
+            let (line, column) = tree::position(&self.text, defined.start);
+            let line = line + self.lines_before;
+            message = format!("{message} (defined at line {line}, column {column})");
         }
+        let place = refusal
+            .span()
+            .map(|span| tree::position(&self.text, span.start));
+        InputError::one(
+            self.name.clone(),
+            Problem {
+                line: place.map(|(line, _)| line + self.lines_before),
+                column: place.map(|(_, column)| column),
+                field: String::new(),
+                message,
+            },
+        )
     }
 
     /// Whether the text is within the size `limits` allow.
@@ -556,15 +563,13 @@ impl Input {
     /// the place of the path's parent. `None` when the text does not parse.
     ///
     /// `None` too when the text goes past the limits in force, as
-    /// [`Input::parse`] would refuse it, so placing never parses a text the
-    /// limits keep out. A YAML input checks `max_reader_input_bytes`,
-    /// `max_depth` and `max_nodes` before it hands the text to yamled, which
-    /// has no budget. A TOML input checks `max_reader_input_bytes`, and
-    /// the parse of its tree is the one [`Input::parse`] does first.
+    /// [`Input::parse`] would refuse it, so placing never reads a text the
+    /// limits keep out.
     ///
-    /// A YAML input parses its text for the first placing and keeps the
-    /// result, so [`Input::check`] and later calls read one document. A TOML
-    /// input parses its text on each call.
+    /// The first placing reads the text into the tree and keeps it, so
+    /// [`Input::parse`], [`Input::check`], [`Input::top_level`] and later calls
+    /// share one read, for every format. A repeated key or a merge key does not
+    /// stop placing, though [`Input::parse`] refuses it.
     ///
     /// ```
     /// # #[cfg(feature = "yaml")]
@@ -599,7 +604,7 @@ impl Input {
     /// give the place of their value, as `place` does. A path the text lacks
     /// gives the key of the last step that exists. The line counts the whole
     /// file, `None` is for a text that does not parse or goes past the limits,
-    /// and a YAML document is built once and shared with [`Input::place`].
+    /// and the tree is read once and shared with [`Input::place`].
     ///
     /// ```
     /// # #[cfg(feature = "yaml")]
@@ -641,15 +646,19 @@ impl Input {
         if self.text.len() > limits.bounds().input_bytes {
             return vec![None; paths.len()];
         }
-        let found = match self.format {
-            #[cfg(feature = "yaml")]
-            Format::Yaml => yaml_text::places(self, &limits, paths, at),
-            #[cfg(feature = "toml")]
-            Format::Toml => toml_text::places(&self.text, paths, at),
+        let read = self
+            .kept
+            .tree(self.format, &self.text, &limits, Reading::Listing);
+        let Ok(tree) = read.as_ref() else {
+            return vec![None; paths.len()];
         };
-        found
-            .into_iter()
-            .map(|at| at.map(|(line, column)| Place::new(line + self.lines_before, column)))
+        paths
+            .iter()
+            .map(|path| {
+                let (line, column) =
+                    tree::position(&self.text, tree.nearest(path.steps(), at).start);
+                Some(Place::new(line + self.lines_before, column))
+            })
             .collect()
     }
 
