@@ -46,14 +46,15 @@ A test maps every `ContextKind` to its field or names why it has none.
    `input-document` turns it on, and a consumer that wants the parts turns on ctl-core's `error-context` rather than clap's.
    Without it, `parse` holds only `reason`, even when the consumer turns on clap's `error-context` itself.
 2. `usage`: ctl-core renders the selected command's usage with clap's `usage` feature, which `help` turns on, for every parse error.
-3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, and `message` as `<input> has <n> problems`, singular for one.
+3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, `message` as `<input> has <n> problems`, singular for one, and the text as the `InputError`'s display, one problem per line as it prints today.
 4. A handler error: `message` from the outermost error, `causes` from `Error::chain` after it.
    A `CommandError`'s exit code and `kind` are found as today.
 
 ### 3. Pretty output
 
 Rendering the parts again would copy clap's error formatter, a second implementation of text clap already writes.
-So `ErrorBody` keeps the text a person reads beside the parts, out of JSON and the schema: clap's rendered text for a parse error, `{error:#}` for a handler error.
+So `ErrorBody` keeps the text a person reads beside the parts, out of JSON and the schema.
+For a parse error that is clap's rendered text without its leading `error:` prefix and trimmed, as `parse_error_message` gives it today; for a handler error, `{error:#}`.
 `Format::write_error`'s default prints `{bin}: {text}` when that text is set, and `{bin}: {message}` otherwise, so `pretty` prints exactly what it prints today.
 An `InputError` in a handler's chain becomes `problems` and adds no cause of its own.
 A format that overrides `write_error` gets the same `ErrorBody`, text included.
