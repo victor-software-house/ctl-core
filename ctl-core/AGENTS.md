@@ -190,7 +190,9 @@ Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's ch
 ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error: it turns on Clap's `error-context` and fills `ErrorBody::parse` with one field per kind of Clap's error context: the argument, the missing arguments, the value, the valid values, the subcommands, the suggestions by kind, the conflicting arguments, the value counts, and the tips.
 ctl-core reads every `ContextKind` but `Usage`, which ctl-core renders itself, and a unit test in `app/error_body.rs` lists each kind of Clap 4.6.6 with its field.
 Without it `parse` holds the reason alone, and `usage` is there either way.
-No other feature turns it on, and `mise run test:error-context-off` tests the build without it.
+`input-document` turns it on, so a bad value in an input document is placed on its key.
+`check:tree` requires it with `input-document` and refuses it for `app` and `usage` alone.
+`mise run test:error-context-off` tests the build without it.
 Without Clap's `help` feature, Clap turns off `-h`/`--help` and the `help` subcommand, so `parser::apply_defaults` and `help::document` declare both (`parser::with_help`), worded as Clap words them.
 ctl-core renders every help Clap stops for and never calls `Error::print` or `Command::color`.
 
@@ -339,6 +341,41 @@ Both refuse every extension no registered format reads before reading, and name 
 `Input::new_with_format(name, text, format)` or `Input::format(format)` names the format for text in memory, with `&input::TOML` or a format of the CLI's own.
 The repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
 `openspec/specs/declared-input` holds the contract, and `CTC-021` and `CTC-025` the rows.
+
+## Input document
+
+With `app` and an `input-*` feature, `App` adds `--input <FILE>` and `--input-format <NAME>` to the root command.
+Both are global, have no short form, and sit under the "Input" heading.
+They read `<PREFIX>_INPUT` and `<PREFIX>_INPUT_FORMAT`, under the prefix `--format` reads its variable with.
+`format::format_prefix` finds it, and `Formats::augment` uses the same function.
+
+`App::without_input` removes both flags.
+`run_from` panics when the CLI declares `input` or `input-format` itself, by id, long name or alias at any level, and has not called it.
+The code is `src/app/document.rs` and its children, compiled only with `app` and an input feature.
+
+The document becomes argument tokens that Clap parses with the command line, once.
+So every value parser and rule a typed flag gets applies to a document value.
+`App::run_from` joins the tokens after `env_under_flags` and before the final parse.
+Help, version, the Usage spec, and the pre-parse view read the original argv, so a help request never reads a document.
+A document value reads as `ValueSource::CommandLine` to the handler.
+
+- **Keys** are the long names and positional ids of the selected command, and the globals visible there.
+  A long name wins over a positional id.
+  Hidden arguments, help, version, `--input` and `--input-format` are not keys.
+  Neither are ctl-core's output flags: `format`, `json`, `stream`, `color`, `no_color` and each registered shorthand.
+  The view reads those from the command line before the document, and `requested_format` tells their sources apart.
+- **Placement** puts option tokens right after the selected subcommand's name.
+  `position.rs` finds the name by probing growing prefixes of argv with Clap itself.
+  Positional values go at the end after one `--`, in index order.
+  They come from the document only when the command line gives none at that level and holds no `--`.
+- **Precedence** is the command line, then the variable, then the document, then the default.
+  A key that loses is dropped, or refused under `App::input_conflicts(InputConflicts::Fail)`.
+  The probe, `levels`, `placed` and `Placed` of `flags/env.rs` decide it, so no second conflict test exists.
+- **Problems** that ctl-core finds are collected into one `InputError`.
+  They are placed with `Input::place` and `Input::place_key`.
+  A Clap error is placed too, when its `InvalidArg` or `PriorArg` matches the display form of a built argument the document supplied.
+  It lands on that key, or on the value for an invalid value (`blame.rs`).
+  Both end as a usage error with exit code 2, through the error view of a Clap error.
 
 ## Served files
 
