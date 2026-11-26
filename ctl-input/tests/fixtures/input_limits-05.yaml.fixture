@@ -1,0 +1,5 @@
+limits:
+  max_depth: 128
+  max_nodes: 10
+  max_reader_input_bytes: 536870912
+  alias_anchor_ratio_multiplier: 1000

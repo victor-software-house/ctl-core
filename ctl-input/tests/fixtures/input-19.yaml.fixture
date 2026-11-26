@@ -1,0 +1,4 @@
+a: &x text
+b: *x
+c: !!str 12
+d: &y !!str t

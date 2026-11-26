@@ -1,0 +1,4 @@
+up: .inf
+down: -.inf
+none: .NaN
+after: text

@@ -12,6 +12,7 @@ use toml::Spanned;
 use toml::de::{DeTable, DeValue, Deserializer};
 
 use super::limits::{Bounds, Exceeded, Raise};
+use super::tree::position;
 use super::{At, FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a TOML text: the tree, then the limits, then the
@@ -23,13 +24,7 @@ pub(super) fn parse<T: DeserializeOwned>(
 ) -> Result<T, InputError> {
     let root = DeTable::parse(&input.text)
         .map_err(|error| refusal(input, error.span(), error.message()))?;
-    let mut measure = Measure {
-        max_depth: bounds.depth,
-        max_nodes: bounds.nodes,
-        nodes: 0,
-        raise,
-    };
-    measure
+    Measure::new(bounds, raise)
         .table(&root.span(), root.get_ref(), 1)
         .map_err(|refused| refusal(input, Some(refused.at), refused.exceeded.to_string()))?;
     T::deserialize(Deserializer::from(root))
@@ -89,28 +84,16 @@ fn refusal(input: &Input, span: Option<Range<usize>>, message: impl Into<String>
     )
 }
 
-/// The 1-based line and column, counted in characters, of byte `offset` in
-/// `text`. An offset past the end, as at an unclosed array, is the end.
-fn position(text: &str, offset: usize) -> (usize, usize) {
-    let before = String::from_utf8_lossy(&text.as_bytes()[..offset.min(text.len())]);
-    let line = before.split('\n').count();
-    let column = 1 + before
-        .rsplit('\n')
-        .next()
-        .map_or(0, |last| last.chars().count());
-    (line, column)
-}
-
 /// A limit a tree went past, and where in the text.
-struct Refused {
-    exceeded: Exceeded,
-    at: Range<usize>,
+pub(crate) struct Refused {
+    pub(crate) exceeded: Exceeded,
+    pub(crate) at: Range<usize>,
 }
 
 /// Walks a tree in the order it was written, counting depth and nodes
 /// against the limits in force. `max_depth` is YAML's rule too: a table or
 /// an array is one level, and the root table is the first.
-struct Measure {
+pub(crate) struct Measure {
     max_depth: usize,
     max_nodes: usize,
     nodes: usize,
@@ -118,9 +101,19 @@ struct Measure {
 }
 
 impl Measure {
+    /// A count at zero nodes under `bounds`.
+    pub(crate) fn new(bounds: Bounds, raise: Raise) -> Self {
+        Self {
+            max_depth: bounds.depth,
+            max_nodes: bounds.nodes,
+            nodes: 0,
+            raise,
+        }
+    }
+
     /// A table at `depth`, then its entries in the order they were written:
     /// a parsed table iterates by key, not by position.
-    fn table(
+    pub(crate) fn table(
         &mut self,
         span: &Range<usize>,
         table: &DeTable<'_>,

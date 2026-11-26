@@ -1,0 +1,8 @@
+&a plain: 1
+&b 'single': 2
+!!str "double": 3
+!!str 4: 4
+&c !!str both: 5
+!!str &d reversed: 6
+? &e explicit
+: 7

@@ -1,0 +1,6 @@
+base: &base
+  x: 1
+  y: [2, 3]
+copy: *base
+tagged: !override 0
+text: !!str 12

@@ -1,0 +1,2 @@
+compose.yaml:4:17: services.dev.privileged: this host runs no privileged service
+compose.yaml:1:1: services: name one service at most

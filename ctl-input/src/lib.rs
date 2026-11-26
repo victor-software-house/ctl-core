@@ -16,6 +16,16 @@
 //! the file's extension, and [`Input::new_with_format`] takes it for text in
 //! memory. With `yaml`, `Input::new` and `Input::read` are YAML.
 //!
+//! ## The tree, the format trait and the registry
+//!
+//! `tree` holds the located tree: each node keeps its byte span, each scalar
+//! its processed value and style, and each mapping its key and value nodes.
+//! `format::Format` is the trait that reads a text into that tree and
+//! resolves one scalar for the type a field needs, and `Formats` is the
+//! registry a CLI adds its own format to. `format::YAML` and `format::TOML` are
+//! the two built-in formats. `Input` does not read through any of these yet:
+//! it still reads with the `Format` enum below.
+//!
 //! ```
 //! # #[cfg(all(feature = "yaml", feature = "validate"))]
 //! # {
@@ -62,18 +72,26 @@ use serde::de::DeserializeOwned;
 
 mod entries;
 mod field_path;
+pub mod format;
+mod formats;
 mod limits;
 #[cfg(feature = "toml")]
 mod toml_entries;
 #[cfg(feature = "toml")]
+mod toml_format;
+#[cfg(feature = "toml")]
 mod toml_text;
+pub mod tree;
 #[cfg(feature = "yaml")]
 mod yaml_entries;
+#[cfg(feature = "yaml")]
+mod yaml_format;
 #[cfg(feature = "yaml")]
 mod yaml_text;
 
 pub use entries::{Entry, Written};
 pub use field_path::{FieldPath, Place, Step};
+pub use formats::{Formats, set_default_formats};
 use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "yaml")]
@@ -445,7 +463,7 @@ impl Input {
         self.fits(limits, raise)?;
         match self.format {
             #[cfg(feature = "yaml")]
-            Format::Yaml => yaml_text::parse(self, &limits.budget(), raise),
+            Format::Yaml => yaml_text::parse(self, limits, raise),
             #[cfg(feature = "toml")]
             Format::Toml => toml_text::parse(self, limits.bounds(), raise),
         }

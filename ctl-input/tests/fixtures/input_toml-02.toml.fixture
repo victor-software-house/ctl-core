@@ -1,0 +1,14 @@
+name = ''
+labels = []
+owner = { name = '' }
+
+[release]
+tag = ''
+
+[[outputs]]
+path = 'docs'
+file = 'a.md'
+
+[[outputs]]
+path = '../outside'
+file = 'nested/b.md'

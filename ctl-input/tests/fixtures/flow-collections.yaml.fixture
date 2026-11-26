@@ -1,0 +1,4 @@
+seq: [1, 'two', "three", [4, 5], {six: 6}]
+map: {a: 1, 'b.c': [x, y], "d": {e: f}}
+empty: {}
+list: []

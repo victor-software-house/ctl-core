@@ -1,0 +1,11 @@
+title = 'Basic'
+quoted = "double"
+multi = """
+a
+b"""
+literal = '''x'''
+number = 12
+date = 2001-01-01
+list = [1, 2]
+[table]
+inner = "x"

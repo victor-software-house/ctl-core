@@ -1,0 +1,4 @@
+name = 'release'
+labels = ['ship']
+owner.name = ''
+release.tag = 'v1'

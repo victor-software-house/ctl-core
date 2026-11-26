@@ -1,0 +1,4 @@
+services:
+  dev:
+    image: nixos
+    privileged: true

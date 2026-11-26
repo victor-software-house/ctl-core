@@ -1,0 +1,10 @@
+assets:
+  linux-x64:
+    files: []
+  a.b/c:
+    files: []
+  targets:
+    files: []
+ci:
+  lint:
+    files: []

@@ -1,0 +1,15 @@
+a.b.c = 1
+point = { x = 1, y = 2 }
+"quoted.key" = "v"
+'literal key' = 'w'
+when = 1979-05-27T07:32:00Z
+
+[server]
+port = 8080
+
+[[products]]
+name = "a"
+
+[[products]]
+name = "b"
+tags = ["x", "y"]
