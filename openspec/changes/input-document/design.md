@@ -47,7 +47,8 @@ A document from `<PREFIX>_INPUT` is checked like one from `--input`, so a key th
 The variable therefore suits a caller that runs one command, such as one step of a workflow; set in a shell profile, it fails every command whose keys the document does not match.
 This follows the rule that every flag has a variable and reads it the same way.
 
-They exist only when `app` and an `input-*` feature are both on, so the `app` tier keeps its size.
+They exist only with `app` and the opt-in `input-document` feature, which a CLI names beside the input formats it reads, so no other tier pays for them (operator, 2026-11-26).
+Measured, the document code and `error-context` add about 45 KB to the `input` tier.
 `App::without_input()` removes both.
 
 ### 3. Reading the document
@@ -112,8 +113,9 @@ ctl-core's own refusals (unknown key, unencodable value, positional not allowed,
 Clap stops at its first error.
 ctl-core records the key span behind each synthesized argument.
 When clap's error names an argument that came from the document, the problem is placed on that key, or on its value for an invalid value.
-Naming the argument needs clap's `error-context`, so each `input-*` feature turns on `clap?/error-context`, which applies only when `cli` is on (operator, 2026-11-26).
-`check:tree` keeps refusing it for `app` and `usage` without an input feature.
+Naming the argument needs clap's `error-context`, so `input-document` turns on `clap/error-context` (operator, 2026-11-26).
+`check:tree` keeps refusing it for `app,usage,input` without `input-document`.
+Under `--format json`, the problems are separate objects in the error envelope, through the [structured-errors change](../structured-errors/design.md), never one joined message (operator, 2026-11-26).
 
 A missing required argument has no key, so it reads as clap words it.
 
@@ -128,7 +130,7 @@ A handler that must tell the difference is out of scope (non-goal 2).
 
 1. Finding the subcommand's position by probing prefixes is untested with `infer_subcommands` and flag subcommands.
    Tests cover both before release, and a failure there refuses the document rather than guessing.
-2. `error-context` adds bytes to every input tier; the change moves those budgets by the measured difference.
+2. `input-document` costs about 45 KB; its own size tier holds that budget, and no existing tier moves.
 
 [app]: https://github.com/victor-software-house/ctl-core/blob/7d9f67c600108627bba08acca27bccf274205f0d/ctl-core/src/app.rs
 [env]: https://github.com/victor-software-house/ctl-core/blob/7d9f67c600108627bba08acca27bccf274205f0d/ctl-core/src/flags/env.rs
