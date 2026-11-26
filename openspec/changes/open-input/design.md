@@ -84,8 +84,10 @@ pub trait Format: Sync {
 2. `resolve` reads one scalar for the type its field needs, with the tag its node carries.
    A YAML tag such as `!!str` changes how a scalar reads.
    `Wanted` is `Any`, `Bool`, `Int`, `Float`, `Str` or `Null`.
-   `Resolved` is `Null`, `Bool`, `Int(i128)`, `Uint(u128)`, `Float(f64)` or `Str(&str)`.
-3. The trait is object safe: the registry holds `&'static dyn Format`, as the output registry does.
+   `Resolved` is `Null`, `Bool`, `Int(i128)`, `Uint(u128)`, `Float(f64)` or `Str(Cow<str>)`.
+3. The text is borrowed from the scalar, and owned only when the format decodes it, as YAML decodes `!!binary`.
+   `resolve` applies the strict reading's rules; a listing asks it only whether a value is text.
+4. The trait is object safe: the registry holds `&'static dyn Format`, as the output registry does.
 
 Each format keeps its own scalar rules (operator, 2026-11-26).
 
@@ -93,6 +95,9 @@ YAML resolves through the fork's public scalar rules.
 So a quoted `"8"` still fills an integer field, and only the six YAML 1.2 spellings fill a bool.
 
 TOML resolves by syntax: a TOML string fills only a string field, and a TOML integer only a number field, as the `toml` crate refuses today.
+
+So a scalar may carry the type its format's syntax gave it: text, integer, float, boolean or datetime.
+The TOML reader sets it on every scalar and every key, and YAML sets none, since a YAML type comes from the scalar rules.
 
 The YAML rules stay exactly as the fork applies them today, typeless `010` as float 10.0 included.
 Reading it as an integer only in typeless reads would conflict with the typed read, which refuses the leading zero.
