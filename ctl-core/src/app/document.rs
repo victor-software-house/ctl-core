@@ -134,16 +134,13 @@ struct Reading<'a> {
     placed: &'a [Placed<'a>],
     /// The depth of the selected command among the subcommand path.
     deepest: usize,
-    /// The selected command's positionals, in index order.
-    positionals: Vec<&'a Arg>,
 }
 
 impl<'a> Reading<'a> {
-    /// The rank of `arg` among the positionals.
-    fn rank(&self, arg: &Arg) -> Option<usize> {
-        self.positionals
-            .iter()
-            .position(|positional| positional.get_id() == arg.get_id())
+    /// The rank of the positional `arg` in index order, from 0.
+    /// Clap numbers the positionals of a built command from 1 with no gap.
+    fn rank(arg: &Arg) -> usize {
+        arg.get_index().map_or(0, |index| index.saturating_sub(1))
     }
 
     /// Why a positional cannot come from the document, if it cannot.
@@ -160,7 +157,7 @@ impl<'a> Reading<'a> {
         } else if self.raw.iter().any(|arg| arg == "--") {
             Some("the command line holds `--`, so give the positional arguments there")
         } else if self.level.is_allow_missing_positional_set()
-            || self.positionals.iter().any(|arg| arg.is_last_set())
+            || self.level.get_positionals().any(Arg::is_last_set)
         {
             Some("this command has a last or skippable positional argument, so give them there")
         } else {
@@ -215,15 +212,13 @@ impl<'a> Reading<'a> {
         let supplied: Vec<usize> = planned
             .iter()
             .filter(|entry| matches!(entry.encoded, Encoded::Positional(_)))
-            .filter_map(|entry| self.rank(entry.arg))
+            .map(|entry| Self::rank(entry.arg))
             .collect();
         let mut kept = Vec::new();
         for entry in planned {
             let path = FieldPath::root().key(entry.name);
             if matches!(entry.encoded, Encoded::Positional(_)) {
-                let gap = self
-                    .rank(entry.arg)
-                    .is_some_and(|rank| (0..rank).any(|lower| !supplied.contains(&lower)));
+                let gap = (0..Self::rank(entry.arg)).any(|lower| !supplied.contains(&lower));
                 let message = match (blocked, gap) {
                     (Some(reason), _) => Some(format!(
                         "`{}` is a positional argument, but {reason}",
@@ -263,38 +258,27 @@ impl<'a> Reading<'a> {
     /// The positional values go at the end after one `--`, in index order.
     fn argv(&self, kept: Vec<Planned<'a>>, at: usize) -> Vec<OsString> {
         let mut options = Vec::new();
-        let mut values: Vec<(usize, Vec<String>)> = Vec::new();
+        let mut values = vec![Vec::new(); self.level.get_positionals().count()];
         for entry in kept {
             match entry.encoded {
                 Encoded::Option(tokens) => options.extend(tokens),
                 Encoded::Positional(texts) => {
-                    values.push((self.rank(entry.arg).unwrap_or_default(), texts));
+                    if let Some(slot) = values.get_mut(Self::rank(entry.arg)) {
+                        *slot = texts;
+                    }
                 }
                 Encoded::Absent => {}
             }
         }
-        values.sort_by_key(|(rank, _)| *rank);
         let mut argv = self.raw.get(..at).unwrap_or(self.raw).to_vec();
         argv.extend(options.into_iter().map(OsString::from));
         argv.extend_from_slice(self.raw.get(at..).unwrap_or_default());
-        if !values.is_empty() {
+        if values.iter().any(|texts| !texts.is_empty()) {
             argv.push(OsString::from("--"));
-            argv.extend(
-                values
-                    .into_iter()
-                    .flat_map(|(_, texts)| texts)
-                    .map(OsString::from),
-            );
+            argv.extend(values.into_iter().flatten().map(OsString::from));
         }
         argv
     }
-}
-
-/// The positionals of `level`, in index order.
-fn ranked(level: &Command) -> Vec<&Arg> {
-    let mut positionals: Vec<&Arg> = level.get_positionals().collect();
-    positionals.sort_by_key(|arg| arg.get_index());
-    positionals
 }
 
 /// The arguments a document key may name.
@@ -385,7 +369,6 @@ pub(super) fn join(
         reserved,
         placed: &placed,
         deepest: levels.len() - 1,
-        positionals: ranked(level),
     };
     let (argv, supplied, path) = input.tree(|root| {
         let NodeKind::Mapping(entries) = root.kind() else {
