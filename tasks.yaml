@@ -347,6 +347,21 @@ queue:
       - "2026-11-17, a CLI that creates a sandbox, run under the agent shell's CLICOLOR_FORCE=1, printed the new sandbox's name in bold into a captured variable; the next copy and remove commands named a sandbox that does not exist. The fix belongs in ctl-core (operator, 2026-11-17)."
       - 2026-11-25, CTC-062 makes tsv the piped default, so the handle rule applies to whatever format is the piped default, pretty included when a CLI keeps it for pipes (operator, 2026-11-25).
       - 'Detection is not the gap: the CLICOLOR_FORCE convention exists to colour piped output, and agent shells set it on purpose; docker run -d and gh pr create print their id or URL bare.'
+
+  - id: CTC-066
+    title: Read JSON input with an own strict reader
+    scope: ctl-input/src/json_format.rs, ctl-input/src/json/
+    outcome: >-
+      A CLI built with input-json reads .json declared input, placed and checked as
+      YAML and TOML are.
+    blocked_by: []
+    acceptance:
+      - Input::open reads a .json file under input-json, and every problem keeps its file, line and column.
+      - The reader passes JSONTestSuite at commit 1ef36fa with a recorded verdict for each implementation-defined file.
+      - The input tier and every other existing size tier are unchanged with input-json off.
+    plan: openspec/changes/json-input/proposal.md
+    notes:
+      - 2026-11-26, the operator chose an own reader after comparing serde_json and the crates that report positions, and an opt-in input-json feature (operator, 2026-11-26).
 horizon:
   - id: CTC-027
     title: Design the decision and research document checker

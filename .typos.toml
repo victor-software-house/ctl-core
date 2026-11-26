@@ -3,7 +3,13 @@
 # A changelog links each entry to its commit as [`abc1234`](…).
 # A hash is not a word, yet a short one can spell a typo, such as 71c9abd.
 # Commit hashes cited in prose, such as `caf2581`, split into short fake words.
-extend-ignore-re = ["\\[`[0-9a-f]{7,40}`\\]", "\\b[0-9a-f]{7,40}\\b"]
+# JSONTestSuite names each case file as its verdict, an underscore and words
+# run together, such as `i_string_1st_surrogate_but_2nd_missing`.
+extend-ignore-re = [
+  "\\[`[0-9a-f]{7,40}`\\]",
+  "\\b[0-9a-f]{7,40}\\b",
+  "\\b[yni]_(array|incomplete|multidigit|number|object|single|string|structure)[A-Za-z0-9_.+-]*",
+]
 
 [files]
 # Folded narrow tables split words mid-word on purpose, and the parity
