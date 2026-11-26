@@ -15,7 +15,7 @@
 use std::path::Path;
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Format, Input, Limits, Problem, set_default_limits};
+use ctl_core::input::{FieldPath, Format, Formats, Input, Limits, Problem, set_default_limits};
 use serde::Deserialize;
 use serde::de::IgnoredAny;
 
@@ -159,6 +159,22 @@ fn a_yaml_file_names_the_feature_it_needs() {
         error.problems[0].message,
         "unsupported extension .json; name the file *.toml"
     );
+}
+
+#[test]
+fn a_registry_refuses_a_yaml_extension_naming_the_feature_it_needs() {
+    for extension in ["yaml", "yml"] {
+        let name = format!("app.{extension}");
+        let Err(error) = Formats::builtin().of(Path::new(&name)) else {
+            panic!("{name} was accepted");
+        };
+        assert_eq!(error.name, name);
+        assert_eq!(
+            error.problems[0].message,
+            format!("`.{extension}` needs ctl-core's input-yaml feature; name the file *.toml"),
+        );
+        assert_eq!(error.problems[0].line, None);
+    }
 }
 
 /// The default, then the process, then the call. Every test that reads the

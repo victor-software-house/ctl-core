@@ -140,6 +140,48 @@ fn the_outermost_alias_wins_over_a_nested_one() {
     assert_eq!(source(text, nested), "{k: v}");
     assert_eq!(nested.used_at(), three.used_at());
     assert_eq!(get(nested, "k").used_at(), three.used_at());
+    let (key, _) = &entries(nested)[0];
+    assert_eq!(value(key), "k");
+    assert_eq!(
+        key.used_at(),
+        three.used_at(),
+        "a key beneath a replayed mapping inherits the alias too"
+    );
+}
+
+#[test]
+fn spans_are_bytes_so_multi_byte_text_is_sliced_whole() {
+    let text = "名前: \"é\"\n\"🔑\": 名前\n";
+    let root = read(&YAML, text);
+    let seen: Vec<_> = entries(&root)
+        .iter()
+        .map(|(key, node)| {
+            (
+                (value(key), source(text, key)),
+                (value(node), source(text, node)),
+            )
+        })
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            (("名前", "名前"), ("é", "\"é\"")),
+            (("🔑", "\"🔑\""), ("名前", "名前")),
+        ]
+    );
+}
+
+#[test]
+fn a_yaml_scalar_has_no_syntax_type() {
+    let root = read(&YAML, "a: 1\nb: '1'\n");
+    for (key, node) in entries(&root) {
+        for scalar in [key, node] {
+            let NodeKind::Scalar(scalar) = scalar.kind() else {
+                panic!("not a scalar");
+            };
+            assert_eq!(scalar.syntax(), None);
+        }
+    }
 }
 
 #[test]
