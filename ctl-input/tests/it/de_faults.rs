@@ -67,10 +67,10 @@ fn a_missing_field_sits_on_the_key_that_holds_its_mapping() {
 
 #[test]
 fn a_missing_field_of_the_root_sits_at_the_start_of_the_text() {
-    let refusal = refused::<Server>(&YAML, "host: h\n");
+    let refusal = refused::<Server>(&YAML, "# c\nhost: h\n");
     assert_eq!(refusal.fault(), &Fault::MissingField { field: "port" });
     assert_eq!(refusal.span(), Some(0..0));
-    let refusal = refused::<Server>(&TOML, "host = 'h'\n");
+    let refusal = refused::<Server>(&TOML, "# c\nhost = 'h'\n");
     assert_eq!(refusal.span(), Some(0..0));
 }
 
