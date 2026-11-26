@@ -166,7 +166,7 @@ pub fn env_under_flags(command: Command, raw: &[OsString]) -> Result<Command, cl
 
 /// The probe's command and matches at each level of the subcommand path,
 /// as far as the declared command has that subcommand.
-fn levels<'a>(
+pub(crate) fn levels<'a>(
     mut probe: &'a Command,
     mut matches: &'a ArgMatches,
     mut declared: &Command,

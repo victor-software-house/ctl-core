@@ -65,6 +65,11 @@ use crate::{flags, help, parser};
 
 mod command_error;
 mod error_body;
+#[cfg(all(
+    test,
+    any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
+))]
+mod document;
 
 pub use command_error::CommandError;
 
