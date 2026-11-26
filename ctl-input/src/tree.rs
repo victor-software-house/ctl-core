@@ -302,7 +302,8 @@ pub(crate) fn position(text: &str, offset: usize) -> (usize, usize) {
     (line, column)
 }
 
-#[cfg(all(test, feature = "yaml", feature = "toml"))]
+#[cfg(test)]
+#[cfg(all(feature = "yaml", feature = "toml"))]
 pub(crate) mod differential;
 
 #[cfg(test)]

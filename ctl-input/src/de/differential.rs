@@ -705,6 +705,27 @@ const EXPLAINED: &[Explained] = &[
     },
 ];
 
+/// The typed readings of a text the format read, each of a type an existing
+/// input test reads.
+fn typed_readings(compare: &mut Compare<'_>) {
+    compare.same::<Ledger>("Ledger");
+    compare.same::<Port>("Port");
+    compare.same::<Strict>("Strict");
+    compare.same::<Moded>("Moded");
+    compare.same::<Copied>("Copied");
+    compare.same::<Nested>("Nested");
+    compare.same::<Flags>("Flags");
+    compare.same::<Ports>("Ports");
+    compare.same::<Names>("Names");
+    compare.same::<Anythings>("Anythings");
+    compare.same::<Globs>("Globs");
+    compare.same::<Shipped>("Shipped");
+    compare.of::<fork::Tags, Tags>("Tags");
+    compare.same::<Config>("Config");
+    compare.same::<TomlConfig>("TomlConfig");
+    compare.same::<Dated>("Dated");
+}
+
 #[test]
 fn the_deserializer_reads_every_fixture_as_input_does() {
     let mut differences = Vec::new();
@@ -748,22 +769,7 @@ fn the_deserializer_reads_every_fixture_as_input_does() {
             unread += 1;
         } else {
             compared += 1;
-            compare.same::<Ledger>("Ledger");
-            compare.same::<Port>("Port");
-            compare.same::<Strict>("Strict");
-            compare.same::<Moded>("Moded");
-            compare.same::<Copied>("Copied");
-            compare.same::<Nested>("Nested");
-            compare.same::<Flags>("Flags");
-            compare.same::<Ports>("Ports");
-            compare.same::<Names>("Names");
-            compare.same::<Anythings>("Anythings");
-            compare.same::<Globs>("Globs");
-            compare.same::<Shipped>("Shipped");
-            compare.of::<fork::Tags, Tags>("Tags");
-            compare.same::<Config>("Config");
-            compare.same::<TomlConfig>("TomlConfig");
-            compare.same::<Dated>("Dated");
+            typed_readings(&mut compare);
         }
         reads += compare.compared;
         differences.append(&mut compare.differences);
