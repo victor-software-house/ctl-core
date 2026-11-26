@@ -74,10 +74,10 @@ fn a_scalar_type_given_a_collection_reports_what_serde_expected() {
     }
     let text = "port: [1]\n";
     let refusal = refused::<Port>(&YAML, text);
-    assert_eq!(refusal.fault(), &expected("u16", "sequence"));
+    assert_eq!(refusal.fault(), &expected("u16", "a sequence"));
     assert_eq!(at(text, &refusal), "[1]");
     let refusal = refused::<Port>(&TOML, "port = { a = 1 }\n");
-    assert_eq!(refusal.fault(), &expected("u16", "map"));
+    assert_eq!(refusal.fault(), &expected("u16", "a mapping"));
 }
 
 #[test]

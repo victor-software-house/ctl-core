@@ -80,8 +80,8 @@ impl<'de> NodeDe<'de> {
     fn unexpected(&self) -> Unexpected<'static> {
         match self.node.kind() {
             NodeKind::Scalar(_) => Unexpected::Other("a scalar"),
-            NodeKind::Sequence(_) => Unexpected::Seq,
-            NodeKind::Mapping(_) => Unexpected::Map,
+            NodeKind::Sequence(_) => Unexpected::Other("a sequence"),
+            NodeKind::Mapping(_) => Unexpected::Other("a mapping"),
         }
     }
 
