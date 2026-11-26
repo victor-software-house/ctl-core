@@ -76,17 +76,23 @@ The `input` feature SHALL enable `input-yaml` and `validate`, and nothing else.
 
 ### Requirement: The tree is read once per input
 
-An `Input` SHALL read its text into the tree at most once, whatever the number of calls to `parse`, `place`, `place_key`, `check` and `top_level`.
+An `Input` SHALL keep the tree it reads and read its text again only when the limits in force change.
+A tree read for `parse` SHALL also serve `place`, `place_key`, `check` and `top_level`.
 
 #### Scenario: Two placings
 
 - **WHEN** `place` is called twice on one input of any format
 - **THEN** the second call reuses the tree the first read
 
+#### Scenario: A load
+
+- **WHEN** `load` parses a YAML text and places a problem garde reports
+- **THEN** the text is read into the tree once
+
 ### Requirement: Problems use one message set
 
 Every problem SHALL have one problem type.
-The types are syntax, duplicate key, merge key, expected kind, invalid scalar, unknown field, unknown variant, missing field, limit and alias.
+The types are syntax, duplicate key, merge key, expected kind, invalid value, unknown field, unknown variant, missing field, limit and alias.
 It SHALL be worded by `input::Messages`, whose English default names no parser option.
 `set_messages` SHALL replace the wording for the process without changing a problem's type, line or column.
 
@@ -94,6 +100,16 @@ It SHALL be worded by `input::Messages`, whose English default names no parser o
 
 - **WHEN** a YAML text holds `prefix: a` on line 1 and `prefix: b` on line 2
 - **THEN** parsing fails with one problem on line 2 that reads `` duplicate key `prefix` ``
+
+### Requirement: A type's own refusal keeps its text
+
+An error a type's own `Deserialize` raises SHALL be an invalid value that keeps the type's text.
+It SHALL sit at the node whose read raised it.
+
+#### Scenario: A type's own refusal
+
+- **WHEN** a YAML text holds `port: 0` on line 2 and `port` is a newtype whose `try_from` refuses 0 with `port must not be 0`
+- **THEN** parsing fails with one problem on line 2 for `port` that reads `port must not be 0`
 
 ### Requirement: A missing field sits on the key that holds its mapping
 

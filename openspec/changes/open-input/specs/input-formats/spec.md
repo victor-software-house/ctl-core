@@ -18,6 +18,7 @@ They SHALL work the same for every format.
 
 `input::Format` SHALL be a public, object-safe trait with a name and the file extensions it reads.
 It SHALL have a `read` from text to the tree under the limits in force.
+A strict reading SHALL refuse duplicate and merge keys, and a listing reading SHALL keep them.
 It SHALL have a `resolve` of one scalar for the type the field needs.
 
 A format a CLI writes SHALL be read, placed, listed and checked exactly as the built-in formats are.

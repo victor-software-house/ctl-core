@@ -16,11 +16,14 @@
   Verify: `check:features` builds each feature alone on the build host, and `cargo tree` for `yaml` lists no yamled.
 - [ ] 2.2 Add the located tree, the `Format` trait, `Formats` with its tiers, and the YAML and TOML formats.
   Verify: tests for each scenario of the `input-formats` delta, including a test format `kv` written in the test.
+  A test places every path of the existing input fixtures through the tree and through today's placing.
+  Both give the same line and column.
 - [ ] 2.3 Add the Deserializer, placing, `top_level`, `check`, `Tagged` and `Messages` over the tree, and remove the per-format halves.
   Verify: every existing input test passes with only the wording the message set changes, each changed line listed in the pull request.
 - [ ] 2.4 Place a problem in a replayed node at its alias, and a missing field on the key that holds its mapping.
   Verify: tests for the alias and missing-field scenarios pass.
-- [ ] 2.5 Add the fork's three replay limits to `Limits`, pass them to the fork's options, report them in `Loosened`, and name them in `Exceeded`.
+- [ ] 2.5 Add the fork's three replay limits to `Limits`, and pass them to the fork's `Options::alias_limits`.
+  Report them in `Loosened`, and name them in `Exceeded` from the fork's three alias-limit error variants.
   Verify: a test raises `max_total_replayed_events` in `.ctl/input.yaml` and sees the warning, and the nested-alias scenario names the field.
 
 ## 3. ctl-core
