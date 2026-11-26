@@ -344,14 +344,15 @@ The repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
 
 ## Input document
 
-With `app` and an `input-*` feature, `App` adds `--input <FILE>` and `--input-format <NAME>` to the root command.
+With the opt-in `input-document` feature and an input format, `App` adds `--input <FILE>` and `--input-format <NAME>` to the root command.
 Both are global, have no short form, and sit under the "Input" heading.
 They read `<PREFIX>_INPUT` and `<PREFIX>_INPUT_FORMAT`, under the prefix `--format` reads its variable with.
 `format::format_prefix` finds it, and `Formats::augment` uses the same function.
 
 `App::without_input` removes both flags.
 `run_from` panics when the CLI declares `input` or `input-format` itself, by id, long name or alias at any level, and has not called it.
-The code is `src/app/document.rs` and its children, compiled only with `app` and an input feature.
+The code is `src/app/document.rs` and its children, compiled only with `input-document`, which turns on `app` and `error-context` and fails to compile without an `input-yaml`, `input-json`, `input-toml` or `input` feature beside it.
+`mise run test:input-document-off` holds the help, the usage spec and the missing-argument help of a build without it to their snapshots; the snapshots of a build with it carry the suffix `@input_document`.
 
 The document becomes argument tokens that Clap parses with the command line, once.
 So every value parser and rule a typed flag gets applies to a document value.
@@ -375,7 +376,8 @@ A document value reads as `ValueSource::CommandLine` to the handler.
   They are placed with `Input::place` and `Input::place_key`.
   A Clap error is placed too, when its `InvalidArg` or `PriorArg` matches the display form of a built argument the document supplied.
   It lands on that key, or on the value for an invalid value (`blame.rs`).
-  Both end as a usage error with exit code 2, through the error view of a Clap error.
+  Both end as a usage error with exit code 2.
+  The JSON error holds each problem in `problems`, with `<input> has <n> problems` as `message`; a Clap error placed on a key adds clap's parts as `parse` and the usage line (`error_body::refused_document` and `refused_value`, which build on the handler error).
 
 ## Served files
 
