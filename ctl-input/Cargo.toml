@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 keywords = ["cli", "config", "yaml", "toml", "validation"]
 categories = ["command-line-interface", "config"]
+autotests = false
 
 [package.metadata.docs.rs]
 all-features = true
@@ -40,4 +41,11 @@ yamled = { workspace = true, optional = true }
 
 [dev-dependencies]
 garde = { workspace = true, features = ["derive"] }
+indoc.workspace = true
 serde.workspace = true
+
+# One integration binary, so the tests link once.
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+required-features = ["yaml", "toml"]

@@ -10,6 +10,8 @@
 )]
 #![cfg(all(feature = "input", feature = "fixture"))]
 
+use std::iter;
+
 use ctl_core::fixture::Suite;
 use ctl_core::indoc;
 use ctl_core::input::{
@@ -51,6 +53,37 @@ fn a_limit_error_names_the_limit_the_file_and_where_to_raise_it() {
         "{shown}"
     );
     assert!(error.problems[0].line.is_some(), "{shown}");
+}
+
+/// Nine anchors, each a list of ten aliases of the one before.
+fn alias_bomb() -> String {
+    let first = format!("l0: &l0 [{}]\n", ["x"; 10].join(", "));
+    let rest = (1..9).map(|level| {
+        let aliases = vec![format!("*l{}", level - 1); 10].join(", ");
+        format!("l{level}: &l{level} [{aliases}]\n")
+    });
+    iter::once(first).chain(rest).collect()
+}
+
+#[test]
+fn nested_aliases_past_the_replay_limit_are_one_problem_naming_the_field() {
+    let limits = Limits {
+        max_total_replayed_events: Some(1000),
+        max_depth: Some(Limits::DEFAULT_MAX_DEPTH),
+        max_nodes: Some(Limits::DEFAULT_MAX_NODES),
+        max_reader_input_bytes: Some(Limits::DEFAULT_MAX_READER_INPUT_BYTES),
+        ..Limits::NONE
+    };
+    let input = Input::new("bomb.yaml", alias_bomb()).limits(limits);
+    let error = input.parse::<IgnoredAny>().unwrap_err();
+    assert_eq!(error.problems.len(), 1, "{error}");
+    assert!(
+        error.problems[0].message.ends_with(
+            "exceeds max_total_replayed_events (1000); \
+             raise limits.max_total_replayed_events in .ctl/input.yaml"
+        ),
+        "{error}"
+    );
 }
 
 #[test]
@@ -245,5 +278,23 @@ fn a_repository_file_is_held_to_known_fields(suite: &Suite) {
     assert_eq!(
         loosened[1].to_string(),
         ".ctl/input.yaml raises max_depth to 128, above the default 64"
+    );
+
+    let replay = suite.scenario("replay");
+    replay.file(
+        REPO_FILE,
+        indoc! {"
+            limits:
+              max_total_replayed_events: 2000000
+        "},
+    );
+    assert_eq!(
+        use_repo_limits(replay.path()).unwrap(),
+        [Loosened {
+            field: "max_total_replayed_events",
+            value: "2000000".to_owned(),
+            default: "1000000".to_owned(),
+        }],
+        "a raised replay limit is reported against serde-saphyr's default"
     );
 }

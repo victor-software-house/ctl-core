@@ -179,6 +179,7 @@ version = "0.8.0-rc.1"
 dependencies = [
  "document-features",
  "garde",
+ "indoc",
  "serde",
  "toml",
  "vsh-serde-saphyr",
