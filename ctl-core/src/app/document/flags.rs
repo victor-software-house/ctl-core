@@ -1,8 +1,10 @@
 //! The two flags every command takes, and the clash with a CLI's own.
 
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
-use clap::builder::PossibleValuesParser;
+use clap::builder::{PossibleValue, TypedValueParser};
+use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::{Arg, Command, ValueHint, value_parser};
 
 use crate::flags::env_name;
@@ -26,6 +28,51 @@ pub(in crate::app) fn clashes(command: &Command) -> bool {
         .any(|name| declares(command, name))
 }
 
+/// The names of the input formats `--input-format` accepts, and the error clap
+/// gives for any other value.
+///
+/// It does the work of clap's `PossibleValuesParser` for one flag, without its
+/// per-value help, case folding, hiding or suggestions, which this flag
+/// never uses.
+#[derive(Clone, Debug)]
+struct FormatNames(Vec<&'static str>);
+
+impl TypedValueParser for FormatNames {
+    type Value = String;
+
+    fn parse_ref(
+        &self,
+        command: &Command,
+        arg: Option<&Arg>,
+        value: &OsStr,
+    ) -> Result<String, clap::Error> {
+        let text = value.to_string_lossy();
+        if self.0.contains(&&*text) {
+            return Ok(text.into_owned());
+        }
+        let mut error = clap::Error::new(ErrorKind::InvalidValue).with_cmd(command);
+        error.insert(
+            ContextKind::InvalidArg,
+            ContextValue::String(arg.map_or_else(|| "...".to_owned(), ToString::to_string)),
+        );
+        error.insert(
+            ContextKind::InvalidValue,
+            ContextValue::String(text.into_owned()),
+        );
+        error.insert(
+            ContextKind::ValidValue,
+            ContextValue::Strings(self.0.iter().map(|name| (*name).to_owned()).collect()),
+        );
+        Err(error)
+    }
+
+    fn possible_values(&self) -> Option<Box<dyn Iterator<Item = PossibleValue> + '_>> {
+        Some(Box::new(
+            self.0.iter().map(|name| PossibleValue::new(*name)),
+        ))
+    }
+}
+
 /// `command` with `--input <FILE>` and `--input-format <NAME>`, both global
 /// so every subcommand takes them. They read `<PREFIX>_INPUT` and
 /// `<PREFIX>_INPUT_FORMAT` when `prefix` is known.
@@ -45,9 +92,7 @@ pub(in crate::app) fn add(command: Command, prefix: Option<&str>) -> Command {
     let mut format = Arg::new(INPUT_FORMAT)
         .long("input-format")
         .value_name("NAME")
-        .value_parser(PossibleValuesParser::new(
-            formats.names().collect::<Vec<_>>(),
-        ))
+        .value_parser(FormatNames(formats.names().collect()))
         .global(true)
         .help_heading(HEADING)
         .help("The document's format, which stdin needs; a file's extension names it otherwise");

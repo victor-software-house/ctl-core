@@ -40,16 +40,6 @@ Output
 │    ┆            ┆                                     ┆ [env: FMTTOY_YAML]   │
 └────┴────────────┴─────────────────────────────────────┴──────────────────────┘
 
-Input
-┌──┬────────────────┬──────────────────┬──────────────────────────────────────┐
-│  ┆ --input        ┆ FILE             ┆ Fill this command's arguments from a │
-│  ┆                ┆                  ┆ document; `-` reads stdin [env:      │
-│  ┆                ┆                  ┆ FMTTOY_INPUT]                        │
-│  ┆ --input-format ┆ [yaml|json|toml] ┆ The document's format, which stdin   │
-│  ┆                ┆                  ┆ needs; a file's extension names it   │
-│  ┆                ┆                  ┆ otherwise [env: FMTTOY_INPUT_FORMAT] │
-└──┴────────────────┴──────────────────┴──────────────────────────────────────┘
-
 Options
 ┌────┬───────────┬──┬───────────────┐
 │ -V ┆ --version ┆  ┆ Print version │
