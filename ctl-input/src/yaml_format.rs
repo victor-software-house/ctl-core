@@ -90,13 +90,10 @@ impl Format for Yaml {
                 .is_null(&spelled)
                 .then_some(Resolved::Null)
                 .ok_or(mismatch),
-            Wanted::Str => {
-                if rules.is_null(&spelled) {
-                    Err(mismatch)
-                } else {
-                    Ok(Resolved::Str(Cow::Borrowed(scalar.value())))
-                }
-            }
+            Wanted::Str => match rules.string(&spelled, at).map_err(|_error| mismatch)? {
+                Cow::Owned(text) => Ok(Resolved::Str(Cow::Owned(text))),
+                Cow::Borrowed(_) => Ok(Resolved::Str(Cow::Borrowed(scalar.value()))),
+            },
         }
     }
 }

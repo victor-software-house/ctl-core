@@ -36,14 +36,16 @@ minijinja = { version = "2.24.0", features = ["serde"] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-# serde-saphyr 2.1.1 with five patches: deserialize_str tells a borrowed-string
+# serde-saphyr 2.1.1 with six patches: deserialize_str tells a borrowed-string
 # mismatch by its variant, not its Display text, and an alias error takes the
 # plain message, so the snippet renderer stays out of every binary that loads
 # input (size-cuts task 5.3). Tagged<T> gives its inner type the plain node, so
 # an untagged enum reads a tagged value (CTC-060). `located::read` reads a
-# text into nodes with byte spans, and `scalars` makes the YAML 1.2 scalar
-# rules public (open-input). Drop the fork when upstream does all five.
-serde-saphyr = { package = "vsh-serde-saphyr", version = "=0.0.5", default-features = false, features = [
+# text into nodes with byte spans, `scalars` makes the YAML 1.2 scalar rules
+# public, and the public text rule (`scalars::Rules::string`) refuses a null
+# or a tagged non-string for a string field (open-input). Drop the fork when
+# upstream does all six.
+serde-saphyr = { package = "vsh-serde-saphyr", version = "=0.0.6", default-features = false, features = [
   "deserialize",
   "comments",
 ] }

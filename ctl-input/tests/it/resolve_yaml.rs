@@ -238,6 +238,45 @@ fn a_binary_scalar_resolves_to_its_decoded_text_as_owned() {
 }
 
 #[test]
+fn a_tagged_non_string_is_refused_for_a_string_field() {
+    for (text, tag) in [
+        ("8080", "tag:yaml.org,2002:int"),
+        ("~", "tag:yaml.org,2002:int"),
+        ("1.5", "tag:yaml.org,2002:float"),
+    ] {
+        let scalar = plain(text);
+        assert_eq!(
+            resolve(&scalar, Some(tag), Wanted::Str),
+            Err(Mismatch::new(Wanted::Str)),
+            "{tag} {text}"
+        );
+    }
+}
+
+#[test]
+fn a_binary_scalar_is_decoded_as_owned_text_for_a_string_field() {
+    let scalar = plain("aGk=");
+    let resolved = resolve(&scalar, Some("tag:yaml.org,2002:binary"), Wanted::Str);
+    assert_eq!(resolved, Ok(borrowed("hi")));
+    assert!(matches!(resolved, Ok(Resolved::Str(Cow::Owned(_)))));
+}
+
+#[test]
+fn a_null_spelling_is_text_when_it_is_quoted_or_tagged_a_string() {
+    let tilde = Scalar::new("~", ScalarStyle::SingleQuoted);
+    assert_eq!(resolve(&tilde, None, Wanted::Str), Ok(borrowed("~")));
+    let tagged = plain("~");
+    assert_eq!(
+        resolve(&tagged, Some(STR_TAG), Wanted::Str),
+        Ok(borrowed("~"))
+    );
+    assert!(matches!(
+        resolve(&tagged, Some(STR_TAG), Wanted::Str),
+        Ok(Resolved::Str(Cow::Borrowed(_)))
+    ));
+}
+
+#[test]
 fn a_plain_string_resolves_borrowed_from_the_scalar() {
     let scalar = plain("demo");
     assert!(matches!(
