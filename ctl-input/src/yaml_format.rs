@@ -40,9 +40,9 @@ impl Format for Yaml {
             let exceeded = Exceeded::input_bytes(bounds.input_bytes, Raise::FOR_TEXT);
             return Err(Refusal::new(exceeded.fault(), None, None));
         }
-        let node = located::read(text, yaml_text::options(limits, reading))
-            .map_err(|error| refusal(text, limits, &error))?;
-        convert(&node)
+        located::read(text, yaml_text::options(limits, reading))
+            .map(|node| convert(text, &node))
+            .map_err(|error| refusal(text, limits, &error))
     }
 
     fn resolve<'a>(
@@ -129,32 +129,46 @@ fn style(written: Written) -> ScalarStyle {
     }
 }
 
-/// The bytes of the text at `location`, when the parser gave byte offsets.
-fn bytes(location: Location) -> Option<Range<usize>> {
+/// The bytes of `text` at `location`: the byte offsets the parser gave, or
+/// else an empty range at the offset its line and column name, which is all
+/// the parser gives a scanner error. `None` for a location it never set.
+fn bytes(text: &str, location: Location) -> Option<Range<usize>> {
     let span = location.span();
-    let start = usize::try_from(span.byte_offset()?).ok()?;
-    let length = usize::try_from(span.byte_len()?).ok()?;
-    Some(start..start.saturating_add(length))
+    if let (Some(start), Some(length)) = (span.byte_offset(), span.byte_len()) {
+        let start = usize::try_from(start).ok()?;
+        let length = usize::try_from(length).ok()?;
+        return Some(start..start.saturating_add(length));
+    }
+    let offset = offset_of(text, location)?;
+    Some(offset..offset)
 }
 
-/// The bytes a node is written at, or the refusal for a location the parser
-/// gave no byte offsets for.
-fn placed(location: Location) -> Result<Range<usize>, Refusal> {
-    bytes(location).ok_or_else(|| {
-        let detail = format!(
-            "the parser gave no byte position for the node at line {}, column {}",
-            location.line(),
-            location.column()
-        );
-        Refusal::new(Fault::Syntax { detail }, None, None)
-    })
+/// The byte offset in `text` of the 1-based line and character column of
+/// `location`, as the parser counts them. A column past the end of its line
+/// is the end of the line.
+fn offset_of(text: &str, location: Location) -> Option<usize> {
+    let line = usize::try_from(location.line()).ok()?.checked_sub(1)?;
+    let column = usize::try_from(location.column()).ok()?.checked_sub(1)?;
+    let start: usize = text.split_inclusive('\n').take(line).map(str::len).sum();
+    let content = text.get(start..)?.split('\n').next()?;
+    let within = content
+        .char_indices()
+        .nth(column)
+        .map_or(content.len(), |(index, _)| index);
+    Some(start + within)
+}
+
+/// The bytes a node is written at. The parser locates every node it builds,
+/// so the empty range at the start is for a node it never located.
+fn placed(text: &str, location: Location) -> Range<usize> {
+    bytes(text, location).unwrap_or_default()
 }
 
 /// The tree for a located node, with each replayed node marked by the alias
 /// that brought it.
-fn convert(node: &located::Node) -> Result<Node, Refusal> {
+fn convert(text: &str, node: &located::Node) -> Node {
     let locations = node.locations();
-    let span = placed(locations.defined_location)?;
+    let span = placed(text, locations.defined_location);
     let built = match node {
         located::Node::Scalar(ScalarNode {
             value,
@@ -162,14 +176,14 @@ fn convert(node: &located::Node) -> Result<Node, Refusal> {
             ..
         }) => Node::scalar(span, Scalar::new(value.as_str(), style(*written))),
         located::Node::Sequence(SequenceNode { items, .. }) => {
-            Node::sequence(span, items.iter().map(convert).collect::<Result<_, _>>()?)
+            Node::sequence(span, items.iter().map(|item| convert(text, item)).collect())
         }
         located::Node::Mapping(MappingNode { entries, .. }) => Node::mapping(
             span,
             entries
                 .iter()
-                .map(|(key, value)| Ok((convert(key)?, convert(value)?)))
-                .collect::<Result<_, Refusal>>()?,
+                .map(|(key, value)| (convert(text, key), convert(text, value)))
+                .collect(),
         ),
     };
     let built = match node.tag() {
@@ -177,9 +191,9 @@ fn convert(node: &located::Node) -> Result<Node, Refusal> {
         None => built,
     };
     if locations.reference_location == locations.defined_location {
-        Ok(built)
+        built
     } else {
-        Ok(built.with_used_at(placed(locations.reference_location)?))
+        built.with_used_at(placed(text, locations.reference_location))
     }
 }
 
@@ -200,7 +214,7 @@ fn refusal(text: &str, limits: &Limits, error: &Error) -> Refusal {
         let span = error
             .location()
             .filter(|at| *at != Location::UNKNOWN)
-            .and_then(bytes);
+            .and_then(|at| bytes(text, at));
         return Refusal::new(fault(text, limits, error), span, None);
     };
     let mut failing = inner.as_ref();
@@ -213,8 +227,8 @@ fn refusal(text: &str, limits: &Limits, error: &Error) -> Refusal {
         .unwrap_or(locations.defined_location);
     Refusal::new(
         fault(text, limits, failing),
-        bytes(locations.reference_location),
-        bytes(defined),
+        bytes(text, locations.reference_location),
+        bytes(text, defined),
     )
 }
 
@@ -228,7 +242,7 @@ fn fault(text: &str, limits: &Limits, error: &Error) -> Fault {
     match error {
         Error::DuplicateMappingKey { key, location } => Fault::DuplicateKey {
             key: key.clone().unwrap_or_else(|| {
-                bytes(*location)
+                bytes(text, *location)
                     .and_then(|range| text.get(range))
                     .unwrap_or_default()
                     .to_owned()

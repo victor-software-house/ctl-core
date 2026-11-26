@@ -48,6 +48,9 @@ impl Format for Toml {
         Ok(table(text, root.span(), root.get_ref()))
     }
 
+    /// Resolves by the type the scalar's syntax gave it, and never by its
+    /// text. A scalar that carries no syntax, such as one another format built,
+    /// is text.
     fn resolve<'a>(
         &self,
         scalar: &'a Scalar,

@@ -6,6 +6,7 @@ use std::iter;
 use ctl_input::Limits;
 use ctl_input::format::{Fault, Format, Reading, Refusal, TOML, YAML};
 use ctl_input::tree::Node;
+use serde::de::IgnoredAny;
 
 use crate::common::{entries, source};
 
@@ -71,19 +72,31 @@ fn a_listing_keeps_a_merge_key_as_an_ordinary_entry() {
 
 #[test]
 fn a_syntax_error_is_a_syntax_fault_with_a_span() {
-    for text in ["a: [\n", "a: 1\n---\nb: 2\n"] {
+    let texts = [
+        "a: [\n",
+        "a:\n\t- b\n",
+        "a: *x\n",
+        "🔑: [é, *x\n",
+        "a: 1\n---\nb: 2\n",
+    ];
+    for text in texts {
         let refusal = strict(&YAML, text, &Limits::NONE).unwrap_err();
         assert!(matches!(refusal.fault(), Fault::Syntax { .. }), "{text:?}");
+        let span = refusal
+            .span()
+            .unwrap_or_else(|| panic!("no span for {text:?}"));
+        assert_eq!(span.start, span.end, "{text:?}");
+        let before = &text[..span.start];
+        let line = u64::try_from(before.matches('\n').count() + 1).unwrap();
+        let last = before.rsplit('\n').next().unwrap_or_default();
+        let column = u64::try_from(last.chars().count() + 1).unwrap();
+        let error = serde_saphyr::from_str::<IgnoredAny>(text).unwrap_err();
+        let at = error.without_snippet().location().unwrap();
+        assert_eq!((line, column), (at.line(), at.column()), "{text:?}");
     }
     let second = "a: 1\n---\nb: 2\n";
     let refusal = strict(&YAML, second, &Limits::NONE).unwrap_err();
     assert_eq!(refusal.span(), Some(9..9));
-    let unclosed = strict(&YAML, "a: [\n", &Limits::NONE).unwrap_err();
-    assert_eq!(
-        unclosed.span(),
-        None,
-        "the parser gives a scanner error a line and column but no byte offsets"
-    );
     let refusal = strict(&TOML, "a = \n", &Limits::NONE).unwrap_err();
     assert!(matches!(refusal.fault(), Fault::Syntax { .. }));
     assert!(refusal.span().is_some());

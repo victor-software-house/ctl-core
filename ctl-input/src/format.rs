@@ -196,7 +196,9 @@ impl Refusal {
         &self.fault
     }
 
-    /// The bytes of the text the fault is at, when known.
+    /// The bytes of the text the fault is at, when known. A fault the parser
+    /// places only by line and column, such as a YAML scanner error, has an
+    /// empty span at that place.
     #[must_use]
     pub fn span(&self) -> Option<Range<usize>> {
         self.span.clone()
