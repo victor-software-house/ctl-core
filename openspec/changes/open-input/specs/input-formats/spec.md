@@ -69,15 +69,22 @@ A TOML string fills only a string field, and a TOML number only a number field.
 - **WHEN** a YAML text holds `enabled: yes` and the field is `bool`
 - **THEN** loading fails with one problem for `enabled` that reads `expected true or false`
 
-### Requirement: An alias expands within the limits
+### Requirement: An alias expands in the format's reader
 
-The tree SHALL keep an anchored node once.
-Reading a typed value SHALL replay it at each alias, counting every replayed node against `max_nodes` and its nesting against `max_depth`.
+A format with aliases SHALL expand each alias while it reads, under its own limits, so the tree SHALL hold no alias node.
+A replayed node SHALL keep the span of the node it copies and the span of the alias that brought it.
 
-#### Scenario: Nested aliases
+A problem in a replayed node SHALL sit at the alias and name where its value is defined.
 
-- **WHEN** a YAML text of 2 KB defines nine anchors, each a list of ten aliases of the one before, and `max_nodes` is 250,000
-- **THEN** loading it fails with one problem that names `max_nodes`
+#### Scenario: An alias past the limit
+
+- **WHEN** a YAML text holds three aliases and `max_aliases` is 2
+- **THEN** reading it fails with one problem that names `max_aliases`
+
+#### Scenario: A bad value through an alias
+
+- **WHEN** a YAML text defines `&port x` on line 1 and uses `*port` on line 4 for a `u16` field
+- **THEN** loading fails with one problem on line 4 that names line 1 as where the value is defined
 
 ### Requirement: Tagged reads a tag beside its value
 

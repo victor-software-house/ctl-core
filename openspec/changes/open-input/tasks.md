@@ -3,9 +3,8 @@
 ## 1. The fork's located reader
 
 - [ ] 1.1 In [vsh-serde-saphyr][fork], add `located::read` as a forkctl patch.
-  It returns the document as nodes with byte span, processed value, style, tag, anchor and alias.
-  It applies the same `Budget`, duplicate-key, merge-key and multiple-document checks as `from_str_with_options`.
-  Verify: the fork's suite passes in its CI, with tests that compare `located::read` with `from_str_with_options` on the same refused texts.
+  It returns nodes with span, value, style and tag, with each alias expanded, under the checks `from_str_with_options` applies.
+  Verify: the fork's CI passes, with tests that compare both readers on refused texts.
 - [ ] 1.2 Make the scalar rules public as a `scalars` module, and read a typeless plain `010` as the integer 10.
   Verify: tests for every row of [research.md](research.md), section 2, pass in the fork's CI.
 - [ ] 1.3 Release the fork version that carries both patches.
@@ -19,8 +18,8 @@
   Verify: tests for each scenario of the `input-formats` delta, including a test format `kv` written in the test.
 - [ ] 2.3 Add the Deserializer, placing, `top_level`, `check`, `Tagged` and `Messages` over the tree, and remove the per-format halves.
   Verify: every existing input test passes with only the wording the message set changes, each changed line listed in the pull request.
-- [ ] 2.4 Add the alias replay limits and the missing-field placement.
-  Verify: tests for the nested-alias and missing-field scenarios pass.
+- [ ] 2.4 Place a problem in a replayed node at its alias, and a missing field on the key that holds its mapping.
+  Verify: tests for the alias and missing-field scenarios pass.
 
 ## 3. ctl-core
 

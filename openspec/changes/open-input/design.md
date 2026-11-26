@@ -38,13 +38,11 @@ front-matter can later read through ctl-input instead of its own three readers; 
 ### 2. The located tree
 
 ```rust
-pub struct Document { root: Node, anchors: Vec<Node> }
-pub struct Node { span: Range<usize>, tag: Option<Tag>, kind: NodeKind }
+pub struct Node { span: Range<usize>, used_at: Option<Range<usize>>, tag: Option<Tag>, kind: NodeKind }
 pub enum NodeKind {
     Scalar(Scalar),
     Sequence(Vec<Node>),
     Mapping(Vec<(Node, Node)>),
-    Alias(AnchorId),
 }
 pub struct Scalar { value: String, style: ScalarStyle }
 ```
@@ -54,7 +52,7 @@ pub struct Scalar { value: String, style: ScalarStyle }
 3. `ScalarStyle` is `Plain`, `SingleQuoted`, `DoubleQuoted`, `Literal` or `Folded`; a TOML basic string is double quoted, a literal string single quoted, and a TOML number, boolean or datetime plain.
 4. A mapping keeps its entries in source order, key node and value node.
    So a key's place and its value's place are both known.
-5. An alias is a reference to an anchored node, kept once; the Deserializer expands it on read (decision 7).
+5. `used_at` holds the alias span of a node an alias replayed, and is `None` elsewhere (decision 7).
 
 The types are public, read-only, and `#[non_exhaustive]`, so a format outside ctl-input builds them through constructors.
 
@@ -70,7 +68,7 @@ It copies the fork's limits, duplicate-key identity and scalar rules into a seco
 pub trait Format: Sync {
     fn name(&self) -> FormatName;
     fn extensions(&self) -> &'static [&'static str];
-    fn read(&self, text: &str, limits: &Limits) -> Result<Document, Refusal>;
+    fn read(&self, text: &str, limits: &Limits) -> Result<Node, Refusal>;
     fn resolve<'a>(&self, scalar: &'a Scalar, wanted: Wanted) -> Result<Resolved<'a>, Mismatch>;
 }
 ```
@@ -116,7 +114,7 @@ So a CLI with several config types should link less code than today.
 
 A fork patch adds to vsh-serde-saphyr:
 
-1. `located::read(text, &Options) -> Result<LocatedDocument, Error>`: the document as nodes with byte span, processed value, style, tag, anchor and alias.
+1. `located::read(text, &Options) -> Result<LocatedDocument, Error>`: the document as nodes with byte span, processed value, style and tag, each alias expanded.
    It applies the same `Budget`, duplicate-key, merge-key and multiple-document checks as `from_str_with_options`.
 2. A public `scalars` module: the YAML 1.2 rules for null, bool, integer and float.
    `deserialize_any` and the typed methods use them today, with the options that select them.
@@ -124,12 +122,17 @@ A fork patch adds to vsh-serde-saphyr:
 ctl-input's YAML format calls `located::read` and converts its nodes into the tree, and resolves through `scalars`.
 The patch is generic serde-saphyr functionality, released as a fork version before ctl-input depends on it.
 
-### 7. Aliases expand on read, within the same limits
+### 7. Aliases expand in the format's reader
 
-The tree keeps an anchored node once.
-The Deserializer replays it at each alias, counting every replayed node against `max_nodes` and its nesting against `max_depth`.
-So an alias cannot multiply work past the limits a text already meets.
-An alias inside its own anchor is refused when the tree is read.
+A format with aliases expands each one while it reads, under its own limits, so the tree holds no alias node.
+A replayed node keeps the span of the anchored node it copies.
+`used_at` holds the span of the alias that brought it.
+
+A problem in a replayed node sits at `used_at` and names where its value is defined, as today's alias problems do.
+
+The fork's event pipeline already replays aliases under `max_aliases`, `max_events` and the recorded-anchor limits, and refuses an alias inside its own anchor.
+So the YAML limits keep their meaning, and ctl-input counts no aliases of its own.
+The alternative, alias nodes that the Deserializer replays, lost: it puts a second set of alias limits in ctl-input.
 
 ### 8. Placing, entries and checks walk the tree
 
