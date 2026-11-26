@@ -204,9 +204,13 @@ pub fn set_default_formats(formats: Formats) {
     *PROCESS.write().unwrap_or_else(PoisonError::into_inner) = Some(formats);
 }
 
-/// The registry [`Input::open`] reads through: the process default, or
-/// [`Formats::builtin`].
-pub(crate) fn default_formats() -> Formats {
+/// The registry [`Input::open`] reads through: what [`set_default_formats`]
+/// installed, or else [`Formats::builtin`].
+///
+/// A caller that reads a file with a format it picked by name uses it to find
+/// that name, so it accepts what `Input::open` accepts.
+#[must_use]
+pub fn default_formats() -> Formats {
     PROCESS
         .read()
         .unwrap_or_else(PoisonError::into_inner)
