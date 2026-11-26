@@ -76,8 +76,11 @@ The `input` feature SHALL enable `input-yaml` and `validate`, and nothing else.
 
 ### Requirement: The tree is read once per input
 
-An `Input` SHALL keep the tree it reads and read its text again only when the limits in force change.
+An `Input` SHALL keep the tree it reads.
+It SHALL read its text again only when the limits in force change.
+It SHALL also read it again when `parse` needs a strict tree and only a listing tree is kept.
 A tree read for `parse` SHALL also serve `place`, `place_key`, `check` and `top_level`.
+A listing tree SHALL never serve `parse`.
 
 #### Scenario: Two placings
 
@@ -88,6 +91,11 @@ A tree read for `parse` SHALL also serve `place`, `place_key`, `check` and `top_
 
 - **WHEN** `load` parses a YAML text and places a problem garde reports
 - **THEN** the text is read into the tree once
+
+#### Scenario: A parse after a listing
+
+- **WHEN** `top_level` lists a YAML text that holds `prefix: a` and `prefix: b`, and `parse` runs on the same input
+- **THEN** the parse reads a strict tree and fails with one problem that reads `` duplicate key `prefix` ``
 
 ### Requirement: Problems use one message set
 

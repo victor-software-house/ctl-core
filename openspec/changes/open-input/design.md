@@ -162,7 +162,9 @@ The alternative, alias nodes that the Deserializer replays, lost: it puts a seco
 
 An input keeps the tree it read, as it keeps the yamled document today, and reads again only when the limits in force change.
 A strict tree also serves placing and listing, so `load` reads the text once.
+
 A listing tree is read only when no strict tree exists, as for `top_level` on a text no parse has read.
+A listing tree never serves `parse`, which reads a strict tree when only a listing tree is kept.
 
 A missing field is placed on the key that holds its mapping, or on line 1 for the root, in every format.
 
