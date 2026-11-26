@@ -104,6 +104,7 @@ Each feature turns on only what its code calls.
 | `validate`, `input-yaml`, `input-json`, `input-toml`, `input` | Shared garde rules, and the declared-input loader for each format; `input` is `input-yaml` with `validate`, and `input-json` is opt-in |
 | `served` | Files rendered from templates that name their own target |
 | `shell`, `completion`, `shell-init` | The shell verbs |
+| `error-context` | The argument, value, valid values, suggestions, and tips of a parse error in the JSON error envelope's `parse` field |
 | `fixture` | Temporary file trees for integration tests |
 
 ## Documentation

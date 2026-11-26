@@ -151,8 +151,9 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    `Output::data` is the result as `&dyn erased_serde::Serialize`, `Output::document` is the document `present` builds, made on first use, and `Output::outcome` says whether the result succeeded.
    `Sink` is the writer for the stream the result goes to.
    Its `render` lays a document out as `pretty` does, and its colour is `never` when the format is a machine format.
-2. `Format::write_error` writes a failure.
-   The default is `{bin}: {message}`; `json` writes the error envelope.
+2. `Format::write_error` writes a failure from an `ErrorBody`.
+   The default writes `{bin}: {message}` with each cause after it as `: {cause}`, then one line per problem as `{input}:{line}:{column}: {field}: {message}`, leaving out what is unknown, then each tip of a parse error and `Usage: {usage}`.
+   `json` writes the error envelope.
 3. `Formats::builtin()` holds the five built-ins.
    `add` registers a format or replaces the one of the same name, `remove` takes one out, and `terminal_default` and `piped_default` set the default for each case.
    The terminal default is `pretty` and the piped default is `tsv`.
@@ -236,12 +237,27 @@ One serializable model feeds all modes:
 4. Errors use stderr, in each format's own error form, so stdout stays empty after a failure.
    That covers the error envelope, a parse error, and a result whose outcome is an error.
    A reader that parses stdout never mistakes an error for a result.
+   The error envelope keeps a field per part of a failure, as the next section lists.
 5. Quiet suppresses a successful result in `pretty` and in a default format, the stream default included.
    It never hides errors, and never hides a machine format that a flag, a shorthand, or a variable named.
 6. A reader that closes stdout or stderr early, as `head -1` does, leaves the exit code as the command set it and puts nothing on stderr:
    - A command that succeeded exits 0.
    - A failed command or a parse error keeps its code, so a closed pipe never turns a failure into success.
    - `App::broken_pipe` with `BrokenPipe::Fail` makes every closed pipe a failure, keeping a failure's own code.
+
+## Error envelope
+
+The JSON error envelope keeps a field per part of a failure, so a caller never parses prose.
+A field is left out when it is empty, and none contains ANSI.
+
+| Field | Holds |
+|:--|:--|
+| `message` | One sentence: the outermost error, an input's summary, or Clap's first line |
+| `kind` | The CLI's word for scripts to match, `usage` for a parse error |
+| `causes` | Each further error of an `anyhow` chain, outermost first |
+| `problems` | One object per input problem: `input`, `line`, `column`, `field`, `message` |
+| `usage` | The selected command's usage line, without `Usage:` |
+| `parse` | `reason`, and with the `error-context` feature `argument`, `value`, `valid_values`, `suggestions`, `conflicts_with`, `tips` |
 
 ## Help law
 

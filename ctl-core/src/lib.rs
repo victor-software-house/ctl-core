@@ -76,9 +76,9 @@
 //!   of them, where the last one given wins.
 //! - [`RenderOptions`] and [`Theme`] set how a document renders: the width
 //!   policy, the record and table framing, and the style of each role.
-//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape. A handler returns
-//!   a [`CommandError`] to give a failure its own exit code and a `kind` value
-//!   a script can match on.
+//! - [`Envelope`] and [`ErrorBody`] are the JSON error shape, with a field for
+//!   each part of a failure. A handler returns a [`CommandError`] to give a
+//!   failure its own exit code and a `kind` value a script can match on.
 //! - [`input::Input`], from the `ctl-input` crate, loads a CLI's declared
 //!   config from YAML or TOML, and reports every problem on its file and line.
 //!   [`input::FieldPath`] and [`input::Input::place`] place a problem of the
