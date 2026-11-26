@@ -281,7 +281,10 @@ usage = { features = "app,usage", text = 579977 }
 # collected merge compares column counts (CTC-063, the stream forms fix pass).
 # 5,744 above that: the same growth as app (CTC-064).
 # 560 below that: the same fix pass (CTC-064).
-input = { features = "app,input", text = 1103677 }
+# 137,664 below that: Input reads through the located tree, and yamled and
+# the per-format text and entries code are gone (CTC-065, the input switch),
+# measured against 667fe38.
+input = { features = "app,input", text = 966013 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 456,799 below input. 320 above the last budget,
 # 594206: Input::top_level over the toml tree (top-level-entries). The one
@@ -299,7 +302,11 @@ input = { features = "app,input", text = 1103677 }
 # collected merge compares column counts (CTC-063, the stream forms fix pass).
 # 5,728 above that: the same growth as app (CTC-064).
 # 224 below that: the same fix pass (CTC-064).
-input-toml = { features = "app,input-toml", text = 647502 }
+# 6,944 above that: the one tree Deserializer, the problem wording, the kept
+# tree and the format registry replace the toml crate's serde path (CTC-065,
+# the input switch), measured against 667fe38 after three cuts that changed
+# no behaviour.
+input-toml = { features = "app,input-toml", text = 654446 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
