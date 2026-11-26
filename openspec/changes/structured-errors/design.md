@@ -31,30 +31,38 @@ Non-goals:
 | `usage` | string, optional | the selected command's usage line, without the `Usage:` label |
 | `parse` | object, optional | clap's parts, below |
 
-`parse` holds `reason`, clap's `ErrorKind` in snake case such as `unknown_argument`, and these when clap gives them: `argument`, `value`, `valid_values`, `suggestions`, `conflicts_with`, `tips`.
-Each is a string or a list of strings, with no ANSI.
+`parse` holds `reason`, clap's `ErrorKind` in snake case such as `unknown_argument`.
+It also holds one field for each kind of context clap 4.6.6 gives.
+Those are the argument, the missing arguments, the value, the valid values and the conflicting argument.
+Then the invalid and valid subcommands, the value counts and the trailing argument.
+Then the suggested arguments, values, subcommands and commands, and the tips.
+Each is a string, a number or a list, with no ANSI.
+A test maps every `ContextKind` to its field or names why it has none.
 
 ### 2. Where each part comes from
 
 1. A parse error: `reason` from `Error::kind`; the rest from `Error::get` with `ContextKind`; `message` from clap's rendered first line.
-   ctl-core cannot see a dependency's feature, so it reads the context under its own `error-context` feature, which turns on clap's; `input-document` turns it on, and a consumer that wants the parts turns on ctl-core's `error-context` rather than clap's.
+   ctl-core cannot see a dependency's feature, so it reads the context under its own `error-context` feature, which turns on clap's.
+   `input-document` turns it on, and a consumer that wants the parts turns on ctl-core's `error-context` rather than clap's.
    Without it, `parse` holds only `reason`, even when the consumer turns on clap's `error-context` itself.
 2. `usage`: ctl-core renders the selected command's usage with clap's `usage` feature, which `help` turns on, for every parse error.
-3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, `message` as `<input> has <n> problems`, or the one problem's message when it has one.
+3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, `message` as `<input> has <n> problems`, singular for one, and the text as the `InputError`'s display, one problem per line as it prints today.
 4. A handler error: `message` from the outermost error, `causes` from `Error::chain` after it.
    A `CommandError`'s exit code and `kind` are found as today.
 
 ### 3. Pretty output
 
-`Format::write_error`'s default renders `{bin}: {message}` with each cause after it as `: {cause}`, as `{error:#}` reads today.
-Then it writes one line per problem as `{input}:{line}:{column}: {field}: {message}`, the line `InputError` prints today, then the tips and `Usage: {usage}` as clap lays them out.
+Rendering the parts again would copy clap's error formatter, a second implementation of text clap already writes.
+So `ErrorBody` keeps the text a person reads beside the parts, out of JSON and the schema.
+For a parse error that is clap's rendered text without its leading `error:` prefix and trimmed, as `parse_error_message` gives it today; for a handler error, `{error:#}`.
+`Format::write_error`'s default prints `{bin}: {text}` when that text is set, and `{bin}: {message}` otherwise, so `pretty` prints exactly what it prints today.
 An `InputError` in a handler's chain becomes `problems` and adds no cause of its own.
-A format that overrides `write_error` gets the same `ErrorBody`.
+A format that overrides `write_error` gets the same `ErrorBody`, text included.
 
-### 4. A non-exhaustive body
+### 4. Builders
 
-`ErrorBody` becomes `#[non_exhaustive]` and gains builders for the new fields, so a later field is no break.
-A CLI builds one with `ErrorBody::new` and the builders.
+`ErrorBody` is already `#[non_exhaustive]`, so the new fields break no build.
+It gains a builder for each, and a CLI builds one with `ErrorBody::new` and the builders.
 
 Alternatives considered:
 
