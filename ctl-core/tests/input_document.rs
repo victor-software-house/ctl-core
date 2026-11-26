@@ -892,7 +892,47 @@ fn a_parse_error_under_json_carries_no_escape_byte() {
     );
     lacks(&out.stderr, "\u{1b}");
     let error: serde_json::Value = serde_json::from_str(out.stderr.trim()).unwrap();
-    assert_eq!(error["error"]["kind"], "usage", "{error}");
+    let error = &error["error"];
+    assert_eq!(error["kind"], "usage", "{error}");
+    assert!(
+        error["message"]
+            .as_str()
+            .is_some_and(|message| message.ends_with("task.yaml has 1 problem")),
+        "{error}"
+    );
+    let problems = error["problems"].as_array().unwrap();
+    assert_eq!(problems.len(), 1, "{error}");
+    assert_eq!(problems[0]["line"], 1, "{error}");
+    assert_eq!(problems[0]["column"], 11, "{error}");
+    assert_eq!(problems[0]["field"], "priority", "{error}");
+    assert_eq!(error["parse"]["reason"], "value_validation", "{error}");
+    assert_eq!(error["parse"]["value"], "high", "{error}");
+    assert!(error["usage"].is_string(), "{error}");
+}
+
+#[test]
+fn a_refused_document_under_json_has_a_problem_for_each_fault() {
+    ran!(
+        out = case(
+            &[("task.yaml", "due: friday\nsize: big\n")],
+            &["add", "--input", "@task.yaml", "--format", "json"],
+        )
+        .code(2)
+    );
+    let error: serde_json::Value = serde_json::from_str(out.stderr.trim()).unwrap();
+    let error = &error["error"];
+    assert_eq!(error["kind"], "usage", "{error}");
+    assert!(
+        error["message"]
+            .as_str()
+            .is_some_and(|message| message.ends_with("task.yaml has 2 problems")),
+        "{error}"
+    );
+    let problems = error["problems"].as_array().unwrap();
+    assert_eq!(problems.len(), 2, "{error}");
+    assert_eq!(problems[0]["line"], 1, "{error}");
+    assert_eq!(problems[1]["line"], 2, "{error}");
+    assert!(error.get("parse").is_none(), "{error}");
 }
 
 #[test]
