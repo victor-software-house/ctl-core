@@ -1,0 +1,7 @@
+basic = "a\tb"
+literal = 'c:\d'
+multi = """
+two
+lines"""
+raw = '''
+raw lines'''

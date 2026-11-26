@@ -1,0 +1,7 @@
+name: ''
+labels: []
+outputs:
+  - path: docs
+    file: a.md
+  - path: ../outside
+    file: nested/b.md

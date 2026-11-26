@@ -33,7 +33,7 @@ Typed methods ignore the style: a quoted `"8"` fills an integer and a quoted `'t
 | `true`, `True`, `TRUE` and the three `false` | bool | the text | bool |
 | `no`, `yes`, `on` | string | the text | bool refused |
 | `~`, `null`, empty | null | refused | `None` for `Option` |
-| `!!str 1` | string | the text | parsed |
+| `!!str 1` | string | the text | refused |
 
 The design keeps this table as it is.
 qctl reads its ledger typeless and hakkiri reads `params` into an untagged enum, so both see the typeless column.

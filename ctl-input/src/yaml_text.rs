@@ -7,20 +7,22 @@ use std::sync::{Mutex, OnceLock, PoisonError};
 
 use serde::de::{DeserializeOwned, IgnoredAny};
 use serde_saphyr::{
-    Budget, DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location,
-    MergeKeyPolicy, MessageFormatter, NonFiniteFloatPolicy, Options,
+    DefaultMessageFormatter, DuplicateKeyPolicy, Error, Localizer, Location, MergeKeyPolicy,
+    MessageFormatter, NonFiniteFloatPolicy, Options,
 };
 
-use super::limits::{Exceeded, Limits, Raise};
+use super::exceeded::{Exceeded, Raise};
+use super::format::Reading;
+use super::limits::Limits;
 use super::{At, FieldPath, Input, InputError, Problem, Step};
 
 /// [`Input::parse`] for a YAML text, once the text's size is known to fit.
 pub(super) fn parse<T: DeserializeOwned>(
     input: &Input,
-    budget: &Budget,
+    limits: &Limits,
     raise: Raise,
 ) -> Result<T, InputError> {
-    read(input, options(budget, Reading::Config), budget, raise)
+    read(input, options(limits, Reading::Strict), limits, raise)
 }
 
 /// [`parse`] for a read that only sorts each value by its type, as
@@ -28,17 +30,17 @@ pub(super) fn parse<T: DeserializeOwned>(
 /// `.NaN` are no refusal.
 pub(super) fn parse_types<T: DeserializeOwned>(
     input: &Input,
-    budget: &Budget,
+    limits: &Limits,
     raise: Raise,
 ) -> Result<T, InputError> {
-    read(input, options(budget, Reading::Listing), budget, raise)
+    read(input, options(limits, Reading::Listing), limits, raise)
 }
 
 /// Reads the text of `input` under `options`, and words each problem.
 fn read<T: DeserializeOwned>(
     input: &Input,
     options: Options,
-    budget: &Budget,
+    limits: &Limits,
     raise: Raise,
 ) -> Result<T, InputError> {
     serde_saphyr::from_str_with_options(&input.text, options).map_err(|error| {
@@ -51,28 +53,18 @@ fn read<T: DeserializeOwned>(
                     .map(|line| line + input.lines_before),
                 column: location.and_then(|at| usize::try_from(at.column()).ok()),
                 field: String::new(),
-                message: message(input, error.without_snippet(), budget, raise),
+                message: message(input, error.without_snippet(), limits, raise),
             },
         )
     })
 }
 
-/// What a read of a YAML text refuses.
-#[derive(Clone, Copy)]
-enum Reading {
-    /// A config or any text the caller validates: a repeated key, a merge key
-    /// and a non-finite float with no type named for it are refused.
-    Config,
-    /// A listing of a text the caller did not write, such as the front matter
-    /// of a Markdown file. It refuses nothing that YAML allows, so a repeated
-    /// key, a merge key and a non-finite float are values like the rest.
-    Listing,
-}
-
-/// What every read of a YAML text uses, under `budget`.
-fn options(budget: &Budget, reading: Reading) -> Options {
+/// What every read of a YAML text uses, under `limits`: its budget and its
+/// alias replay limits. A [`Reading::Listing`] also reads a non-finite float
+/// as a value.
+pub(crate) fn options(limits: &Limits, reading: Reading) -> Options {
     let (duplicates, merges, floats) = match reading {
-        Reading::Config => (
+        Reading::Strict => (
             DuplicateKeyPolicy::Error,
             MergeKeyPolicy::Error,
             NonFiniteFloatPolicy::Default,
@@ -84,7 +76,8 @@ fn options(budget: &Budget, reading: Reading) -> Options {
         ),
     };
     serde_saphyr::options! {
-        budget: Some(budget.clone()),
+        budget: Some(limits.budget()),
+        alias_limits: limits.alias_limits(),
         strict_booleans: true,
         duplicate_keys: duplicates,
         merge_keys: merges,
@@ -96,31 +89,32 @@ fn options(budget: &Budget, reading: Reading) -> Options {
 /// serde-saphyr's wording for `error`.
 ///
 /// An alias error also names where its value is defined, counted from the
-/// file like [`Problem::line`]. A limit error names the limit in `budget`
-/// and where to raise it.
+/// file like [`Problem::line`]. A budget breach names the limit in `limits`
+/// and where to raise it, unless an alias replay raised it: that keeps
+/// serde-saphyr's wording and the alias error's position. One of the three
+/// alias replay limits names the limit wherever it was raised.
 ///
 /// For an alias error the wording and position are those of the error the
 /// aliased value raised, found under any alias reached through another
 /// alias. Without a known position, the anchor's position is used.
-fn message(input: &Input, error: &Error, budget: &Budget, raise: Raise) -> String {
-    if let Error::Budget { breach, .. } = error
-        && let Some(exceeded) = Exceeded::breach(breach, budget, raise)
-    {
-        return exceeded.to_string();
-    }
-    let formatter = DefaultMessageFormatter.with_localizer(&Unplaced);
-    let Error::AliasError {
-        error: inner,
-        locations,
-        ..
-    } = error
-    else {
-        return plain(&formatter, error);
-    };
-    let mut failing = inner.as_ref();
+fn message(input: &Input, error: &Error, limits: &Limits, raise: Raise) -> String {
+    let (budget, alias) = (limits.budget(), limits.alias_limits());
+    let mut failing = error;
     while let Error::AliasError { error, .. } | Error::WithSnippet { error, .. } = failing {
         failing = error;
     }
+    let exceeded = if let Error::Budget { breach, .. } = error {
+        Exceeded::breach(breach, &budget, raise)
+    } else {
+        Exceeded::alias_limit(failing, &alias, raise)
+    };
+    if let Some(exceeded) = exceeded {
+        return exceeded.to_string();
+    }
+    let formatter = DefaultMessageFormatter.with_localizer(&Unplaced);
+    let Error::AliasError { locations, .. } = error else {
+        return plain(&formatter, error);
+    };
     let at = failing
         .location()
         .filter(|at| *at != Location::UNKNOWN)
@@ -140,7 +134,7 @@ fn message(input: &Input, error: &Error, budget: &Budget, raise: Raise) -> Strin
 /// line ([vsh-serde-saphyr 0.0.1][plain]).
 ///
 /// [plain]: https://docs.rs/crate/vsh-serde-saphyr/0.0.2/source/src/de/error.rs#1970
-fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
+pub(crate) fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
     while let Error::AliasError { error: inner, .. } | Error::WithSnippet { error: inner, .. } =
         error
     {
@@ -160,7 +154,7 @@ fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
 /// serde-saphyr's wording without the position it appends. That position
 /// counts from the parsed text, which for frontmatter is not the file, and
 /// [`Problem`] already carries the file's line and column.
-struct Unplaced;
+pub(crate) struct Unplaced;
 
 impl Localizer for Unplaced {
     fn attach_location<'a>(&self, base: Cow<'a, str>, _: Location) -> Cow<'a, str> {
@@ -222,7 +216,7 @@ impl Located {
         {
             return *passed;
         }
-        let passed = within(input, &limits.budget());
+        let passed = within(input, limits);
         *verdict = Some((limits.clone(), passed));
         passed
     }
@@ -275,13 +269,13 @@ pub(super) fn document<'a>(input: &'a Input, limits: &Limits) -> Option<&'a yaml
         .flatten()
 }
 
-/// Whether serde-saphyr reads the whole text under `budget`, depth and node
+/// Whether serde-saphyr reads the whole text under `limits`, depth and node
 /// count included, as [`parse`] would, without building any value.
 ///
 /// What [`parse`] refuses for its own sake, such as a repeated key, passes,
 /// since it takes no budget and the caller decides what to make of it.
-fn within(input: &Input, budget: &Budget) -> bool {
-    let options = options(budget, Reading::Listing);
+fn within(input: &Input, limits: &Limits) -> bool {
+    let options = options(limits, Reading::Listing);
     serde_saphyr::from_str_with_options::<IgnoredAny>(&input.text, options).is_ok()
 }
 

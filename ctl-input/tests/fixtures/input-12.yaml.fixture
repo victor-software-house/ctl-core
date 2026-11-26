@@ -1,0 +1,7 @@
+---
+base: &b
+  port: eighty
+outer: &o
+  nested: *b
+copy: *o
+---

@@ -1,0 +1,15 @@
+plain: a plain value
+single: 'it''s'
+double: "tab\there"
+folded: >
+  one
+  two
+literal: |
+  line
+number: 12
+flag: true
+nothing: null
+yes_text: yes
+list: [a, b]
+map:
+  k: v

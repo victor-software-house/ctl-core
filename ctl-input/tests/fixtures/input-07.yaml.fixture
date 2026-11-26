@@ -1,0 +1,4 @@
+base: &base
+  flag: true
+copy:
+  <<: *base

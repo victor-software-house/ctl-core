@@ -1,8 +1,10 @@
 //! How much a text may hold before [`Input::parse`](super::Input::parse)
 //! refuses it, and who decides. The order is on [`Limits`]. Three fields hold
 //! a text of every format: `max_reader_input_bytes`, `max_depth`, and
-//! `max_nodes`. The others name YAML syntax and exist only with `yaml`.
+//! `max_nodes`. The others name YAML syntax and exist only with `yaml`,
+//! the three replay limits of aliases among them.
 
+#[cfg(feature = "yaml")]
 use std::fmt;
 #[cfg(feature = "yaml")]
 use std::path::Path;
@@ -14,8 +16,10 @@ use serde::Deserialize;
 #[cfg(feature = "yaml")]
 use serde_saphyr::Budget;
 #[cfg(feature = "yaml")]
-use serde_saphyr::budget::BudgetBreach;
+use serde_saphyr::options::AliasLimits;
 
+#[cfg(feature = "yaml")]
+use super::exceeded::Raise;
 #[cfg(feature = "yaml")]
 use super::{Input, InputError};
 
@@ -27,6 +31,7 @@ macro_rules! limits {
     (
         shared { $( $(#[$sdoc:meta])* $sfield:ident = $sdefault:ident, )* }
         yaml { $( $(#[$ydoc:meta])* $yfield:ident: $yty:ty, )* }
+        replay { $( $(#[$rdoc:meta])* $rfield:ident, )* }
     ) => {
         /// Overrides for the limits a text is held to, one per field. `None`
         /// leaves the field to the next tier.
@@ -59,6 +64,7 @@ macro_rules! limits {
         pub struct Limits {
             $( $(#[$sdoc])* pub $sfield: Option<usize>, )*
             $( $(#[$ydoc])* #[cfg(feature = "yaml")] pub $yfield: Option<$yty>, )*
+            $( $(#[$rdoc])* #[cfg(feature = "yaml")] pub $rfield: Option<usize>, )*
         }
 
         impl Limits {
@@ -66,6 +72,7 @@ macro_rules! limits {
             pub const NONE: Self = Self {
                 $( $sfield: None, )*
                 $( #[cfg(feature = "yaml")] $yfield: None, )*
+                $( #[cfg(feature = "yaml")] $rfield: None, )*
             };
 
             /// `self`, with each unset field taken from `lower`.
@@ -74,6 +81,7 @@ macro_rules! limits {
                 Self {
                     $( $sfield: self.$sfield.or(lower.$sfield), )*
                     $( #[cfg(feature = "yaml")] $yfield: self.$yfield.or(lower.$yfield), )*
+                    $( #[cfg(feature = "yaml")] $rfield: self.$rfield.or(lower.$rfield), )*
                 }
             }
 
@@ -91,6 +99,17 @@ macro_rules! limits {
                     budget.$yfield = value;
                 } )*
                 budget
+            }
+
+            /// serde-saphyr's alias replay limits for these limits. An unset
+            /// field takes serde-saphyr's default.
+            #[cfg(feature = "yaml")]
+            pub(super) fn alias_limits(&self) -> AliasLimits {
+                let mut limits = AliasLimits::default();
+                $( if let Some(value) = self.$rfield {
+                    limits.$rfield = value;
+                } )*
+                limits
             }
 
             /// Each set field that is looser than its default.
@@ -114,6 +133,16 @@ macro_rules! limits {
                         field: stringify!($yfield),
                         value: value.to_string(),
                         default: default.$yfield.to_string(),
+                    });
+                } )*
+                let default = AliasLimits::default();
+                $( if let Some(value) = self.$rfield
+                    && value > default.$rfield
+                {
+                    loosened.push(Loosened {
+                        field: stringify!($rfield),
+                        value: value.to_string(),
+                        default: default.$rfield.to_string(),
                     });
                 } )*
                 loosened
@@ -168,6 +197,15 @@ limits! {
         alias_anchor_min_aliases: usize,
         /// How many aliases each anchor may have once the ratio applies.
         alias_anchor_ratio_multiplier: usize,
+    }
+    replay {
+        /// Events the aliases of a text replay in total, nested aliases
+        /// included.
+        max_total_replayed_events,
+        /// Nesting of aliases inside aliases.
+        max_replay_stack_depth,
+        /// Times one anchor may be used through an alias.
+        max_alias_expansions_per_anchor,
     }
 }
 
@@ -290,137 +328,6 @@ pub(super) fn effective(call: &Limits) -> Limits {
     #[cfg(not(feature = "yaml"))]
     let call = call.clone();
     call.or(&process)
-}
-
-/// Where a user raises a limit a text went past.
-#[derive(Clone, Copy)]
-pub(super) enum Raise {
-    /// In the repository's [`REPO_FILE`].
-    #[cfg(feature = "yaml")]
-    InRepository,
-    /// In the tool's process default, for [`REPO_FILE`] itself, which is
-    /// read before any repository override applies.
-    #[cfg(feature = "yaml")]
-    InProcess,
-    /// Nowhere the user can reach: a build without `yaml` reads no
-    /// repository file, so only the tool sets limits.
-    #[cfg(not(feature = "yaml"))]
-    InTool,
-}
-
-impl Raise {
-    /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(feature = "yaml")]
-    pub(super) const FOR_TEXT: Self = Self::InRepository;
-    /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(not(feature = "yaml"))]
-    pub(super) const FOR_TEXT: Self = Self::InTool;
-}
-
-/// A limit a text went past: the field and the value in force.
-pub(super) struct Exceeded {
-    field: &'static str,
-    limit: String,
-    raise: Raise,
-}
-
-impl Exceeded {
-    pub(super) fn input_bytes(limit: usize, raise: Raise) -> Self {
-        Self::new("max_reader_input_bytes", limit, raise)
-    }
-
-    /// The [`Limits`] `field` the text went past, with the value in force.
-    pub(super) fn new(field: &'static str, limit: usize, raise: Raise) -> Self {
-        Self {
-            field,
-            limit: limit.to_string(),
-            raise,
-        }
-    }
-
-    /// The field serde-saphyr reports as breached, with its value in `budget`.
-    /// `None` for a breach this version does not know, which keeps
-    /// serde-saphyr's own wording.
-    #[cfg(feature = "yaml")]
-    #[expect(
-        clippy::wildcard_enum_match_arm,
-        reason = "BudgetBreach is non_exhaustive: a variant added later keeps serde-saphyr's wording"
-    )]
-    pub(super) fn breach(breach: &BudgetBreach, budget: &Budget, raise: Raise) -> Option<Self> {
-        let (field, limit) = match breach {
-            BudgetBreach::Events { .. } => ("max_events", budget.max_events.to_string()),
-            BudgetBreach::Aliases { .. } => ("max_aliases", budget.max_aliases.to_string()),
-            BudgetBreach::Anchors { .. } => ("max_anchors", budget.max_anchors.to_string()),
-            BudgetBreach::Depth { .. } => ("max_depth", budget.max_depth.to_string()),
-            BudgetBreach::InclusionDepth { .. } => (
-                "max_inclusion_depth",
-                budget.max_inclusion_depth.to_string(),
-            ),
-            BudgetBreach::Documents { .. } => ("max_documents", budget.max_documents.to_string()),
-            BudgetBreach::Nodes { .. } => ("max_nodes", budget.max_nodes.to_string()),
-            BudgetBreach::ScalarBytes { .. } => (
-                "max_total_scalar_bytes",
-                budget.max_total_scalar_bytes.to_string(),
-            ),
-            BudgetBreach::CommentBytes { .. } => (
-                "max_total_comment_bytes",
-                budget.max_total_comment_bytes.to_string(),
-            ),
-            BudgetBreach::MergeKeys { .. } => ("max_merge_keys", budget.max_merge_keys.to_string()),
-            BudgetBreach::AliasAnchorRatio { .. } => (
-                "alias_anchor_ratio_multiplier",
-                budget.alias_anchor_ratio_multiplier.to_string(),
-            ),
-            BudgetBreach::InputBytes { .. } => (
-                "max_reader_input_bytes",
-                budget
-                    .max_reader_input_bytes
-                    .map_or_else(|| "none".to_owned(), |limit| limit.to_string()),
-            ),
-            BudgetBreach::RecordedAnchorEvents { .. } => (
-                "max_recorded_anchor_events",
-                budget.max_recorded_anchor_events.to_string(),
-            ),
-            BudgetBreach::RecordedAnchorBytes { .. } => (
-                "max_recorded_anchor_bytes",
-                budget.max_recorded_anchor_bytes.to_string(),
-            ),
-            BudgetBreach::PropertyExpansionDepth { .. } => (
-                "max_property_expansion_depth",
-                budget.max_property_expansion_depth.to_string(),
-            ),
-            BudgetBreach::PropertyInterpolationWork { .. } => (
-                "max_total_property_interpolation_work",
-                budget.max_total_property_interpolation_work.to_string(),
-            ),
-            _ => return None,
-        };
-        Some(Self {
-            field,
-            limit,
-            raise,
-        })
-    }
-}
-
-impl fmt::Display for Exceeded {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "exceeds {} ({}); ", self.field, self.limit)?;
-        match self.raise {
-            #[cfg(feature = "yaml")]
-            Raise::InRepository => {
-                write!(formatter, "raise limits.{} in {REPO_FILE}", self.field)
-            }
-            #[cfg(feature = "yaml")]
-            Raise::InProcess => write!(
-                formatter,
-                "raise {} in the tool's process default, which reads {REPO_FILE}",
-                self.field
-            ),
-            #[cfg(not(feature = "yaml"))]
-            Raise::InTool => write!(formatter, "the tool sets this limit"),
-        }
-    }
 }
 
 #[cfg(all(test, feature = "yaml"))]

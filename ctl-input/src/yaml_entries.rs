@@ -11,7 +11,7 @@ use serde_saphyr::{Location, Spanned};
 use yamled::Style;
 
 use super::entries::{Entry, Written};
-use super::limits::Raise;
+use super::exceeded::Raise;
 use super::{Input, InputError, limits, yaml_text};
 
 /// What the parser reads a value or a key as: a string, a number, a boolean or
@@ -155,7 +155,7 @@ impl<'de> Visitor<'de> for RootVisitor {
 pub(super) fn entries(input: &Input) -> Result<Vec<Entry>, InputError> {
     let limits = limits::effective(&input.limits);
     input.fits(&limits, Raise::FOR_TEXT)?;
-    let Root(typed) = yaml_text::parse_types::<Root>(input, &limits.budget(), Raise::FOR_TEXT)?;
+    let Root(typed) = yaml_text::parse_types::<Root>(input, &limits, Raise::FOR_TEXT)?;
     let Some(root) = yaml_text::document(input, &limits)
         .and_then(|document| document.node(&yamled::Path::root()))
     else {

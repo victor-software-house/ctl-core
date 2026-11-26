@@ -1,0 +1,10 @@
+name = 'release'
+labels = ['ship']
+owner = { name = 'victor' }
+
+[release]
+tag = 'v1'
+
+[[outputs]]
+path = 'docs'
+file = 'a.md'

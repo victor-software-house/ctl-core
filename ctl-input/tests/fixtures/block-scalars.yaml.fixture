@@ -1,0 +1,10 @@
+literal: |
+  line one
+  line two
+folded: >-
+  folded text
+  continues here
+keep: |+
+  kept
+
+after: plain
