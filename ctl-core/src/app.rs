@@ -650,9 +650,9 @@ where
         let parse = flags::env_under_flags(parser::apply_defaults(command.clone()), raw)
             .map_err(|error| self.clap_error(&error, error_view, words, command, selected))?;
         #[cfg(feature = "input-document")]
-        let document = self
-            .joined_document(&parse, raw)
-            .map_err(|error| self.document_error(&error, error_view))?;
+        let document = self.joined_document(&parse, raw).map_err(|refused| {
+            self.document_error(error_body::refused_document(&self.bin, refused), error_view)
+        })?;
         #[cfg(feature = "input-document")]
         let tokens = document.as_ref().map_or(raw, |joined| joined.argv());
         #[cfg(not(feature = "input-document"))]
@@ -660,7 +660,8 @@ where
         parse.try_get_matches_from(tokens).map_err(|error| {
             #[cfg(feature = "input-document")]
             if let Some(refused) = document.as_ref().and_then(|joined| joined.blame(&error)) {
-                return self.document_error(&refused, error_view);
+                let body = error_body::refused_value(&self.bin, refused, &error, command, selected);
+                return self.document_error(body, error_view);
             }
             self.clap_error(&error, error_view, words, command, selected)
         })
@@ -706,12 +707,11 @@ where
         document::join(parse, raw, self.input_conflicts, &reserved)
     }
 
-    /// Report a document's problems as a usage error: exit code 2, in the
-    /// error form of `view`, so a machine format carries no ANSI.
+    /// Report a refused document as a usage error: exit code 2, in the error
+    /// form of `view`, so a machine format carries no ANSI.
     #[cfg(feature = "input-document")]
-    fn document_error(&self, error: &InputError, view: &View) -> ExitCode {
-        let body = ErrorBody::new(&self.bin, error.to_string()).kind(USAGE_KIND);
-        self.written(view.write_error(&body), ExitCode::from(2))
+    fn document_error(&self, body: ErrorBody, view: &View) -> ExitCode {
+        self.written(view.write_error(&body.kind(USAGE_KIND)), ExitCode::from(2))
     }
 
     /// Write `error` to stderr in `view`'s error form and return its exit
