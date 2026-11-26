@@ -1,6 +1,6 @@
 # ctl-input
 
-Declared input for CLIs: parse a config file as YAML or TOML, validate it once, and report every problem on its file and line.
+Declared input for CLIs: parse a config file as YAML, JSON or TOML, validate it once, and report every problem on its file and line.
 
 `ctl-input` is the one boundary where a CLI's config enters.
 It rejects what the format's parser rejects, such as a duplicate key, and checks the rest with garde.
@@ -8,7 +8,7 @@ Each problem carries the line and column of the field it names, and downstream c
 
 ## What it provides
 
-- `Input`, which reads a file or text in memory, in a format chosen by the extension or by the caller, and parses it into a serde type. A format is a value, the built-in `YAML` and `TOML` or one the CLI writes, and a `Formats` registry finds it by extension.
+- `Input`, which reads a file or text in memory, in a format chosen by the extension or by the caller, and parses it into a serde type. A format is a value, the built-in `YAML`, `JSON` and `TOML` or one the CLI writes, and a `Formats` registry finds it by extension.
 - `Input::check` and `Input::load`, which validate with garde and place each problem on its line.
 - `FieldPath` and `Input::place`, which place a problem of the CLI's own the same way.
 - `Limits`, the bounds on input size, depth, and node count, set by the call, the repository, or the process.
@@ -34,6 +34,7 @@ assert_eq!(config.name, "release");
 | Feature | Adds |
 |:--|:--|
 | `yaml` | YAML, read by serde-saphyr |
+| `json` | JSON by RFC 8259 with no option that loosens it, read by an own reader that needs no crate; a strict reading refuses a duplicate key |
 | `toml` | TOML, read by the `toml` crate |
 | `validate` | garde validation: `Input::check` and `Input::load` |
 

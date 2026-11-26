@@ -35,7 +35,7 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   - Completion is its own `completion` feature, below.
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names, recursive commands, aliases, visibility, arguments, flags, Usage KDL, and optional audience notes.
   `surface-serde` adds serialization without a template engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains the compatibility aggregate enabling all three.
-- Declared input (`validate`, `input-yaml`, `input-toml`, `input` features): shared garde rules, and one loader for YAML or TOML.
+- Declared input (`validate`, `input-yaml`, `input-json`, `input-toml`, `input` features): shared garde rules, and one loader for YAML, JSON or TOML.
   The loader lives in the `ctl-input` crate, which ctl-core re-exports as `input`.
   It validates once with `validate`, and places every problem on its file and line.
   - A public `FieldPath` names a field by its steps, and `Input::place` and `Input::problem_at` place it, for garde's problems and for a CLI's own.
@@ -280,17 +280,19 @@ The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 ## Declared input
 
 The code lives in [`ctl-input`](../ctl-input/AGENTS.md), and `ctl_core::input` is that crate re-exported, so every path under it is unchanged.
-ctl-core's `input-yaml`, `input-toml`, and `validate` turn on `ctl-input`'s `yaml`, `toml`, and `validate`.
+ctl-core's `input-yaml`, `input-json`, `input-toml`, and `validate` turn on `ctl-input`'s `yaml`, `json`, `toml`, and `validate`.
 Each format is its own feature, and validation is a third:
 
 | Feature | Adds | Links |
 |:--|:--|:--|
 | `input-yaml` | YAML, with strict booleans and duplicate and merge keys refused | serde-saphyr |
+| `input-json` | JSON by the strict RFC 8259 grammar, read by ctl-input's own reader into the located tree; a strict reading refuses a duplicate key, and `input` does not turn it on | none |
 | `input-toml` | TOML, parsed into the span-carrying `DeTable` that the located tree is built from | toml |
 | `validate` | The shared garde rules, and with a format, `Input::check` and `Input::load` | garde |
 | `input` | `input-yaml` with `validate`, the set every current consumer enables | serde-saphyr, garde |
 
 `check:tree` fails when `input-toml` alone links serde-saphyr or garde.
+`input-json` links no parser crate, and a CLI that reads JSON names it beside `input`.
 
 A message carries no position of its own, except that a problem in a node an alias replayed names where its value is defined, counted from the file.
 `Messages` words every problem once, whatever the format, and `set_messages` replaces the wording for the process.
@@ -308,7 +310,8 @@ Their defaults are the `Limits::DEFAULT_*` constants, which a unit test holds to
 The other fields name YAML syntax, exist only with `input-yaml`, and default to serde-saphyr's.
 The field set follows the enabled features, so a caller builds `Limits` with `..Limits::NONE`.
 
-ctl-core enforces depth and nodes on a TOML text itself, because the `toml` crate takes no depth or node limit from a caller.
+ctl-core enforces depth and nodes on a JSON text as its reader goes, when an array or object opens and when a value is added.
+It enforces them on a TOML text itself, because the `toml` crate takes no depth or node limit from a caller.
 Its parser bounds nesting at a fixed 80 levels, which no limit raises.
 
 `enforce_alias_anchor_ratio` is not overridable and stays on.
@@ -318,8 +321,8 @@ Without `input-yaml`, a limit message ends "the tool sets this limit".
 A CLI parses config only through the input features; it keeps no `schema.rs` and no YAML crate of its own.
 `CTC-008` tracks the consumer moves and the template renderer.
 
-The format is chosen, never guessed, and it is a value: `input::Format` is a trait, `input::YAML` and `input::TOML` are the built-in formats, and a CLI adds its own to a `Formats` registry.
-`Input::open(path)` takes the format from the file's extension (`.toml`, `.yaml`, `.yml`, any case) through the process default, which `set_default_formats` or `App::input_formats` installs, else `Formats::builtin()`.
+The format is chosen, never guessed, and it is a value: `input::Format` is a trait, `input::YAML`, `input::JSON` and `input::TOML` are the built-in formats, and a CLI adds its own to a `Formats` registry.
+`Input::open(path)` takes the format from the file's extension (`.toml`, `.json`, `.yaml`, `.yml`, any case) through the process default, which `set_default_formats` or `App::input_formats` installs, else `Formats::builtin()`.
 `Formats::open(path)` does the same through a registry of the caller's.
 Both refuse every extension no registered format reads before reading, and name the feature a built-in extension needs when its feature is off.
 

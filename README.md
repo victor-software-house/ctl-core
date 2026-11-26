@@ -13,7 +13,7 @@ Every crate here is a library, released together at one version.
 | [`ctl-text`](ctl-text/README.md) | Styled text that is safe to print, widths in terminal cells, and wrapping | [docs.rs](https://docs.rs/ctl-text) |
 | [`ctl-layout`](ctl-layout/README.md) | Tables, records, rules, stacks, and indents built on `ctl-text` | [docs.rs](https://docs.rs/ctl-layout) |
 | [`ctl-term`](ctl-term/README.md) | Colour, colour depth, and width for each output stream, and the escape encoder | [docs.rs](https://docs.rs/ctl-term) |
-| [`ctl-input`](ctl-input/README.md) | Declared input: parse YAML or TOML, validate once, and report every problem on its file and line | [docs.rs](https://docs.rs/ctl-input) |
+| [`ctl-input`](ctl-input/README.md) | Declared input: parse YAML, JSON or TOML, validate once, and report every problem on its file and line | [docs.rs](https://docs.rs/ctl-input) |
 | [`ctl-core`](ctl-core/README.md) | The CLI chassis: shared flags, help, one result rendered as pretty or JSON output, and exit codes | [docs.rs](https://docs.rs/ctl-core) |
 
 ## How they fit
