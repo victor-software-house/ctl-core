@@ -86,6 +86,29 @@ fn nested_aliases_past_the_replay_limit_are_one_problem_naming_the_field() {
     );
 }
 
+/// A node budget the definitions fit and the replays of `*x` do not.
+#[test]
+fn a_node_budget_breached_inside_a_replay_keeps_serde_saphyrs_wording() {
+    let limits = Limits {
+        max_nodes: Some(9),
+        max_depth: Some(Limits::DEFAULT_MAX_DEPTH),
+        max_reader_input_bytes: Some(Limits::DEFAULT_MAX_READER_INPUT_BYTES),
+        ..Limits::NONE
+    };
+    let input = Input::new("replay.yaml", "a: &x [1, 2]\nb: [*x, *x, *x]\n").limits(limits);
+    let error = input.parse::<IgnoredAny>().unwrap_err();
+    assert_eq!(error.problems.len(), 1, "{error}");
+    let problem = &error.problems[0];
+    assert_eq!(
+        (problem.line, problem.column, problem.message.as_str()),
+        (
+            Some(2),
+            Some(5),
+            "budget breached: Nodes { nodes: 10 } (defined at line 1, column 11)"
+        )
+    );
+}
+
 #[test]
 fn text_already_in_memory_is_held_to_the_input_byte_limit() {
     let limits = Limits {

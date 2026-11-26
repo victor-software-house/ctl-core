@@ -89,8 +89,10 @@ pub(crate) fn options(limits: &Limits, reading: Reading) -> Options {
 /// serde-saphyr's wording for `error`.
 ///
 /// An alias error also names where its value is defined, counted from the
-/// file like [`Problem::line`]. A limit error, including one an alias raised,
-/// names the limit in `limits` and where to raise it.
+/// file like [`Problem::line`]. A budget breach names the limit in `limits`
+/// and where to raise it, unless an alias replay raised it: that keeps
+/// serde-saphyr's wording and the alias error's position. One of the three
+/// alias replay limits names the limit wherever it was raised.
 ///
 /// For an alias error the wording and position are those of the error the
 /// aliased value raised, found under any alias reached through another
@@ -101,7 +103,12 @@ fn message(input: &Input, error: &Error, limits: &Limits, raise: Raise) -> Strin
     while let Error::AliasError { error, .. } | Error::WithSnippet { error, .. } = failing {
         failing = error;
     }
-    if let Some(exceeded) = Exceeded::of(failing, &budget, &alias, raise) {
+    let exceeded = if let Error::Budget { breach, .. } = error {
+        Exceeded::breach(breach, &budget, raise)
+    } else {
+        Exceeded::alias_limit(failing, &alias, raise)
+    };
+    if let Some(exceeded) = exceeded {
         return exceeded.to_string();
     }
     let formatter = DefaultMessageFormatter.with_localizer(&Unplaced);
