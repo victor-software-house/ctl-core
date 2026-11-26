@@ -2,8 +2,8 @@
 //! problem on its file and line.
 //!
 //! Each format is its own feature. `yaml` parses YAML with `serde-saphyr`,
-//! `json` parses JSON with an own strict reader that needs no crate, and `toml`
-//! parses TOML with the `toml` crate; none needs another.
+//! `json` parses JSON with an own strict reader that links no parser crate, and
+//! `toml` parses TOML with the `toml` crate; none needs another.
 //! `validate` adds `Input::check` and `Input::load`, which validate with
 //! garde. This is the one boundary where a CLI's config enters. Downstream
 //! code keeps the validated type and never checks it again. With no format

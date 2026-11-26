@@ -4,7 +4,7 @@ ctl-core: patch
 
 `input-json` reads JSON through `Input::open`, with the built-in format `input::JSON` and the extension `.json`.
 `input` does not turn it on, so a CLI that reads JSON names `input-json` beside it.
-The reader is ctl-input's own and links no crate.
+The reader is ctl-input's own and links no parser crate.
 
 `ScalarSyntax::Null` joins the tree for `null`; the enum is non-exhaustive, so a `match` on it already has a wildcard arm.
 `Formats::builtin()` holds `yaml`, `json` and `toml`, in that order, as their features allow.
@@ -18,5 +18,6 @@ A JSON text is read by RFC 8259 with no option that loosens it:
 5. A leading byte-order mark is skipped and counts as no column.
 6. A strict reading refuses a key written twice in one object, comparing keys after their escapes are decoded, and a listing keeps both entries.
 7. A string fills only a string field, a number only a number field, and `null` only an optional or unit field.
-   A number keeps its text, so an integer too large for `u128` reads as a float, and a float that overflows is refused.
+   A number keeps its text, so an integer too large for `u128` reads as a float for a float field or a typeless read, and an integer field refuses it.
+   A float that overflows is refused.
 8. `max_reader_input_bytes`, `max_depth` and `max_nodes` apply as the text is read, and a file that is not UTF-8 is refused when it is opened.

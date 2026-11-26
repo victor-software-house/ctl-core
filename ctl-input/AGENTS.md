@@ -35,5 +35,5 @@ A break needs a minor changeset at the repository root while the workspace is be
 The unit tests sit beside their modules.
 The tests of the tree, the trait, the registry, and the kept tree are one binary, `tests/it`, and its `fixtures.rs` reads the texts in `tests/fixtures/` and keeps a snapshot of how each is read and placed.
 `json_suite.rs` reads every file of the vendored JSONTestSuite in `tests/fixtures/json-test-suite/` and checks it against a table of verdicts.
-The integration tests, `input.rs`, `input_limits.rs`, `input_toml.rs`, and `input_toml_alone.rs`, live in `ctl-core/tests/` and read the crate through `ctl_core::input`.
+The integration tests, `input.rs`, `input_json.rs`, `input_json_off.rs`, `input_limits.rs`, `input_toml.rs`, and `input_toml_alone.rs`, live in `ctl-core/tests/` and read the crate through `ctl_core::input`.
 `README.md` is the crates.io page.
