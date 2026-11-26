@@ -41,6 +41,7 @@
   2026-11-26 UTC: [#348][pr348] updated the crate docs and `ctl-core/AGENTS.md`; the README and docs list no shared flags, and the usage spec gains the flags only under `input-document`. The doc tasks passed in CI.
 - [x] 4.3 Write a `ctl-core: patch` changeset naming the flags, their variables, `App::without_input`, `App::input_conflicts` and the precedence.
   Verify: `openspec validate input-document --strict` passes, and the Version PR lists the entry.
-  2026-11-26 UTC: [#348][pr348] carries `.changeset/input-document.md` as `ctl-core: patch`; `openspec validate input-document --strict` passes, and the Version PR lists it once it refreshes.
+  2026-11-26 UTC: [#348][pr348] carries `.changeset/input-document.md` as `ctl-core: patch`; `openspec validate input-document --strict` passes, and the [Version PR][pr332] lists the entry at 24fa1f7.
 
 [pr348]: https://github.com/victor-software-house/ctl-core/pull/348
+[pr332]: https://github.com/victor-software-house/ctl-core/pull/332
