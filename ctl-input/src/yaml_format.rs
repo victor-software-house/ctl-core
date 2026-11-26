@@ -141,18 +141,22 @@ fn bytes(text: &str, location: Location) -> Option<Range<usize>> {
 }
 
 /// The byte offset in `text` of the 1-based line and character column of
-/// `location`, as the parser counts them. A column past the end of its line
-/// is the end of the line.
+/// `location`, as the parser counts them: a byte order mark that starts line 1
+/// is no column. A column past the end of its line is the end of the line.
 fn offset_of(text: &str, location: Location) -> Option<usize> {
     let line = usize::try_from(location.line()).ok()?.checked_sub(1)?;
     let column = usize::try_from(location.column()).ok()?.checked_sub(1)?;
     let start: usize = text.split_inclusive('\n').take(line).map(str::len).sum();
     let content = text.get(start..)?.split('\n').next()?;
-    let within = content
+    let (bom, counted) = match content.strip_prefix('\u{feff}') {
+        Some(rest) if start == 0 => (content.len() - rest.len(), rest),
+        _ => (0, content),
+    };
+    let within = counted
         .char_indices()
         .nth(column)
-        .map_or(content.len(), |(index, _)| index);
-    Some(start + within)
+        .map_or(counted.len(), |(index, _)| index);
+    Some(start + bom + within)
 }
 
 /// The bytes a node is written at. The parser locates every node it builds,
