@@ -13,7 +13,8 @@
 # defaults or the features they hold.
 #
 # input-toml alone reads TOML with no YAML parser and no garde
-# (split-input-formats, decision 6).
+# (split-input-formats, decision 6). input-yaml alone reads YAML with no TOML
+# parser, and neither it nor input links yamled.
 set -euo pipefail
 status=0
 app="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features app --target all --prefix none --format '{p}')"
@@ -41,6 +42,18 @@ for crate in serde-saphyr vsh-serde-saphyr garde; do
     status=1
   fi
 done
+yaml="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features input-yaml --target all --prefix none --format '{p}')"
+for crate in yamled toml; do
+  if grep -q "^${crate} v" <<<"${yaml}"; then
+    echo "ctl-core with input-yaml alone depends on ${crate}" >&2
+    status=1
+  fi
+done
+input="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features input --target all --prefix none --format '{p}')"
+if grep -q '^yamled v' <<<"${input}"; then
+  echo "ctl-core with input depends on yamled" >&2
+  status=1
+fi
 cli="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features cli --target all --invert clap_builder --prefix none)"
 if grep -q 'clap_builder feature "help"' <<<"${cli}"; then
   echo "ctl-core with cli turns on clap's help feature" >&2
