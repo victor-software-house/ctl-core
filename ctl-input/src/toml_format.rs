@@ -20,6 +20,10 @@ pub struct Toml;
 /// The TOML format, for [`Formats::add`](crate::Formats::add).
 pub static TOML: Toml = Toml;
 
+/// What the `toml` crate's parser says of a key written twice, at the repeated
+/// key. The error carries no kind to match instead.
+const REPEATED_KEY: &str = "duplicate key";
+
 impl Format for Toml {
     fn name(&self) -> &'static str {
         "toml"
@@ -29,8 +33,8 @@ impl Format for Toml {
         &["toml"]
     }
 
-    /// TOML has no duplicate key and no merge key, so both readings give the
-    /// same tree.
+    /// TOML forbids a duplicate key and has no merge key, so both readings give
+    /// the same tree or refuse the same text.
     fn read(&self, text: &str, limits: &Limits, _reading: Reading) -> Result<Node, Refusal> {
         let bounds = limits.bounds();
         if text.len() > bounds.input_bytes {
@@ -38,8 +42,18 @@ impl Format for Toml {
             return Err(Refusal::new(exceeded.fault(), None, None));
         }
         let root = DeTable::parse(text).map_err(|error| {
-            let detail = error.message().to_owned();
-            Refusal::new(Fault::Syntax { detail }, error.span(), None)
+            let span = error.span();
+            let fault = if error.message() == REPEATED_KEY {
+                let key = span.clone().and_then(|at| text.get(at)).unwrap_or_default();
+                Fault::DuplicateKey {
+                    key: key.to_owned(),
+                }
+            } else {
+                Fault::Syntax {
+                    detail: error.message().to_owned(),
+                }
+            };
+            Refusal::new(fault, span, None)
         })?;
         let tree = table(text, root.span(), root.get_ref());
         Measure::new(bounds, Raise::FOR_TEXT)

@@ -108,10 +108,17 @@ fn toml_has_no_duplicate_or_merge_keys_so_both_readings_agree() {
     let strict = strict(&TOML, text, &Limits::NONE).unwrap();
     let listing = TOML.read(text, &Limits::NONE, Reading::Listing).unwrap();
     assert_eq!(strict, listing);
+    let text = "a = 1\na = 2\n";
     let refusal = TOML
-        .read("a = 1\na = 2\n", &Limits::NONE, Reading::Listing)
+        .read(text, &Limits::NONE, Reading::Listing)
         .unwrap_err();
-    assert!(matches!(refusal.fault(), Fault::Syntax { .. }));
+    assert_eq!(
+        refusal.fault(),
+        &Fault::DuplicateKey {
+            key: "a".to_owned()
+        }
+    );
+    assert_eq!(refusal.span().map(|span| &text[span]), Some("a"));
 }
 
 fn limit(name: &'static str, value: &str) -> Fault {

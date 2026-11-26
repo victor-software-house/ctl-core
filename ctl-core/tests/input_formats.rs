@@ -215,6 +215,24 @@ fn a_duplicate_key_is_one_problem_on_line_2_even_after_a_listing() {
 }
 
 #[test]
+fn a_duplicate_key_reads_the_same_in_yaml_and_toml() {
+    let texts: [(&str, &'static dyn Format, &str); 2] = [
+        ("ledger.yaml", &YAML, "prefix: a\nprefix: b\n"),
+        ("ledger.toml", &TOML, "prefix = 'a'\nprefix = 'b'\n"),
+    ];
+    for (name, format, text) in texts {
+        let error = Input::new_with_format(name, text, format)
+            .parse::<IgnoredAny>()
+            .unwrap_err();
+        assert_eq!(
+            one(&error),
+            (Some(2), Some(1), "", "duplicate key `prefix`"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
 fn a_missing_nested_field_sits_on_the_key_that_holds_its_mapping() {
     let input = Input::new("app.yaml", "name: a\nmode: b\nserver:\n  host: h\n");
     let error = input.parse::<Nested>().unwrap_err();
