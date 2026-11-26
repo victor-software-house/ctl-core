@@ -76,6 +76,15 @@ fn an_integer_fills_an_integer_or_a_float_field() {
 }
 
 #[test]
+fn minus_zero_keeps_its_sign_as_a_float() {
+    let resolved = resolve(&scalar("-0"), Wanted::Float);
+    assert!(
+        matches!(resolved, Ok(Resolved::Float(number)) if number == 0.0 && number.is_sign_negative()),
+        "{resolved:?}"
+    );
+}
+
+#[test]
 fn an_integer_between_i128_and_u128_reads_as_a_u128_and_then_as_a_float() {
     let between_i64_and_i128 = scalar("18446744073709551616");
     assert_eq!(
@@ -123,14 +132,27 @@ fn a_float_fills_only_a_float_field() {
 fn a_float_that_overflows_to_infinity_is_refused() {
     for json in ["1e400", "-1e400", "1E999"] {
         let found = scalar(json);
-        for wanted in [Wanted::Float, Wanted::Any] {
-            assert_eq!(
-                resolve(&found, wanted),
-                Err(Mismatch::new(wanted)),
-                "{json}"
-            );
-        }
+        assert_eq!(
+            resolve(&found, Wanted::Float),
+            Err(Mismatch::new(Wanted::Float)),
+            "{json}"
+        );
+        assert_eq!(
+            resolve(&found, Wanted::Any),
+            Err(Mismatch::new(Wanted::Any).with_detail(format!("number `{json}` is out of range"))),
+            "{json}"
+        );
     }
+}
+
+#[test]
+fn an_integer_no_float_holds_is_refused_for_a_typeless_read_with_its_text() {
+    let json = "9".repeat(400);
+    let found = scalar(&json);
+    assert_eq!(
+        resolve(&found, Wanted::Any),
+        Err(Mismatch::new(Wanted::Any).with_detail(format!("number `{json}` is out of range")))
+    );
 }
 
 #[test]

@@ -43,7 +43,8 @@ impl Format for Json {
 
     /// Resolves by the type the scalar's syntax gave it, and never by its
     /// text. A scalar that carries no syntax, such as one another format built,
-    /// is text.
+    /// is text. A typeless read has no field to say what was expected, so a
+    /// number it cannot hold is refused with its text and `out of range`.
     fn resolve<'a>(
         &self,
         scalar: &'a Scalar,
@@ -51,7 +52,8 @@ impl Format for Json {
         wanted: Wanted,
     ) -> Result<Resolved<'a>, Mismatch> {
         let text = scalar.value();
-        let resolved = match (scalar.syntax().unwrap_or(ScalarSyntax::Text), wanted) {
+        let syntax = scalar.syntax().unwrap_or(ScalarSyntax::Text);
+        let resolved = match (syntax, wanted) {
             (ScalarSyntax::Text, Wanted::Any | Wanted::Str) => {
                 Some(Resolved::Str(Cow::Borrowed(text)))
             }
@@ -66,7 +68,16 @@ impl Format for Json {
             (ScalarSyntax::Null, Wanted::Any | Wanted::Null) => Some(Resolved::Null),
             _ => None,
         };
-        resolved.ok_or(Mismatch::new(wanted))
+        resolved.ok_or_else(|| {
+            let mismatch = Mismatch::new(wanted);
+            if wanted == Wanted::Any
+                && matches!(syntax, ScalarSyntax::Integer | ScalarSyntax::Float)
+            {
+                mismatch.with_detail(format!("number `{text}` is out of range"))
+            } else {
+                mismatch
+            }
+        })
     }
 }
 

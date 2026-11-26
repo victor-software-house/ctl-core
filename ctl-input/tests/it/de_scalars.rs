@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use ctl_input::format::{Fault, TOML, YAML};
+use ctl_input::format::{Fault, JSON, TOML, YAML};
 use serde::Deserialize;
 use serde::de::{self, Deserializer, Visitor};
 use serde_json::{Value, json};
@@ -192,6 +192,14 @@ fn floats_read_as_f32_and_f64_and_infinity_is_a_float_but_not_a_typeless_value()
         &invalid("non-finite float `.inf` is not allowed")
     );
     assert_eq!(at(text, &refusal), ".inf");
+}
+
+#[test]
+fn a_json_number_out_of_range_is_refused_on_the_number_in_a_typeless_read() {
+    let text = "{\"a\": 1e400}";
+    let refusal = refused::<Value>(&JSON, text);
+    assert_eq!(refusal.fault(), &invalid("number `1e400` is out of range"));
+    assert_eq!(at(text, &refusal), "1e400");
 }
 
 #[test]
