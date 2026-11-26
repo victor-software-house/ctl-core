@@ -6,11 +6,12 @@
 //! limits and the reading it was read under, and read again when either the
 //! limits or the kind of reading it needs does not match. A refusal is kept
 //! the same way, so a text the limits keep out is refused once and not read
-//! again, until the limits change.
+//! again, until the limits change. A strict refusal also answers a listing,
+//! except one a listing would not repeat.
 
 use std::sync::{Arc, Mutex, PoisonError};
 
-use super::format::{Format, Reading, Refusal};
+use super::format::{Fault, Format, Reading, Refusal};
 use super::limits::Limits;
 use super::tree::Node;
 
@@ -36,12 +37,27 @@ struct Held {
 impl Held {
     /// Whether this read answers a call for `reading` under `limits`.
     ///
-    /// A strict tree also serves a listing, which asks less of the text. A
-    /// listing never serves a strict read, nor does a refusal serve a listing:
-    /// the strict reading refused what the listing may accept.
+    /// A strict read also serves a listing, which asks less of the text: its
+    /// tree, and its refusal unless the fault is one a listing tolerates,
+    /// because the listing would read a tree where the strict reading
+    /// refused. A listing never serves a strict read.
     fn serves(&self, limits: &Limits, reading: Reading) -> bool {
         self.limits == *limits
-            && (self.reading == reading || (reading == Reading::Listing && self.read.is_ok()))
+            && (self.reading == reading
+                || (self.reading == Reading::Strict
+                    && reading == Reading::Listing
+                    && self.repeats_in_listing()))
+    }
+
+    /// Whether a listing of the same text gives what this read gave.
+    fn repeats_in_listing(&self) -> bool {
+        match self.read.as_ref() {
+            Ok(_) => true,
+            Err(refusal) => !matches!(
+                refusal.fault(),
+                Fault::DuplicateKey { .. } | Fault::MergeKey
+            ),
+        }
     }
 }
 

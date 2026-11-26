@@ -111,6 +111,15 @@ fn a_refused_strict_read_does_not_stop_placing() {
 }
 
 #[test]
+fn a_limit_refusal_serves_the_listing_that_follows() {
+    static FORMAT: Counting = Counting::new();
+    let input = Input::new_with_format("a.count", NESTED, &FORMAT).limits(tight());
+    assert!(input.parse::<IgnoredAny>().is_err());
+    assert_eq!(input.place(&first()), None);
+    assert_eq!(FORMAT.reads(), 1);
+}
+
+#[test]
 fn a_text_over_the_size_limit_reads_no_tree() {
     static FORMAT: Counting = Counting::new();
     let limits = Limits {
