@@ -1,5 +1,5 @@
 ---
-ctl-core: minor
+ctl-core: patch!
 ---
 
 `ctl_core::input` gains the located tree, the input format trait and its registry, beside the code that reads input today.

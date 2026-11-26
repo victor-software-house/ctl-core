@@ -101,6 +101,8 @@ Use clap `overrides_with` both ways and `warn_opposites` so the last flag wins w
 - An error caused by an I/O failure keeps its `io::ErrorKind`, read through `io_failure()`, and stays `Clone` and `Eq` ([design](../openspec/changes/archive/2026-11-09-lock-public-api/design.md#1-an-error-keeps-the-ioerrorkind-not-the-ioerror)).
 - A trait that only ctl-core implements is sealed by a private supertrait, as `EnvPrefix` is.
 - A break needs a `minor` changeset at the repository root while the workspace is below 1.0.
+  Inside a release-candidate train, where the minor already moved, mark a break `patch!` instead.
+  The Version PR consumes every fragment, and verctl's `semver` then skips a crate only when the candidate's CHANGELOG section holds the Breaking heading that `patch!` writes.
   CI runs `mise run semver` against the last release before packaging.
   The crate-docs rules under [Cargo features](#cargo-features) keep traits visible to that check.
 - A change to what a user sees moves each CLI's skill and instructions in the pull request that adopts the release.
