@@ -64,8 +64,10 @@ pub trait Format: Sync {
     }
 
     /// Write a failure that has no typed result, such as a parse error or an
-    /// error the handler returned. The default is `{bin}: {message}` laid out
-    /// as a document, as `pretty` writes it.
+    /// error the handler returned. The default is `{bin}: {text}` laid out as
+    /// a document, as `pretty` writes it, where `text` is
+    /// [`ErrorBody::text`] when the failure has one and `message` when it
+    /// does not.
     ///
     /// # Errors
     ///
@@ -75,7 +77,7 @@ pub trait Format: Sync {
             Text::new()
                 .error(error.bin.as_str())
                 .then(": ")
-                .then(error.message.as_str()),
+                .then(error.text().unwrap_or(error.message.as_str())),
         );
         let text = sink.render(&document);
         sink.write_all(text.as_bytes())

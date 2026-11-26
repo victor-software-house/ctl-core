@@ -8,6 +8,10 @@ expression: stderr
   "error": {
     "bin": "toy",
     "message": "unexpected argument found",
-    "kind": "usage"
+    "kind": "usage",
+    "usage": "toy show [OPTIONS] <ID>",
+    "parse": {
+      "reason": "unknown_argument"
+    }
   }
 }

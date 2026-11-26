@@ -247,7 +247,10 @@ view = { features = "cli,view", text = 454073 }
 # 5,728 above that: the same growth as view (CTC-064), and `App` reading the
 # registry for it.
 # 368 below that: the same fix pass (CTC-064).
-app = { features = "app", text = 526377 }
+# 8,800 above that: the error envelope fields, the parse-error body and its
+# serializer (CTC-067, structured errors), measured on the build host in one
+# box.
+app = { features = "app", text = 535177 }
 # app plus the answer to mise's --usage-spec: the Usage KDL writer. 29,891
 # above the last budget, 525798: the same growth as app (CTC-062).
 # 16,608 above that: the same three formats (CTC-062, the tabular formats).
@@ -261,7 +264,8 @@ app = { features = "app", text = 526377 }
 # collected merge compares column counts (CTC-063, the stream forms fix pass).
 # 5,616 above that: the same growth as app (CTC-064).
 # 32 below that: the same fix pass (CTC-064).
-usage = { features = "app,usage", text = 579977 }
+# 8,672 above that: the same growth as app (CTC-067).
+usage = { features = "app,usage", text = 588649 }
 # app plus input: serde-saphyr and garde. 2,287 above the last budget,
 # 1051134: Input::flattened and the rewrite of a garde path through a declared
 # flattened field (flattened-field-place), 2,096, and Input::top_level with
@@ -284,7 +288,9 @@ usage = { features = "app,usage", text = 579977 }
 # 137,664 below that: Input reads through the located tree, and yamled and
 # the per-format text and entries code are gone (CTC-065, the input switch),
 # measured against 667fe38.
-input = { features = "app,input", text = 966013 }
+# 13,152 above that: the same growth as app, and refused input read into
+# problems (CTC-067).
+input = { features = "app,input", text = 979165 }
 # app plus input-toml: the toml crate and ctl-core's depth and node walk, with
 # no YAML crate and no garde. 456,799 below input. 320 above the last budget,
 # 594206: Input::top_level over the toml tree (top-level-entries). The one
@@ -306,13 +312,15 @@ input = { features = "app,input", text = 966013 }
 # tree and the format registry replace the toml crate's serde path (CTC-065,
 # the input switch), measured against 667fe38 after three cuts that changed
 # no behaviour.
-input-toml = { features = "app,input-toml", text = 654446 }
+# 12,880 above that: the same growth as input (CTC-067).
+input-toml = { features = "app,input-toml", text = 667326 }
 # app plus input-json: the own JSON reader, the one tree Deserializer, the
 # problem wording, the kept tree and the format registry, with no parser
 # crate, no YAML crate and no garde. The app budget plus the 72,097 bytes it
 # measured above app at its first build, on the build host in one box (CTC-066,
 # the JSON input format).
-input-json = { features = "app,input-json", text = 598474 }
+# 13,008 above that: the same growth as input (CTC-067).
+input-json = { features = "app,input-json", text = 611482 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]

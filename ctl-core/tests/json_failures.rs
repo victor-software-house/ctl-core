@@ -1,6 +1,7 @@
 //! Where a failure goes under `--format json`: the envelope or the failed
-//! result on stderr, and nothing on stdout. A handler's `CommandError` sets
-//! the exit code and the envelope's kind.
+//! result on stderr, and nothing on stdout. Each part of a failure has a field
+//! of its own, and a handler's `CommandError` sets the exit code and the
+//! envelope's kind.
 #![allow(
     missing_docs,
     reason = "an integration test crate has no public API to document"
@@ -13,7 +14,11 @@ use std::process::Output;
 
 use anyhow::{Context as _, anyhow};
 use ctl_core::format::JSON;
+#[cfg(feature = "input")]
+use ctl_core::input::Input;
 use ctl_core::prelude::*;
+#[cfg(feature = "input")]
+use ctl_core::validate::{at_least_one, cannot_be_empty};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -38,10 +43,34 @@ enum Cmd {
     },
     /// Fail with a plain error.
     Fail,
+    /// Fail with an error that has a cause.
+    Read,
+    /// Copy one row to another.
+    Copy {
+        /// The row to copy.
+        from: String,
+        /// The row to write.
+        to: String,
+    },
+    /// Refuse an input with two problems.
+    #[cfg(feature = "input")]
+    Load,
+    /// Refuse an input with one problem.
+    #[cfg(feature = "input")]
+    LoadOne,
     /// Refuse with a kind and an exit code.
     Refuse,
     /// Report a result whose outcome is an error.
     Broken,
+}
+
+#[cfg(feature = "input")]
+#[derive(Debug, serde::Deserialize, garde::Validate)]
+struct Config {
+    #[garde(custom(cannot_be_empty("it names the release")))]
+    name: String,
+    #[garde(custom(at_least_one("label")))]
+    labels: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -72,8 +101,25 @@ fn run(args: &[&str]) -> ExitCode {
         .run_from(
             iter::once("toy").chain(args.iter().copied()),
             |cli| match cli.command {
-                Cmd::Show { id } => Ok(Report { id, failed: false }),
+                Cmd::Show { id } | Cmd::Copy { from: id, .. } => Ok(Report { id, failed: false }),
                 Cmd::Fail => Err(anyhow!("the row is locked")),
+                Cmd::Read => Err(anyhow!("no such file")).context("reading config"),
+                #[cfg(feature = "input")]
+                Cmd::Load => Input::new("app.yaml", "name: \"\"\nlabels: []\n")
+                    .load::<Config>()
+                    .map(|_| Report {
+                        id: "loaded".to_owned(),
+                        failed: false,
+                    })
+                    .map_err(anyhow::Error::from),
+                #[cfg(feature = "input")]
+                Cmd::LoadOne => Input::new("app.yaml", "name: x\nlabels: []\n")
+                    .load::<Config>()
+                    .map(|_| Report {
+                        id: "loaded".to_owned(),
+                        failed: false,
+                    })
+                    .map_err(anyhow::Error::from),
                 Cmd::Refuse => Err(anyhow!("the budget is full")).context(
                     CommandError::new("no room for a box")
                         .kind("no_room")
@@ -119,9 +165,30 @@ fn emit_err_writes_the_envelope_to_stderr() {
 }
 
 #[test]
-fn a_parse_error_writes_the_envelope_to_stderr() {
-    let Some(output) = child::in_child(CHILD, "a_parse_error_writes_the_envelope_to_stderr", &[])
-    else {
+fn an_unknown_argument() {
+    let Some(output) = child::in_child(CHILD, "an_unknown_argument", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["show", "--bogus", "--format", "json"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    let error = &envelope["error"];
+    assert_eq!(error["kind"], "usage");
+    assert_eq!(error["parse"]["reason"], "unknown_argument");
+    assert_eq!(error["usage"], "toy show [OPTIONS] <ID>");
+    let message = error["message"].as_str().unwrap();
+    assert!(
+        !message.contains('\n') && !message.contains("Usage"),
+        "{message}"
+    );
+}
+
+#[cfg(feature = "error-context")]
+#[test]
+fn the_parts_clap_s_error_context_gives() {
+    let Some(output) = child::in_child(CHILD, "the_parts_clap_s_error_context_gives", &[]) else {
         assert_eq!(
             child::case(|| run(&["show", "--bogus", "--format", "json"])),
             ExitCode::from(2)
@@ -133,7 +200,159 @@ fn a_parse_error_writes_the_envelope_to_stderr() {
         json!({
             "status": "err",
             "schema_version": 1,
-            "error": {"bin": "toy", "message": "unexpected argument found", "kind": "usage"},
+            "error": {
+                "bin": "toy",
+                "message": "unexpected argument '--bogus' found",
+                "kind": "usage",
+                "usage": "toy show [OPTIONS] <ID>",
+                "parse": {
+                    "reason": "unknown_argument",
+                    "argument": "--bogus",
+                    "tips": ["to pass '--bogus' as a value, use '-- --bogus'"],
+                },
+            },
+        })
+    );
+}
+
+#[cfg(feature = "error-context")]
+#[test]
+fn the_arguments_clap_found_missing() {
+    let Some(output) = child::in_child(CHILD, "the_arguments_clap_found_missing", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["copy", "a", "--format", "json"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    let parse = &envelope["error"]["parse"];
+    assert_eq!(parse["reason"], "missing_required_argument");
+    assert_eq!(parse["missing"], json!(["<TO>"]));
+    assert_eq!(envelope["error"]["usage"], "toy copy [OPTIONS] <FROM> <TO>");
+}
+
+#[test]
+fn a_parse_error_under_forced_colour_carries_no_escape_byte() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_parse_error_under_forced_colour_carries_no_escape_byte",
+        &[("CLICOLOR_FORCE", "1"), ("FORCE_COLOR", "3")],
+    ) else {
+        assert_eq!(
+            child::case(|| run(&["show", "--bogus", "--format", "json"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    assert_eq!(envelope["error"]["parse"]["reason"], "unknown_argument");
+}
+
+#[cfg(feature = "input")]
+#[test]
+fn a_refused_input() {
+    let Some(output) = child::in_child(CHILD, "a_refused_input", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["--format", "json", "load"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(
+        stderr_json(&output),
+        json!({
+            "status": "err",
+            "schema_version": 1,
+            "error": {
+                "bin": "toy",
+                "message": "app.yaml has 2 problems",
+                "problems": [
+                    {
+                        "input": "app.yaml",
+                        "line": 2,
+                        "column": 9,
+                        "field": "labels",
+                        "message": "must declare at least one label",
+                    },
+                    {
+                        "input": "app.yaml",
+                        "line": 1,
+                        "column": 7,
+                        "field": "name",
+                        "message": "cannot be empty — it names the release",
+                    },
+                ],
+            },
+        })
+    );
+}
+
+#[cfg(feature = "input")]
+#[test]
+fn a_refused_input_with_one_problem_is_still_a_summary() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_refused_input_with_one_problem_is_still_a_summary",
+        &[],
+    ) else {
+        assert_eq!(
+            child::case(|| run(&["--format", "json", "load-one"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    assert_eq!(envelope["error"]["message"], "app.yaml has 1 problem");
+    assert_eq!(
+        envelope["error"]["problems"],
+        json!([{
+            "input": "app.yaml",
+            "line": 2,
+            "column": 9,
+            "field": "labels",
+            "message": "must declare at least one label",
+        }])
+    );
+}
+
+#[cfg(feature = "input")]
+#[test]
+fn a_refused_input_in_pretty() {
+    let Some(output) = child::in_child(CHILD, "a_refused_input_in_pretty", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["--color", "never", "--format", "pretty", "load"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr),
+        "toy: app.yaml:2:9: labels: must declare at least one label\n\
+         app.yaml:1:7: name: cannot be empty — it names the release\n"
+    );
+}
+
+#[test]
+fn a_handler_error_with_causes() {
+    let Some(output) = child::in_child(CHILD, "a_handler_error_with_causes", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["--format", "json", "read"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(
+        stderr_json(&output),
+        json!({
+            "status": "err",
+            "schema_version": 1,
+            "error": {
+                "bin": "toy",
+                "message": "reading config",
+                "causes": ["no such file"],
+            },
         })
     );
 }
@@ -204,8 +423,9 @@ fn a_command_error_sets_the_kind_and_the_exit() {
             "schema_version": 1,
             "error": {
                 "bin": "toy",
-                "message": "no room for a box: the budget is full",
+                "message": "no room for a box",
                 "kind": "no_room",
+                "causes": ["the budget is full"],
             },
         })
     );
@@ -226,5 +446,21 @@ fn a_command_error_sets_the_exit_of_pretty_output() {
     assert_eq!(
         String::from_utf8_lossy(&output.stderr),
         "toy: no room for a box: the budget is full\n"
+    );
+}
+
+#[test]
+fn a_handler_error_in_pretty() {
+    let Some(output) = child::in_child(CHILD, "a_handler_error_in_pretty", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["--color", "never", "--format", "pretty", "read"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr),
+        "toy: reading config: no such file\n"
     );
 }

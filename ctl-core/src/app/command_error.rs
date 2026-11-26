@@ -10,9 +10,10 @@ use std::num::NonZeroU8;
 /// Return it through `anyhow`, as the error itself or as context on its
 /// cause. [`App`](super::App) looks for it in the error's chain, at any
 /// depth. It exits with the code, and a JSON envelope carries the `kind` value
-/// in [`ErrorBody::kind`](crate::model::ErrorBody::kind). The message is the
-/// whole chain, as for any other error. A handler error that carries none
-/// exits 1 with no `kind`.
+/// in [`ErrorBody::kind`](crate::model::ErrorBody::kind). As for any other
+/// error, the envelope's message is the outermost error and the rest of the
+/// chain is its [`causes`](crate::model::ErrorBody::causes). A handler error
+/// that carries none exits 1 with no `kind`.
 ///
 /// ```
 /// use std::num::NonZeroU8;

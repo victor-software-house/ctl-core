@@ -5,15 +5,16 @@ use serde_json::Serializer;
 use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
 use crate::format::{Format, FormatName, JSON_ABOUT, Output, RecordWriter, Sink};
-use crate::model::{Envelope, ErrorBody};
+use crate::model::{ErrorBody, SCHEMA_VERSION};
 use crate::view::JsonLayout;
 
 /// The `json` format: the result serialized as one JSON document.
 ///
 /// It is a machine format, so it never carries ANSI. The document is in the
-/// sink's layout and ends in a newline. A failure is an [`Envelope`] with the
-/// [`ErrorBody`], so a reader that parses stderr gets the same shape for every
-/// failure. Its shorthand is `--json`.
+/// sink's layout and ends in a newline. A failure is an
+/// [`Envelope`](crate::model::Envelope) with the [`ErrorBody`], so a reader
+/// that parses stderr gets the same shape for every failure. Its shorthand is
+/// `--json`.
 ///
 /// Under `--stream` it writes each record compact on its own line, ending in
 /// LF, whatever the layout. That is JSON Lines, as the stream form of `json`
@@ -25,6 +26,16 @@ pub struct Json;
 /// The built-in `json` format, ready to register or to give
 /// [`View::new`](crate::view::View::new).
 pub static JSON: Json = Json;
+
+/// The failure envelope, as [`Envelope::Err`](crate::model::Envelope::Err)
+/// serializes, borrowing the body so that writing one clones none of its
+/// parts.
+#[derive(serde::Serialize)]
+struct Failure<'a> {
+    status: &'static str,
+    schema_version: u32,
+    error: &'a ErrorBody,
+}
 
 /// A `serde_json` formatter that lays out as the sink says, chosen at run time,
 /// so one `serde_json::Serializer` type serves both layouts.
@@ -117,8 +128,12 @@ impl Format for Json {
     }
 
     fn write_error(&self, error: &ErrorBody, sink: &mut Sink<'_>) -> io::Result<()> {
-        let envelope = Envelope::<()>::err(error.clone());
-        document(&envelope, sink)
+        let failure = Failure {
+            status: "err",
+            schema_version: SCHEMA_VERSION,
+            error,
+        };
+        document(&failure, sink)
     }
 }
 
@@ -127,7 +142,7 @@ mod tests {
     use super::JSON;
     use crate::color::ColorMode;
     use crate::format::{Format, Sink};
-    use crate::model::ErrorBody;
+    use crate::model::{Envelope, ErrorBody};
     use crate::render::RenderOptions;
     use crate::view::JsonLayout;
 
@@ -143,6 +158,24 @@ mod tests {
         JSON.write_error(&ErrorBody::new("toy", "failed"), &mut sink)
             .unwrap();
         String::from_utf8(written).unwrap()
+    }
+
+    #[test]
+    fn an_error_is_the_text_of_its_envelope() {
+        let error = ErrorBody::new("toy", "failed")
+            .kind("usage")
+            .causes(["why"]);
+        let mut written = Vec::new();
+        let mut sink = Sink::new(
+            &mut written,
+            ctl_term::Stream::Stderr,
+            &RenderOptions::new(ColorMode::Never),
+            JsonLayout::Compact,
+            true,
+        );
+        JSON.write_error(&error, &mut sink).unwrap();
+        let envelope = serde_json::to_string(&Envelope::<()>::err(error)).unwrap();
+        assert_eq!(String::from_utf8(written).unwrap(), format!("{envelope}\n"));
     }
 
     #[test]

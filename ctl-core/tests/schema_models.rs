@@ -24,6 +24,47 @@ fn error_body_schema_leaves_the_kind_optional() {
 }
 
 #[test]
+fn error_body_schema_lists_each_part_and_requires_none_of_them() {
+    let schema = serde_json::to_value(schema_for!(ErrorBody)).unwrap();
+    for part in ["causes", "problems", "usage", "parse"] {
+        assert!(schema["properties"][part].is_object(), "{part}: {schema}");
+    }
+    let defs = &schema["$defs"];
+    assert_eq!(
+        defs["InputProblem"]["required"],
+        serde_json::json!(["input", "message"])
+    );
+    assert_eq!(
+        defs["ParseFailure"]["required"],
+        serde_json::json!(["reason"])
+    );
+    for part in [
+        "argument",
+        "missing",
+        "value",
+        "valid_values",
+        "subcommand",
+        "valid_subcommands",
+        "suggested_arguments",
+        "suggested_values",
+        "suggested_subcommands",
+        "suggested_commands",
+        "conflicts_with",
+        "actual_values",
+        "expected_values",
+        "min_values",
+        "trailing_argument",
+        "tips",
+        "notes",
+    ] {
+        assert!(
+            defs["ParseFailure"]["properties"][part].is_object(),
+            "{part}: {schema}"
+        );
+    }
+}
+
+#[test]
 fn envelope_schema_exists() {
     let text = serde_json::to_string(&schema_for!(Envelope<String>)).unwrap();
     assert!(

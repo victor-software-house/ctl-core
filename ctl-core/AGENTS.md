@@ -28,7 +28,8 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 - `Document` and the fluent semantic primitives used by help and command output
 - `View` over one serializable domain model, written through the `Format` it holds: pretty, colorless, JSON, or a format the CLI registered
 - The one `Theme`, and the width, framing, and colour settings a CLI hands the engine (`RenderOptions`)
-- Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`, written to stdout on success and to stderr on failure
+- Wire envelope: `Envelope` / `ErrorBody` / `SCHEMA_VERSION`, written to stdout on success and to stderr on failure.
+  `ErrorBody` keeps a field per part of a failure: `message`, `causes`, `problems`, `usage`, and `parse`
 - `CommandError`: a handler failure that carries its exit code and the envelope's `kind`, which `App` finds anywhere in the `anyhow` chain
 - Mise Usage spec (`usage` feature): `--usage-spec[=BIN]`, `mount_directives`, and `App::usage_spec` enrichment, so consumers run `mise run q status` with no `--`.
   - `mount_directives` are `raw`, `raw_args`, and `mount_line`, the block every served CLI-proxy task carries, so piped output stays byte for byte what the CLI wrote.
@@ -186,6 +187,10 @@ Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
 
 `clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
 Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's choice.
+ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error: it turns on Clap's `error-context` and fills `ErrorBody::parse` with one field per kind of Clap's error context: the argument, the missing arguments, the value, the valid values, the subcommands, the suggestions by kind, the conflicting arguments, the value counts, and the tips.
+ctl-core reads every `ContextKind` but `Usage`, which ctl-core renders itself, and a unit test in `app/error_body.rs` lists each kind of Clap 4.6.6 with its field.
+Without it `parse` holds the reason alone, and `usage` is there either way.
+No other feature turns it on, and `mise run test:error-context-off` tests the build without it.
 Without Clap's `help` feature, Clap turns off `-h`/`--help` and the `help` subcommand, so `parser::apply_defaults` and `help::document` declare both (`parser::with_help`), worded as Clap words them.
 ctl-core renders every help Clap stops for and never calls `Error::print` or `Command::color`.
 
@@ -256,7 +261,11 @@ A table with `stacked_below` has no floor and keeps its own form.
    - A CLI that prints text it did not write filters with the same predicate.
    - The predicate and `strip_unsafe` live in `ctl-text` (`ctl_text::unsafe_chars`), and `ctl_core::unsafe_chars` re-exports them under the `unsafe-chars` feature.
 4. **Quiet hides human success and defaults only.** `--quiet` hides a successful result in `pretty` and in a default format. It never hides errors, and it never hides a machine format that a flag, a shorthand, or a variable named.
-5. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
+5. **A JSON error keeps a field per part.** `message` is one sentence.
+   A handler error's further causes are `causes`, an input's problems are `problems`, a parse error's usage line is `usage`, and Clap's parts of it are `parse`.
+   Each is left out when empty, and none contains ANSI.
+   `pretty` writes `ErrorBody::text`, which `App` sets to what a failure printed before it had fields, so pretty output is unchanged; JSON never carries it.
+6. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
    Usage lines wrap without splitting tokens.
    `-h` shows `about`, each argument's `help`, and `after_help` as an Examples section; `--help` and the `help` subcommand show `long_about`, `long_help`, and `after_long_help`, each falling back to its short form.
    A command's visible aliases follow its name.
