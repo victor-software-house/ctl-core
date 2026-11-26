@@ -49,7 +49,9 @@ pub struct Scalar { value: String, style: ScalarStyle }
 
 1. `span` is the node's bytes in the text, quotes and block indicators included, so `text[span]` is its source.
 2. `value` is the processed value: escapes, folding and chomping applied, as a `String` field receives it today.
-3. `ScalarStyle` is `Plain`, `SingleQuoted`, `DoubleQuoted`, `Literal` or `Folded`; a TOML basic string is double quoted, a literal string single quoted, and a TOML number, boolean or datetime plain.
+3. `ScalarStyle` is `Plain`, `SingleQuoted`, `DoubleQuoted`, `Literal`, `Folded`, `MultilineBasic` or `MultilineLiteral`.
+   A TOML basic string is double quoted, a literal string single quoted, and a TOML number, boolean or datetime plain.
+   The two multi-line styles are TOML's `"""` and `'''` strings, which `Entry::written` already tells apart.
 4. A mapping keeps its entries in source order, key node and value node.
    So a key's place and its value's place are both known.
 5. `used_at` holds the span of the outermost alias that replayed a node, the one written where the value is used.
@@ -69,18 +71,23 @@ It copies the fork's limits, duplicate-key identity and scalar rules into a seco
 pub trait Format: Sync {
     fn name(&self) -> FormatName;
     fn extensions(&self) -> &'static [&'static str];
-    fn read(&self, text: &str, limits: &Limits) -> Result<Node, Refusal>;
-    fn resolve<'a>(&self, scalar: &'a Scalar, wanted: Wanted) -> Result<Resolved<'a>, Mismatch>;
+    fn read(&self, text: &str, limits: &Limits, reading: Reading) -> Result<Node, Refusal>;
+    fn resolve<'a>(&self, scalar: &'a Scalar, tag: Option<&Tag>, wanted: Wanted) -> Result<Resolved<'a>, Mismatch>;
 }
 ```
 
 1. `read` turns text into the tree under the limits.
-   It refuses duplicate keys, merge keys, a second document and anything past a limit.
+   It refuses a second document and anything past a limit.
+   `Reading::Strict` also refuses duplicate keys and merge keys, as a config read does.
+   `Reading::Listing` keeps them as ordinary entries, as `top_level` reads a text the caller did not write.
    A `Refusal` names its problem type and span.
-2. `resolve` reads one scalar for the type its field needs.
+2. `resolve` reads one scalar for the type its field needs, with the tag its node carries.
+   A YAML tag such as `!!str` changes how a scalar reads.
    `Wanted` is `Any`, `Bool`, `Int`, `Float`, `Str` or `Null`.
-   `Resolved` is `Null`, `Bool`, `Int(i128)`, `Uint(u128)`, `Float(f64)` or `Str(&str)`.
-3. The trait is object safe: the registry holds `&'static dyn Format`, as the output registry does.
+   `Resolved` is `Null`, `Bool`, `Int(i128)`, `Uint(u128)`, `Float(f64)` or `Str(Cow<str>)`.
+3. The text is borrowed from the scalar, and owned only when the format decodes it, as YAML decodes `!!binary`.
+   `resolve` applies the strict reading's rules; a listing asks it only whether a value is text.
+4. The trait is object safe: the registry holds `&'static dyn Format`, as the output registry does.
 
 Each format keeps its own scalar rules (operator, 2026-11-26).
 
@@ -88,6 +95,9 @@ YAML resolves through the fork's public scalar rules.
 So a quoted `"8"` still fills an integer field, and only the six YAML 1.2 spellings fill a bool.
 
 TOML resolves by syntax: a TOML string fills only a string field, and a TOML integer only a number field, as the `toml` crate refuses today.
+
+So a scalar may carry the type its format's syntax gave it: text, integer, float, boolean or datetime.
+The TOML reader sets it on every scalar and every key, and YAML sets none, since a YAML type comes from the scalar rules.
 
 The YAML rules stay exactly as the fork applies them today, typeless `010` as float 10.0 included.
 Reading it as an integer only in typeless reads would conflict with the typed read, which refuses the leading zero.
@@ -138,6 +148,9 @@ Every replayed node counts against the replay limit as it is read, so nested ali
 `Limits` gains the fork's three replay limits under the fork's names: `max_total_replayed_events`, `max_replay_stack_depth` and `max_alias_expansions_per_anchor`.
 
 They follow the same tiers as every other limit, `.ctl/input.yaml` included, and `Loosened` reports a raised one.
+
+They set the fork's `Options::alias_limits`, not its `Budget`.
+A breach is the fork's `AliasReplayLimitExceeded`, `AliasReplayStackDepthExceeded` or `AliasExpansionLimitExceeded`, a limit problem by its variant.
 A breach names its field and where to raise it, as every limit problem does.
 
 So the YAML limits keep their meaning, and ctl-input counts no aliases of its own.
@@ -146,13 +159,23 @@ The alternative, alias nodes that the Deserializer replays, lost: it puts a seco
 ### 8. Placing, entries and checks walk the tree
 
 `Input::place`, `place_key`, `problem_at`, `check` and `top_level` walk the tree, for every format.
-The tree is read once per input and kept, as the yamled document is today.
+
+An input keeps the tree it read, as it keeps the yamled document today, and reads again only when the limits in force change.
+A strict tree also serves placing and listing, so `load` reads the text once.
+
+A listing tree is read only when no strict tree exists, as for `top_level` on a text no parse has read.
+A listing tree never serves `parse`, which reads a strict tree when only a listing tree is kept.
+
 A missing field is placed on the key that holds its mapping, or on line 1 for the root, in every format.
 
 ### 9. One message set
 
 Every problem has one of ten problem types.
-The problem types are syntax, duplicate key, merge key, expected kind, invalid scalar, unknown field, unknown variant, missing field, limit and alias.
+The problem types are syntax, duplicate key, merge key, expected kind, invalid value, unknown field, unknown variant, missing field, limit and alias.
+
+Invalid value covers a scalar its format cannot resolve for the field, and serde's `invalid_value` and `invalid_length`.
+It also covers a `custom` error a type's own `Deserialize` raises, such as a `try_from` newtype.
+A custom error keeps the type's own text and sits at the node whose read raised it.
 
 ctl-input words each problem type once, in plain words with no parser option names.
 Examples are `duplicate key \`prefix\`` and `expected true or false`.
