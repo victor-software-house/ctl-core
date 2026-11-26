@@ -98,7 +98,7 @@ Positional values SHALL follow the positionals' index order whatever the documen
 
 An unknown key, a value no argument can take, and a key refused by policy SHALL each be a problem with the document's file, line and column, all reported together.
 A clap error caused by a document value SHALL be placed on that key, or on its value for an invalid value.
-`input-document` SHALL turn on clap's `error-context`, and `app`, `usage` and the `input-*` features without it SHALL not.
+`input-document` SHALL turn on ctl-core's `error-context` feature and through it clap's, and `app`, `usage` and the `input-*` features without it SHALL not.
 
 #### Scenario: An unknown key
 
