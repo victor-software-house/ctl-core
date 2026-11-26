@@ -151,18 +151,28 @@ impl Formats {
     /// What a refusal tells a person to name the file: every registered
     /// extension, sorted, as `*.ext`.
     fn accepted(&self) -> String {
-        let mut extensions: Vec<String> = self
+        let mut extensions: Vec<String> = Vec::new();
+        for extension in self
             .registered
             .iter()
             .flat_map(|format| format.extensions())
-            .map(|extension| format!("*.{extension}"))
-            .collect();
-        extensions.sort();
+        {
+            let entry = format!("*.{extension}");
+            let at = extensions.partition_point(|held| *held < entry);
+            extensions.insert(at, entry);
+        }
         match extensions.as_slice() {
             [] => "no format is registered".to_owned(),
             [only] => format!("name the file {only}"),
             [first, second] => format!("name the file {first} or {second}"),
-            [rest @ .., last] => format!("name the file {}, or {last}", rest.join(", ")),
+            [rest @ .., last] => {
+                let mut listed = String::new();
+                for extension in rest {
+                    listed.push_str(extension);
+                    listed.push_str(", ");
+                }
+                format!("name the file {listed}or {last}")
+            }
         }
     }
 }
