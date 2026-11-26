@@ -1,5 +1,229 @@
 # Changelog
 
+## ctl-core 0.8.0-rc.2
+
+### Breaking
+
+- `Input` reads every text into the located tree once, through its format, and keeps the tree.
+  `parse`, `place`, `place_key`, `check` and `top_level` all work on it, for YAML, TOML and any format a CLI adds.
+  A strict tree serves every one of them, and a listing tree, which `top_level` and placing read, serves only placing and listing.
+  yamled leaves ctl-core's graph: `input-yaml` links serde-saphyr only, and `input-toml` links the `toml` crate only ([#336](https://github.com/victor-software-house/ctl-core/pull/336)).
+
+  `App::input_formats(Formats)` sets the formats `Input::open` reads, as `App::input_limits` sets the limits.
+  `Formats::open(path)` reads a file through a registry of the caller's, whatever the process default is.
+
+  Breaking changes:
+
+  1. `input::Format` is the format trait, and the enum is gone. `Format::Toml` becomes `&input::TOML`, and `Format::Yaml` becomes `&input::YAML`. A `match` on the enum has no replacement: ask the format for its `name()`.
+  2. `Format::of(path)` becomes `Formats::of(path)`, which returns the format as a `&'static dyn Format`. `Input::open` takes it from the process registry that `set_default_formats` or `App::input_formats` installs, else `Formats::builtin()`.
+  3. `Input::new_with_format` and `Input::format` take a `&'static dyn Format`, not the enum.
+  4. `input::Tagged` is ctl-input's own type, not serde-saphyr's, with the same spelling: `!override` for a local tag. A tag inside a value serde buffers, such as an untagged enum or a flattened field, is not passed on.
+  5. `Input` is compared by its format's name, and its `Debug` shows that name and no longer shows a parsed document.
+  6. A problem is worded by `Messages` whatever the format, so each problem type has one wording. Each changed one reads:
+     - a repeated key: `duplicate mapping key: prefix, set DuplicateKeyPolicy in Options if acceptable` becomes `duplicate key \`prefix\``;
+     - a merge key: `YAML merge keys are not allowed by configured policy` becomes `merge key \`<<\` is not allowed`;
+     - a YAML 1.1 boolean: `invalid boolean (strict mode expects true/false)` becomes `expected true or false`;
+     - a number field given a word: `invalid u16` in YAML, and `invalid type: string "…", expected u16` in TOML, become `expected an integer`;
+     - an unknown field or variant: `unknown field \`x\`, expected one of name` becomes `unknown field \`x\`, expected one of \`name\``, with each name in backticks;
+     - a problem in a node an alias replayed keeps `(defined at line L, column C)` after the new wording, and a limit a replay raised gains that suffix too;
+     - a node budget breached inside a replay: `budget breached: Nodes { nodes: 10 }` becomes `exceeds max_nodes (9); raise limits.max_nodes in .ctl/input.yaml`;
+     - a TOML repeated key: `duplicate key` becomes `duplicate key \`prefix\``, the same words as YAML, on the repeated key;
+     - a YAML text with more than one document: `multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options` becomes `the text holds more than one YAML document`;
+     - a refused non-finite float: `non-finite float \`.inf\` rejected by the configured policy` becomes `non-finite float \`.inf\` is not allowed`, with the scalar's own text in the backticks;
+     - a text over `max_reader_input_bytes` is a `Fault::TooLarge`, worded by `Messages` like every other problem. Its default words are unchanged.
+  7. Six positions move:
+     - a field the root mapping lacks sits on line 1, column 1, where it sat on the last key of the root;
+     - a field a nested mapping lacks sits on the key that holds the mapping, in YAML and TOML alike;
+     - a YAML problem on line 1 of a file that starts with a byte-order mark sits one column further left, because the mark is no column;
+     - a TOML text is read in the order it is written, so the first problem is the first in the file, where it was the first by key;
+     - a problem in a node an alias replayed sits at the alias, and its words name where the value is defined;
+     - a problem in a block scalar sits at its indicator, `|` or `>`.
+  8. Reads that change:
+     - an ignored non-finite float, such as `.inf`, is no longer refused: a read that asks for its value still refuses it;
+     - a TOML datetime reads as its text, so it fills a `String` and a typeless read gives the text;
+     - a `toml::value::Datetime` field no longer reads: read it as a `String`;
+     - TOML placing past `max_depth` or `max_nodes` gives no place, as YAML placing does;
+     - each control character in a problem's words, such as one in a key or a value the text wrote, is escaped as Rust's `escape_debug` does, in every format.
+
+  Migration: replace the enum with the built-in format values, call `Formats::builtin().of(path)` where `Format::of(path)` was called, and move each pinned message to the wording above.
+  A CLI with its own format implements `input::Format` and installs it with `Formats::builtin().add(&FORMAT)`, through `App::input_formats`, `set_default_formats`, or `Formats::open`.
+- `ctl_core::input` gains the located tree, the input format trait and its registry, beside the code that reads input today.
+  `input::tree` holds `Node`, `NodeKind`, `Scalar`, `ScalarStyle`, `ScalarSyntax` and `Tag`: each node keeps its byte span, each scalar its processed value, its style and, for TOML, the type its syntax gave it, and each mapping its key and value nodes in source order.
+  `input::format` holds the `Format` trait with its `read` and `resolve`, `Reading`, `Wanted`, `Resolved`, `Mismatch`, `Refusal` and `Fault`, and the two built-in formats `YAML` and `TOML`.
+  `input::Formats` is the registry of formats, found by extension through `Formats::of`, and `input::set_default_formats` sets the process default ([#333](https://github.com/victor-software-house/ctl-core/pull/333)).
+
+  `Limits` gains three YAML-only fields, `max_total_replayed_events`, `max_replay_stack_depth` and `max_alias_expansions_per_anchor`, which set serde-saphyr's alias replay limits through the same tiers as the other limits, `.ctl/input.yaml` included.
+  `use_repo_limits` reports one a repository raises, and a text that goes past one fails with a problem naming the field and where to raise it.
+  A `Limits` literal that lists every field, without `..Limits::NONE`, no longer compiles; `Limits` documents building it with `..Limits::NONE`, which keeps compiling.
+
+### Changed
+
+- Declared input now lives in the new `ctl-input` crate, which `ctl_core::input` re-exports.
+  The `input-yaml`, `input-toml`, `validate`, and `input` features and every path under `ctl_core::input` are unchanged, so no code that uses them changes ([#329](https://github.com/victor-software-house/ctl-core/pull/329)).
+- Add a serde Deserializer over the located tree of `ctl-input`, the full set of problem types, `Messages` to word them, and `Tagged`.
+  `Input` does not read through them yet.
+  One existing behaviour changes: a column no longer counts a leading byte-order mark, so a problem on line 1 of a TOML file that starts with one sits one column further left ([#334](https://github.com/victor-software-house/ctl-core/pull/334)).
+- Every command takes `--input <FILE>` and `--input-format <NAME>` with the new `input-document` feature and an input format (`input-yaml`, `input-json`, `input-toml` or `input`).
+  `input-document` turns on `app` and `error-context`, and fails to compile without an input format.
+  They read `<PREFIX>_INPUT` and `<PREFIX>_INPUT_FORMAT`, with the prefix `--format` reads its variable with.
+  A YAML, JSON or TOML document, or stdin for `--input -`, fills the arguments of the command the command line selects.
+  Its keys are long names and positional ids, and each value passes the argument's own parser and rules ([#348](https://github.com/victor-software-house/ctl-core/pull/348)).
+
+  The command line wins over the environment, the environment over the document, and the document over the default.
+  A key that loses is dropped.
+  `App::input_conflicts(InputConflicts::Fail)` refuses it instead, with a problem on its line.
+  `InputConflicts` is new.
+
+  `App::without_input` removes both flags.
+  A CLI that declares `input` or `input-format` itself must call it, or `App` panics.
+
+  Every problem in a document names its file, line and column.
+  Under `--format json`, a refused document carries each problem in `problems`, and a Clap error placed on a key adds its `parse` parts and usage line.
+
+  `ctl-input` adds `Input::tree`, which lends the strict read's root node to a closure, and `default_formats`, the registry `Input::open` reads through.
+- `input-json` reads JSON through `Input::open`, with the built-in format `input::JSON` and the extension `.json`.
+  `input` does not turn it on, so a CLI that reads JSON names `input-json` beside it.
+  The reader is ctl-input's own and links no parser crate ([#340](https://github.com/victor-software-house/ctl-core/pull/340)).
+
+  `ScalarSyntax::Null` joins the tree for `null`; the enum is non-exhaustive, so a `match` on it already has a wildcard arm.
+  `Formats::builtin()` holds `yaml`, `json` and `toml`, in that order, as their features allow.
+
+  A JSON text is read by RFC 8259 with no option that loosens it:
+
+  1. A comment, a trailing comma, a single-quoted string, an unquoted key and a number such as `01`, `+1`, `.5` or `NaN` are refused.
+  2. Whitespace is space, tab, line feed and carriage return only.
+  3. A raw control character in a string must be escaped, and a lone or inverted surrogate escape is refused.
+  4. The text holds one value: an empty text, or text after the value, is refused.
+  5. A leading byte-order mark is skipped and counts as no column.
+  6. A strict reading refuses a key written twice in one object, comparing keys after their escapes are decoded, and a listing keeps both entries.
+  7. A string fills only a string field, a number only a number field, and `null` only an optional or unit field.
+     A number keeps its text, so an integer too large for `u128` reads as a float for a float field or a typeless read, and an integer field refuses it.
+     A float that overflows is refused.
+  8. `max_reader_input_bytes`, `max_depth` and `max_nodes` apply as the text is read, and a file that is not UTF-8 is refused when it is opened.
+- Output formats are an open interface.
+  `format::Format` defines how a result becomes output, `format::FormatName` names one, and `format::Formats` is the set a CLI registers with `App::formats`.
+  `pretty` and `json` are the built-in implementations, `format::PRETTY` and `format::JSON`, and their output is unchanged.
+  A CLI adds a format, replaces a built-in of the same name, or removes one.
+  It also sets the default for a terminal and for a pipe.
+  The terminal default is `pretty` and the piped default is `tsv`, the break that the tabular formats entry describes.
+  Output on a terminal does not change, except where the breaks below say so ([#316](https://github.com/victor-software-house/ctl-core/pull/316)).
+
+  Breaking changes:
+
+  1. `format::OutputFormat` and `format::ParseFormatError` are removed. `FormatName::PRETTY` and `FormatName::JSON` replace its variants, and `view.format() == FormatName::JSON` replaces `is_json()`.
+  2. `View::new` takes a `&'static dyn Format`, such as `&format::JSON`, in place of an `OutputFormat`. `View::requested` takes an optional name that `View::resolve` turns into a format.
+  3. `View::format()` returns a `FormatName`, and `View::is_machine()` says whether the format never writes ANSI. `--quiet` hides `pretty` and a default format, and never a machine format that a flag, a shorthand, or a variable named.
+  4. The `format` field of `OutputArgs`, `FormatArgs`, and `FormatLong` is an `Option<FormatName>`, and is `None` when no flag or variable named a format. `--format` has no default in help.
+  5. `shell::view` takes an `Option<FormatName>`. Every format but `json` prints the script as text, and quiet never hides it.
+  6. `App::new` requests no format, so an `App` without `.view(...)` now honours `--format`, `--json`, and their variables.
+  7. Two variables that name different formats, such as `TOY_FORMAT=csv` and `TOY_JSON=1`, are a usage error that names both. Before, `TOY_JSON` won.
+  8. `--json` moves after `--quiet` in help and in the Usage spec, and `--format` no longer shows `[default: pretty]`.
+  9. `FormatName` has no `FromStr`, `Default`, `Deserialize` or `JsonSchema`.
+  10. `View::format()` is no longer `const`.
+  11. The `view` feature depends on `erased-serde`. It appears in `Output::data`, and `format` re-exports it.
+
+  Migration:
+
+  1. Replace `OutputFormat::Json` with `FormatName::JSON`, and `format.is_json()` with `view.format() == FormatName::JSON` where the branch writes JSON. Use `view.is_machine()` only where a check guards ANSI or `--quiet`.
+  2. Replace `View::new(OutputFormat::X, color)` with `View::new(&format::X, color)`.
+  3. Compare the `format` field with `Some(FormatName::JSON)`, or call `view()`.
+  4. Pass an `Option<FormatName>` to `shell::view`, which `cli.output.format` already is.
+  5. Replace `View::new(cli.output.format, color)` with `View::requested(cli.output.format, color)`.
+  6. Match the text of a name against `formats.names()` where `FormatName::from_str` or `Deserialize` read one.
+  7. Register any format of the CLI's own through `App::formats`. Build a `Surface` or an operator document from `formats.augment(Cli::command())`, with the same `Formats` the `App` gets.
+- A command can return records, and `--stream` writes each one when the command produces it.
+  `view::Records` is a header record then records, each a `Present` value that serializes with a string `type` field.
+  `view::Reply` is a value or records.
+  `App::run` takes either through the sealed `view::Respond`, so a handler that returns a value compiles as before.
+  `View::show_records` writes records for a consumer without `App`.
+  `View::stream(bool)` sets the stream setting and `View::is_stream()` reads it.
+  Under it, `View::show` writes a value through the format's stream form, as a stream of one record ([#321](https://github.com/victor-software-house/ctl-core/pull/321)).
+
+  Without `--stream`, records are collected and written as one result, so `json` writes one array.
+  With `--stream`, `json` writes each record compact on one line.
+  `--stream` alone uses the stream default, `json`, which `Formats::stream_default` changes.
+  `Format::stream` returns the `format::RecordWriter` that writes each record.
+  Its default writes each record as `write` does, so existing formats compile unchanged.
+  `tsv`, `csv`, `markdown`, and `pretty` write records as they arrive, with a table's header once and again when the table changes.
+  The `view` feature now depends on `anyhow`, the error type of a stream of records.
+
+  Breaking changes:
+
+  1. `OutputArgs`, `FormatArgs`, and `FormatLong` gain a `stream` field, and `--stream` with the variable `<PREFIX>_STREAM`, which takes `true` or `false`.
+     A CLI that declares its own `--stream` must rename it.
+  2. `--stream` has no short flag, so a CLI that calls `Surface::require_shorts` adds `--stream` to its allow list.
+  3. `View`, with its `PartialEq` and `Debug`, carries the stream setting.
+
+  Migration: a CLI that writes its own rows to stdout returns `Records` instead and drops that code.
+- The JSON error envelope keeps a field per part of a failure, so a caller no longer parses prose.
+  `ErrorBody` gains `causes`, `problems`, `usage`, and `parse`, each left out of JSON when empty and described by the schema.
+  `causes` lists each further error of an `anyhow` chain, outermost first.
+  `problems` holds one `InputProblem` per problem of a refused input, with its `input`, `line`, `column`, `field`, and `message`.
+  `usage` is the usage line of the selected command, without the `Usage:` label, on every parse error.
+  `parse` is a `ParseFailure`: Clap's error kind in snake case as `reason`, and a field for each kind of Clap's error context: `argument`, `missing`, `value`, `valid_values`, `subcommand`, `valid_subcommands`, `suggested_arguments`, `suggested_values`, `suggested_subcommands`, `suggested_commands`, `conflicts_with`, `actual_values`, `expected_values`, `min_values`, `trailing_argument`, `tips`, and `notes`.
+  The new `error-context` feature turns on Clap's, so `parse` holds those parts; without it, `parse` holds only `reason`.
+  `ErrorBody::text` is the text a person reads, which `pretty` and every other non-JSON format write after `{bin}: `.
+  `App` sets it to what each failure printed before it had fields, so a non-JSON error reads as it did; JSON and the schema leave it out ([#347](https://github.com/victor-software-house/ctl-core/pull/347)).
+
+  Build an `ErrorBody` with `ErrorBody::new` and the builders `kind`, `causes`, `problems`, `usage`, `parse`, and `with_text`.
+  `InputProblem` and `ParseFailure` are `#[non_exhaustive]` too, built with `InputProblem::new` and `ParseFailure::new` and their builders.
+
+  `message` is one sentence for every failure, so a script that read it for a cause or a problem reads `causes` or `problems`:
+
+  1. A handler error's `message` is its outermost error, and the rest of its chain is in `causes`, where it was joined with `: `.
+  2. A refused input's `message` is `<input> has <n> problems`, and the lines it carried are in `problems`.
+  3. A parse error's `message` is Clap's first line, so the tip, the usage, and the pointer to `--help` are no longer in it.
+- No column of a table narrows below its floor, and a table that cannot fit at its floors stacks.
+  A column's floor is its header width or 8 cells, whichever is larger, and never more than its natural width.
+  A fold column, and a keep-words column in a grid, went down to its widest cluster before, and an ellipsis column to 1 cell.
+  Each now stops at its floor.
+  A table whose floors and frame do not fit the width draws each row as a record, with a blank line between rows.
+  A record is the first cell as a title, then a header and value line for each other column.
+  A table with no header draws each row as its first cell over the others, and a table with no rows draws its grid ([#324](https://github.com/victor-software-house/ctl-core/pull/324)).
+
+  `RenderOptions::column_floor(cells)` sets the floor, and `CTL_CORE_COLUMN_FLOOR` sets it when the consumer leaves it open.
+  `0` turns the floor off, so each column goes down to the limit its overflow sets.
+
+  `RenderOptions::table_fit(TableFit)` sets the fit, and `Table::stacking(TableFit)` sets it for one table.
+  `CTL_CORE_TABLE_FIT` (`stack` or `wrap`) sets it when neither does.
+  `TableFit::Wrap` keeps the grid at its floors and lets it run past the width.
+  `column_floor_envs` and `table_fit_envs` replace each ordered name list, and an empty slice disables lookup.
+
+  A table with `Table::stacked_below`, such as a help table, has no floor and keeps its threshold and form, so help output does not change.
+
+  Public additions:
+
+  - ctl-core: `RenderOptions::column_floor`, `column_floor_envs`, `table_fit`, `table_fit_envs`, `resolved_column_floor`, and `resolved_table_fit`.
+  - ctl-core: `DEFAULT_COLUMN_FLOOR_ENV`, `DEFAULT_COLUMN_FLOOR_ENVS`, `DEFAULT_TABLE_FIT_ENV`, and `DEFAULT_TABLE_FIT_ENVS`.
+  - ctl-core: `TableFit`, at `ctl_core::TableFit`, `ctl_core::prelude::TableFit`, `ctl_core::document::TableFit`, and `ctl_core::render::TableFit`.
+  - ctl-core: `Table::stacking`, and its getter `Table::fit`, on the document `Table`.
+  - ctl-core: `View::styles` and `App::styles` carry the floor, the fit, and their name lists, as they carry the other styles.
+  - ctl-layout: `Table::column_floor`, `Table::fits`, and `Fallback`, which draws a table when it fits and another widget when it does not.
+
+  `RenderOptions` is larger, so a CLI function that takes it by value may meet clippy's pedantic `large_types_passed_by_value`.
+
+  Breaking changes:
+
+  1. Every table without `stacked_below` that cannot fit at its column limits now stacks, including unframed keep-words lists that used to run past the width.
+  2. No column narrows below its floor, so ellipsis and fold columns stop there, and a grid folds no column below it.
+  3. In ctl-layout, `Table`'s default column floor is 8, and its `measure` minimum rises with it.
+
+  Migration: set both `column_floor(0)` and `table_fit(TableFit::Wrap)`, or `CTL_CORE_COLUMN_FLOOR=0` and `CTL_CORE_TABLE_FIT=wrap`, to restore the old output.
+  A direct ctl-layout user calls `Table::column_floor(0)` and uses no `Fallback`.
+- Piped output is now `tsv` for every CLI on ctl-core.
+  When stdout is not a terminal and no flag or variable names a format, a CLI writes tab-separated lines.
+  Before, it wrote the pretty table.
+  `--quiet` hides that default output, as it hides `pretty` ([#318](https://github.com/victor-software-house/ctl-core/pull/318)).
+
+  `tsv`, `csv`, and `markdown` are new built-in formats: `format::TSV`, `format::CSV`, and `format::MARKDOWN`.
+  Each reads the result's document, so a script gets the columns a person sees.
+  `Formats::builtin()` registers all five, and `--format` accepts their names.
+
+  Migration:
+
+  1. A test that reads piped output passes `--format pretty`, or reads `tsv`.
+  2. A CLI that needs the old piped output sets the piped default to pretty: `Formats::builtin().piped_default(FormatName::PRETTY)`.
+
 ## ctl-core 0.8.0-rc.1
 
 - Help renders more of what Clap declares.
