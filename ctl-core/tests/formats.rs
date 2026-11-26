@@ -405,6 +405,16 @@ fn an_unregistered_name_is_a_usage_error_that_lists_the_registered_names() {
     );
 }
 
+/// The help of a build with `input-document` lists the two input flags, so its
+/// snapshots are apart from the help of a build without them.
+fn snapshots() -> insta::Settings {
+    let mut settings = insta::Settings::clone_current();
+    if cfg!(feature = "input-document") {
+        settings.set_snapshot_suffix("input_document");
+    }
+    settings
+}
+
 #[test]
 fn help_lists_the_registered_formats_and_the_shorthand_variable() {
     let Some(output) = child::in_child(
@@ -415,10 +425,12 @@ fn help_lists_the_registered_formats_and_the_shorthand_variable() {
         assert_eq!(child::case(|| run(&["--help"])), ExitCode::SUCCESS);
         return;
     };
-    insta::assert_snapshot!(
-        "help_lists_the_registered_formats",
-        child::case_stdout(&output)
-    );
+    snapshots().bind(|| {
+        insta::assert_snapshot!(
+            "help_lists_the_registered_formats",
+            child::case_stdout(&output)
+        );
+    });
 }
 
 #[test]

@@ -1,0 +1,74 @@
+---
+source: ctl-core/tests/help_sections.rs
+expression: page
+---
+Usage: toy [OPTIONS] <COMMAND>
+
+Run toy boxes.
+
+Toy makes boxes, runs commands in them, and removes them when the command ends.
+Every command prints a table, or JSON under `--json`.
+
+Run work
+┌─────┬──────────────────────────────┐
+│ run ┆ Run one command in a new box │
+└─────┴──────────────────────────────┘
+
+Boxes
+┌────────────┬────────────────┐
+│ new        ┆ Make a box     │
+│ ls, list   ┆ List the boxes │
+│ rm, remove ┆ Remove a box   │
+└────────────┴────────────────┘
+
+Commands
+┌───────┬───────────────────────────────────────────────────────────┐
+│ skill ┆ Print the guide                                           │
+│ help  ┆ Print this message or the help of the given subcommand(s) │
+└───────┴───────────────────────────────────────────────────────────┘
+
+Output
+┌────┬────────────┬────────────────────────────────┬─────────────────────────┐
+│ -f ┆ --format   ┆ [pretty|json|tsv|csv|markdown] ┆ Output representation   │
+│ -c ┆ --color    ┆ [auto|always|never]            ┆ Pretty-output colour    │
+│    ┆            ┆                                ┆ policy. JSON never      │
+│    ┆            ┆                                ┆ contains ANSI [default: │
+│    ┆            ┆                                ┆ auto]                   │
+│    ┆ --no-color ┆                                ┆ Force colourless pretty │
+│    ┆            ┆                                ┆ output. Wins over       │
+│    ┆            ┆                                ┆ `--color`               │
+│ -q ┆ --quiet    ┆                                ┆ Suppress successful     │
+│    ┆            ┆                                ┆ pretty output           │
+│    ┆ --stream   ┆                                ┆ Write each record when  │
+│    ┆            ┆                                ┆ the command produces it │
+│    ┆ --json     ┆                                ┆ Shorthand for `--format │
+│    ┆            ┆                                ┆ json`                   │
+└────┴────────────┴────────────────────────────────┴─────────────────────────┘
+
+Options
+┌────┬───────────┬──────┬────────────────────────────────────────────────────┐
+│    ┆ --host    ┆ HOST ┆ The daemon to talk to.                             │
+│    ┆           ┆      ┆                                                    │
+│    ┆           ┆      ┆ A host name, with a port when the daemon does not  │
+│    ┆           ┆      ┆ listen on 4700. Without it, toy talks to the local │
+│    ┆           ┆      ┆ socket.                                            │
+│ -V ┆ --version ┆      ┆ Print version                                      │
+└────┴───────────┴──────┴────────────────────────────────────────────────────┘
+
+Input
+┌──┬────────────────┬──────────────────┬──────────────────────────────────────┐
+│  ┆ --input        ┆ FILE             ┆ Fill this command's arguments from a │
+│  ┆                ┆                  ┆ document; `-` reads stdin            │
+│  ┆ --input-format ┆ [yaml|json|toml] ┆ The document's format, which stdin   │
+│  ┆                ┆                  ┆ needs; a file's extension names it   │
+│  ┆                ┆                  ┆ otherwise                            │
+└──┴────────────────┴──────────────────┴──────────────────────────────────────┘
+
+Help
+┌────┬────────┬──┬──────────────────────────────────────┐
+│ -h ┆ --help ┆  ┆ Print help (see a summary with '-h') │
+└────┴────────┴──┴──────────────────────────────────────┘
+
+Examples
+toy run --size 8x16 -- make test
+toy ls --json

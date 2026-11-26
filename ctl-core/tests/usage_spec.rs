@@ -377,9 +377,15 @@ mod toy {
         printed.take()
     }
 
+    /// The spec of a build with `input-document` lists the two input flags, so
+    /// its snapshot is apart from the spec of a build without them.
     #[test]
     fn a_mounted_toy() {
-        insta::assert_snapshot!("toy", visible(&mounted_toy()));
+        let mut settings = insta::Settings::clone_current();
+        if cfg!(feature = "input-document") {
+            settings.set_snapshot_suffix("input_document");
+        }
+        settings.bind(|| insta::assert_snapshot!("toy", visible(&mounted_toy())));
     }
 }
 
