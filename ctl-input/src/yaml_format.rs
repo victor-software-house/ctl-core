@@ -11,8 +11,8 @@ use serde_saphyr::located::{self, MappingNode, ScalarNode, SequenceNode};
 use serde_saphyr::scalars::{Inferred, Rules, Scalar as Spelled};
 use serde_saphyr::{DefaultMessageFormatter, Error, Location};
 
-use super::exceeded::{Exceeded, Raise};
-use super::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, Wanted};
+use super::exceeded::Exceeded;
+use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
 use super::limits::Limits;
 use super::tree::{Node, Scalar, ScalarStyle, Tag};
 use super::yaml_text::{self, Unplaced};
@@ -58,9 +58,14 @@ impl Format for Yaml {
         };
         let rules = rules();
         let at = Location::UNKNOWN;
-        let mismatch = Mismatch::new(wanted);
+        let mismatch = |error: Error| {
+            Mismatch::new(wanted).with_detail(yaml_text::plain(
+                &DefaultMessageFormatter.with_localizer(&Unplaced),
+                &error,
+            ))
+        };
         match wanted {
-            Wanted::Any => match rules.infer(&spelled, at).map_err(|_error| mismatch)? {
+            Wanted::Any => match rules.infer(&spelled, at).map_err(mismatch)? {
                 Inferred::Null => Ok(Resolved::Null),
                 Inferred::Bool(value) => Ok(Resolved::Bool(value)),
                 Inferred::Signed(value) => Ok(Resolved::Int(i128::from(value))),
@@ -74,29 +79,26 @@ impl Format for Yaml {
             Wanted::Bool => rules
                 .boolean(&spelled, at)
                 .map(Resolved::Bool)
-                .map_err(|_error| mismatch),
+                .map_err(mismatch),
             Wanted::Int => match rules.signed::<i128>(&spelled, at) {
                 Ok(value) => Ok(Resolved::Int(value)),
                 Err(_) => rules
                     .unsigned::<u128>(&spelled, at)
                     .map(Resolved::Uint)
-                    .map_err(|_error| mismatch),
+                    .map_err(mismatch),
             },
             Wanted::Float => rules
                 .float64(&spelled, at)
                 .map(Resolved::Float)
-                .map_err(|_error| mismatch),
+                .map_err(mismatch),
             Wanted::Null => rules
                 .is_null(&spelled)
                 .then_some(Resolved::Null)
-                .ok_or(mismatch),
-            Wanted::Str => {
-                if rules.is_null(&spelled) {
-                    Err(mismatch)
-                } else {
-                    Ok(Resolved::Str(Cow::Borrowed(scalar.value())))
-                }
-            }
+                .ok_or_else(|| Mismatch::new(wanted)),
+            Wanted::Str => match rules.string(&spelled, at).map_err(mismatch)? {
+                Cow::Owned(text) => Ok(Resolved::Str(Cow::Owned(text))),
+                Cow::Borrowed(_) => Ok(Resolved::Str(Cow::Borrowed(scalar.value()))),
+            },
         }
     }
 }
@@ -144,18 +146,22 @@ fn bytes(text: &str, location: Location) -> Option<Range<usize>> {
 }
 
 /// The byte offset in `text` of the 1-based line and character column of
-/// `location`, as the parser counts them. A column past the end of its line
-/// is the end of the line.
+/// `location`, as the parser counts them: a byte order mark that starts line 1
+/// is no column. A column past the end of its line is the end of the line.
 fn offset_of(text: &str, location: Location) -> Option<usize> {
     let line = usize::try_from(location.line()).ok()?.checked_sub(1)?;
     let column = usize::try_from(location.column()).ok()?.checked_sub(1)?;
     let start: usize = text.split_inclusive('\n').take(line).map(str::len).sum();
     let content = text.get(start..)?.split('\n').next()?;
-    let within = content
+    let (bom, counted) = match content.strip_prefix('\u{feff}') {
+        Some(rest) if start == 0 => (content.len() - rest.len(), rest),
+        _ => (0, content),
+    };
+    let within = counted
         .char_indices()
         .nth(column)
-        .map_or(content.len(), |(index, _)| index);
-    Some(start + within)
+        .map_or(counted.len(), |(index, _)| index);
+    Some(start + bom + within)
 }
 
 /// The bytes a node is written at. The parser locates every node it builds,

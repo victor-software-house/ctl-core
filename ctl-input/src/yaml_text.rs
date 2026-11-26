@@ -11,8 +11,8 @@ use serde_saphyr::{
     MessageFormatter, NonFiniteFloatPolicy, Options,
 };
 
-use super::exceeded::{Exceeded, Raise};
-use super::format::Reading;
+use super::exceeded::Exceeded;
+use super::format::{Raise, Reading};
 use super::limits::Limits;
 use super::{At, FieldPath, Input, InputError, Problem, Step};
 

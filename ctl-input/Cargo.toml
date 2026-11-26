@@ -43,6 +43,7 @@ yamled = { workspace = true, optional = true }
 garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 # One integration binary, so the tests link once.
 [[test]]

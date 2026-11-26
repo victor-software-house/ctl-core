@@ -102,8 +102,8 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
     for text in [".inf", "-.inf", ".nan"] {
         let scalar = plain(text);
         assert_eq!(
-            resolve(&scalar, None, Wanted::Any),
-            Err(Mismatch::new(Wanted::Any)),
+            resolve(&scalar, None, Wanted::Any).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Any),
             "{text}"
         );
         assert_eq!(
@@ -112,8 +112,8 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
             "{text}"
         );
         assert_eq!(
-            resolve(&scalar, None, Wanted::Int),
-            Err(Mismatch::new(Wanted::Int)),
+            resolve(&scalar, None, Wanted::Int).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Int),
             "{text}"
         );
     }
@@ -127,6 +127,18 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
         resolve(&nan, None, Wanted::Float),
         Ok(Resolved::Float(number)) if number.is_nan()
     ));
+}
+
+#[test]
+fn a_mismatch_carries_the_rules_own_words_for_the_scalar() {
+    let scalar = plain(".inf");
+    let mismatch = resolve(&scalar, None, Wanted::Any).unwrap_err();
+    assert!(
+        mismatch
+            .detail()
+            .is_some_and(|detail| detail.contains("non-finite")),
+        "{mismatch:?}"
+    );
 }
 
 #[test]
@@ -235,6 +247,45 @@ fn a_binary_scalar_resolves_to_its_decoded_text_as_owned() {
         matches!(resolved, Ok(Resolved::Str(Cow::Owned(_)))),
         "{resolved:?}"
     );
+}
+
+#[test]
+fn a_tagged_non_string_is_refused_for_a_string_field() {
+    for (text, tag) in [
+        ("8080", "tag:yaml.org,2002:int"),
+        ("~", "tag:yaml.org,2002:int"),
+        ("1.5", "tag:yaml.org,2002:float"),
+    ] {
+        let scalar = plain(text);
+        assert_eq!(
+            resolve(&scalar, Some(tag), Wanted::Str).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Str),
+            "{tag} {text}"
+        );
+    }
+}
+
+#[test]
+fn a_binary_scalar_is_decoded_as_owned_text_for_a_string_field() {
+    let scalar = plain("aGk=");
+    let resolved = resolve(&scalar, Some("tag:yaml.org,2002:binary"), Wanted::Str);
+    assert_eq!(resolved, Ok(borrowed("hi")));
+    assert!(matches!(resolved, Ok(Resolved::Str(Cow::Owned(_)))));
+}
+
+#[test]
+fn a_null_spelling_is_text_when_it_is_quoted_or_tagged_a_string() {
+    let tilde = Scalar::new("~", ScalarStyle::SingleQuoted);
+    assert_eq!(resolve(&tilde, None, Wanted::Str), Ok(borrowed("~")));
+    let tagged = plain("~");
+    assert_eq!(
+        resolve(&tagged, Some(STR_TAG), Wanted::Str),
+        Ok(borrowed("~"))
+    );
+    assert!(matches!(
+        resolve(&tagged, Some(STR_TAG), Wanted::Str),
+        Ok(Resolved::Str(Cow::Borrowed(_)))
+    ));
 }
 
 #[test]

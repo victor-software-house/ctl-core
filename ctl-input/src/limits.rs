@@ -19,7 +19,7 @@ use serde_saphyr::Budget;
 use serde_saphyr::options::AliasLimits;
 
 #[cfg(feature = "yaml")]
-use super::exceeded::Raise;
+use super::format::Raise;
 #[cfg(feature = "yaml")]
 use super::{Input, InputError};
 

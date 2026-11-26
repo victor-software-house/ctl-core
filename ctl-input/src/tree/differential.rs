@@ -8,6 +8,10 @@
 //! change moves it to the alias. A key that is not a scalar has no step to
 //! walk through, so each such key is counted and its value is not walked.
 //!
+//! The one other difference is a YAML text that starts with a byte order mark:
+//! today's `place` counts it as a column of line 1, as yamled does, and the
+//! tree does not, as the YAML parser does not.
+//!
 //! For TOML this compares lookup and order only: `Input::place` and the tree
 //! read the spans of the same `toml` parse, so a span cannot differ. YAML is
 //! the comparison of two readers, serde-saphyr's and yamled's.
@@ -72,7 +76,7 @@ fn field_path(steps: &[Step]) -> FieldPath {
 /// The fixtures, each a text of one format whose extension comes before
 /// `.fixture`, so the repository's formatters leave texts that are meant to
 /// be wrong alone.
-fn fixtures() -> Vec<PathBuf> {
+pub(crate) fn fixtures() -> Vec<PathBuf> {
     let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     let mut files: Vec<PathBuf> = fs::read_dir(directory)
         .unwrap()
@@ -113,6 +117,7 @@ const EXPECTED: &[(&str, usize, usize)] = &[
 fn the_tree_places_every_path_as_input_does() {
     let mut differences = Vec::new();
     let (mut files, mut texts, mut compared, mut skipped) = (0, 0, 0, 0);
+    let mut marked = 0;
     for file in fixtures() {
         let Some(input) = input(&file) else {
             continue;
@@ -151,7 +156,9 @@ fn the_tree_places_every_path_as_input_does() {
                 }
                 .map(|place| (place.line, place.column));
                 compared += 1;
-                if expected != Some(found) {
+                if name == "bom.yaml" && expected == Some((found.0, found.1 + 1)) && found.0 == 1 {
+                    marked += 1;
+                } else if expected != Some(found) {
                     let at = match at {
                         At::Value => "value",
                         At::Key => "key",
@@ -167,5 +174,9 @@ fn the_tree_places_every_path_as_input_does() {
         "{files} fixtures, {texts} refused by the format, {compared} places compared, {skipped} replayed nodes skipped"
     );
     assert!(compared > 500, "{compared} places compared");
+    assert!(
+        marked > 0,
+        "today's place counts the byte order mark of bom.yaml and the tree does not"
+    );
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }

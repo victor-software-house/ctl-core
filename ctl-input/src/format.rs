@@ -23,6 +23,7 @@ use std::fmt;
 use std::ops::Range;
 
 use super::Limits;
+use super::messages::{EnglishMessages, Messages, messages};
 #[cfg(feature = "toml")]
 pub use super::toml_format::{TOML, Toml};
 use super::tree::{Node, Scalar, Tag};
@@ -135,22 +136,42 @@ pub enum Resolved<'a> {
 }
 
 /// A scalar the format cannot read as the type a field wanted.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mismatch {
     wanted: Wanted,
+    detail: Option<String>,
 }
 
 impl Mismatch {
     /// A scalar that is not a `wanted`.
     #[must_use]
     pub fn new(wanted: Wanted) -> Self {
-        Self { wanted }
+        Self {
+            wanted,
+            detail: None,
+        }
+    }
+
+    /// This mismatch with the format's own words for why the scalar is not a
+    /// `wanted`, such as a YAML float that is not finite.
+    #[must_use]
+    pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
     }
 
     /// The type the field wanted.
     #[must_use]
-    pub fn wanted(self) -> Wanted {
+    pub fn wanted(&self) -> Wanted {
         self.wanted
+    }
+
+    /// The format's own words for why the scalar is not a
+    /// [`wanted`](Self::wanted), when it gave any. A typeless read has no type
+    /// to name, so the Deserializer words its refusal from this.
+    #[must_use]
+    pub fn detail(&self) -> Option<&str> {
+        self.detail.as_deref()
     }
 }
 
@@ -212,18 +233,21 @@ impl Refusal {
     }
 }
 
+/// The wording [`set_messages`](crate::set_messages) installed, or the English
+/// default.
 impl fmt::Display for Refusal {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fault.fmt(formatter)
+        formatter.write_str(&messages().message(&self.fault))
     }
 }
 
 impl Error for Refusal {}
 
-/// What a [`Format::read`] found wrong.
+/// What a read of a text or of a typed value found wrong.
 ///
-/// These are the faults of reading a text into the tree. A later release adds
-/// the faults of reading a value from it.
+/// Each variant is one problem type, and [`Messages`] words it.
+/// A problem in a node an alias replayed is a [`Refusal`] with
+/// [`Refusal::defined_at`] set, not a variant of its own.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Fault {
@@ -245,17 +269,93 @@ pub enum Fault {
         name: &'static str,
         /// The value in force.
         value: String,
+        /// Where a person raises it.
+        raise: Raise,
     },
+    /// A node of another kind than the type being read needs, such as a
+    /// sequence where a struct is read.
+    ExpectedKind {
+        /// What the type needs, such as `a mapping`.
+        expected: String,
+        /// What the node is, such as `a sequence`.
+        found: String,
+    },
+    /// A value the type refuses: a scalar the format cannot read as the type
+    /// the field needs, a number out of range, or the text of an error the
+    /// type's own `Deserialize` raised.
+    InvalidValue {
+        /// Why the value is refused.
+        detail: String,
+    },
+    /// A key a struct does not have, under `deny_unknown_fields`.
+    UnknownField {
+        /// The key.
+        field: String,
+        /// The keys the struct has.
+        expected: Vec<&'static str>,
+    },
+    /// A variant an enum does not have.
+    UnknownVariant {
+        /// The variant as written.
+        variant: String,
+        /// The variants the enum has.
+        expected: Vec<&'static str>,
+    },
+    /// A field a struct needs and its mapping lacks.
+    MissingField {
+        /// The field.
+        field: &'static str,
+    },
+}
+
+/// Where a person raises a limit a text went past.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Raise {
+    /// In the repository's file of limits.
+    #[cfg(feature = "yaml")]
+    InRepository,
+    /// In the tool's process default, for the repository's file of limits
+    /// itself, which is read before any repository override applies.
+    #[cfg(feature = "yaml")]
+    InProcess,
+    /// Nowhere the user can reach: a build without `yaml` reads no
+    /// repository file, so only the tool sets limits.
+    #[cfg(not(feature = "yaml"))]
+    InTool,
+}
+
+impl Fault {
+    /// A [`Fault::Limit`] for a text of a CLI's own format that went past
+    /// the limit `name` of the value `value`, worded as it is for a text in
+    /// memory: where a person raises it is the same as for the built-in
+    /// formats.
+    #[must_use]
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "a caller hands over the number or text it has, as it would to Into"
+    )]
+    pub fn limit(name: &'static str, value: impl ToString) -> Self {
+        Self::Limit {
+            name,
+            value: value.to_string(),
+            raise: Raise::FOR_TEXT,
+        }
+    }
+}
+
+impl Raise {
+    /// Where a limit hit by a CLI's own text is raised.
+    #[cfg(feature = "yaml")]
+    pub(crate) const FOR_TEXT: Self = Self::InRepository;
+    /// Where a limit hit by a CLI's own text is raised.
+    #[cfg(not(feature = "yaml"))]
+    pub(crate) const FOR_TEXT: Self = Self::InTool;
 }
 
 impl fmt::Display for Fault {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Syntax { detail } => formatter.write_str(detail),
-            Self::DuplicateKey { key } => write!(formatter, "duplicate key `{key}`"),
-            Self::MergeKey => formatter.write_str("merge keys are not allowed"),
-            Self::Limit { name, value } => write!(formatter, "exceeds {name} ({value})"),
-        }
+        formatter.write_str(&EnglishMessages.message(self))
     }
 }
 

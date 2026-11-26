@@ -26,6 +26,16 @@
 //! the two built-in formats. `Input` does not read through any of these yet:
 //! it still reads with the `Format` enum below.
 //!
+//! ## The Deserializer, the messages and `Tagged`
+//!
+//! `de::deserialize` reads a typed value from a tree, asking the format to
+//! resolve each scalar for the type its field needs.
+//! A problem is a `format::Fault` with the bytes it sits at, and
+//! `Messages` words it, in English by default and in another voice after
+//! `set_messages`.
+//! `de::Tagged` reads a node's tag beside its value.
+//! `Input` does not read through these yet.
+//!
 //! ```
 //! # #[cfg(all(feature = "yaml", feature = "validate"))]
 //! # {
@@ -70,12 +80,14 @@ use std::{fmt, fs, io, slice};
 use garde::Validate;
 use serde::de::DeserializeOwned;
 
+pub mod de;
 mod entries;
 mod exceeded;
 mod field_path;
 pub mod format;
 mod formats;
 mod limits;
+mod messages;
 #[cfg(feature = "toml")]
 mod toml_entries;
 #[cfg(feature = "toml")]
@@ -91,12 +103,14 @@ mod yaml_format;
 mod yaml_text;
 
 pub use entries::{Entry, Written};
-use exceeded::{Exceeded, Raise};
+use exceeded::Exceeded;
 pub use field_path::{FieldPath, Place, Step};
+use format::Raise;
 pub use formats::{Formats, set_default_formats};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
+pub use messages::{EnglishMessages, Messages, set_messages};
 /// A value and the YAML tag written on its node, such as `!override` in
 /// `code_span_size: !override 0`: `Tagged(0, Some("!override".into()))`.
 /// A node with no tag reads as `Tagged(value, None)`, and an untagged enum
