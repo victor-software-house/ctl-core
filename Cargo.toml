@@ -309,10 +309,10 @@ input = { features = "app,input", text = 966013 }
 input-toml = { features = "app,input-toml", text = 654446 }
 # app plus input-json: the own JSON reader, the one tree Deserializer, the
 # problem wording, the kept tree and the format registry, with no parser
-# crate, no YAML crate and no garde. 72,097 above app, 533125, and 57,584
-# below input-toml. Measured at its first build with the toolchain of the
-# other tiers (CTC-066, the JSON input format).
-input-json = { features = "app,input-json", text = 605222 }
+# crate, no YAML crate and no garde. The app budget plus the 72,097 bytes it
+# measured above app at its first build, on the build host in one box (CTC-066,
+# the JSON input format).
+input-json = { features = "app,input-json", text = 598474 }
 
 # Line tables keep backtraces readable at a fraction of full debug info.
 [profile.dev]
