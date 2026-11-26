@@ -61,6 +61,7 @@ depends = [
   "test:usage",
   "test:cli",
   "test:input-toml",
+  "test:input-json-off",
   "test:doc",
   "doc",
   "doc:default-features",
