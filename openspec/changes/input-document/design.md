@@ -114,7 +114,8 @@ Clap stops at its first error.
 ctl-core records the key span behind each synthesized argument.
 When clap's error names an argument that came from the document, the problem is placed on that key, or on its value for an invalid value.
 Naming the argument needs clap's `error-context`, so `input-document` turns on ctl-core's `error-context` feature, which turns on clap's (operator, 2026-11-26).
-`check:tree` keeps refusing it for `app,usage,input` without `input-document`.
+`input-document` turns on `app` too, so it never builds clap with `error-context` and no flags.
+`check:tree` refuses `error-context` for `app,usage,input`, `app,input-toml` and `app,input-json`, the tiers without `input-document`.
 Under `--format json`, the problems are separate objects in the error envelope, through the [structured-errors change](../structured-errors/design.md), never one joined message (operator, 2026-11-26).
 
 A missing required argument has no key, so it reads as clap words it.

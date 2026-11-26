@@ -44,7 +44,7 @@ None.
 ## Impact
 
 1. Code: a new `ctl-core/src/app/document.rs` and its parts; `App` gains `without_input` and `input_conflicts`.
-2. Features: a new `input-document` feature turns on the flags and `clap/error-context`; `check:tree` requires `error-context` with `input-document` and refuses it for `app,usage,input` without it.
+2. Features: a new `input-document` feature turns on `app`, the flags and ctl-core's `error-context`; `check:tree` requires clap's `error-context` with `input-document` and refuses it for `app,usage,input`, `app,input-toml` and `app,input-json`.
 3. Size: a new `input-document` size tier carries the cost, measured at about 45 KB over `input`; every existing tier stays.
 4. Consumers: none change until they adopt the release; CTC-043's golden tests in qctl, verctl and forkctl land with each adoption.
 5. Release: a `ctl-core: patch` changeset in the 0.8.0 candidates, since every addition is new.

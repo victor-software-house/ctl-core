@@ -20,8 +20,8 @@
 
 - [ ] 3.1 Collect ctl-core's own refusals and report them together, and place a clap error on the key or value behind it.
   Verify: the value-clap-refuses scenario passes, and a document with two unknown keys reports both.
-- [ ] 3.2 Add the `input-document` feature, which turns on `clap/error-context`, and change `check:tree` to require it there and refuse it for `app,usage,input`.
-  Verify: `check:tree` passes on the build host, and it fails when `app,usage,input` turns `error-context` on.
+- [ ] 3.2 Add the `input-document` feature, which turns on `app` and ctl-core's `error-context`, and change `check:tree` to require clap's `error-context` there and refuse it for `app,usage,input`, `app,input-toml` and `app,input-json`.
+  Verify: `check:tree` passes on the build host, and it fails when any of those three turns `error-context` on.
 
 ## 4. Size, docs and release
 
