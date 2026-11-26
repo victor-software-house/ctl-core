@@ -94,7 +94,8 @@ The YAML replay limits SHALL be the `Limits` fields `max_total_replayed_events`,
 
 #### Scenario: Nested aliases
 
-- **WHEN** a YAML text of 2 KB defines nine anchors, each a list of ten aliases of the one before, under the default limits
+- **WHEN** `max_total_replayed_events` is 1,000 and every other limit keeps its default
+- **AND** a YAML text defines nine anchors, each a list of ten aliases of the one before
 - **THEN** reading it fails with one problem that names `max_total_replayed_events`, before the expanded tree is built
 
 ### Requirement: Tagged reads a tag beside its value
