@@ -91,7 +91,7 @@ Every node keeps its byte span: a string's span includes its quotes.
 3. `Integer` fills an integer field when an `i128` or a `u128` holds it, and a float field.
 4. `Float` fills a float field when `f64` holds it finitely; a value that overflows to infinity is refused.
 5. `Null` fills a unit or optional field, and an optional field of any type reads `None`.
-6. A typeless read gives each value its natural kind; an integer no `u128` holds reads as a float when it is finite.
+6. A typeless read gives each value its natural kind; an integer that neither `i128` nor `u128` holds reads as a float when it is finite.
 
 Quoted numbers filling number fields, as YAML allows, lost: JSON writers type their values, and TOML already sets the strict rule.
 
