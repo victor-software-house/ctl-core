@@ -57,6 +57,8 @@ pub use clap::{Args, Parser, Subcommand};
 #[doc(no_inline)]
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
+#[cfg(feature = "input-document")]
+pub use crate::app::InputConflicts;
 #[cfg(feature = "app")]
 pub use crate::app::{App, BrokenPipe, CommandError};
 pub use crate::color::ColorMode;

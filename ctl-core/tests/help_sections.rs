@@ -76,6 +76,16 @@ fn run(args: &[&str], width: Option<u16>) -> ExitCode {
 
 const CHILD: &str = "CTL_CORE_HELP_SECTIONS_CHILD";
 
+/// The help of a build with `input-document` lists the two input flags, so its
+/// snapshots are apart from the help of a build without them.
+fn snapshots() -> insta::Settings {
+    let mut settings = insta::Settings::clone_current();
+    if cfg!(feature = "input-document") {
+        settings.set_snapshot_suffix("input_document");
+    }
+    settings
+}
+
 /// The help `args` print, in a child at the 80-column fallback or at its
 /// natural width.
 fn help(test: &str, args: &[&str], width: Option<u16>) -> Option<String> {
@@ -90,28 +100,28 @@ fn help(test: &str, args: &[&str], width: Option<u16>) -> Option<String> {
 #[test]
 fn short_help_at_80_columns() {
     if let Some(page) = help("short_help_at_80_columns", &["-h"], Some(80)) {
-        insta::assert_snapshot!("short_w80", page);
+        snapshots().bind(|| insta::assert_snapshot!("short_w80", page));
     }
 }
 
 #[test]
 fn long_help_at_80_columns() {
     if let Some(page) = help("long_help_at_80_columns", &["--help"], Some(80)) {
-        insta::assert_snapshot!("long_w80", page);
+        snapshots().bind(|| insta::assert_snapshot!("long_w80", page));
     }
 }
 
 #[test]
 fn short_help_at_its_natural_width() {
     if let Some(page) = help("short_help_at_its_natural_width", &["-h"], None) {
-        insta::assert_snapshot!("short_natural", page);
+        snapshots().bind(|| insta::assert_snapshot!("short_natural", page));
     }
 }
 
 #[test]
 fn long_help_at_its_natural_width() {
     if let Some(page) = help("long_help_at_its_natural_width", &["--help"], None) {
-        insta::assert_snapshot!("long_natural", page);
+        snapshots().bind(|| insta::assert_snapshot!("long_natural", page));
     }
 }
 

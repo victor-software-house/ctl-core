@@ -120,7 +120,7 @@ pub use format::TOML;
 #[cfg(feature = "yaml")]
 pub use format::YAML;
 use format::{Fault, Raise, Reading, Refusal};
-pub use formats::{Formats, set_default_formats};
+pub use formats::{Formats, default_formats, set_default_formats};
 use input_error::read_text;
 pub use input_error::{InputError, Problem};
 use kept::Kept;
@@ -325,6 +325,32 @@ impl Input {
     /// the tool sets it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
         self.parse_within(&limits::effective(&self.limits), Raise::FOR_TEXT)
+    }
+
+    /// Lend the root node of the text's tree to `walk`, read as
+    /// [`Self::parse`] reads it, and return what `walk` returns.
+    ///
+    /// The read is strict, under the limits in force, so a duplicate key, a
+    /// merge key, a second document and a text past a limit are refused the
+    /// same way, each on its line. The node is the tree the input keeps for
+    /// placing, lent without a copy. A caller that walks the tree itself, such
+    /// as one that turns a document into command-line arguments, places its
+    /// own problems with [`Input::place`] and [`Input::place_key`].
+    ///
+    /// # Errors
+    ///
+    /// An [`InputError`] with the problem and its line, as [`Self::parse`]
+    /// reports it.
+    pub fn tree<T>(&self, walk: impl FnOnce(&tree::Node) -> T) -> Result<T, InputError> {
+        let limits = limits::effective(&self.limits);
+        self.fits(&limits, Raise::FOR_TEXT)?;
+        let read = self
+            .kept
+            .tree(self.format, &self.text, &limits, Reading::Strict);
+        match read.as_ref() {
+            Ok(root) => Ok(walk(root)),
+            Err(refusal) => Err(self.refused(refusal, Raise::FOR_TEXT)),
+        }
     }
 
     /// [`Self::parse`] under exactly `limits`, whatever the tiers say.

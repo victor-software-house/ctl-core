@@ -85,6 +85,30 @@ pub(super) fn handler_error(bin: &str, error: &anyhow::Error) -> ErrorBody {
     ErrorBody::new(bin, message).causes(links).with_text(text)
 }
 
+/// The body of an input document ctl-core refused: its summary as `message`
+/// and each problem in `problems`, as for any refused input, so the pretty
+/// text is the `InputError`'s own display, one problem per line.
+#[cfg(feature = "input-document")]
+pub(super) fn refused_document(bin: &str, refused: InputError) -> ErrorBody {
+    handler_error(bin, &anyhow::Error::new(refused))
+}
+
+/// The body of a clap error that `refused` places on a key of the document:
+/// the one problem, and clap's parts as `parse` and the usage line of the
+/// command `selected` read from, as for any parse error.
+#[cfg(feature = "input-document")]
+pub(super) fn refused_value(
+    bin: &str,
+    refused: InputError,
+    error: &clap::Error,
+    command: &Command,
+    selected: Option<&ArgMatches>,
+) -> ErrorBody {
+    refused_document(bin, refused)
+        .usage(help::usage_line(command, selected))
+        .parse(parse_failure(error))
+}
+
 /// What a refused input is in one sentence: its name and the number of its
 /// problems, whatever the number. The problems themselves are `problems`.
 #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]

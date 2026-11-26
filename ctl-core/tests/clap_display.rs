@@ -79,6 +79,16 @@ fn snapshots() -> insta::Settings {
     settings
 }
 
+/// The help of a build with `input-document` lists the two input flags, so its
+/// snapshot is apart from the help of a build without them.
+fn help_snapshots() -> insta::Settings {
+    let mut settings = insta::Settings::clone_current();
+    if cfg!(feature = "input-document") {
+        settings.set_snapshot_suffix("input_document");
+    }
+    settings
+}
+
 #[test]
 fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
     let Some(output) = child::in_child(
@@ -91,7 +101,7 @@ fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
     };
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(!stderr.contains('\u{1b}'), "{stderr}");
-    insta::assert_snapshot!("missing_argument", stderr);
+    help_snapshots().bind(|| insta::assert_snapshot!("missing_argument", stderr));
 }
 
 #[test]

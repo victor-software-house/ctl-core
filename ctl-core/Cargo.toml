@@ -141,6 +141,13 @@ shell-init = ["shell", "view"]
 ## Clap's error. Without it, `parse` holds only the reason.
 error-context = ["cli", "clap/error-context"]
 
+## `--input <FILE>` and `--input-format <NAME>` on every command, which fill a
+## command's arguments from a YAML, JSON or TOML document. Turns on `app` and
+## `error-context`, so a bad value in a document is placed on its key. It
+## reads a document through an input format, so name `input-yaml`,
+## `input-json`, `input-toml` or `input` beside it.
+input-document = ["app", "error-context"]
+
 ## Mise Usage spec from clap (`--usage-spec` and the `#USAGE mount` line).
 ## Adds Clap's `usage` feature, which renders the spec's usage line.
 usage = ["cli", "clap/usage"]
