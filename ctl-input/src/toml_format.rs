@@ -11,7 +11,7 @@ use toml::de::{DeInteger, DeString, DeTable, DeValue};
 use super::exceeded::Exceeded;
 use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
 use super::limits::{Bounds, Limits};
-use super::tree::{Node, Scalar, ScalarStyle, ScalarSyntax, Tag};
+use super::tree::{Node, NodeKind, Scalar, ScalarStyle, ScalarSyntax, Tag};
 
 /// TOML, read by the `toml` crate. Its extension is `toml`.
 #[derive(Clone, Copy, Debug)]
@@ -41,10 +41,11 @@ impl Format for Toml {
             let detail = error.message().to_owned();
             Refusal::new(Fault::Syntax { detail }, error.span(), None)
         })?;
+        let tree = table(text, root.span(), root.get_ref());
         Measure::new(bounds, Raise::FOR_TEXT)
-            .table(&root.span(), root.get_ref(), 1)
+            .node(&tree, 1)
             .map_err(|refused| Refusal::new(refused.exceeded.fault(), Some(refused.at), None))?;
-        Ok(table(text, root.span(), root.get_ref()))
+        Ok(tree)
     }
 
     /// Resolves by the type the scalar's syntax gave it, and never by its
@@ -175,7 +176,7 @@ struct Refused {
     at: Range<usize>,
 }
 
-/// Walks a tree in the order it was written, counting depth and nodes
+/// Walks the tree in the order it was written, counting depth and nodes
 /// against the limits in force. `max_depth` is YAML's rule too: a table or
 /// an array is one level, and the root table is the first.
 struct Measure {
@@ -196,37 +197,21 @@ impl Measure {
         }
     }
 
-    /// A table at `depth`, then its entries in the order they were written:
-    /// a parsed table iterates by key, not by position.
-    fn table(
-        &mut self,
-        span: &Range<usize>,
-        table: &DeTable<'_>,
-        depth: usize,
-    ) -> Result<(), Refused> {
-        self.container(span, depth)?;
-        let mut entries: Vec<_> = table.iter().collect();
-        entries.sort_by_key(|(key, _)| key.span().start);
-        entries
-            .into_iter()
-            .try_for_each(|(_, value)| self.value(value, depth + 1))
-    }
-
-    fn value(&mut self, value: &Spanned<DeValue<'_>>, depth: usize) -> Result<(), Refused> {
-        let span = value.span();
-        match value.get_ref() {
-            DeValue::Table(table) => self.table(&span, table, depth),
-            DeValue::Array(items) => {
+    /// A node at `depth`, then its children in the order they were written.
+    fn node(&mut self, node: &Node, depth: usize) -> Result<(), Refused> {
+        let span = node.span();
+        match node.kind() {
+            NodeKind::Mapping(entries) => {
                 self.container(&span, depth)?;
-                items
+                entries
                     .iter()
-                    .try_for_each(|item| self.value(item, depth + 1))
+                    .try_for_each(|(_, value)| self.node(value, depth + 1))
             }
-            DeValue::String(_)
-            | DeValue::Integer(_)
-            | DeValue::Float(_)
-            | DeValue::Boolean(_)
-            | DeValue::Datetime(_) => self.node(&span),
+            NodeKind::Sequence(items) => {
+                self.container(&span, depth)?;
+                items.iter().try_for_each(|item| self.node(item, depth + 1))
+            }
+            NodeKind::Scalar(_) => self.count(&span),
         }
     }
 
@@ -235,10 +220,10 @@ impl Measure {
         if depth > self.max_depth {
             return Err(self.refuse("max_depth", self.max_depth, span));
         }
-        self.node(span)
+        self.count(span)
     }
 
-    fn node(&mut self, span: &Range<usize>) -> Result<(), Refused> {
+    fn count(&mut self, span: &Range<usize>) -> Result<(), Refused> {
         self.nodes += 1;
         if self.nodes > self.max_nodes {
             return Err(self.refuse("max_nodes", self.max_nodes, span));
