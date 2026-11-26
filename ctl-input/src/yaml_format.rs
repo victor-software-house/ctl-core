@@ -17,6 +17,7 @@ use serde_saphyr::{
 use super::exceeded::Exceeded;
 use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
 use super::limits::Limits;
+use super::messages::printable;
 use super::tree::{Node, Scalar, ScalarStyle, Tag};
 
 /// YAML, read by serde-saphyr's located reader. Its extensions are `yaml` and
@@ -61,10 +62,12 @@ impl Format for Yaml {
         let rules = rules();
         let at = Location::UNKNOWN;
         let mismatch = |error: Error| {
-            Mismatch::new(wanted).with_detail(plain(
-                &DefaultMessageFormatter.with_localizer(&Unplaced),
-                &error,
-            ))
+            let detail = if let Error::NonFiniteFloat { value, .. } = &error {
+                printable(&format!("non-finite float `{value}` is not allowed"))
+            } else {
+                plain(&DefaultMessageFormatter.with_localizer(&Unplaced), &error)
+            };
+            Mismatch::new(wanted).with_detail(detail)
         };
         match wanted {
             Wanted::Any => match rules.infer(&spelled, at).map_err(mismatch)? {
@@ -257,6 +260,9 @@ fn fault(text: &str, limits: &Limits, error: &Error) -> Fault {
             }),
         },
         Error::MergeKeyNotAllowed { .. } => Fault::MergeKey,
+        Error::MultipleDocuments { .. } => Fault::Syntax {
+            detail: "the text holds more than one YAML document".to_owned(),
+        },
         _ => Exceeded::of(
             error,
             &limits.budget(),
@@ -314,15 +320,7 @@ fn plain(formatter: &dyn MessageFormatter, mut error: &Error) -> String {
     {
         error = inner;
     }
-    let mut text = String::new();
-    for character in formatter.format_message(error).chars() {
-        if character.is_control() || matches!(character, '\u{2028}' | '\u{2029}') {
-            text.extend(character.escape_debug());
-        } else {
-            text.push(character);
-        }
-    }
-    text
+    printable(&formatter.format_message(error))
 }
 
 /// serde-saphyr's wording without the position it appends. That position
