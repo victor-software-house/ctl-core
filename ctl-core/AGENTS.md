@@ -187,7 +187,9 @@ Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
 
 `clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
 Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's choice.
-ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error: it turns on Clap's `error-context` and fills `ErrorBody::parse` with one field per kind of Clap's error context: the argument, the missing arguments, the value, the valid values, the subcommands, the suggestions by kind, the conflicting arguments, the value counts, and the tips.
+ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error.
+It turns on Clap's `error-context` and fills `ErrorBody::parse` with one field for each piece of Clap's error context.
+Those are the argument, the missing arguments, the value, the valid values, the subcommands, the suggestions by sort, the conflicting arguments, the value counts, and the tips.
 ctl-core reads every `ContextKind` but `Usage`, which ctl-core renders itself, and a unit test in `app/error_body.rs` lists each kind of Clap 4.6.6 with its field.
 Without it `parse` holds the reason alone, and `usage` is there either way.
 `input-document` turns it on, so a bad value in an input document is placed on its key.
