@@ -37,8 +37,8 @@ Each is a string or a list of strings, with no ANSI.
 ### 2. Where each part comes from
 
 1. A parse error: `reason` from `Error::kind`; the rest from `Error::get` with `ContextKind`; `message` from clap's rendered first line.
-   ctl-core cannot see a dependency's feature, so it reads the context under its own `error-context` feature, which turns on clap's; `input-document` turns it on.
-   Without it, `parse` holds only `reason`.
+   ctl-core cannot see a dependency's feature, so it reads the context under its own `error-context` feature, which turns on clap's; `input-document` turns it on, and a consumer that wants the parts turns on ctl-core's `error-context` rather than clap's.
+   Without it, `parse` holds only `reason`, even when the consumer turns on clap's `error-context` itself.
 2. `usage`: ctl-core renders the selected command's usage with clap's `usage` feature, which `help` turns on, for every parse error.
 3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, `message` as `<input> has <n> problems`, or the one problem's message when it has one.
 4. A handler error: `message` from the outermost error, `causes` from `Error::chain` after it.

@@ -12,7 +12,7 @@ No field SHALL carry a part that has a field of its own, and no field SHALL cont
 
 #### Scenario: The parts clap's error-context gives
 
-- **WHEN** the same CLI is built with clap's `error-context` and runs the same command
+- **WHEN** the same CLI is built with ctl-core's `error-context` feature and runs the same command
 - **THEN** `parse.argument` is `--bogus` and `parse.tips` holds clap's tip, and `message` holds neither
 
 #### Scenario: A refused input

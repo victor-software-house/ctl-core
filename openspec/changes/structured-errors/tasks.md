@@ -5,6 +5,9 @@
 - [ ] 1.1 Make `ErrorBody` non-exhaustive and add `causes`, `problems`, `usage` and `parse` with their builders and schema.
   Verify: model tests serialize each field and leave each out when empty, and the schema test passes.
 
+- [ ] 1.2 Add ctl-core's `error-context` feature, which turns on `cli` and clap's `error-context`, and change the guidance in `ctl-core/AGENTS.md` that leaves `error-context` to the consumer: a consumer that wants a parse error's parts turns on ctl-core's feature.
+  Verify: `check:features` builds the feature alone, and the scenario built with it passes.
+
 ## 2. Filling it
 
 - [ ] 2.1 Fill `parse` and `usage` for a parse error, with and without `error-context`.
