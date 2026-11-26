@@ -3,10 +3,10 @@ name = "ctl-input"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Declared input for CLIs: parse YAML or TOML, validate once, and report every problem on its file and line"
+description = "Declared input for CLIs: parse YAML, JSON or TOML, validate once, and report every problem on its file and line"
 license.workspace = true
 repository.workspace = true
-keywords = ["cli", "config", "yaml", "toml", "validation"]
+keywords = ["cli", "config", "yaml", "json", "toml"]
 categories = ["command-line-interface", "config"]
 autotests = false
 
@@ -30,6 +30,12 @@ yaml = ["dep:serde", "dep:serde-saphyr"]
 ## without `validate`.
 toml = ["dep:serde", "dep:toml"]
 
+## Declared input from JSON: the `JSON` format reads a text into the located
+## tree with its own strict RFC 8259 reader, so `Input::open` reads `.json`
+## files and each problem is placed on its line and column. Needs no JSON
+## crate, no YAML crate, and no garde without `validate`.
+json = ["dep:serde"]
+
 ## Validate with garde: `Input::check` and `Input::load`.
 validate = ["dep:garde"]
 
@@ -51,4 +57,4 @@ serde_json.workspace = true
 [[test]]
 name = "it"
 path = "tests/it/main.rs"
-required-features = ["yaml", "toml"]
+required-features = ["yaml", "json", "toml"]

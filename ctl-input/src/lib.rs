@@ -2,7 +2,8 @@
 //! problem on its file and line.
 //!
 //! Each format is its own feature. `yaml` parses YAML with `serde-saphyr`,
-//! and `toml` parses TOML with the `toml` crate; neither needs the other.
+//! `json` parses JSON with an own strict reader that needs no crate, and `toml`
+//! parses TOML with the `toml` crate; none needs another.
 //! `validate` adds `Input::check` and `Input::load`, which validate with
 //! garde. This is the one boundary where a CLI's config enters. Downstream
 //! code keeps the validated type and never checks it again. With no format
@@ -24,7 +25,7 @@
 //! its processed value and style, and each mapping its key and value nodes.
 //! `format::Format` is the trait that reads a text into that tree and
 //! resolves one scalar for the type a field needs, and `Formats` is the
-//! registry a CLI adds its own format to. `YAML` and `TOML` are the two
+//! registry a CLI adds its own format to. `YAML`, `JSON` and `TOML` are the
 //! built-in formats, each a value of its feature.
 //!
 //! An [`Input`] reads its text into that tree once and keeps it. Parsing,
@@ -65,7 +66,7 @@
 //!
 //! ## Cargo features
 #![cfg_attr(
-    not(any(feature = "yaml", feature = "toml")),
+    not(any(feature = "yaml", feature = "json", feature = "toml")),
     doc = "",
     doc = "[`FieldPath`]: crate#cargo-features",
     doc = "[`Input::problem_at`]: crate#cargo-features",
@@ -78,7 +79,7 @@
 )]
 #![doc = document_features::document_features!()]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![cfg(any(feature = "yaml", feature = "toml"))]
+#![cfg(any(feature = "yaml", feature = "json", feature = "toml"))]
 
 use std::fmt;
 use std::path::Path;
@@ -94,6 +95,10 @@ mod field_path;
 pub mod format;
 mod formats;
 mod input_error;
+#[cfg(feature = "json")]
+mod json;
+#[cfg(feature = "json")]
+mod json_format;
 mod kept;
 mod limits;
 mod messages;
@@ -108,6 +113,8 @@ pub use de::Tagged;
 pub use entries::{Entry, Written};
 pub use field_path::{FieldPath, Place, Step};
 pub use format::Format;
+#[cfg(feature = "json")]
+pub use format::JSON;
 #[cfg(feature = "toml")]
 pub use format::TOML;
 #[cfg(feature = "yaml")]
@@ -307,9 +314,9 @@ impl Input {
     /// merge key (`<<`) is refused.
     ///
     /// The text must fit the limits in force, decided field by field through
-    /// the tiers [`Limits`] lists. TOML reads only `max_reader_input_bytes`,
-    /// `max_depth`, and `max_nodes`, because the other fields name YAML
-    /// syntax.
+    /// the tiers [`Limits`] lists. TOML and JSON read only
+    /// `max_reader_input_bytes`, `max_depth`, and `max_nodes`, because the
+    /// other fields name YAML syntax.
     ///
     /// # Errors
     ///

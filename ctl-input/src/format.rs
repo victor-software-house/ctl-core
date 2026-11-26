@@ -1,15 +1,20 @@
 //! The input format interface: what a format reads a text into, and how it
 //! reads one scalar for the type a field needs.
 //!
-//! The built-in formats, [`YAML`] with `yaml` and [`TOML`] with `toml`, and a
-//! format a CLI writes are the same kind of thing: a [`Format`] in a
-//! [`Formats`](crate::Formats) registry. [`Format::read`] turns text into the
-//! [located tree](crate::tree), and [`Format::resolve`] gives each scalar its
-//! meaning, so every format keeps its own scalar rules.
+//! The built-in formats, [`YAML`] with `yaml`, [`JSON`] with `json` and
+//! [`TOML`] with `toml`, and a format a CLI writes are the same kind of thing:
+//! a [`Format`] in a [`Formats`](crate::Formats) registry. [`Format::read`]
+//! turns text into the [located tree](crate::tree), and [`Format::resolve`]
+//! gives each scalar its meaning, so every format keeps its own scalar rules.
 #![cfg_attr(
     not(feature = "yaml"),
     doc = "",
     doc = "[`YAML`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "json"),
+    doc = "",
+    doc = "[`JSON`]: crate#cargo-features"
 )]
 #![cfg_attr(
     not(feature = "toml"),
@@ -23,6 +28,8 @@ use std::fmt;
 use std::ops::Range;
 
 use super::Limits;
+#[cfg(feature = "json")]
+pub use super::json_format::{JSON, Json};
 use super::messages::{EnglishMessages, Messages, messages};
 #[cfg(feature = "toml")]
 pub use super::toml_format::{TOML, Toml};
@@ -256,8 +263,8 @@ pub enum Fault {
         /// What the format's parser says is wrong.
         detail: String,
     },
-    /// A key written twice in one mapping: under [`Reading::Strict`] in YAML,
-    /// and under either reading in TOML, whose syntax forbids it.
+    /// A key written twice in one mapping: under [`Reading::Strict`] in YAML
+    /// and JSON, and under either reading in TOML, whose syntax forbids it.
     DuplicateKey {
         /// The key.
         key: String,
