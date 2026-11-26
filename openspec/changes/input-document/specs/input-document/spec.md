@@ -46,7 +46,7 @@ Precedence SHALL be the command line, then the environment variable, then the do
 ### Requirement: Each document value encodes by its argument's action
 
 A flag that sets true SHALL read `true` as given, and `false` as its `--no-` side when one exists, else as not given.
-A counted flag SHALL read a non-negative integer as that many repeats.
+A counted flag SHALL read an integer from 0 to 255 as that many repeats, and refuse a larger one on its key.
 An option taking several values SHALL read a sequence as its values.
 `null` SHALL leave the key out.
 A mapping, or a sequence for an option that takes one value, SHALL be refused on its key.
@@ -64,7 +64,7 @@ A mapping, or a sequence for an option that takes one value, SHALL be refused on
 ### Requirement: A document conflict follows a stated policy
 
 A document key SHALL lose to the command line when the command line sets the same argument, the other side of its `--x`/`--no-x` pair, or an argument it conflicts with.
-It SHALL lose to a kept variable for the same argument, or one that conflicts with it.
+It SHALL lose to a kept variable for the same argument, for the other side of its `--x`/`--no-x` pair, or for an argument it conflicts with.
 By default a losing key SHALL be dropped.
 `App::input_conflicts(InputConflicts::Fail)` SHALL turn each into a problem on the key that names what it lost to.
 
@@ -82,6 +82,7 @@ By default a losing key SHALL be dropped.
 
 The document SHALL supply a positional only when the command line gives no positional at that level and holds no `--`, and the command declares no `last(true)` positional and no `allow_missing_positional`.
 Otherwise a positional key SHALL be refused on its line.
+Positional values SHALL follow the positionals' index order whatever the document's key order, and a positional key whose lower-index positionals the document does not all supply SHALL be refused on its line.
 
 #### Scenario: A positional from the document
 

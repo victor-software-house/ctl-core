@@ -43,6 +43,10 @@ Neither has a short form.
 When the command's `--format` reads `<PREFIX>_FORMAT`, they read `<PREFIX>_INPUT` and `<PREFIX>_INPUT_FORMAT`.
 `--input-format` takes a name from the input format registry that `Input::open` uses.
 
+A document from `<PREFIX>_INPUT` is checked like one from `--input`, so a key the selected command lacks fails there too.
+The variable therefore suits a caller that runs one command, such as one step of a workflow; set in a shell profile, it fails every command whose keys the document does not match.
+This follows the rule that every flag has a variable and reads it the same way.
+
 They exist only when `app` and an `input-*` feature are both on, so the `app` tier keeps its size.
 `App::without_input()` removes both.
 
@@ -68,7 +72,7 @@ Any other key is refused on its line, and every such problem is reported at once
 | An option taking many values | a sequence | one `--name=VALUE` per item, or one joined by its delimiter |
 | A flag that sets true | `true` | `--name` |
 | A flag that sets true | `false` | `--no-name` when that side exists, else nothing |
-| A counted flag | a non-negative integer | that many `--name` |
+| A counted flag | an integer from 0 to 255 | that many `--name`; a larger value is refused on its key |
 | A positional | a scalar or sequence | each value after `--` |
 
 The `=` form keeps a value that starts with `-` a value.
@@ -79,7 +83,8 @@ A mapping, a sequence for a one-value option, and a sequence for an option with 
 ### 6. Where the tokens go
 
 Option tokens go right after the selected subcommand's name, found by probing growing prefixes of the command line with clap itself, or right after the binary name at the root.
-Positional values go at the end after one `--`.
+Positional values go at the end after one `--`, in the positionals' index order whatever the document's key order.
+A positional key whose lower-index positionals the document does not all supply is refused on its line, since clap fills positionals by position.
 The document supplies positionals only when the command line gives none at that level, holds no `--`, and the command has no `last(true)` positional and no `allow_missing_positional` (operator, 2026-11-26).
 Otherwise a positional key is refused on its line.
 
@@ -90,7 +95,7 @@ A document key is dropped when:
 
 1. the command line set the same argument, or the other side of its `--x`/`--no-x` pair;
 2. the command line set an argument it conflicts with;
-3. its own variable is kept, or a kept variable conflicts with it.
+3. its own variable is kept, the variable of the other side of its `--x`/`--no-x` pair is kept, or a kept variable conflicts with it.
 
 So the command line wins over the environment, the environment over the document, and the document over the default.
 
