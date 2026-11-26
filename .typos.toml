@@ -20,6 +20,8 @@ extend-exclude = [
   "ctl-layout/tests/snapshots/*.snap",
   "ctl-core/tests/parity/baseline/*.txt",
   "ctl-core/tests/parity/engine/*.txt",
+  # JSONTestSuite files are vendored as published, with their misspellings.
+  "ctl-input/tests/fixtures/json-test-suite/**",
 ]
 
 [default.extend-words]

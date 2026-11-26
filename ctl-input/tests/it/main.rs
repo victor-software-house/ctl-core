@@ -9,6 +9,7 @@ mod fixtures;
 mod input_json;
 mod input_tree;
 mod json_grammar;
+mod json_suite;
 mod messages;
 mod refusals;
 mod registry;
