@@ -140,6 +140,12 @@
 //! JSON with an own strict reader, and `input-toml` reads TOML; none links
 //! another's parser. `validate` adds garde validation, and `input` is
 //! `input-yaml` with `validate`, so a CLI that reads JSON names `input-json`.
+//!
+//! With `app` and any input feature, `App` adds `--input <FILE>` and
+//! `--input-format <NAME>` to every command, so a run is filled from a YAML,
+//! JSON or TOML document, and `App::without_input` removes them. Each input
+//! feature also turns on Clap's `error-context`, which places a bad document
+//! value on its key.
 #![cfg_attr(
     not(feature = "app"),
     doc = "",
@@ -252,6 +258,12 @@ pub use ctl_text::unsafe_chars;
 #[cfg(feature = "view")]
 pub mod view;
 
+#[cfg(all(
+    feature = "app",
+    any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
+))]
+#[doc(hidden)]
+pub use app::InputConflicts;
 #[cfg(feature = "app")]
 #[doc(hidden)]
 pub use app::{App, BrokenPipe, CommandError};

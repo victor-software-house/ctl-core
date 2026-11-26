@@ -31,6 +31,15 @@ fn named<'a>(error: &clap::Error, kind: ContextKind, supplied: &[&'a Arg]) -> Ve
         .collect()
 }
 
+/// Clap's message for `error`: its first paragraph, which names the argument
+/// and what is wrong, without the `error: ` prefix, the usage and the hints
+/// that follow.
+pub(super) fn message(error: &clap::Error) -> String {
+    let rendered = error.to_string();
+    let first = rendered.trim().split("\n\n").next().unwrap_or_default();
+    first.trim_start_matches("error: ").to_owned()
+}
+
 /// The first of `supplied` that `error` names as its invalid argument, or
 /// else as the prior argument it conflicts with.
 pub(super) fn blamed<'a>(error: &clap::Error, supplied: &[&'a Arg]) -> Option<Blamed<'a>> {

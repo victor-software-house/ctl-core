@@ -27,8 +27,9 @@ app = ["cli", "view", "help", "dep:anyhow"]
 ## and `string`. ctl-core declares `-h`/`--help` and the `help` subcommand
 ## itself and renders the help, so Clap's `help` feature stays off. A plain
 ## `Cli::parse()` outside ctl-core's entry point gets Clap's minimal output
-## and no `help` subcommand. Clap's own `error-context`, `suggestions`,
-## `help`, and `color` features stay the CLI's choice.
+## and no `help` subcommand. Clap's own `suggestions`, `help`, and `color`
+## features stay the CLI's choice, and so does `error-context` unless an
+## `input-*` feature is on.
 cli = ["dep:clap"]
 
 ## Semantic presentation documents without a terminal engine.
@@ -102,19 +103,24 @@ input = ["input-yaml", "validate"]
 ## Declared input from YAML, through the `ctl-input` crate: parse with
 ## serde-saphyr and place every problem on its file and line.
 ## Adds the YAML-only `Limits` fields and the repository's `.ctl/input.yaml`.
-## Needs no garde without `validate`.
+## Needs no garde without `validate`. With `app`, every command takes
+## `--input` and `--input-format`, and Clap's `error-context` is on, so a
+## bad value in an input document is placed on its key.
 input-yaml = ["dep:ctl-input", "ctl-input/yaml", "clap?/error-context"]
 
 ## Declared input from TOML, through the `ctl-input` crate: `Input::open`
 ## reads `.toml` files, and the `toml` crate's span-carrying tree places each
 ## problem on its line and column. Needs no YAML crate, and no garde without
-## `validate`.
+## `validate`. With `app`, every command takes `--input` and
+## `--input-format`, and Clap's `error-context` is on, as for `input-yaml`.
 input-toml = ["dep:ctl-input", "ctl-input/toml", "clap?/error-context"]
 
 ## Declared input from JSON, through the `ctl-input` crate: `Input::open`
 ## reads `.json` files by the strict RFC 8259 grammar with an own reader, and
 ## places each problem on its line and column. Needs no JSON crate, no YAML
-## crate, and no garde without `validate`. `input` does not turn it on.
+## crate, and no garde without `validate`. `input` does not turn it on. With
+## `app`, every command takes `--input` and `--input-format`, and Clap's
+## `error-context` is on, as for `input-yaml`.
 input-json = ["dep:ctl-input", "ctl-input/json", "clap?/error-context"]
 
 ## Temporary file trees for integration tests: `Suite`, its scenarios,

@@ -51,8 +51,12 @@ use clap::{ArgMatches, Command, CommandFactory, Parser};
 use crate::color::ColorMode;
 #[cfg(feature = "completion")]
 use crate::completion;
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+use crate::format::format_prefix;
 use crate::format::{FormatName, Formats, PRETTY, unknown_format, unknown_stream_default};
 use crate::help::CommandGroup;
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+use crate::input::InputError;
 #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
 use crate::input::{self, Limits};
 use crate::model::ErrorBody;
@@ -65,13 +69,12 @@ use crate::{flags, help, parser};
 
 mod command_error;
 mod error_body;
-#[cfg(all(
-    test,
-    any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
-))]
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
 mod document;
 
 pub use command_error::CommandError;
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+pub use document::InputConflicts;
 
 /// The `kind` value of a parse error's JSON envelope when Clap reports a
 /// usage error.
@@ -137,6 +140,10 @@ pub struct App<C> {
     theme: Option<Theme>,
     broken_pipe: BrokenPipe,
     command_groups: Vec<CommandGroup>,
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    input: bool,
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    input_conflicts: InputConflicts,
     #[cfg(feature = "usage")]
     mounted_as: Option<String>,
     #[cfg(feature = "usage")]
@@ -179,6 +186,10 @@ impl<C> App<C> {
             theme: None,
             broken_pipe: BrokenPipe::Ignore,
             command_groups: Vec::new(),
+            #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+            input: true,
+            #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+            input_conflicts: InputConflicts::Drop,
             #[cfg(feature = "usage")]
             mounted_as: None,
             #[cfg(feature = "usage")]
@@ -266,6 +277,40 @@ impl<C> App<C> {
     #[must_use]
     pub fn input_formats(self, formats: input::Formats) -> Self {
         input::set_default_formats(formats);
+        self
+    }
+
+    /// Take `--input <FILE>` and `--input-format <NAME>` off every command.
+    ///
+    /// Without this call, `App` adds both to the root command as global flags,
+    /// under an "Input" heading.
+    /// A command is then filled from a document: a YAML, JSON or TOML file, or
+    /// stdin for `--input -`.
+    /// The document's keys are the selected command's long names and positional
+    /// ids, and each value goes through the argument's own parser and rules.
+    /// The command line wins over the environment, the environment over the
+    /// document, and the document over the default.
+    /// See [`Self::input_conflicts`] for a key that loses.
+    ///
+    /// Call it when the CLI declares `--input` or `--input-format` itself.
+    /// `run` and `run_from` panic when it does and this call is missing.
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    #[must_use]
+    pub fn without_input(mut self) -> Self {
+        self.input = false;
+        self
+    }
+
+    /// Say what a document key does when the command line or the environment
+    /// decides its argument already. The default is [`InputConflicts::Drop`].
+    ///
+    /// A key conflicts when the command line sets the same argument, the other
+    /// side of its `--x`/`--no-x` pair, or an argument it conflicts with.
+    /// A variable that stays bound does the same.
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    #[must_use]
+    pub fn input_conflicts(mut self, policy: InputConflicts) -> Self {
+        self.input_conflicts = policy;
         self
     }
 
@@ -455,6 +500,10 @@ where
     /// # Panics
     ///
     /// Panics when the command disables `-h/--help` or `-V/--version`.
+    /// With an `input-*` feature it also panics when the command declares an
+    /// argument with the id `input` or `input_format`, or the long name
+    /// `input` or `input-format`, at any level.
+    /// Rename the flag, or call `App::without_input`.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run<T>(self, execute: impl FnOnce(C) -> Result<T>) -> ExitCode
     where
@@ -471,6 +520,10 @@ where
     /// # Panics
     ///
     /// Panics when the command disables `-h/--help` or `-V/--version`.
+    /// With an `input-*` feature it also panics when the command declares an
+    /// argument with the id `input` or `input_format`, or the long name
+    /// `input` or `input-format`, at any level.
+    /// Rename the flag, or call `App::without_input`.
     #[must_use = "return it from main, or the command exits 0"]
     pub fn run_from<T>(
         self,
@@ -486,6 +539,8 @@ where
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect::<Vec<_>>();
         let command = self.formats.augment(C::command());
+        #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+        let command = self.with_input_flags(command);
 
         #[cfg(feature = "usage")]
         if let Some(task) = &self.mounted_as
@@ -538,13 +593,9 @@ where
 
         let error_view = self.parse_error_view(&raw, &raw_request, parsed.color);
         let selected = parsed.matches.as_ref();
-        let parse = match flags::env_under_flags(parser::apply_defaults(command.clone()), &raw) {
-            Ok(parse) => parse,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
-        };
-        let matches = match parse.try_get_matches_from(&raw) {
+        let matches = match self.matched(&command, &raw, &words, &error_view, selected) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
+            Err(code) => return code,
         };
         let requested = match requested_format(&command, &matches, &self.formats) {
             Ok(requested) => requested,
@@ -583,6 +634,84 @@ where
             }
             Err(error) => self.failed(&view, &error),
         }
+    }
+
+    /// Parse `raw` against `command` with the variables under the command
+    /// line and, when `--input` names a document, the document's tokens in
+    /// it. A failure has been reported already, and its code is the error.
+    fn matched(
+        &self,
+        command: &Command,
+        raw: &[OsString],
+        words: &[String],
+        error_view: &View,
+        selected: Option<&ArgMatches>,
+    ) -> Result<ArgMatches, ExitCode> {
+        let parse = flags::env_under_flags(parser::apply_defaults(command.clone()), raw)
+            .map_err(|error| self.clap_error(&error, error_view, words, command, selected))?;
+        #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+        let document = self
+            .joined_document(&parse, raw)
+            .map_err(|error| self.document_error(&error, error_view))?;
+        #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+        let tokens = document.as_ref().map_or(raw, |joined| joined.argv());
+        #[cfg(not(any(feature = "input-yaml", feature = "input-json", feature = "input-toml")))]
+        let tokens = raw;
+        parse.try_get_matches_from(tokens).map_err(|error| {
+            #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+            if let Some(refused) = document.as_ref().and_then(|joined| joined.blame(&error)) {
+                return self.document_error(&refused, error_view);
+            }
+            self.clap_error(&error, error_view, words, command, selected)
+        })
+    }
+
+    /// `command` with `--input` and `--input-format`, unless the CLI called
+    /// [`Self::without_input`]. They read `<PREFIX>_INPUT` and
+    /// `<PREFIX>_INPUT_FORMAT` under the prefix `--format` reads its variable
+    /// with.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the command already declares a flag of either name.
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    fn with_input_flags(&self, command: Command) -> Command {
+        if !self.input {
+            return command;
+        }
+        assert!(
+            !document::clashes(&command),
+            "the command declares `input` or `input-format`, which App adds to every command; rename that flag, or call App::without_input"
+        );
+        let prefix = format_prefix(&command);
+        document::add_flags(command, prefix.as_deref())
+    }
+
+    /// The document `--input` names, joined into `raw`, or `None` when
+    /// the run names none or the CLI removed the flags.
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    fn joined_document(
+        &self,
+        parse: &Command,
+        raw: &[OsString],
+    ) -> Result<Option<document::Joined>, InputError> {
+        if !self.input {
+            return Ok(None);
+        }
+        let reserved = self
+            .formats
+            .shorthands()
+            .map(|(long, _)| long)
+            .collect::<Vec<_>>();
+        document::join(parse, raw, self.input_conflicts, &reserved)
+    }
+
+    /// Report a document's problems as a usage error: exit code 2, in the
+    /// error form of `view`, so a machine format carries no ANSI.
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
+    fn document_error(&self, error: &InputError, view: &View) -> ExitCode {
+        let body = ErrorBody::new(&self.bin, error.to_string()).kind(USAGE_KIND);
+        self.written(view.write_error(&body), ExitCode::from(2))
     }
 
     /// Write `error` to stderr in `view`'s error form and return its exit

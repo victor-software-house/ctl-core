@@ -6,9 +6,10 @@ use clap::Command;
 
 use crate::flags::levels;
 
-/// The subcommand the command line selects, and the index in the command line
-/// where the document's option tokens go: right after the name of that
-/// subcommand, or right after the binary name at the root.
+/// The subcommand the command line selects, and where the document's option
+/// tokens go in it.
+/// That is right after the name of the subcommand, or right after the binary
+/// name at the root.
 #[derive(Debug, Eq, PartialEq)]
 pub(super) struct Selected {
     /// The names of the selected subcommands, outermost first, as the command
@@ -18,9 +19,9 @@ pub(super) struct Selected {
     pub(super) at: usize,
 }
 
-/// The subcommand path that Clap selects from `raw`, read leniently so a
-/// missing value or a required argument that is not there yet does not end
-/// the read.
+/// The subcommand path that Clap selects from `raw`.
+/// The read is lenient, so a missing value or a required argument that is not
+/// there yet does not end it.
 ///
 /// `None` when Clap stops for help or version.
 fn path(command: &Command, raw: &[OsString]) -> Option<Vec<String>> {
@@ -39,9 +40,10 @@ fn path(command: &Command, raw: &[OsString]) -> Option<Vec<String>> {
 /// prefixes of `raw` with Clap itself.
 ///
 /// The first prefix whose lenient read selects the whole path ends at the last
-/// name. Clap alone knows whether a token is a subcommand name, an inferred
-/// prefix of one, a flag that selects one, or the value of an option, so no
-/// other reading of the command line is written here.
+/// name.
+/// Clap alone knows whether a token is a subcommand name, an inferred prefix
+/// of one, a flag that selects one, or the value of an option.
+/// So no other reading of the command line is written here.
 ///
 /// `None` when Clap stops for help or version, or no prefix selects the path.
 pub(super) fn selected(command: &Command, raw: &[OsString]) -> Option<Selected> {

@@ -187,11 +187,13 @@ pub(crate) fn levels<'a>(
 }
 
 /// One option on the subcommand path, at the level that declares it.
-struct Placed<'a> {
-    depth: usize,
-    arg: &'a Arg,
+pub(crate) struct Placed<'a> {
+    /// How many subcommands down the path the declaring level is.
+    pub(crate) depth: usize,
+    pub(crate) arg: &'a Arg,
     conflicts: Vec<&'a Id>,
-    given: bool,
+    /// Whether the command line set it.
+    pub(crate) given: bool,
 }
 
 /// Every option on the path once. A global option appears at the level that
@@ -200,7 +202,7 @@ struct Placed<'a> {
 /// Conflicts are read through a non-global copy of each option. For a global,
 /// clap's lookup resolves only argument ids and panics on a group id. The
 /// declaring level holds every id its conflicts may name.
-fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
+pub(crate) fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
     let mut options = Vec::new();
     for (depth, (level, matches)) in levels.iter().enumerate() {
         let parent = depth.checked_sub(1).and_then(|up| levels.get(up));
@@ -236,14 +238,14 @@ fn placed<'a>(levels: &[(&'a Command, &'a ArgMatches)]) -> Vec<Placed<'a>> {
 }
 
 impl Placed<'_> {
-    fn env_name(&self) -> String {
+    pub(crate) fn env_name(&self) -> String {
         self.arg
             .get_env()
             .map_or_default(|name| name.to_string_lossy().into_owned())
     }
 
     /// Whether the variable holds a value that changes the parse.
-    fn is_set(&self) -> bool {
+    pub(crate) fn is_set(&self) -> bool {
         let Some(value) = self.arg.get_env().and_then(env::var_os) else {
             return false;
         };
@@ -270,7 +272,7 @@ impl Placed<'_> {
     }
 
     /// Whether clap would refuse the two options together.
-    fn conflicts(&self, other: &Self) -> bool {
+    pub(crate) fn conflicts(&self, other: &Self) -> bool {
         let exclusive = self.arg.is_exclusive_set() || other.arg.is_exclusive_set();
         self.meets(other)
             && self.arg.get_id() != other.arg.get_id()
@@ -280,7 +282,7 @@ impl Placed<'_> {
     }
 
     /// Whether the two options are the two sides of a `--x`/`--no-x` pair.
-    fn negates(&self, other: &Self) -> bool {
+    pub(crate) fn negates(&self, other: &Self) -> bool {
         let (Some(long), Some(other_long)) = (self.arg.get_long(), other.arg.get_long()) else {
             return false;
         };

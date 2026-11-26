@@ -198,14 +198,10 @@ impl Formats {
     #[cfg(feature = "cli")]
     #[must_use]
     pub fn augment(&self, command: Command) -> Command {
-        let Some(format) = command.get_arguments().find(|arg| arg.get_id() == "format") else {
+        if command.get_arguments().all(|arg| arg.get_id() != "format") {
             return command;
-        };
-        let prefix = format
-            .get_env()
-            .and_then(|name| name.to_str())
-            .and_then(|name| name.strip_suffix("_FORMAT"))
-            .map(str::to_owned);
+        }
+        let prefix = format_prefix(&command);
         let parser = FormatParser::new(
             self.registered
                 .iter()
@@ -244,11 +240,25 @@ impl Formats {
     }
 }
 
+/// The prefix of the variable `--format` reads: `TOY` for `TOY_FORMAT`.
+/// `None` when the command has no `--format`, or it binds no variable, so
+/// the flags added beside it bind none either.
+#[cfg(feature = "cli")]
+pub(crate) fn format_prefix(command: &Command) -> Option<String> {
+    command
+        .get_arguments()
+        .find(|arg| arg.get_id() == "format")?
+        .get_env()
+        .and_then(|name| name.to_str())
+        .and_then(|name| name.strip_suffix("_FORMAT"))
+        .map(str::to_owned)
+}
+
 /// Whether `command` or a subcommand at any depth declares `name` as a long
 /// flag, a long alias, or an argument id, so a second flag of that name would
 /// make Clap's own checks fail.
 #[cfg(feature = "cli")]
-fn declares(command: &Command, name: &str) -> bool {
+pub(crate) fn declares(command: &Command, name: &str) -> bool {
     command.get_arguments().any(|arg| {
         arg.get_long() == Some(name)
             || arg.get_id() == name

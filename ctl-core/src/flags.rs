@@ -37,13 +37,12 @@ pub use color::ColorLong;
 pub use dry_run::DryRunArgs;
 #[cfg(feature = "view")]
 pub(crate) use env::env_name;
+pub use env::{EnvPrefix, env_under_flags};
 #[cfg(all(
-    test,
     feature = "app",
     any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
 ))]
-pub(crate) use env::levels;
-pub use env::{EnvPrefix, env_under_flags};
+pub(crate) use env::{Placed, levels, placed};
 pub use output::{FormatArgs, FormatLong, OutputArgs};
 pub use warn::{FlagClash, FlagWarning, chassis_warnings, emit_warnings, warn_opposites};
 
