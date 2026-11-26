@@ -2,6 +2,4 @@
 source: ctl-core/tests/clap_display.rs
 expression: stderr
 ---
-toy: the following required arguments were not provided:
-
-Usage: toy copy [OPTIONS] <FROM> <TO>
+toy: one or more required arguments were not provided

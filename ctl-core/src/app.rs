@@ -562,7 +562,8 @@ where
         let view = match self.resolve(&view) {
             Ok(view) => view,
             Err(error) => {
-                let body = ErrorBody::new(&self.bin, error.to_string());
+                let message = error.to_string();
+                let body = ErrorBody::new(&self.bin, message.as_str()).with_text(message.as_str());
                 return self.written(raw_view.write_error(&body), ExitCode::FAILURE);
             }
         };

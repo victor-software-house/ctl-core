@@ -40,11 +40,22 @@ fn error_body_schema_lists_each_part_and_requires_none_of_them() {
     );
     for part in [
         "argument",
+        "missing",
         "value",
         "valid_values",
-        "suggestions",
+        "subcommand",
+        "valid_subcommands",
+        "suggested_arguments",
+        "suggested_values",
+        "suggested_subcommands",
+        "suggested_commands",
         "conflicts_with",
+        "actual_values",
+        "expected_values",
+        "min_values",
+        "trailing_argument",
         "tips",
+        "notes",
     ] {
         assert!(
             defs["ParseFailure"]["properties"][part].is_object(),
