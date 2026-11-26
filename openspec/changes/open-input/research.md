@@ -35,7 +35,7 @@ Typed methods ignore the style: a quoted `"8"` fills an integer and a quoted `'t
 | `~`, `null`, empty | null | refused | `None` for `Option` |
 | `!!str 1` | string | the text | parsed |
 
-The design keeps this table, except that a typeless `010` reads as integer 10, as YAML 1.2's core schema reads it.
+The design keeps this table as it is.
 qctl reads its ledger typeless and hakkiri reads `params` into an untagged enum, so both see the typeless column.
 
 ## 3. TOML

@@ -88,8 +88,8 @@ So a quoted `"8"` still fills an integer field, and only the six YAML 1.2 spelli
 
 TOML resolves by syntax: a TOML string fills only a string field, and a TOML integer only a number field, as the `toml` crate refuses today.
 
-A typeless plain `010` reads as integer 10, as YAML 1.2's core schema reads it.
-The fork reads it as float 10.0 today, and the fork patch aligns it.
+The YAML rules stay exactly as the fork applies them today, typeless `010` as float 10.0 included.
+Reading it as an integer only in typeless reads would conflict with the typed read, which refuses the leading zero.
 
 ### 4. The registry and how an input finds it
 

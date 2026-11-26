@@ -5,7 +5,7 @@
 - [ ] 1.1 In [vsh-serde-saphyr][fork], add `located::read` as a forkctl patch.
   It returns nodes with span, value, style and tag, with each alias expanded, under the checks `from_str_with_options` applies.
   Verify: the fork's CI passes, with tests that compare both readers on refused texts.
-- [ ] 1.2 Make the scalar rules public as a `scalars` module, and read a typeless plain `010` as the integer 10.
+- [ ] 1.2 Make the scalar rules public as a `scalars` module, which the fork's own Deserializer calls.
   Verify: tests for every row of [research.md](research.md), section 2, pass in the fork's CI.
 - [ ] 1.3 Release the fork version that carries both patches.
   Verify: the version is published, and its changelog names both patches.

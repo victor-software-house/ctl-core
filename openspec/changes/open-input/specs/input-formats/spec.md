@@ -49,7 +49,7 @@ A typed field SHALL have the input's format resolve each scalar for the type the
 
 YAML SHALL resolve by vsh-serde-saphyr's rules.
 Only `true` and `false` in any of their three spellings fill a bool.
-A quoted number fills a number field, and a typeless plain `010` reads as the integer 10.
+A quoted number fills a number field.
 
 TOML SHALL resolve by syntax.
 A TOML string fills only a string field, and a TOML number only a number field.
