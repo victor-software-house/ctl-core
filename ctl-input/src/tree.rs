@@ -297,7 +297,7 @@ pub(crate) fn position(text: &str, offset: usize) -> (usize, usize) {
 }
 
 #[cfg(test)]
-mod differential;
+pub(crate) mod differential;
 
 #[cfg(test)]
 mod tests {

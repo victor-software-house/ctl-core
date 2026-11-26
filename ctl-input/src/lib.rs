@@ -70,6 +70,7 @@ use std::{fmt, fs, io, slice};
 use garde::Validate;
 use serde::de::DeserializeOwned;
 
+pub mod de;
 mod entries;
 mod exceeded;
 mod field_path;

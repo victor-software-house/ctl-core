@@ -72,7 +72,7 @@ fn field_path(steps: &[Step]) -> FieldPath {
 /// The fixtures, each a text of one format whose extension comes before
 /// `.fixture`, so the repository's formatters leave texts that are meant to
 /// be wrong alone.
-fn fixtures() -> Vec<PathBuf> {
+pub(crate) fn fixtures() -> Vec<PathBuf> {
     let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     let mut files: Vec<PathBuf> = fs::read_dir(directory)
         .unwrap()

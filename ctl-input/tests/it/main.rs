@@ -1,6 +1,10 @@
 //! The located tree, the format trait and the registry, through the public API.
 
 mod common;
+mod de_faults;
+mod de_scalars;
+mod de_shapes;
+mod de_tagged;
 mod messages;
 mod refusals;
 mod registry;

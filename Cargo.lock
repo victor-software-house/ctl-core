@@ -181,6 +181,7 @@ dependencies = [
  "garde",
  "indoc",
  "serde",
+ "serde_json",
  "toml",
  "vsh-serde-saphyr",
  "yamled",
