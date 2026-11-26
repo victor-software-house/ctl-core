@@ -119,6 +119,11 @@ impl Formats {
                 name,
                 format!("`.{yaml}` needs ctl-core's input-yaml feature; {accepted}"),
             )),
+            #[cfg(not(feature = "json"))]
+            Some("json") => Err(InputError::whole(
+                name,
+                format!("`.json` needs ctl-core's input-json feature; {accepted}"),
+            )),
             #[cfg(not(feature = "toml"))]
             Some("toml") => Err(InputError::whole(
                 name,

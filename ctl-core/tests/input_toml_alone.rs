@@ -157,7 +157,7 @@ fn a_yaml_file_names_the_feature_it_needs() {
     let error = Input::open(Path::new("app.json")).unwrap_err();
     assert_eq!(
         error.problems[0].message,
-        "unsupported extension .json; name the file *.toml"
+        "`.json` needs ctl-core's input-json feature; name the file *.toml"
     );
 }
 

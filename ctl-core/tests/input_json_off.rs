@@ -1,6 +1,7 @@
-//! A build with `input` and not `input-json` reads no JSON: `.json` is an
-//! unsupported extension. `test:input-json-off` runs this file with `input`
-//! alone; a build with `input-json` skips it, because it reads JSON.
+//! A build with `input` and not `input-json` reads no JSON: a `.json` file
+//! is refused, naming the feature it needs. `test:input-json-off` runs this
+//! file with `input` alone; a build with `input-json` skips it, because it
+//! reads JSON.
 #![allow(
     missing_docs,
     reason = "an integration test crate has no public API to document"
@@ -12,13 +13,13 @@ use std::path::Path;
 use ctl_core::input::{Formats, Input};
 
 #[test]
-fn a_json_file_is_an_unsupported_extension() {
+fn a_json_file_names_the_feature_it_needs() {
     let error = Input::open(Path::new("app.json")).unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, None);
     assert_eq!(
         error.problems[0].message,
-        "unsupported extension .json; name the file *.yaml or *.yml"
+        "`.json` needs ctl-core's input-json feature; name the file *.yaml or *.yml"
     );
 }
 
