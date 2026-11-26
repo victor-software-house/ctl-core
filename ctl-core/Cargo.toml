@@ -111,6 +111,12 @@ input-yaml = ["dep:ctl-input", "ctl-input/yaml"]
 ## `validate`.
 input-toml = ["dep:ctl-input", "ctl-input/toml"]
 
+## Declared input from JSON, through the `ctl-input` crate: `Input::open`
+## reads `.json` files by the strict RFC 8259 grammar with an own reader, and
+## places each problem on its line and column. Needs no JSON crate, no YAML
+## crate, and no garde without `validate`. `input` does not turn it on.
+input-json = ["dep:ctl-input", "ctl-input/json"]
+
 ## Temporary file trees for integration tests: `Suite`, its scenarios,
 ## and one call per file.
 fixture = ["dep:tempfile"]

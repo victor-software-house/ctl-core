@@ -21,11 +21,13 @@ use super::{Input, InputError, Raise, limits};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Written {
-    /// A YAML plain scalar, or a TOML number, boolean or date.
+    /// A YAML plain scalar, a TOML number, boolean or date, or a JSON number,
+    /// boolean or null.
     Plain,
     /// A single-quoted YAML scalar, or a TOML literal string `'…'`.
     SingleQuoted,
-    /// A double-quoted YAML scalar, or a TOML basic string `"…"`.
+    /// A double-quoted YAML scalar, a TOML basic string `"…"`, or a JSON
+    /// string.
     DoubleQuoted,
     /// A YAML literal block scalar, `|`.
     Literal,
@@ -37,7 +39,8 @@ pub enum Written {
     MultilineLiteral,
     /// A YAML alias, `*name`.
     Alias,
-    /// A YAML sequence or mapping, or a TOML array or table.
+    /// A YAML sequence or mapping, a TOML array or table, or a JSON array or
+    /// object.
     Collection,
 }
 

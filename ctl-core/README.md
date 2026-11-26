@@ -28,7 +28,7 @@ The renderer chooses style, wrapping, width, and colour, through the [`ctl-text`
 - A reader that closes stdout early, such as `head -1`, leaves the exit code as the command set it.
   `App::broken_pipe(BrokenPipe::Fail)` turns every closed pipe into a failure.
 - `<bin> completion <SHELL>` and `<bin> init <SHELL>` for bash, zsh, and fish, behind the `completion` and `shell-init` features.
-- A loader for declared YAML or TOML input that validates once and reports every problem with its file and line, behind `input-yaml` and `input-toml`.
+- A loader for declared YAML, JSON or TOML input that validates once and reports every problem with its file and line, behind `input-yaml`, `input-json` and `input-toml`.
   The loader is the [`ctl-input`](https://crates.io/crates/ctl-input) crate, re-exported as `ctl_core::input`.
   Validation with garde is behind `validate`, and `input` is `input-yaml` with `validate`.
   - `Input::place` turns a `FieldPath`, the steps down to a field, into its line and column, so a CLI places a problem of its own as the loader places garde's.
@@ -101,7 +101,7 @@ Each feature turns on only what its code calls.
 | `surface-model`, `surface-serde`, `surface-templates`, `surface` | The operator model drawn from the Clap types, its serialization, and shared MiniJinja fragments |
 | `unsafe-chars` | `unsafe_chars::is_unsafe` and `strip_unsafe`, the characters never printed as they are |
 | `schema` | JSON Schema for the envelope |
-| `validate`, `input-yaml`, `input-toml`, `input` | Shared garde rules, and the declared-input loader for each format; `input` is `input-yaml` with `validate` |
+| `validate`, `input-yaml`, `input-json`, `input-toml`, `input` | Shared garde rules, and the declared-input loader for each format; `input` is `input-yaml` with `validate`, and `input-json` is opt-in |
 | `served` | Files rendered from templates that name their own target |
 | `shell`, `completion`, `shell-init` | The shell verbs |
 | `fixture` | Temporary file trees for integration tests |

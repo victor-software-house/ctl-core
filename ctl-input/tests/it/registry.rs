@@ -4,7 +4,9 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use ctl_input::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, TOML, Wanted, YAML};
+use ctl_input::format::{
+    Fault, Format, JSON, Mismatch, Reading, Refusal, Resolved, TOML, Wanted, YAML,
+};
 use ctl_input::tree::{Node, NodeKind, Scalar, ScalarStyle, Tag};
 use ctl_input::{Formats, Limits};
 
@@ -118,47 +120,51 @@ fn accepted(formats: &Formats, path: &str) -> &'static str {
 }
 
 #[test]
-fn the_builtin_registry_holds_yaml_then_toml() {
-    assert_eq!(names(&Formats::builtin()), ["yaml", "toml"]);
+fn the_builtin_registry_holds_yaml_then_json_then_toml() {
+    assert_eq!(names(&Formats::builtin()), ["yaml", "json", "toml"]);
     let formats = Formats::builtin();
     assert_eq!(formats.get("yaml").map(Format::name), Some("yaml"));
     assert_eq!(
         formats.get("toml").map(Format::extensions),
         Some(&["toml"][..])
     );
-    assert!(formats.get("json").is_none());
+    assert_eq!(
+        formats.get("json").map(Format::extensions),
+        Some(&["json"][..])
+    );
+    assert!(formats.get("ini").is_none());
 }
 
 #[test]
 fn a_format_is_a_trait_object_a_registry_can_hold() {
-    let held: Vec<&'static dyn Format> = vec![&YAML, &TOML, &KV];
+    let held: Vec<&'static dyn Format> = vec![&YAML, &JSON, &TOML, &KV];
     let names: Vec<_> = held.iter().map(|format| format.name()).collect();
-    assert_eq!(names, ["yaml", "toml", "kv"]);
+    assert_eq!(names, ["yaml", "json", "toml", "kv"]);
 }
 
 #[test]
 fn adding_a_name_that_is_registered_replaces_it_in_place() {
     let formats = Formats::builtin().add(&ALTERNATE);
-    assert_eq!(names(&formats), ["yaml", "toml"]);
+    assert_eq!(names(&formats), ["yaml", "json", "toml"]);
     assert_eq!(accepted(&formats, "app.alt"), "yaml");
     assert_eq!(
         refusal(&formats, "app.yaml"),
-        "unsupported extension .yaml; name the file *.alt or *.toml"
+        "unsupported extension .yaml; name the file *.alt, *.json, or *.toml"
     );
 }
 
 #[test]
 fn adding_a_new_name_appends_it() {
     let formats = Formats::builtin().add(&KV);
-    assert_eq!(names(&formats), ["yaml", "toml", "kv"]);
+    assert_eq!(names(&formats), ["yaml", "json", "toml", "kv"]);
 }
 
 #[test]
 fn removing_a_format_leaves_the_others_in_order() {
     let formats = Formats::builtin().add(&KV).remove("yaml");
-    assert_eq!(names(&formats), ["toml", "kv"]);
+    assert_eq!(names(&formats), ["json", "toml", "kv"]);
     assert!(formats.get("yaml").is_none());
-    assert_eq!(names(&formats.remove("absent")), ["toml", "kv"]);
+    assert_eq!(names(&formats.remove("absent")), ["json", "toml", "kv"]);
 }
 
 #[test]
@@ -167,6 +173,8 @@ fn an_extension_finds_its_format_without_regard_to_case() {
     assert_eq!(accepted(&formats, "app.yaml"), "yaml");
     assert_eq!(accepted(&formats, "app.yml"), "yaml");
     assert_eq!(accepted(&formats, "dir/APP.YAML"), "yaml");
+    assert_eq!(accepted(&formats, "app.json"), "json");
+    assert_eq!(accepted(&formats, "APP.Json"), "json");
     assert_eq!(accepted(&formats, "app.toml"), "toml");
     assert_eq!(accepted(&formats, "app.TOML"), "toml");
 }
@@ -175,24 +183,24 @@ fn an_extension_finds_its_format_without_regard_to_case() {
 fn a_refusal_lists_every_registered_extension_sorted() {
     let both = Formats::builtin();
     assert_eq!(
-        refusal(&both, "app.json"),
-        "unsupported extension .json; name the file *.toml, *.yaml, or *.yml"
+        refusal(&both, "app.ini"),
+        "unsupported extension .ini; name the file *.json, *.toml, *.yaml, or *.yml"
     );
     assert_eq!(
         refusal(&both, "app"),
-        "no file extension; name the file *.toml, *.yaml, or *.yml"
+        "no file extension; name the file *.json, *.toml, *.yaml, or *.yml"
     );
     assert_eq!(
         refusal(&both.clone().remove("toml"), "app.toml"),
-        "unsupported extension .toml; name the file *.yaml or *.yml"
+        "unsupported extension .toml; name the file *.json, *.yaml, or *.yml"
     );
     assert_eq!(
         refusal(&both.clone().remove("yaml"), "app.yaml"),
-        "unsupported extension .yaml; name the file *.toml"
+        "unsupported extension .yaml; name the file *.json or *.toml"
     );
     assert_eq!(
-        refusal(&both.add(&KV), "app.json"),
-        "unsupported extension .json; name the file *.kv, *.toml, *.yaml, or *.yml"
+        refusal(&both.add(&KV), "app.ini"),
+        "unsupported extension .ini; name the file *.json, *.kv, *.toml, *.yaml, or *.yml"
     );
 }
 
@@ -200,7 +208,7 @@ fn a_refusal_lists_every_registered_extension_sorted() {
 fn an_empty_registry_refuses_every_extension() {
     let empty = Formats::empty();
     assert_eq!(names(&empty), Vec::<&str>::new());
-    for path in ["app.yaml", "app.yml", "app.toml", "app.kv"] {
+    for path in ["app.yaml", "app.yml", "app.json", "app.toml", "app.kv"] {
         let extension = path.rsplit('.').next().unwrap_or_default();
         assert_eq!(
             refusal(&empty, path),
@@ -216,10 +224,10 @@ fn an_empty_registry_refuses_every_extension() {
 #[test]
 fn the_error_names_the_file() {
     let error = Formats::builtin()
-        .of(Path::new("dir/app.json"))
+        .of(Path::new("dir/app.ini"))
         .err()
         .unwrap();
-    assert_eq!(error.name, "dir/app.json");
+    assert_eq!(error.name, "dir/app.ini");
 }
 
 #[test]

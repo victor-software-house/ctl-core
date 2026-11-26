@@ -58,6 +58,8 @@ pub struct Scalar {
 ///
 /// A TOML basic string is [`Self::DoubleQuoted`], a literal string
 /// [`Self::SingleQuoted`], and a TOML number, boolean or datetime
+/// [`Self::Plain`]. A JSON string and each JSON key are
+/// [`Self::DoubleQuoted`], and a JSON number, `true`, `false` and `null` are
 /// [`Self::Plain`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -80,7 +82,7 @@ pub enum ScalarStyle {
 }
 
 /// The type a format's syntax gave a scalar, for a format that types a value by
-/// how it is written, such as TOML.
+/// how it is written, such as TOML and JSON.
 ///
 /// A format whose scalar rules read the text, such as YAML, sets none, and
 /// [`Scalar::syntax`] is `None`.
@@ -97,6 +99,8 @@ pub enum ScalarSyntax {
     Boolean,
     /// A date, a time or both, as its text.
     Datetime,
+    /// A null, as `null`.
+    Null,
 }
 
 /// The tag written on a node, in the spelling of serde-saphyr's `Tagged`:

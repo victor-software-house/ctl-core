@@ -155,11 +155,15 @@ limits! {
     shared {
         /// Bytes of input text. Also checked for text already in memory.
         max_reader_input_bytes = DEFAULT_MAX_READER_INPUT_BYTES,
-        /// Nesting of YAML sequences and mappings, or of TOML arrays and
-        /// tables, with the root table as 1.
+        /// Nesting of YAML sequences and mappings, of TOML arrays and
+        /// tables, or of JSON arrays and objects, with the root table or
+        /// container as 1. Raising it far above its default lets a deep text
+        /// overflow the stack in any format, because dropping or deserializing
+        /// the tree recurses once per level.
         max_depth = DEFAULT_MAX_DEPTH,
         /// YAML sequences, mappings, and scalars in total; in TOML, the root
-        /// table and every table, array, and value.
+        /// table and every table, array, and value; in JSON, every array,
+        /// object, and value, with no count of keys.
         max_nodes = DEFAULT_MAX_NODES,
     }
     yaml {

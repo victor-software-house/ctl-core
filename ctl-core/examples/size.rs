@@ -1,11 +1,12 @@
 //! The toy CLI whose `.text` size `check:size` holds to a budget at each
 //! feature tier.
 //!
-//! One status command, built seven ways: `cli` parses and prints, `help` adds
+//! One status command, built eight ways: `cli` parses and prints, `help` adds
 //! ctl-core's help, `view` presents a document through a view, and `app` runs
 //! the whole lifecycle. `usage` adds the app's answer to mise's
 //! `--usage-spec`, `input` loads and validates a YAML queue file, and
-//! `input-toml` reads a TOML queue file with no YAML crate and no garde. The
+//! `input-toml` reads a TOML queue file with no YAML crate and no garde, and
+//! `input-json` reads a JSON one with no parser crate and no garde. The
 //! budgets and the features of each tier are in `[workspace.metadata.size]`
 //! of the root `Cargo.toml`.
 //!
@@ -15,12 +16,18 @@
 
 #[cfg(not(feature = "view"))]
 use std::io::{self, Write as _};
-#[cfg(all(feature = "app", any(feature = "input", feature = "input-toml")))]
+#[cfg(all(
+    feature = "app",
+    any(feature = "input", feature = "input-json", feature = "input-toml")
+))]
 use std::path::Path;
 
 #[cfg(all(feature = "help", not(feature = "view")))]
 use ctl_core::help;
-#[cfg(all(feature = "app", any(feature = "input", feature = "input-toml")))]
+#[cfg(all(
+    feature = "app",
+    any(feature = "input", feature = "input-json", feature = "input-toml")
+))]
 use ctl_core::input::{Input, InputError};
 use ctl_core::prelude::*;
 
@@ -85,6 +92,18 @@ struct Queue {
     pending: Vec<String>,
 }
 
+/// The queue file the `input-json` tier reads, with no validation.
+#[cfg(all(
+    feature = "app",
+    feature = "input-json",
+    not(any(feature = "input", feature = "input-toml"))
+))]
+#[derive(serde::Deserialize)]
+struct Queue {
+    #[serde(default)]
+    pending: Vec<String>,
+}
+
 #[cfg(feature = "app")]
 fn main() -> ExitCode {
     let app = App::<Cli>::new("toy").view(|cli| cli.output.view());
@@ -92,9 +111,9 @@ fn main() -> ExitCode {
     let app = app.mounted_as("toy");
     app.run(|cli| {
         let Command::Status { name } = cli.command;
-        #[cfg(any(feature = "input", feature = "input-toml"))]
+        #[cfg(any(feature = "input", feature = "input-json", feature = "input-toml"))]
         let pending = pending()?;
-        #[cfg(not(any(feature = "input", feature = "input-toml")))]
+        #[cfg(not(any(feature = "input", feature = "input-json", feature = "input-toml")))]
         let pending = 1;
         Ok(Status {
             name: name.unwrap_or_default(),
@@ -114,6 +133,17 @@ fn pending() -> Result<usize, InputError> {
 #[cfg(all(feature = "app", feature = "input-toml", not(feature = "input")))]
 fn pending() -> Result<usize, InputError> {
     let queue: Queue = Input::open(Path::new("tasks.toml"))?.parse()?;
+    Ok(queue.pending.len())
+}
+
+/// The number of pending rows in `tasks.json`.
+#[cfg(all(
+    feature = "app",
+    feature = "input-json",
+    not(any(feature = "input", feature = "input-toml"))
+))]
+fn pending() -> Result<usize, InputError> {
+    let queue: Queue = Input::open(Path::new("tasks.json"))?.parse()?;
     Ok(queue.pending.len())
 }
 

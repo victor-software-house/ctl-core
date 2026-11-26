@@ -14,7 +14,8 @@
 #
 # input-toml alone reads TOML with no YAML parser and no garde
 # (split-input-formats, decision 6). input-yaml alone reads YAML with no TOML
-# parser, and neither it nor input links yamled.
+# parser, and neither it nor input links yamled. input-json alone reads JSON
+# with no TOML or YAML parser and no yamled: the reader is ctl-input's own.
 set -euo pipefail
 status=0
 app="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features app --target all --prefix none --format '{p}')"
@@ -46,6 +47,13 @@ yaml="$(cargo tree --locked --package ctl-core --edges normal --no-default-featu
 for crate in yamled toml; do
   if grep -q "^${crate} v" <<<"${yaml}"; then
     echo "ctl-core with input-yaml alone depends on ${crate}" >&2
+    status=1
+  fi
+done
+json="$(cargo tree --locked --package ctl-core --edges normal --no-default-features --features input-json --target all --prefix none --format '{p}')"
+for crate in toml yamled serde-saphyr; do
+  if grep -q "^${crate} v" <<<"${json}"; then
+    echo "ctl-core with input-json alone depends on ${crate}" >&2
     status=1
   fi
 done

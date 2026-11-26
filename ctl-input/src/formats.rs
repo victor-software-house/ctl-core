@@ -10,17 +10,17 @@ use super::{Input, InputError, read_text};
 
 /// The input formats a CLI reads, in the order they were registered.
 ///
-/// [`Self::builtin`] holds `yaml` and then `toml`, each with its feature. A
-/// CLI adds a format, replaces a built-in of the same name, or removes one,
-/// then installs the set with [`set_default_formats`]. Every builder takes and
-/// returns `self`, as ctl-core's output registry does.
+/// [`Self::builtin`] holds `yaml`, `json` and then `toml`, each with its
+/// feature. A CLI adds a format, replaces a built-in of the same name, or
+/// removes one, then installs the set with [`set_default_formats`]. Every
+/// builder takes and returns `self`, as ctl-core's output registry does.
 ///
 /// ```
-/// # #[cfg(all(feature = "yaml", feature = "toml"))]
+/// # #[cfg(all(feature = "yaml", feature = "json", feature = "toml"))]
 /// # {
 /// use ctl_input::Formats;
 ///
-/// let formats = Formats::builtin().remove("toml");
+/// let formats = Formats::builtin().remove("json").remove("toml");
 /// assert_eq!(formats.names().collect::<Vec<_>>(), ["yaml"]);
 /// # }
 /// ```
@@ -30,12 +30,15 @@ pub struct Formats {
 }
 
 impl Formats {
-    /// `yaml` with the `yaml` feature, then `toml` with the `toml` feature.
+    /// `yaml` with the `yaml` feature, then `json` with the `json` feature,
+    /// then `toml` with the `toml` feature.
     #[must_use]
     pub fn builtin() -> Self {
         let formats = Self::empty();
         #[cfg(feature = "yaml")]
         let formats = formats.add(&super::format::YAML);
+        #[cfg(feature = "json")]
+        let formats = formats.add(&super::format::JSON);
         #[cfg(feature = "toml")]
         let formats = formats.add(&super::format::TOML);
         formats
@@ -87,8 +90,8 @@ impl Formats {
     }
 
     /// The registered format that reads a file's extension, compared without
-    /// regard to case: with the built-ins, `.toml` is TOML, and `.yaml` and
-    /// `.yml` are YAML.
+    /// regard to case: with the built-ins, `.toml` is TOML, `.json` is JSON,
+    /// and `.yaml` and `.yml` are YAML.
     ///
     /// # Errors
     ///
@@ -115,6 +118,11 @@ impl Formats {
             Some(yaml @ ("yaml" | "yml")) => Err(InputError::whole(
                 name,
                 format!("`.{yaml}` needs ctl-core's input-yaml feature; {accepted}"),
+            )),
+            #[cfg(not(feature = "json"))]
+            Some("json") => Err(InputError::whole(
+                name,
+                format!("`.json` needs ctl-core's input-json feature; {accepted}"),
             )),
             #[cfg(not(feature = "toml"))]
             Some("toml") => Err(InputError::whole(
