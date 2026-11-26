@@ -133,11 +133,12 @@ completion = ["shell", "view", "app", "dep:clap_complete"]
 ## before the shell's first prompt (`InitCommand`, `Hook`).
 shell-init = ["shell", "view"]
 
-## The parts of a parse error in the JSON error envelope's `parse` field:
-## the argument, the value, the valid values, the suggestions, the arguments it
-## conflicts with, and the tips. Turns on Clap's `error-context` feature, which
-## makes Clap's error messages name the argument and value, and ctl-core reads
-## the context from Clap's error. Without it, `parse` holds only the reason.
+## The parts of a parse error in the JSON error envelope's `parse` field, one
+## field per kind of Clap's error context: the argument, the value, the valid
+## values, the suggestions, the arguments it conflicts with, the tips, and the
+## rest. Turns on Clap's `error-context` feature, which makes Clap's error
+## messages name the argument and value, and ctl-core reads the context from
+## Clap's error. Without it, `parse` holds only the reason.
 error-context = ["cli", "clap/error-context"]
 
 ## Mise Usage spec from clap (`--usage-spec` and the `#USAGE mount` line).

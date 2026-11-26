@@ -187,7 +187,8 @@ Cargo unifies features, so a consumer cannot turn off one ctl-core turned on.
 
 `clap` is declared with `default-features = false`: `cli` asks for `std`, `derive`, `env`, and `string`, and `help` adds `usage`.
 Clap's `color`, `help`, `error-context`, and `suggestions` are the consumer's choice.
-ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error: it turns on Clap's `error-context` and fills `ErrorBody::parse` with the argument, the value, the valid values, the suggestions, the conflicting arguments, and the tips.
+ctl-core's own `error-context` feature is how a CLI makes that choice for the JSON error: it turns on Clap's `error-context` and fills `ErrorBody::parse` with one field per kind of Clap's error context: the argument, the missing arguments, the value, the valid values, the subcommands, the suggestions by kind, the conflicting arguments, the value counts, and the tips.
+ctl-core reads every `ContextKind` but `Usage`, which ctl-core renders itself, and a unit test in `app/error_body.rs` lists each kind of Clap 4.6.6 with its field.
 Without it `parse` holds the reason alone, and `usage` is there either way.
 No other feature turns it on, and `mise run test:error-context-off` tests the build without it.
 Without Clap's `help` feature, Clap turns off `-h`/`--help` and the `help` subcommand, so `parser::apply_defaults` and `help::document` declare both (`parser::with_help`), worded as Clap words them.
@@ -263,7 +264,7 @@ A table with `stacked_below` has no floor and keeps its own form.
 5. **A JSON error keeps a field per part.** `message` is one sentence.
    A handler error's further causes are `causes`, an input's problems are `problems`, a parse error's usage line is `usage`, and Clap's parts of it are `parse`.
    Each is left out when empty, and none contains ANSI.
-   `pretty` writes the same parts as text.
+   `pretty` writes `ErrorBody::text`, which `App` sets to what a failure printed before it had fields, so pretty output is unchanged; JSON never carries it.
 6. **Help is a document.** Clap remains the grammar, and help uses the same renderer as command output.
    Usage lines wrap without splitting tokens.
    `-h` shows `about`, each argument's `help`, and `after_help` as an Examples section; `--help` and the `help` subcommand show `long_about`, `long_help`, and `after_long_help`, each falling back to its short form.

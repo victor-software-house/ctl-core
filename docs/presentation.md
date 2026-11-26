@@ -152,7 +152,8 @@ A format is a value that implements `format::Format`, and `FormatName` names it.
    `Sink` is the writer for the stream the result goes to.
    Its `render` lays a document out as `pretty` does, and its colour is `never` when the format is a machine format.
 2. `Format::write_error` writes a failure from an `ErrorBody`.
-   The default writes `{bin}: {message}` with each cause after it as `: {cause}`, then one line per problem as `{input}:{line}:{column}: {field}: {message}`, leaving out what is unknown, then each tip of a parse error and `Usage: {usage}`.
+   The default writes `{bin}: {text}`, where `text` is `ErrorBody::text`, the text the failure printed before it had fields, and `message` when it has none.
+   `App` sets it to Clap's whole text for a parse error and to `{error:#}` for a handler error, so `pretty` reads as it always did.
    `json` writes the error envelope.
 3. `Formats::builtin()` holds the five built-ins.
    `add` registers a format or replaces the one of the same name, `remove` takes one out, and `terminal_default` and `piped_default` set the default for each case.
@@ -252,12 +253,12 @@ A field is left out when it is empty, and none contains ANSI.
 
 | Field | Holds |
 |:--|:--|
-| `message` | One sentence: the outermost error, an input's summary, or Clap's first line |
+| `message` | One sentence: the outermost error, an input's `<input> has <n> problems`, or Clap's first line |
 | `kind` | The CLI's word for scripts to match, `usage` for a parse error |
 | `causes` | Each further error of an `anyhow` chain, outermost first |
 | `problems` | One object per input problem: `input`, `line`, `column`, `field`, `message` |
 | `usage` | The selected command's usage line, without `Usage:` |
-| `parse` | `reason`, and with the `error-context` feature `argument`, `value`, `valid_values`, `suggestions`, `conflicts_with`, `tips` |
+| `parse` | `reason`, and with the `error-context` feature a field per kind of Clap's context: `argument`, `missing`, `value`, `valid_values`, `subcommand`, `valid_subcommands`, `suggested_arguments`, `suggested_values`, `suggested_subcommands`, `suggested_commands`, `conflicts_with`, `actual_values`, `expected_values`, `min_values`, `trailing_argument`, `tips`, `notes` |
 
 ## Help law
 
