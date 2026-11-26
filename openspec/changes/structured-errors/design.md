@@ -36,8 +36,9 @@ Each is a string or a list of strings, with no ANSI.
 
 ### 2. Where each part comes from
 
-1. A parse error: `reason` from `Error::kind`; the rest from `Error::get` with `ContextKind` when clap's `error-context` is on; `message` from clap's rendered first line.
-   Without `error-context`, `parse` holds only `reason`.
+1. A parse error: `reason` from `Error::kind`; the rest from `Error::get` with `ContextKind`; `message` from clap's rendered first line.
+   ctl-core cannot see a dependency's feature, so it reads the context under its own `error-context` feature, which turns on clap's; `input-document` turns it on.
+   Without it, `parse` holds only `reason`.
 2. `usage`: ctl-core renders the selected command's usage with clap's `usage` feature, which `help` turns on, for every parse error.
 3. An `InputError` found by ctl-core, such as a refused input document: `problems` from its problems, `message` as `<input> has <n> problems`, or the one problem's message when it has one.
 4. A handler error: `message` from the outermost error, `causes` from `Error::chain` after it.
@@ -45,7 +46,9 @@ Each is a string or a list of strings, with no ANSI.
 
 ### 3. Pretty output
 
-`Format::write_error`'s default renders `{bin}: {message}`, then one line per problem as `{bin}: {input}:{line}:{column}: {field}: {message}` (today's `InputError` line), then `caused by: {cause}` per cause, then the tips and `Usage: {usage}` as clap lays them out.
+`Format::write_error`'s default renders `{bin}: {message}` with each cause after it as `: {cause}`, as `{error:#}` reads today.
+Then it writes one line per problem as `{input}:{line}:{column}: {field}: {message}`, the line `InputError` prints today, then the tips and `Usage: {usage}` as clap lays them out.
+An `InputError` in a handler's chain becomes `problems` and adds no cause of its own.
 A format that overrides `write_error` gets the same `ErrorBody`.
 
 ### 4. A non-exhaustive body

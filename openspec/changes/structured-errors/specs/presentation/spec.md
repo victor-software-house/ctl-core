@@ -27,9 +27,9 @@ No field SHALL carry a part that has a field of its own, and no field SHALL cont
 
 ### Requirement: Pretty errors read as before
 
-The `pretty` error SHALL render `message`, then each problem as `{bin}: {input}:{line}:{column}: {field}: {message}`, then each cause, then the tips and the usage line.
+The `pretty` error SHALL render `{bin}: {message}` with each cause after it as `: {cause}`, then each problem on its own line as `{input}:{line}:{column}: {field}: {message}`, then the tips and the usage line.
 
 #### Scenario: A handler error in pretty
 
 - **WHEN** the same handler error is written by `pretty`
-- **THEN** stderr reads `toy: reading config`, then `caused by: no such file`
+- **THEN** stderr reads `toy: reading config: no such file`, as it does today
