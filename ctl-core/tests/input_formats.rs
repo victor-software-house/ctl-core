@@ -12,6 +12,7 @@
     feature = "app",
     feature = "fixture",
     feature = "input",
+    feature = "input-json",
     feature = "input-toml"
 ))]
 
@@ -339,7 +340,7 @@ fn the_process_default_decides_what_open_reads() {
     assert_eq!(error.problems[0].line, None);
     assert_eq!(
         error.problems[0].message,
-        "unsupported extension .toml; name the file *.yaml or *.yml"
+        "unsupported extension .toml; name the file *.json, *.yaml, or *.yml"
     );
 
     set_default_formats(Formats::builtin());
@@ -351,7 +352,7 @@ fn the_process_default_decides_what_open_reads() {
     assert_eq!(
         refused,
         Some(Err(
-            "unsupported extension .kv; name the file *.toml, *.yaml, or *.yml".to_owned()
+            "unsupported extension .kv; name the file *.json, *.toml, *.yaml, or *.yml".to_owned()
         ))
     );
     let app = App::<Toy>::new("toy").input_formats(Formats::builtin().add(&KV));

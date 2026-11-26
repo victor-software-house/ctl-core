@@ -8,9 +8,9 @@ export RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-D warnings"
 cargo check --locked --package ctl-core --no-default-features
 cargo check --locked --package ctl-term --no-default-features
 cargo check --locked --package ctl-input --no-default-features
-for features in yaml toml yaml,validate toml,validate yaml,toml yaml,toml,validate; do
+for features in yaml json toml yaml,validate toml,validate yaml,toml yaml,toml,validate; do
   cargo check --locked --package ctl-input --no-default-features --features "${features}"
 done
-for features in document unsafe-chars render surface-model surface-serde surface-templates surface validate input-yaml input-toml input-toml,validate input fixture served usage json cli view help app app,usage app,usage,input app,input-toml schema shell shell,view completion shell-init app,shell-init; do
+for features in document unsafe-chars render surface-model surface-serde surface-templates surface validate input-yaml input-json input-toml input-toml,validate input fixture served usage json cli view help app app,usage app,usage,input app,input-toml schema shell shell,view completion shell-init app,shell-init; do
   cargo check --locked --package ctl-core --no-default-features --features "${features}"
 done

@@ -7,7 +7,12 @@
     missing_docs,
     reason = "an integration test crate has no public API to document"
 )]
-#![cfg(all(feature = "input", feature = "input-toml", feature = "fixture"))]
+#![cfg(all(
+    feature = "input",
+    feature = "input-json",
+    feature = "input-toml",
+    feature = "fixture"
+))]
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -270,24 +275,24 @@ fn the_format_is_chosen_never_guessed() {
         assert!(Input::open(&path).is_ok(), "{name}");
     }
 
-    let json = root.file("app.json", "{}");
-    let error = Input::open(&json).unwrap_err();
+    let ini = root.file("app.ini", "{}");
+    let error = Input::open(&ini).unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, None, "{error}");
     assert_eq!(
         error.problems[0].message,
-        "unsupported extension .json; name the file *.toml, *.yaml, or *.yml"
+        "unsupported extension .ini; name the file *.json, *.toml, *.yaml, or *.yml"
     );
-    assert!(error.to_string().starts_with(&json.display().to_string()));
+    assert!(error.to_string().starts_with(&ini.display().to_string()));
 
     let bare = root.file("app", "{}");
     assert_eq!(
         Input::open(&bare).unwrap_err().problems[0].message,
-        "no file extension; name the file *.toml, *.yaml, or *.yml"
+        "no file extension; name the file *.json, *.toml, *.yaml, or *.yml"
     );
 
     assert!(
-        Input::open(Path::new("missing.json")).is_err(),
+        Input::open(Path::new("missing.ini")).is_err(),
         "the extension is refused before the file is read"
     );
 }

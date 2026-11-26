@@ -136,9 +136,10 @@
 //! decides colour for it.
 //!
 //! Declared input lives in the `ctl-input` crate, re-exported as `input`, and
-//! takes one feature per format. `input-yaml` reads YAML and `input-toml`
-//! reads TOML; neither links the other's parser. `validate` adds garde
-//! validation, and `input` is `input-yaml` with `validate`.
+//! takes one feature per format. `input-yaml` reads YAML, `input-json` reads
+//! JSON with an own strict reader, and `input-toml` reads TOML; none links
+//! another's parser. `validate` adds garde validation, and `input` is
+//! `input-yaml` with `validate`, so a CLI that reads JSON names `input-json`.
 #![cfg_attr(
     not(feature = "app"),
     doc = "",
@@ -194,7 +195,7 @@
     doc = "[`term`]: crate#cargo-features"
 )]
 #![cfg_attr(
-    not(any(feature = "input-yaml", feature = "input-toml")),
+    not(any(feature = "input-yaml", feature = "input-json", feature = "input-toml")),
     doc = "",
     doc = "[`input::Input`]: crate#cargo-features",
     doc = "[`input::FieldPath`]: crate#cargo-features",
@@ -238,7 +239,7 @@ mod theme;
 pub mod usage;
 #[cfg(feature = "validate")]
 pub mod validate;
-#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
 pub use ctl_input as input;
 #[cfg(feature = "render")]
 pub use ctl_layout as layout;

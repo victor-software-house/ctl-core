@@ -53,7 +53,7 @@ use crate::color::ColorMode;
 use crate::completion;
 use crate::format::{FormatName, Formats, PRETTY, unknown_format, unknown_stream_default};
 use crate::help::CommandGroup;
-#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+#[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
 use crate::input::{self, Limits};
 use crate::model::ErrorBody;
 use crate::render::{self, RenderOptions};
@@ -245,7 +245,7 @@ impl<C> App<C> {
     /// Set the process-wide default input limits as soon as it is called, not
     /// when the `App` runs. The limits of a single call win over them, and so
     /// does a repository's `.ctl/input.yaml` with `input-yaml`.
-    #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
     #[must_use]
     pub fn input_limits(self, limits: Limits) -> Self {
         input::set_default_limits(limits);
@@ -256,7 +256,7 @@ impl<C> App<C> {
     /// the `App` runs, so `Input::open` in a handler reads the extensions
     /// `formats` names and no others. A CLI adds its own format with
     /// `Formats::builtin().add(&FORMAT)`.
-    #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+    #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
     #[must_use]
     pub fn input_formats(self, formats: input::Formats) -> Self {
         input::set_default_formats(formats);
