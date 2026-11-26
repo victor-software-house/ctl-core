@@ -846,6 +846,7 @@ fn a_value_no_argument_can_take_is_refused_on_its_line() {
         ("pair: [a, b]\n", "task.yaml:1:7: pair:"),
         ("pr: maybe\n", "task.yaml:1:5: pr:"),
         ("label: [a, ~]\n", "task.yaml:1:12: label[1]:"),
+        ("tag: [\"a,b\", c]\n", "task.yaml:1:7: tag[0]:"),
     ] {
         ran!(
             out = case(&[("task.yaml", body)], &["add", "--input", "@task.yaml"])

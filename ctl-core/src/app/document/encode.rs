@@ -196,6 +196,15 @@ fn values(arg: &Arg, value: &Node, format: &dyn Format) -> Result<Encoded, Refus
     let long = arg.get_long().unwrap_or_default();
     let tokens = match delimiter {
         Some(delimiter) if listed => {
+            if let Some(index) = texts.iter().position(|text| text.contains(delimiter)) {
+                return refuse(
+                    On::Item(index),
+                    format!(
+                        "`{}` splits its values on `{delimiter}`, so an item cannot hold it",
+                        name(arg)
+                    ),
+                );
+            }
             vec![format!("--{long}={}", texts.join(&delimiter.to_string()))]
         }
         None if listed && !appends => {
