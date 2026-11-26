@@ -112,7 +112,12 @@ impl<'de> NodeDe<'de> {
     fn resolve(&self, scalar: &'de Scalar, wanted: Wanted) -> Result<Resolved<'de>, Error> {
         self.format
             .resolve(scalar, self.tag(), wanted)
-            .map_err(|mismatch| Error::invalid(mismatch.to_string()))
+            .map_err(|mismatch| {
+                let detail = mismatch
+                    .detail()
+                    .filter(|_| mismatch.wanted() == Wanted::Any);
+                Error::invalid(detail.map_or_else(|| mismatch.to_string(), str::to_owned))
+            })
     }
 
     /// The scalar read as `wanted` and handed to `visitor`, which refuses it

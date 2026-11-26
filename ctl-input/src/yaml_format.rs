@@ -58,9 +58,14 @@ impl Format for Yaml {
         };
         let rules = rules();
         let at = Location::UNKNOWN;
-        let mismatch = Mismatch::new(wanted);
+        let mismatch = |error: Error| {
+            Mismatch::new(wanted).with_detail(yaml_text::plain(
+                &DefaultMessageFormatter.with_localizer(&Unplaced),
+                &error,
+            ))
+        };
         match wanted {
-            Wanted::Any => match rules.infer(&spelled, at).map_err(|_error| mismatch)? {
+            Wanted::Any => match rules.infer(&spelled, at).map_err(mismatch)? {
                 Inferred::Null => Ok(Resolved::Null),
                 Inferred::Bool(value) => Ok(Resolved::Bool(value)),
                 Inferred::Signed(value) => Ok(Resolved::Int(i128::from(value))),
@@ -74,23 +79,23 @@ impl Format for Yaml {
             Wanted::Bool => rules
                 .boolean(&spelled, at)
                 .map(Resolved::Bool)
-                .map_err(|_error| mismatch),
+                .map_err(mismatch),
             Wanted::Int => match rules.signed::<i128>(&spelled, at) {
                 Ok(value) => Ok(Resolved::Int(value)),
                 Err(_) => rules
                     .unsigned::<u128>(&spelled, at)
                     .map(Resolved::Uint)
-                    .map_err(|_error| mismatch),
+                    .map_err(mismatch),
             },
             Wanted::Float => rules
                 .float64(&spelled, at)
                 .map(Resolved::Float)
-                .map_err(|_error| mismatch),
+                .map_err(mismatch),
             Wanted::Null => rules
                 .is_null(&spelled)
                 .then_some(Resolved::Null)
-                .ok_or(mismatch),
-            Wanted::Str => match rules.string(&spelled, at).map_err(|_error| mismatch)? {
+                .ok_or_else(|| Mismatch::new(wanted)),
+            Wanted::Str => match rules.string(&spelled, at).map_err(mismatch)? {
                 Cow::Owned(text) => Ok(Resolved::Str(Cow::Owned(text))),
                 Cow::Borrowed(_) => Ok(Resolved::Str(Cow::Borrowed(scalar.value()))),
             },

@@ -136,22 +136,42 @@ pub enum Resolved<'a> {
 }
 
 /// A scalar the format cannot read as the type a field wanted.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mismatch {
     wanted: Wanted,
+    detail: Option<String>,
 }
 
 impl Mismatch {
     /// A scalar that is not a `wanted`.
     #[must_use]
     pub fn new(wanted: Wanted) -> Self {
-        Self { wanted }
+        Self {
+            wanted,
+            detail: None,
+        }
+    }
+
+    /// This mismatch with the format's own words for why the scalar is not a
+    /// `wanted`, such as a YAML float that is not finite.
+    #[must_use]
+    pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
     }
 
     /// The type the field wanted.
     #[must_use]
-    pub fn wanted(self) -> Wanted {
+    pub fn wanted(&self) -> Wanted {
         self.wanted
+    }
+
+    /// The format's own words for why the scalar is not a
+    /// [`wanted`](Self::wanted), when it gave any. A typeless read has no type
+    /// to name, so the Deserializer words its refusal from this.
+    #[must_use]
+    pub fn detail(&self) -> Option<&str> {
+        self.detail.as_deref()
     }
 }
 

@@ -187,7 +187,10 @@ fn floats_read_as_f32_and_f64_and_infinity_is_a_float_but_not_a_typeless_value()
     );
     let text = "up: .inf\n";
     let refusal = refused::<Value>(&YAML, text);
-    assert_eq!(refusal.fault(), &invalid("expected a value"));
+    assert_eq!(
+        refusal.fault(),
+        &invalid("non-finite float `.inf` rejected by the configured policy")
+    );
     assert_eq!(at(text, &refusal), ".inf");
 }
 

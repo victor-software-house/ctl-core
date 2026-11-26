@@ -210,14 +210,11 @@ fn a_flattened_map_and_an_untagged_enum_read_through_a_typeless_buffer() {
     let settings = typed::<BTreeMap<String, Setting>>(&YAML, "a: [x]\nb: y\n").unwrap();
     assert_eq!(settings["a"], Setting::List(vec!["x".to_owned()]));
     assert_eq!(settings["b"], Setting::Word("y".to_owned()));
-    let text = "up: .inf\n";
-    let refusal = refused::<BTreeMap<String, Setting>>(&YAML, text);
-    assert_eq!(
+    let refusal = refused::<BTreeMap<String, Setting>>(&YAML, "up: .inf\n");
+    assert!(matches!(
         refusal.fault(),
-        &Fault::InvalidValue {
-            detail: "expected a value".to_owned()
-        }
-    );
+        Fault::InvalidValue { detail } if detail.contains("non-finite")
+    ));
 }
 
 #[test]

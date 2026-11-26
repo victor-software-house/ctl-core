@@ -102,8 +102,8 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
     for text in [".inf", "-.inf", ".nan"] {
         let scalar = plain(text);
         assert_eq!(
-            resolve(&scalar, None, Wanted::Any),
-            Err(Mismatch::new(Wanted::Any)),
+            resolve(&scalar, None, Wanted::Any).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Any),
             "{text}"
         );
         assert_eq!(
@@ -112,8 +112,8 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
             "{text}"
         );
         assert_eq!(
-            resolve(&scalar, None, Wanted::Int),
-            Err(Mismatch::new(Wanted::Int)),
+            resolve(&scalar, None, Wanted::Int).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Int),
             "{text}"
         );
     }
@@ -127,6 +127,18 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
         resolve(&nan, None, Wanted::Float),
         Ok(Resolved::Float(number)) if number.is_nan()
     ));
+}
+
+#[test]
+fn a_mismatch_carries_the_rules_own_words_for_the_scalar() {
+    let scalar = plain(".inf");
+    let mismatch = resolve(&scalar, None, Wanted::Any).unwrap_err();
+    assert!(
+        mismatch
+            .detail()
+            .is_some_and(|detail| detail.contains("non-finite")),
+        "{mismatch:?}"
+    );
 }
 
 #[test]
@@ -246,8 +258,8 @@ fn a_tagged_non_string_is_refused_for_a_string_field() {
     ] {
         let scalar = plain(text);
         assert_eq!(
-            resolve(&scalar, Some(tag), Wanted::Str),
-            Err(Mismatch::new(Wanted::Str)),
+            resolve(&scalar, Some(tag), Wanted::Str).map_err(|mismatch| mismatch.wanted()),
+            Err(Wanted::Str),
             "{tag} {text}"
         );
     }
