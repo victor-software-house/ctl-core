@@ -169,6 +169,8 @@ queue:
       - 2026-11-25, App adds the input flags to every command, as it adds --format, and a CLI removes them with one builder call (operator, 2026-11-25).
       - 2026-11-25, input formats are an open set a CLI can extend, as output formats are, with yaml, json and toml built in; this breaks input::Format, so it ships in the 0.8.0 candidates (operator, 2026-11-25).
       - 2026-11-25, App adds --input only when app and an input format feature are both on, so the app tier keeps its size (operator, 2026-11-25).
+      - 2026-11-26, the document joins clap as synthesized arguments after the selected subcommand, a key that loses to a higher layer is dropped unless the CLI asks to fail, the input features turn on clap error-context, and the document supplies positionals only when the command line gives none (operator, 2026-11-26).
+    plan: openspec/changes/input-document/proposal.md
 
   - id: CTC-047
     title: Run the prose check in CI
