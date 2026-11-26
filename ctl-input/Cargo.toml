@@ -1,0 +1,43 @@
+[package]
+name = "ctl-input"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Declared input for CLIs: parse YAML or TOML, validate once, and report every problem on its file and line"
+license.workspace = true
+repository.workspace = true
+keywords = ["cli", "config", "yaml", "toml", "validation"]
+categories = ["command-line-interface", "config"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cap-lints", "warn"]
+
+[lints]
+workspace = true
+
+[features]
+## Declared input from YAML: parse with serde-saphyr and place every problem
+## on its file and line through yamled. Adds the YAML-only `Limits` fields and
+## the repository's `.ctl/input.yaml`. Needs no garde without `validate`.
+yaml = ["dep:serde", "dep:serde-saphyr", "dep:yamled"]
+
+## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
+## crate's span-carrying tree places each problem on its line and column.
+## Needs no YAML crate, and no garde without `validate`.
+toml = ["dep:serde", "dep:toml"]
+
+## Validate with garde: `Input::check` and `Input::load`.
+validate = ["dep:garde"]
+
+[dependencies]
+document-features.workspace = true
+garde = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde-saphyr = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+yamled = { workspace = true, optional = true }
+
+[dev-dependencies]
+garde = { workspace = true, features = ["derive"] }
+serde.workspace = true

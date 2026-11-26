@@ -28,5 +28,5 @@ Nothing is **BREAKING**: the re-export is new, and 0.0.4 changes only what `Tagg
 - A test in `ctl-core/tests/input.rs`.
 - No new dependency: the fork moves from 0.0.3 to 0.0.4.
 
-[input]: ../../../ctl-core/src/input.rs
+[input]: ../../../ctl-input/src/lib.rs
 [ledger]: ../../../tasks.yaml

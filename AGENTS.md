@@ -12,6 +12,7 @@ Each crate's own `AGENTS.md` holds what that crate owns, what it must not own, i
 | `ctl-text` | [`ctl-text/AGENTS.md`](ctl-text/AGENTS.md) | Styled text, cell widths, wrapping, and the `Renderable` protocol. No terminal I/O |
 | `ctl-layout` | [`ctl-layout/AGENTS.md`](ctl-layout/AGENTS.md) | Tables, records, rules, stacks, and indents on `ctl-text`. Never writes an escape byte |
 | `ctl-term` | [`ctl-term/AGENTS.md`](ctl-term/AGENTS.md) | Colour policy, depth, and width per stream, and the escape encoder |
+| `ctl-input` | [`ctl-input/AGENTS.md`](ctl-input/AGENTS.md) | Declared input: parse YAML or TOML, validate once with garde, and place every problem on its file and line. Depends on no other crate here |
 | `ctl-core` | [`ctl-core/AGENTS.md`](ctl-core/AGENTS.md) | The CLI chassis: flags, `App`, help, `Document`, `View`, the output formats, and the JSON envelope |
 
 Read the guide of every crate a change touches before changing it.
@@ -23,13 +24,13 @@ The root `Cargo.toml` holds the members, one version for every crate in `[worksp
 Each crate lives in a root folder named like its package and inherits those tables with `workspace = true`.
 Profiles stay in the root manifest, where Cargo reads them.
 
-The crates depend in one direction: `ctl-layout` and `ctl-term` on `ctl-text`, and `ctl-core` on all three.
-`ctl-layout` and `ctl-term` never depend on each other.
+The crates depend in one direction: `ctl-layout` and `ctl-term` on `ctl-text`, and `ctl-core` on all three and on `ctl-input`.
+`ctl-layout` and `ctl-term` never depend on each other, and `ctl-input` depends on none of the others.
 A rule changes in the crate that owns it, never in a crate above it.
 
-ctl-core requires each engine crate at exactly the workspace version (`version = "=x.y.z"` in `[workspace.dependencies]`), and a `pins` entry in `.ctl/ver.yaml` moves each requirement with the release.
+ctl-core requires each of these crates at exactly the workspace version (`version = "=x.y.z"` in `[workspace.dependencies]`), and a `pins` entry in `.ctl/ver.yaml` moves each requirement with the release.
 Keep the two in step when a crate is renamed or added.
-`.ctl/ver.yaml` points at the virtual manifest, so verctl bumps `workspace.package.version` and publishes each member in dependency order: `ctl-text`, `ctl-layout`, `ctl-term`, then `ctl-core`.
+`.ctl/ver.yaml` points at the virtual manifest, so verctl bumps `workspace.package.version` and publishes each member in dependency order: `ctl-text`, `ctl-input`, `ctl-layout`, `ctl-term`, then `ctl-core`.
 
 For a workspace the template drops the library-only `print_stdout` and `print_stderr` lints and clippy's `allow-print-in-tests`.
 They stay here as local edits, because every member is a library.
