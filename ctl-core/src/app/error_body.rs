@@ -29,8 +29,8 @@ pub(super) fn parse_error(
 ) -> ErrorBody {
     let rendered = error.to_string();
     let text = parse_error_text(&rendered);
-    ErrorBody::new(bin, text.lines().next().unwrap_or_default())
-        .with_text(text)
+    ErrorBody::new(bin, text.lines().next().unwrap_or_default().to_owned())
+        .with_text(text.to_owned())
         .usage(help::usage_line(command, selected))
         .parse(parse_failure(error))
 }
@@ -49,7 +49,9 @@ pub(super) fn parse_error_text(rendered: &str) -> &str {
 /// With an input feature, an [`InputError`] in the chain fills `problems`
 /// and is no cause. One that is the whole error gives `message` its summary.
 pub(super) fn handler_error(bin: &str, error: &anyhow::Error) -> ErrorBody {
-    let text = format!("{error:#}");
+    let mut links = error.chain().map(ToString::to_string).collect::<Vec<_>>();
+    let text = links.join(": ");
+    let message = links.remove(0);
     #[cfg(any(feature = "input-yaml", feature = "input-json", feature = "input-toml"))]
     {
         let refused = error
@@ -61,12 +63,13 @@ pub(super) fn handler_error(bin: &str, error: &anyhow::Error) -> ErrorBody {
                 .chain()
                 .next()
                 .and_then(|outermost| outermost.downcast_ref::<InputError>())
-                .map_or_else(|| error.to_string(), summary);
+                .map_or(message, summary);
             let causes = error
                 .chain()
                 .skip(1)
-                .filter(|cause| !cause.is::<InputError>())
-                .map(ToString::to_string);
+                .zip(links)
+                .filter(|(cause, _)| !cause.is::<InputError>())
+                .map(|(_, link)| link);
             let problems = refused.iter().flat_map(|refused| {
                 refused
                     .problems
@@ -79,9 +82,7 @@ pub(super) fn handler_error(bin: &str, error: &anyhow::Error) -> ErrorBody {
                 .with_text(text);
         }
     }
-    ErrorBody::new(bin, error.to_string())
-        .causes(error.chain().skip(1).map(ToString::to_string))
-        .with_text(text)
+    ErrorBody::new(bin, message).causes(links).with_text(text)
 }
 
 /// What a refused input is in one sentence: its name and the number of its

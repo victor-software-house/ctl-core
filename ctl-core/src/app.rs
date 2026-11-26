@@ -563,7 +563,7 @@ where
             Ok(view) => view,
             Err(error) => {
                 let message = error.to_string();
-                let body = ErrorBody::new(&self.bin, message.as_str()).with_text(message.as_str());
+                let body = ErrorBody::new(self.bin.as_str(), message.clone()).with_text(message);
                 return self.written(raw_view.write_error(&body), ExitCode::FAILURE);
             }
         };
