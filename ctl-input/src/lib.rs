@@ -105,7 +105,6 @@ mod yaml_format;
 
 pub use de::Tagged;
 pub use entries::{Entry, Written};
-use exceeded::Exceeded;
 pub use field_path::{FieldPath, Place, Step};
 pub use format::Format;
 #[cfg(feature = "toml")]
@@ -471,7 +470,7 @@ impl Input {
         } else {
             refusal.fault().clone()
         };
-        let mut message = messages::printable(&messages().message(&fault));
+        let mut message = worded(&fault);
         if let Some(defined) = refusal.defined_at() {
             let (line, column) = tree::position(&self.text, defined.start);
             let line = line + self.lines_before;
@@ -495,14 +494,12 @@ impl Input {
     fn fits(&self, limits: &Limits, raise: Raise) -> Result<(), InputError> {
         let bounds = limits.bounds();
         if self.text.len() > bounds.input_bytes {
-            return Err(InputError::whole(
-                self.name.clone(),
-                format!(
-                    "is {} bytes, which {}",
-                    self.text.len(),
-                    Exceeded::input_bytes(bounds.input_bytes, raise)
-                ),
-            ));
+            let fault = Fault::TooLarge {
+                bytes: u64::try_from(self.text.len()).unwrap_or(u64::MAX),
+                limit: u64::try_from(bounds.input_bytes).unwrap_or(u64::MAX),
+                raise,
+            };
+            return Err(InputError::whole(self.name.clone(), worded(&fault)));
         }
         Ok(())
     }
@@ -677,6 +674,13 @@ impl Input {
         self.check(&value, &T::Context::default())?;
         Ok(value)
     }
+}
+
+/// The words of `fault` from the process's [`Messages`], with each control
+/// character escaped so a name or a value the text wrote cannot move a
+/// terminal that prints the problem.
+fn worded(fault: &Fault) -> String {
+    messages::printable(&messages().message(fault))
 }
 
 /// The file at `path`, named by its path, or the I/O failure.

@@ -256,7 +256,8 @@ pub enum Fault {
         /// What the format's parser says is wrong.
         detail: String,
     },
-    /// A key written twice in one mapping, under [`Reading::Strict`].
+    /// A key written twice in one mapping: under [`Reading::Strict`] in YAML,
+    /// and under either reading in TOML, whose syntax forbids it.
     DuplicateKey {
         /// The key.
         key: String,
@@ -269,6 +270,15 @@ pub enum Fault {
         name: &'static str,
         /// The value in force.
         value: String,
+        /// Where a person raises it.
+        raise: Raise,
+    },
+    /// The whole text is longer than `max_reader_input_bytes` allows.
+    TooLarge {
+        /// The length of the text, in bytes.
+        bytes: u64,
+        /// The value of `max_reader_input_bytes` in force.
+        limit: u64,
         /// Where a person raises it.
         raise: Raise,
     },

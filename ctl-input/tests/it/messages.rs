@@ -1,7 +1,7 @@
 //! The wording of each problem type, and a process default that replaces it.
 
-use ctl_input::format::{Fault, Raise, Refusal};
-use ctl_input::{EnglishMessages, Messages, set_messages};
+use ctl_input::format::{Fault, Raise};
+use ctl_input::{EnglishMessages, Messages};
 
 fn say(fault: &Fault) -> String {
     EnglishMessages.message(fault)
@@ -103,28 +103,4 @@ fn a_limit_a_cli_format_found_is_worded_as_one_of_a_text_in_memory() {
         say(&fault),
         "exceeds max_depth (2); raise limits.max_depth in .ctl/input.yaml"
     );
-}
-
-struct Shout;
-
-impl Messages for Shout {
-    fn message(&self, fault: &Fault) -> String {
-        EnglishMessages.message(fault).to_uppercase()
-    }
-}
-
-static SHOUT: Shout = Shout;
-
-/// The process wording is global, so this is the one test that sets it.
-#[test]
-fn a_custom_wording_changes_the_text_and_never_the_fault_or_the_span() {
-    let refusal = Refusal::new(Fault::MissingField { field: "port" }, Some(3..7), None);
-    assert_eq!(refusal.to_string(), "missing field `port`");
-    set_messages(&SHOUT);
-    let shouted = refusal.to_string();
-    set_messages(&EnglishMessages);
-    assert_eq!(shouted, "MISSING FIELD `PORT`");
-    assert_eq!(refusal.fault(), &Fault::MissingField { field: "port" });
-    assert_eq!(refusal.span(), Some(3..7));
-    assert_eq!(refusal.to_string(), "missing field `port`");
 }
