@@ -1,5 +1,5 @@
 ---
-ctl-core: minor
+ctl-core: patch!
 ---
 
 `Input` reads every text into the located tree once, through its format, and keeps the tree.
