@@ -13,7 +13,7 @@
 //! reads with the `Format` enum of the crate root.
 
 mod access;
-#[cfg(test)]
+#[cfg(all(test, feature = "yaml", feature = "toml"))]
 mod differential;
 mod error;
 mod node;
