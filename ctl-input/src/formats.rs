@@ -5,8 +5,8 @@ use std::fmt;
 use std::path::Path;
 use std::sync::{PoisonError, RwLock};
 
-use super::InputError;
 use super::format::Format;
+use super::{Input, InputError, read_text};
 
 /// The input formats a CLI reads, in the order they were registered.
 ///
@@ -132,21 +132,47 @@ impl Formats {
         }
     }
 
+    /// Read a file with the format this registry has for its extension. The
+    /// extension is checked before the file is read, so a file no registered
+    /// format reads is refused without being opened.
+    ///
+    /// [`Input::open`] does the same through the registry the process uses.
+    ///
+    /// # Errors
+    ///
+    /// An [`InputError`] for an extension [`Self::of`] refuses, or with the I/O
+    /// failure.
+    pub fn open(&self, path: &Path) -> Result<Input, InputError> {
+        let format = self.of(path)?;
+        let (name, text) = read_text(path)?;
+        Ok(Input::new_with_format(name, text, format))
+    }
+
     /// What a refusal tells a person to name the file: every registered
     /// extension, sorted, as `*.ext`.
     fn accepted(&self) -> String {
-        let mut extensions: Vec<String> = self
+        let mut extensions: Vec<String> = Vec::new();
+        for extension in self
             .registered
             .iter()
             .flat_map(|format| format.extensions())
-            .map(|extension| format!("*.{extension}"))
-            .collect();
-        extensions.sort();
+        {
+            let entry = format!("*.{extension}");
+            let at = extensions.partition_point(|held| *held < entry);
+            extensions.insert(at, entry);
+        }
         match extensions.as_slice() {
             [] => "no format is registered".to_owned(),
             [only] => format!("name the file {only}"),
             [first, second] => format!("name the file {first} or {second}"),
-            [rest @ .., last] => format!("name the file {}, or {last}", rest.join(", ")),
+            [rest @ .., last] => {
+                let mut listed = String::new();
+                for extension in rest {
+                    listed.push_str(extension);
+                    listed.push_str(", ");
+                }
+                format!("name the file {listed}or {last}")
+            }
         }
     }
 }
@@ -163,21 +189,15 @@ impl fmt::Debug for Formats {
 
 static PROCESS: RwLock<Option<Formats>> = RwLock::new(None);
 
-/// Set the process-wide registry, which an input takes when it has none of its
-/// own. Without a call, the process uses [`Formats::builtin`].
+/// Set the process-wide registry, which [`Input::open`] reads through. Without
+/// a call, the process uses [`Formats::builtin`]. [`Formats::open`] reads
+/// through a registry of the caller's instead.
 pub fn set_default_formats(formats: Formats) {
     *PROCESS.write().unwrap_or_else(PoisonError::into_inner) = Some(formats);
 }
 
-/// The registry an input without one of its own uses: the process default, or
+/// The registry [`Input::open`] reads through: the process default, or
 /// [`Formats::builtin`].
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the next change reads the tier when an input opens a file"
-    )
-)]
 pub(crate) fn default_formats() -> Formats {
     PROCESS
         .read()

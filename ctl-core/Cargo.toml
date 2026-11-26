@@ -100,7 +100,7 @@ validate = ["dep:garde", "ctl-input?/validate"]
 input = ["input-yaml", "validate"]
 
 ## Declared input from YAML, through the `ctl-input` crate: parse with
-## serde-saphyr and place every problem on its file and line through yamled.
+## serde-saphyr and place every problem on its file and line.
 ## Adds the YAML-only `Limits` fields and the repository's `.ctl/input.yaml`.
 ## Needs no garde without `validate`.
 input-yaml = ["dep:ctl-input", "ctl-input/yaml"]

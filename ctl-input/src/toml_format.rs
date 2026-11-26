@@ -10,9 +10,8 @@ use toml::de::{DeInteger, DeString, DeTable, DeValue};
 
 use super::exceeded::Exceeded;
 use super::format::{Fault, Format, Mismatch, Raise, Reading, Refusal, Resolved, Wanted};
-use super::limits::Limits;
-use super::toml_text::Measure;
-use super::tree::{Node, Scalar, ScalarStyle, ScalarSyntax, Tag};
+use super::limits::{Bounds, Limits};
+use super::tree::{Node, NodeKind, Scalar, ScalarStyle, ScalarSyntax, Tag};
 
 /// TOML, read by the `toml` crate. Its extension is `toml`.
 #[derive(Clone, Copy, Debug)]
@@ -20,6 +19,10 @@ pub struct Toml;
 
 /// The TOML format, for [`Formats::add`](crate::Formats::add).
 pub static TOML: Toml = Toml;
+
+/// What the `toml` crate's parser says of a key written twice, at the repeated
+/// key. The error carries no kind to match instead.
+const REPEATED_KEY: &str = "duplicate key";
 
 impl Format for Toml {
     fn name(&self) -> &'static str {
@@ -30,8 +33,8 @@ impl Format for Toml {
         &["toml"]
     }
 
-    /// TOML has no duplicate key and no merge key, so both readings give the
-    /// same tree.
+    /// TOML forbids a duplicate key and has no merge key, so both readings give
+    /// the same tree or refuse the same text.
     fn read(&self, text: &str, limits: &Limits, _reading: Reading) -> Result<Node, Refusal> {
         let bounds = limits.bounds();
         if text.len() > bounds.input_bytes {
@@ -39,13 +42,24 @@ impl Format for Toml {
             return Err(Refusal::new(exceeded.fault(), None, None));
         }
         let root = DeTable::parse(text).map_err(|error| {
-            let detail = error.message().to_owned();
-            Refusal::new(Fault::Syntax { detail }, error.span(), None)
+            let span = error.span();
+            let fault = if error.message() == REPEATED_KEY {
+                let written = span.clone().and_then(|at| text.get(at)).unwrap_or_default();
+                Fault::DuplicateKey {
+                    key: key_name(written),
+                }
+            } else {
+                Fault::Syntax {
+                    detail: error.message().to_owned(),
+                }
+            };
+            Refusal::new(fault, span, None)
         })?;
+        let tree = table(text, root.span(), root.get_ref());
         Measure::new(bounds, Raise::FOR_TEXT)
-            .table(&root.span(), root.get_ref(), 1)
+            .node(&tree, 1)
             .map_err(|refused| Refusal::new(refused.exceeded.fault(), Some(refused.at), None))?;
-        Ok(table(text, root.span(), root.get_ref()))
+        Ok(tree)
     }
 
     /// Resolves by the type the scalar's syntax gave it, and never by its
@@ -76,6 +90,26 @@ impl Format for Toml {
     }
 }
 
+/// The name of the key written as `written`, as TOML reads it, without quotes
+/// or escapes: the last key of the dotted path the `toml` crate builds from
+/// `written = 0`. Text that reads as no key is returned as written.
+fn key_name(written: &str) -> String {
+    let entry = format!("{written} = 0");
+    let Ok(root) = DeTable::parse(&entry) else {
+        return written.to_owned();
+    };
+    let mut name = None;
+    let mut level = root.get_ref();
+    while let Some((key, value)) = level.iter().next() {
+        name = Some(key.get_ref().to_string());
+        let DeValue::Table(inner) = value.get_ref() else {
+            break;
+        };
+        level = inner;
+    }
+    name.unwrap_or_else(|| written.to_owned())
+}
+
 /// The integer a canonical integer text spells: an `i128`, or a `u128` above
 /// it. A text no `u128` holds is no integer.
 fn integer(text: &str) -> Option<Resolved<'static>> {
@@ -98,7 +132,7 @@ fn float(text: &str) -> Option<Resolved<'static>> {
 /// iterates by key, not by position.
 fn table(text: &str, span: Range<usize>, table: &DeTable<'_>) -> Node {
     let mut entries: Vec<_> = table.iter().collect();
-    entries.sort_by_key(|(key, _)| key.span().start);
+    entries.sort_unstable_by_key(|(key, _)| key.span().start);
     Node::mapping(
         span,
         entries
@@ -167,5 +201,74 @@ fn style(text: &str, span: &Range<usize>) -> ScalarStyle {
         ScalarStyle::SingleQuoted
     } else {
         ScalarStyle::Plain
+    }
+}
+
+/// A limit a tree went past, and where in the text.
+struct Refused {
+    exceeded: Exceeded,
+    at: Range<usize>,
+}
+
+/// Walks the tree in the order it was written, counting depth and nodes
+/// against the limits in force. `max_depth` is YAML's rule too: a table or
+/// an array is one level, and the root table is the first.
+struct Measure {
+    max_depth: usize,
+    max_nodes: usize,
+    nodes: usize,
+    raise: Raise,
+}
+
+impl Measure {
+    /// A count at zero nodes under `bounds`.
+    fn new(bounds: Bounds, raise: Raise) -> Self {
+        Self {
+            max_depth: bounds.depth,
+            max_nodes: bounds.nodes,
+            nodes: 0,
+            raise,
+        }
+    }
+
+    /// A node at `depth`, then its children in the order they were written.
+    fn node(&mut self, node: &Node, depth: usize) -> Result<(), Refused> {
+        let span = node.span();
+        match node.kind() {
+            NodeKind::Mapping(entries) => {
+                self.container(&span, depth)?;
+                entries
+                    .iter()
+                    .try_for_each(|(_, value)| self.node(value, depth + 1))
+            }
+            NodeKind::Sequence(items) => {
+                self.container(&span, depth)?;
+                items.iter().try_for_each(|item| self.node(item, depth + 1))
+            }
+            NodeKind::Scalar(_) => self.count(&span),
+        }
+    }
+
+    /// A table or an array: one level deeper, and one node.
+    fn container(&mut self, span: &Range<usize>, depth: usize) -> Result<(), Refused> {
+        if depth > self.max_depth {
+            return Err(self.refuse("max_depth", self.max_depth, span));
+        }
+        self.count(span)
+    }
+
+    fn count(&mut self, span: &Range<usize>) -> Result<(), Refused> {
+        self.nodes += 1;
+        if self.nodes > self.max_nodes {
+            return Err(self.refuse("max_nodes", self.max_nodes, span));
+        }
+        Ok(())
+    }
+
+    fn refuse(&self, field: &'static str, limit: usize, span: &Range<usize>) -> Refused {
+        Refused {
+            exceeded: Exceeded::new(field, limit, self.raise),
+            at: span.clone(),
+        }
     }
 }

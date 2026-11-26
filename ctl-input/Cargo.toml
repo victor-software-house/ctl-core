@@ -18,14 +18,16 @@ rustdoc-args = ["--cap-lints", "warn"]
 workspace = true
 
 [features]
-## Declared input from YAML: parse with serde-saphyr and place every problem
-## on its file and line through yamled. Adds the YAML-only `Limits` fields and
-## the repository's `.ctl/input.yaml`. Needs no garde without `validate`.
-yaml = ["dep:serde", "dep:serde-saphyr", "dep:yamled"]
+## Declared input from YAML: the `YAML` format reads a text into the located
+## tree with serde-saphyr, and every problem is placed on its file and line
+## from that tree. Adds the YAML-only `Limits` fields and the repository's
+## `.ctl/input.yaml`. Needs no garde without `validate`.
+yaml = ["dep:serde", "dep:serde-saphyr"]
 
-## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
-## crate's span-carrying tree places each problem on its line and column.
-## Needs no YAML crate, and no garde without `validate`.
+## Declared input from TOML: the `TOML` format reads a text into the located
+## tree with the `toml` crate, so `Input::open` reads `.toml` files and each
+## problem is placed on its line and column. Needs no YAML crate, and no garde
+## without `validate`.
 toml = ["dep:serde", "dep:toml"]
 
 ## Validate with garde: `Input::check` and `Input::load`.
@@ -37,11 +39,11 @@ garde = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde-saphyr = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-yamled = { workspace = true, optional = true }
 
 [dev-dependencies]
 garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
+insta.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

@@ -13,7 +13,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ctl_core::fixture::Suite;
-use ctl_core::input::{FieldPath, Format, Input, Limits, Place, Problem, Written};
+use ctl_core::input::{
+    FieldPath, Format, Formats, Input, Limits, Place, Problem, TOML, Written, YAML,
+};
 use ctl_core::validate::{at_least_one, cannot_be_empty, inside_the_repo, one_file_name};
 use ctl_core::{formatdoc, indoc};
 use garde::Validate;
@@ -151,7 +153,7 @@ fn a_dotted_key_is_placed_on_its_value() {
             release.tag = 'v1'
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = input.load::<Config>().unwrap_err();
     assert_eq!(
         error.problems,
@@ -178,7 +180,7 @@ fn a_field_the_file_leaves_out_sits_on_its_nearest_written_table() {
             path = 'docs'
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = input.load::<Config>().unwrap_err();
     assert_eq!(
         error.problems,
@@ -195,7 +197,7 @@ fn a_parse_error_names_its_line() {
             labels = ['ship'
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = input.parse::<Config>().unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, Some(2), "{error}");
@@ -212,25 +214,19 @@ fn a_type_error_and_a_missing_field_name_their_values() {
             port = 'eighty'
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = wrong.parse::<Ports>().unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, Some(1), "{error}");
     assert_eq!(error.problems[0].column, Some(8), "{error}");
-    assert!(
-        error.problems[0]
-            .message
-            .starts_with("invalid type: string")
-            && error.problems[0].message.ends_with("expected u16"),
-        "{error}"
-    );
+    assert_eq!(error.problems[0].message, "expected an integer");
     let missing = Input::new(
         "b.toml",
         indoc! {"
             labels = ['ship']
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = missing.parse::<Config>().unwrap_err();
     assert_eq!(
         error.problems,
@@ -249,7 +245,7 @@ fn a_duplicate_key_is_refused_on_its_line() {
             flag = false
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let error = duplicate.parse::<Flags>().unwrap_err();
     assert_eq!(error.problems.len(), 1, "{error}");
     assert_eq!(error.problems[0].line, Some(2), "{error}");
@@ -261,14 +257,16 @@ fn the_format_is_chosen_never_guessed() {
     let suite = Suite::new("input-toml");
     let root = suite.scenario("formats");
     let toml = "name = 'release'\n";
-    for (name, format) in [
-        ("a.toml", Format::Toml),
-        ("b.TOML", Format::Toml),
-        ("c.yaml", Format::Yaml),
-        ("d.yml", Format::Yaml),
-    ] {
+    let formats: [(&str, &'static dyn Format); 4] = [
+        ("a.toml", &TOML),
+        ("b.TOML", &TOML),
+        ("c.yaml", &YAML),
+        ("d.yml", &YAML),
+    ];
+    for (name, format) in formats {
         let path = root.file(name, toml);
-        assert_eq!(Format::of(&path).unwrap(), format, "{name}");
+        let found = Formats::builtin().of(&path).unwrap();
+        assert_eq!(found.name(), format.name(), "{name}");
         assert!(Input::open(&path).is_ok(), "{name}");
     }
 
@@ -302,7 +300,7 @@ fn a_name_never_changes_the_format_of_text_in_memory() {
     "};
     let by_name = Input::new("app.toml", text);
     assert!(by_name.parse::<Names>().is_err(), "new is YAML");
-    let named = Input::new("app.yaml", text).format(Format::Toml);
+    let named = Input::new("app.yaml", text).format(&TOML);
     assert_eq!(named.parse::<Names>().unwrap()["name"], "release");
 
     let suite = Suite::new("input-toml");
@@ -326,7 +324,7 @@ fn frontmatter_is_yaml_whatever_the_inputs_format() {
             A body.
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let (matter, _) = file.frontmatter().unwrap();
     let names: BTreeMap<String, String> = matter.parse().unwrap();
     assert_eq!(names["name"], "release");
@@ -339,7 +337,7 @@ fn text_is_held_to_the_input_byte_limit() {
         ..Limits::NONE
     };
     let input = Input::new("big.toml", "name = 'release'\n")
-        .format(Format::Toml)
+        .format(&TOML)
         .limits(limits);
     let error = input.parse::<IgnoredAny>().unwrap_err();
     assert_eq!(error.problems[0].line, None, "{error}");
@@ -358,7 +356,7 @@ fn nesting_is_held_to_the_depth_limit_at_the_value_that_crosses_it() {
             a = { b = { c = { d = { e = 1 } } } }
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let four = Limits {
         max_depth: Some(4),
         ..Limits::NONE
@@ -393,7 +391,7 @@ fn an_array_of_tables_counts_as_two_levels() {
             b = 1
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let two = Limits {
         max_depth: Some(2),
         ..Limits::NONE
@@ -420,7 +418,7 @@ fn the_node_limit_names_the_value_that_crosses_it() {
             values = [{items}]
         "},
     )
-    .format(Format::Toml);
+    .format(&TOML);
     let twenty = Limits {
         max_nodes: Some(20),
         ..Limits::NONE
@@ -455,7 +453,7 @@ fn a_yaml_only_limit_has_no_effect_on_toml() {
             name = 'release'
         "},
     )
-    .format(Format::Toml)
+    .format(&TOML)
     .limits(Limits {
         max_aliases: Some(0),
         max_documents: Some(0),
@@ -474,7 +472,7 @@ fn nesting_past_the_parsers_own_bound_is_refused_on_a_line() {
             a = {open}1{close}
         "},
     )
-    .format(Format::Toml)
+    .format(&TOML)
     .limits(Limits {
         max_depth: Some(1000),
         ..Limits::NONE
@@ -510,7 +508,7 @@ fn glob_label(glob: &str) -> FieldPath {
 
 #[test]
 fn a_problem_under_a_key_that_holds_dots_stars_and_slashes_lands_on_that_key() {
-    let error = Input::new_with_format("globs.toml", GLOBS, Format::Toml)
+    let error = Input::new_with_format("globs.toml", GLOBS, &TOML)
         .load::<Globs>()
         .unwrap_err();
     let message = "cannot be empty — it names the label";
@@ -531,7 +529,7 @@ fn pair(place: Option<Place>) -> Option<(usize, usize)> {
 
 #[test]
 fn a_key_is_placed_where_it_is_written_and_its_value_where_it_starts() {
-    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml);
+    let input = Input::new_with_format("globs.toml", GLOBS, &TOML);
     let label = glob_label("src/lib.rs");
     assert_eq!(pair(input.place(&label)), Some((5, 9)));
     assert_eq!(pair(input.place_key(&label)), Some((5, 1)));
@@ -548,7 +546,7 @@ fn a_key_is_placed_where_it_is_written_and_its_value_where_it_starts() {
 #[test]
 fn an_array_item_has_no_key() {
     let text = "[[items]]\nname = 'a'\n[[items]]\nname = 'b'\n";
-    let input = Input::new_with_format("items.toml", text, Format::Toml);
+    let input = Input::new_with_format("items.toml", text, &TOML);
     let items = FieldPath::root().key("items");
     assert_eq!(pair(input.place_key(&items)), Some((1, 3)));
     let second = items.clone().index(1);
@@ -562,7 +560,7 @@ fn a_text_over_the_size_limit_is_not_placed() {
         max_reader_input_bytes: Some(10),
         ..Limits::NONE
     };
-    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml).limits(limit);
+    let input = Input::new_with_format("globs.toml", GLOBS, &TOML).limits(limit);
     assert_eq!(input.place(&glob_label("src/lib.rs")), None);
     assert_eq!(input.place_key(&glob_label("src/lib.rs")), None);
     let problem = input.problem_at(&glob_label("src/lib.rs"), "is not a known label");
@@ -571,7 +569,7 @@ fn a_text_over_the_size_limit_is_not_placed() {
 
 #[test]
 fn a_later_check_is_placed_through_place() {
-    let input = Input::new_with_format("globs.toml", GLOBS, Format::Toml);
+    let input = Input::new_with_format("globs.toml", GLOBS, &TOML);
     let at = input.place(&glob_label("src/lib.rs")).unwrap();
     assert_eq!((at.line, at.column), (5, 9));
     assert_eq!(
@@ -607,7 +605,7 @@ fn a_problem_under_a_declared_flattened_field_sits_on_its_toml_value() {
         [assets.linux-x64]
         files = []
     "};
-    let error = Input::new_with_format("ver.toml", text, Format::Toml)
+    let error = Input::new_with_format("ver.toml", text, &TOML)
         .flattened(FieldPath::root().key("assets").key("targets"))
         .load::<Shipped>()
         .unwrap_err();
@@ -639,7 +637,7 @@ fn the_top_level_lists_each_entry_with_its_span_style_and_string() {
         [table]
         inner = "x"
         "#},
-        Format::Toml,
+        &TOML,
     );
     let rows: Vec<_> = input
         .top_level()
@@ -680,7 +678,7 @@ fn the_top_level_lists_each_entry_with_its_span_style_and_string() {
 
 #[test]
 fn a_toml_value_span_holds_its_quotes() {
-    let input = Input::new_with_format("page.toml", "a = \"x\"\nb = 'y'\n", Format::Toml);
+    let input = Input::new_with_format("page.toml", "a = \"x\"\nb = 'y'\n", &TOML);
     let spans: Vec<_> = input
         .top_level()
         .unwrap()
@@ -692,6 +690,6 @@ fn a_toml_value_span_holds_its_quotes() {
 
 #[test]
 fn a_toml_text_that_does_not_parse_lists_nothing() {
-    let input = Input::new_with_format("page.toml", "a = \n", Format::Toml);
+    let input = Input::new_with_format("page.toml", "a = \n", &TOML);
     assert!(input.top_level().is_err());
 }

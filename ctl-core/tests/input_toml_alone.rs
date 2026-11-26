@@ -15,12 +15,12 @@
 use std::path::Path;
 
 use ctl_core::indoc;
-use ctl_core::input::{FieldPath, Format, Formats, Input, Limits, Problem, set_default_limits};
+use ctl_core::input::{FieldPath, Formats, Input, Limits, Problem, TOML, set_default_limits};
 use serde::Deserialize;
 use serde::de::IgnoredAny;
 
 fn toml(name: &str, text: &str) -> Input {
-    Input::new_with_format(name, text, Format::Toml)
+    Input::new_with_format(name, text, &TOML)
 }
 
 /// `depth` inline tables nested in the root table, so the innermost one sits

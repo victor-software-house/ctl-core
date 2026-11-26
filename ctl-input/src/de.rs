@@ -9,13 +9,9 @@
 //!
 //! [`Tagged`] reads a node's tag beside its value.
 //!
-//! [`Input`](crate::Input) does not read through this module yet: it still
-//! reads with the `Format` enum of the crate root.
+//! [`Input`](crate::Input) reads every typed value through this module.
 
 mod access;
-#[cfg(test)]
-#[cfg(all(feature = "yaml", feature = "toml"))]
-mod differential;
 mod error;
 mod node;
 mod tagged;

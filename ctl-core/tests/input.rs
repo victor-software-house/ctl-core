@@ -246,7 +246,7 @@ fn an_alias_error_names_where_its_value_is_defined_in_the_file() {
     assert_eq!(error.problems[0].column, Some(7), "{error}");
     assert_eq!(
         error.problems[0].message,
-        "invalid u16 (defined at line 3, column 9)"
+        "expected an integer (defined at line 3, column 9)"
     );
 }
 
@@ -287,7 +287,7 @@ fn an_alias_reached_through_another_alias_names_the_failing_value() {
     assert_eq!(error.problems[0].column, Some(7), "{error}");
     assert_eq!(
         error.problems[0].message,
-        "invalid u16 (defined at line 3, column 9)"
+        "expected an integer (defined at line 3, column 9)"
     );
 }
 

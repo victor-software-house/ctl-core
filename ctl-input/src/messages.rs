@@ -52,20 +52,49 @@ impl Messages for EnglishMessages {
                 )
             }
             Fault::MissingField { field } => format!("missing field `{field}`"),
-            Fault::Limit { name, value, raise } => match raise {
-                #[cfg(feature = "yaml")]
-                Raise::InRepository => {
-                    format!("exceeds {name} ({value}); raise limits.{name} in {REPO_FILE}")
-                }
-                #[cfg(feature = "yaml")]
-                Raise::InProcess => format!(
-                    "exceeds {name} ({value}); raise {name} in the tool's process default, which reads {REPO_FILE}"
-                ),
-                #[cfg(not(feature = "yaml"))]
-                Raise::InTool => format!("exceeds {name} ({value}); the tool sets this limit"),
-            },
+            Fault::Limit { name, value, raise } => exceeds(name, value, *raise),
+            Fault::TooLarge {
+                bytes,
+                limit,
+                raise,
+            } => format!(
+                "is {bytes} bytes, which {}",
+                exceeds("max_reader_input_bytes", &limit.to_string(), *raise)
+            ),
         }
     }
+}
+
+/// That a text went past the limit `name` of the value `value`, and where a
+/// person raises it.
+fn exceeds(name: &str, value: &str, raise: Raise) -> String {
+    match raise {
+        #[cfg(feature = "yaml")]
+        Raise::InRepository => {
+            format!("exceeds {name} ({value}); raise limits.{name} in {REPO_FILE}")
+        }
+        #[cfg(feature = "yaml")]
+        Raise::InProcess => format!(
+            "exceeds {name} ({value}); raise {name} in the tool's process default, which reads {REPO_FILE}"
+        ),
+        #[cfg(not(feature = "yaml"))]
+        Raise::InTool => format!("exceeds {name} ({value}); the tool sets this limit"),
+    }
+}
+
+/// `text` with each control character escaped as Rust's `escape_debug` does,
+/// so a name or a value a text wrote cannot move a terminal that prints the
+/// problem.
+pub(crate) fn printable(text: &str) -> String {
+    let mut shown = String::with_capacity(text.len());
+    for character in text.chars() {
+        if character.is_control() || matches!(character, '\u{2028}' | '\u{2029}') {
+            shown.extend(character.escape_debug());
+        } else {
+            shown.push(character);
+        }
+    }
+    shown
 }
 
 /// What follows an unknown name: the names that exist, or that there are none.
@@ -80,7 +109,52 @@ fn choices(expected: &[&str], plural: &str) -> String {
 static PROCESS: RwLock<Option<&'static dyn Messages>> = RwLock::new(None);
 
 /// Set the wording the process uses for a [`Refusal`](crate::format::Refusal)'s
-/// text. Without a call, the process uses [`EnglishMessages`].
+/// text and for every problem an [`Input`](crate::Input) reports. Without a
+/// call, the process uses [`EnglishMessages`].
+///
+/// The wording changes the text and never the fault or where it is. The
+/// wording is global to the process, so this doc-test, which runs in a
+/// process of its own, is the one place that sets it.
+///
+/// ```
+/// # #[cfg(feature = "yaml")]
+/// # {
+/// use ctl_input::format::{Fault, Refusal};
+/// use ctl_input::{EnglishMessages, Input, Limits, Messages, set_messages};
+/// use serde::de::IgnoredAny;
+///
+/// struct Shout;
+///
+/// impl Messages for Shout {
+///     fn message(&self, fault: &Fault) -> String {
+///         EnglishMessages.message(fault).to_uppercase()
+///     }
+/// }
+///
+/// static SHOUT: Shout = Shout;
+///
+/// let refusal = Refusal::new(Fault::MissingField { field: "port" }, Some(3..7), None);
+/// assert_eq!(refusal.to_string(), "missing field `port`");
+/// set_messages(&SHOUT);
+/// assert_eq!(refusal.to_string(), "MISSING FIELD `PORT`");
+/// assert_eq!(refusal.fault(), &Fault::MissingField { field: "port" });
+/// assert_eq!(refusal.span(), Some(3..7));
+///
+/// let limits = Limits {
+///     max_reader_input_bytes: Some(2),
+///     ..Limits::NONE
+/// };
+/// let error = Input::new("a.yaml", "a: 1\n")
+///     .limits(limits)
+///     .parse::<IgnoredAny>()
+///     .unwrap_err();
+/// assert_eq!(
+///     error.to_string(),
+///     "a.yaml: IS 5 BYTES, WHICH EXCEEDS MAX_READER_INPUT_BYTES (2); \
+///      RAISE LIMITS.MAX_READER_INPUT_BYTES IN .CTL/INPUT.YAML"
+/// );
+/// # }
+/// ```
 pub fn set_messages(messages: &'static dyn Messages) {
     *PROCESS.write().unwrap_or_else(PoisonError::into_inner) = Some(messages);
 }

@@ -80,7 +80,8 @@ fn nested_aliases_past_the_replay_limit_are_one_problem_naming_the_field() {
     assert!(
         error.problems[0].message.ends_with(
             "exceeds max_total_replayed_events (1000); \
-             raise limits.max_total_replayed_events in .ctl/input.yaml"
+             raise limits.max_total_replayed_events in .ctl/input.yaml \
+             (defined at line 1, column 10)"
         ),
         "{error}"
     );
@@ -88,7 +89,7 @@ fn nested_aliases_past_the_replay_limit_are_one_problem_naming_the_field() {
 
 /// A node budget the definitions fit and the replays of `*x` do not.
 #[test]
-fn a_node_budget_breached_inside_a_replay_keeps_serde_saphyrs_wording() {
+fn a_node_budget_breached_inside_a_replay_names_the_limit_and_the_definition() {
     let limits = Limits {
         max_nodes: Some(9),
         max_depth: Some(Limits::DEFAULT_MAX_DEPTH),
@@ -104,7 +105,8 @@ fn a_node_budget_breached_inside_a_replay_keeps_serde_saphyrs_wording() {
         (
             Some(2),
             Some(5),
-            "budget breached: Nodes { nodes: 10 } (defined at line 1, column 11)"
+            "exceeds max_nodes (9); raise limits.max_nodes in .ctl/input.yaml \
+             (defined at line 1, column 11)"
         )
     );
 }

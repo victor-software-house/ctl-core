@@ -106,7 +106,8 @@ Reading it as an integer only in typeless reads would conflict with the typed re
 
 `Formats` holds the formats in order, with `builtin()`, `add`, `replace`, `remove`, `get(name)` and `of(path)`, which matches the extension without regard to case.
 
-An input finds its registry through tiers, as `Limits` does: the input's own (`Input::formats`), then the process default (`set_default_formats`), then `Formats::builtin()`.
+`Input::open(path)` takes its format through the process default (`set_default_formats`, else `Formats::builtin()`) with `Formats::of`.
+The per-call tier is `Formats::open(&self, path)`, which reads the file with the registry it is called on.
 `App::input_formats` sets the process default before the parse, so `Input::open` in a handler sees the CLI's formats.
 `Formats::empty()` with no format added disables reading by extension; `Input::new_with_format` still reads with the format it is given.
 

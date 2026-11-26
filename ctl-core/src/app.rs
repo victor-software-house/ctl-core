@@ -252,6 +252,17 @@ impl<C> App<C> {
         self
     }
 
+    /// Set the process-wide input formats as soon as it is called, not when
+    /// the `App` runs, so `Input::open` in a handler reads the extensions
+    /// `formats` names and no others. A CLI adds its own format with
+    /// `Formats::builtin().add(&FORMAT)`.
+    #[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+    #[must_use]
+    pub fn input_formats(self, formats: input::Formats) -> Self {
+        input::set_default_formats(formats);
+        self
+    }
+
     /// Take the theme, record style, table frame, row separation, column
     /// floor, table fit, and the variables they read from `styles`, for help,
     /// errors, and command output. Its colour and width settings are ignored.

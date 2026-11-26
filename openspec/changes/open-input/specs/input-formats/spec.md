@@ -31,13 +31,19 @@ A format a CLI writes SHALL be read, placed, listed and checked exactly as the b
 ### Requirement: The registry is found through tiers
 
 `input::Formats` SHALL hold formats in order, with `builtin()` holding `yaml` and `toml` as their features allow, and `add`, `replace`, `remove`, `get` and `of(path)`.
-An input SHALL take its registry from `Input::formats`, else the process default set by `set_default_formats`, else `Formats::builtin()`.
+`Input::open` SHALL take its format from the process default set by `set_default_formats`, else from `Formats::builtin()`.
+`Formats::open(path)` SHALL read a file through the registry it is called on, whatever the process default is.
 `App::input_formats` SHALL set the process default before the command runs.
 
 #### Scenario: A process default
 
 - **WHEN** a CLI calls `set_default_formats(Formats::builtin().remove("toml"))` and then `Input::open("app.toml")`
 - **THEN** it fails with one problem that names `.toml` as unsupported and lists `*.yaml` and `*.yml`
+
+#### Scenario: A registry of the call
+
+- **WHEN** a CLI calls `Formats::builtin().add(&KV).open("app.kv")` and the process default holds no `kv`
+- **THEN** it reads `app.kv` with the `kv` format
 
 #### Scenario: An empty registry
 

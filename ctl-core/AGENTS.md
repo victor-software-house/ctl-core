@@ -40,14 +40,14 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
   It validates once with `validate`, and places every problem on its file and line.
   - A public `FieldPath` names a field by its steps, and `Input::place` and `Input::problem_at` place it, for garde's problems and for a CLI's own.
   - `InputError::try_new(name, problems)`, `None` for an empty list, and `InputError::whole(name, message)` build a CLI's own refusal; the I/O failure stays private, so only ctl-input builds an unread file's error.
-  - `Input::top_level` lists the root's entries with each value's byte range, style and string. A YAML input types them through serde-saphyr and takes the spans from the yamled document that `place` keeps, and a TOML input reads the root of the `toml` tree. It reads under its own serde-saphyr options, so a repeated key, a merge key and a `.inf` or `.NaN` are entries where `parse` refuses them. A key that is a number, a boolean or a null is listed by its text as written.
+  - `Input::top_level` lists the root's entries with each value's byte range, style and string, from the tree `place` keeps. The format's own scalar rules say whether a value is a string. It reads the tree as a listing, so a repeated key, a merge key and a `.inf` or `.NaN` are entries where `parse` refuses them. A key that is a number, a boolean or a null is listed by its text as written.
     `FieldPath::from(&garde::Path)` reads garde's path parts and never its printed string, so a key that holds a `.` is one step.
   - garde is pinned exactly in the root `Cargo.toml`, because that conversion calls the doc-hidden `Path::__iter`.
     A bump is a reviewed change, and `a_garde_path_converts_from_its_parts` fails first if the iteration order moves.
-  - A YAML `Input` builds its yamled document on the first placing and keeps it.
+  - An `Input` of any format reads its text into the located tree once and keeps it, with the limits and the reading it was read under. `parse`, `place`, `place_key`, `check` and `top_level` share that tree. A strict tree serves every one of them. A listing tree, which only `place`, `place_key` and `top_level` read, is read only when no strict tree is kept and never serves `parse`. A change of limits reads the text again.
   - `Input::place_key` places the key of the last step where `place` places its value, for a fault about the key itself. An item and the root give their value.
   - `Input::flattened` declares a schema field that `#[serde(flatten)]` puts under its parent. `check` drops its step from each garde path before placing and printing, because serde gives no sign of the flattening at run time.
-  - `input::Tagged` is serde-saphyr's `Tagged<T>`, so a field keeps its YAML tag beside its value. It needs vsh-serde-saphyr 0.0.4 or later, whose `Tagged<T>` gives an untagged enum the plain value of a tagged node, where 0.0.3 gave the map `{tag: value}`.
+  - `input::Tagged` is ctl-input's own `Tagged<T>`, so a field keeps its YAML tag beside its value, such as `!override`. A tag inside a value serde buffers, such as an untagged enum or a flattened field, is not passed on.
 - Served files (`served` feature): render a template that declares its own target through `{%- set -%}` exports, check the declarations once, and write the file with its mode.
 - Shell completion (`completion` feature): the `completion <SHELL>` verb as a flattenable `CompletionCommand`, and the registration script for bash, zsh, and fish.
   - `App::completion` answers `COMPLETE=<shell>` before parsing; the feature enables `app` for it.
@@ -285,14 +285,15 @@ Each format is its own feature, and validation is a third:
 
 | Feature | Adds | Links |
 |:--|:--|:--|
-| `input-yaml` | YAML, with strict booleans and duplicate and merge keys refused | serde-saphyr, yamled |
-| `input-toml` | TOML, parsed into the span-carrying `DeTable` that also places each problem | toml |
+| `input-yaml` | YAML, with strict booleans and duplicate and merge keys refused | serde-saphyr |
+| `input-toml` | TOML, parsed into the span-carrying `DeTable` that the located tree is built from | toml |
 | `validate` | The shared garde rules, and with a format, `Input::check` and `Input::load` | garde |
-| `input` | `input-yaml` with `validate`, the set every current consumer enables | serde-saphyr, yamled, garde |
+| `input` | `input-yaml` with `validate`, the set every current consumer enables | serde-saphyr, garde |
 
-`check:tree` fails when `input-toml` alone links serde-saphyr, yamled, or garde.
+`check:tree` fails when `input-toml` alone links serde-saphyr or garde.
 
-A message carries no position of its own, except that a YAML alias error names where its value is defined, counted from the file.
+A message carries no position of its own, except that a problem in a node an alias replayed names where its value is defined, counted from the file.
+`Messages` words every problem once, whatever the format, and `set_messages` replaces the wording for the process.
 `Input::frontmatter` splits YAML frontmatter from a Markdown body.
 
 `Limits` is ctl-core's own type, overridable field by field, in this order:
@@ -317,12 +318,13 @@ Without `input-yaml`, a limit message ends "the tool sets this limit".
 A CLI parses config only through the input features; it keeps no `schema.rs` and no YAML crate of its own.
 `CTC-008` tracks the consumer moves and the template renderer.
 
-The format is chosen, never guessed.
-`Input::open(path)` reads it from the extension (`.toml`, `.yaml`, `.yml`, any case).
-It refuses every other extension before reading, and names the feature a known extension needs.
+The format is chosen, never guessed, and it is a value: `input::Format` is a trait, `input::YAML` and `input::TOML` are the built-in formats, and a CLI adds its own to a `Formats` registry.
+`Input::open(path)` takes the format from the file's extension (`.toml`, `.yaml`, `.yml`, any case) through the process default, which `set_default_formats` or `App::input_formats` installs, else `Formats::builtin()`.
+`Formats::open(path)` does the same through a registry of the caller's.
+Both refuse every extension no registered format reads before reading, and name the feature a built-in extension needs when its feature is off.
 
 `Input::new` and `Input::read` need `input-yaml` and stay YAML whatever the name is.
-`Input::new_with_format` or `Input::format(Format)` names the format for text in memory.
+`Input::new_with_format(name, text, format)` or `Input::format(format)` names the format for text in memory, with `&input::TOML` or a format of the CLI's own.
 The repository limits file stays `.ctl/input.yaml` for a TOML-config repository.
 `openspec/specs/declared-input` holds the contract, and `CTC-021` and `CTC-025` the rows.
 
