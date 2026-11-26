@@ -375,23 +375,6 @@ pub(super) fn join(
         _ => None,
     };
     let (input, format) = source::read(file, format)?;
-    let root = input.tree()?;
-    let NodeKind::Mapping(entries) = root.kind() else {
-        return Err(InputError::try_new(
-            input.name(),
-            [input.problem_at(
-                &FieldPath::root(),
-                "the document must be a mapping of argument names to values",
-            )],
-        )
-        .unwrap_or_else(|| InputError::whole(input.name(), "the document is not a mapping")));
-    };
-    let Some(selected) = position::selected(command, raw) else {
-        return Err(InputError::whole(
-            input.name(),
-            "cannot tell which command the document fills",
-        ));
-    };
     let placed = placed(&levels);
     let reading = Reading {
         input: &input,
@@ -404,22 +387,40 @@ pub(super) fn join(
         deepest: levels.len() - 1,
         positionals: ranked(level),
     };
-    let mut problems = Vec::new();
-    let planned = reading.plan(entries, &mut problems);
-    let kept = reading.vet(planned, &mut problems);
-    if let Some(failed) = InputError::try_new(input.name(), problems) {
-        return Err(failed);
-    }
-    let supplied = kept
-        .iter()
-        .map(|entry| (entry.arg.get_id().clone(), entry.name.to_owned()))
-        .collect();
-    let argv = reading.argv(kept, selected.at);
+    let (argv, supplied, path) = input.tree(|root| {
+        let NodeKind::Mapping(entries) = root.kind() else {
+            return Err(InputError::try_new(
+                input.name(),
+                [input.problem_at(
+                    &FieldPath::root(),
+                    "the document must be a mapping of argument names to values",
+                )],
+            )
+            .unwrap_or_else(|| InputError::whole(input.name(), "the document is not a mapping")));
+        };
+        let Some(selected) = position::selected(command, raw) else {
+            return Err(InputError::whole(
+                input.name(),
+                "cannot tell which command the document fills",
+            ));
+        };
+        let mut problems = Vec::new();
+        let planned = reading.plan(entries, &mut problems);
+        let kept = reading.vet(planned, &mut problems);
+        if let Some(failed) = InputError::try_new(input.name(), problems) {
+            return Err(failed);
+        }
+        let supplied = kept
+            .iter()
+            .map(|entry| (entry.arg.get_id().clone(), entry.name.to_owned()))
+            .collect();
+        Ok((reading.argv(kept, selected.at), supplied, selected.path))
+    })??;
     Ok(Some(Joined {
         argv,
         input,
         built: probe,
-        path: selected.path,
+        path,
         supplied,
     }))
 }
