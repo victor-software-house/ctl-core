@@ -7,15 +7,11 @@ expression: stderr
   "schema_version": 1,
   "error": {
     "bin": "toy",
-    "message": "unexpected argument '--bogus' found",
+    "message": "unexpected argument found",
     "kind": "usage",
     "usage": "toy show [OPTIONS] <ID>",
     "parse": {
-      "reason": "unknown_argument",
-      "argument": "--bogus",
-      "tips": [
-        "to pass '--bogus' as a value, use '-- --bogus'"
-      ]
+      "reason": "unknown_argument"
     }
   }
 }

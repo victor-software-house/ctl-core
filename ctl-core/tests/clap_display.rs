@@ -68,6 +68,17 @@ fn run(args: &[&str]) -> ExitCode {
 
 const CHILD: &str = "CTL_CORE_CLAP_DISPLAY_CHILD";
 
+/// The snapshots of a build with ctl-core's `error-context` are apart: Clap
+/// then names the arguments and values in the text of a parse error, as it did
+/// in any build that turned its own `error-context` on.
+fn snapshots() -> insta::Settings {
+    let mut settings = insta::Settings::clone_current();
+    if cfg!(feature = "error-context") {
+        settings.set_snapshot_suffix("error_context");
+    }
+    settings
+}
+
 #[test]
 fn a_missing_argument_prints_the_subcommand_help_to_stderr() {
     let Some(output) = child::in_child(
@@ -104,7 +115,7 @@ fn a_missing_argument_is_an_error_line_without_claps_prefix() {
     };
     assert_eq!(child::case_stdout(&output), "");
     let stderr = String::from_utf8_lossy(&output.stderr);
-    insta::assert_snapshot!("parse_error_missing_argument", stderr);
+    snapshots().bind(|| insta::assert_snapshot!("parse_error_missing_argument", stderr));
 }
 
 #[test]
@@ -122,5 +133,5 @@ fn json_before_a_bad_argument_makes_the_error_json() {
     };
     assert_eq!(child::case_stdout(&output), "");
     let stderr = String::from_utf8_lossy(&output.stderr);
-    insta::assert_snapshot!("parse_error_json_flag", stderr);
+    snapshots().bind(|| insta::assert_snapshot!("parse_error_json_flag", stderr));
 }

@@ -45,9 +45,19 @@ enum Cmd {
     Fail,
     /// Fail with an error that has a cause.
     Read,
+    /// Copy one row to another.
+    Copy {
+        /// The row to copy.
+        from: String,
+        /// The row to write.
+        to: String,
+    },
     /// Refuse an input with two problems.
     #[cfg(feature = "input")]
     Load,
+    /// Refuse an input with one problem.
+    #[cfg(feature = "input")]
+    LoadOne,
     /// Refuse with a kind and an exit code.
     Refuse,
     /// Report a result whose outcome is an error.
@@ -91,11 +101,19 @@ fn run(args: &[&str]) -> ExitCode {
         .run_from(
             iter::once("toy").chain(args.iter().copied()),
             |cli| match cli.command {
-                Cmd::Show { id } => Ok(Report { id, failed: false }),
+                Cmd::Show { id } | Cmd::Copy { from: id, .. } => Ok(Report { id, failed: false }),
                 Cmd::Fail => Err(anyhow!("the row is locked")),
                 Cmd::Read => Err(anyhow!("no such file")).context("reading config"),
                 #[cfg(feature = "input")]
                 Cmd::Load => Input::new("app.yaml", "name: \"\"\nlabels: []\n")
+                    .load::<Config>()
+                    .map(|_| Report {
+                        id: "loaded".to_owned(),
+                        failed: false,
+                    })
+                    .map_err(anyhow::Error::from),
+                #[cfg(feature = "input")]
+                Cmd::LoadOne => Input::new("app.yaml", "name: x\nlabels: []\n")
                     .load::<Config>()
                     .map(|_| Report {
                         id: "loaded".to_owned(),
@@ -197,6 +215,23 @@ fn the_parts_clap_s_error_context_gives() {
     );
 }
 
+#[cfg(feature = "error-context")]
+#[test]
+fn the_arguments_clap_found_missing() {
+    let Some(output) = child::in_child(CHILD, "the_arguments_clap_found_missing", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["copy", "a", "--format", "json"])),
+            ExitCode::from(2)
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    let parse = &envelope["error"]["parse"];
+    assert_eq!(parse["reason"], "missing_required_argument");
+    assert_eq!(parse["missing"], json!(["<TO>"]));
+    assert_eq!(envelope["error"]["usage"], "toy copy [OPTIONS] <FROM> <TO>");
+}
+
 #[test]
 fn a_parse_error_under_forced_colour_carries_no_escape_byte() {
     let Some(output) = child::in_child(
@@ -250,6 +285,52 @@ fn a_refused_input() {
                 ],
             },
         })
+    );
+}
+
+#[cfg(feature = "input")]
+#[test]
+fn a_refused_input_with_one_problem_is_still_a_summary() {
+    let Some(output) = child::in_child(
+        CHILD,
+        "a_refused_input_with_one_problem_is_still_a_summary",
+        &[],
+    ) else {
+        assert_eq!(
+            child::case(|| run(&["--format", "json", "load-one"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    let envelope = stderr_json(&output);
+    assert_eq!(envelope["error"]["message"], "app.yaml has 1 problem");
+    assert_eq!(
+        envelope["error"]["problems"],
+        json!([{
+            "input": "app.yaml",
+            "line": 2,
+            "column": 9,
+            "field": "labels",
+            "message": "must declare at least one label",
+        }])
+    );
+}
+
+#[cfg(feature = "input")]
+#[test]
+fn a_refused_input_in_pretty() {
+    let Some(output) = child::in_child(CHILD, "a_refused_input_in_pretty", &[]) else {
+        assert_eq!(
+            child::case(|| run(&["--color", "never", "--format", "pretty", "load"])),
+            ExitCode::FAILURE
+        );
+        return;
+    };
+    assert_eq!(child::case_stdout(&output), "");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr),
+        "toy: app.yaml:2:9: labels: must declare at least one label\n\
+         app.yaml:1:7: name: cannot be empty — it names the release\n"
     );
 }
 
