@@ -34,6 +34,6 @@ Nothing is **BREAKING**: the method is new, and an input that declares nothing c
 - No new dependency.
 - verctl declares `assets.targets` once it pins the release that carries this.
 
-[input]: ../../../ctl-core/src/input.rs
+[input]: ../../../ctl-input/src/lib.rs
 [ledger]: ../../../tasks.yaml
 [verctl-313]: https://github.com/victor-software-house/verctl/pull/313

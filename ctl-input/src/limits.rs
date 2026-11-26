@@ -1,26 +1,26 @@
 //! How much a text may hold before [`Input::parse`](super::Input::parse)
 //! refuses it, and who decides. The order is on [`Limits`]. Three fields hold
 //! a text of every format: `max_reader_input_bytes`, `max_depth`, and
-//! `max_nodes`. The others name YAML syntax and exist only with `input-yaml`.
+//! `max_nodes`. The others name YAML syntax and exist only with `yaml`.
 
 use std::fmt;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use std::path::Path;
 use std::sync::{PoisonError, RwLock};
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use std::{fs, io};
 
 use serde::Deserialize;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use serde_saphyr::Budget;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use serde_saphyr::budget::BudgetBreach;
 
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use super::{Input, InputError};
 
 /// Where a repository overrides limits, relative to its root.
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 pub const REPO_FILE: &str = ".ctl/input.yaml";
 
 macro_rules! limits {
@@ -34,7 +34,7 @@ macro_rules! limits {
         /// Each field is decided on its own, highest first:
         ///
         /// 1. the call: [`Input::limits`](super::Input::limits);
-        /// 2. with `input-yaml`, the repository: `limits:` in
+        /// 2. with `yaml`, the repository: `limits:` in
         ///    `.ctl/input.yaml`, installed by `use_repo_limits`;
         /// 3. the process: [`set_default_limits`], or `App::input_limits`;
         /// 4. the default: ctl-core's for the three fields every format
@@ -45,7 +45,7 @@ macro_rules! limits {
         ///
         /// The field set follows the enabled format features.
         /// `max_reader_input_bytes`, `max_depth`, and `max_nodes` exist in
-        /// every build, and the YAML-only fields exist with `input-yaml`.
+        /// every build, and the YAML-only fields exist with `yaml`.
         /// Cargo enables a feature for every crate in a build, so another
         /// crate can add fields to a build of yours. Build a value with
         /// `..Limits::NONE`, as in `Limits { max_depth: Some(8),
@@ -58,14 +58,14 @@ macro_rules! limits {
         #[serde(deny_unknown_fields, default)]
         pub struct Limits {
             $( $(#[$sdoc])* pub $sfield: Option<usize>, )*
-            $( $(#[$ydoc])* #[cfg(feature = "input-yaml")] pub $yfield: Option<$yty>, )*
+            $( $(#[$ydoc])* #[cfg(feature = "yaml")] pub $yfield: Option<$yty>, )*
         }
 
         impl Limits {
             /// No overrides: every field falls through.
             pub const NONE: Self = Self {
                 $( $sfield: None, )*
-                $( #[cfg(feature = "input-yaml")] $yfield: None, )*
+                $( #[cfg(feature = "yaml")] $yfield: None, )*
             };
 
             /// `self`, with each unset field taken from `lower`.
@@ -73,14 +73,14 @@ macro_rules! limits {
             pub fn or(self, lower: &Self) -> Self {
                 Self {
                     $( $sfield: self.$sfield.or(lower.$sfield), )*
-                    $( #[cfg(feature = "input-yaml")] $yfield: self.$yfield.or(lower.$yfield), )*
+                    $( #[cfg(feature = "yaml")] $yfield: self.$yfield.or(lower.$yfield), )*
                 }
             }
 
             /// serde-saphyr's settings for these limits. An unset shared
             /// field takes ctl-core's default, and an unset YAML-only field
             /// takes serde-saphyr's.
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             pub(super) fn budget(&self) -> Budget {
                 let bounds = self.bounds();
                 let mut budget = Budget::default();
@@ -94,7 +94,7 @@ macro_rules! limits {
             }
 
             /// Each set field that is looser than its default.
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             fn loosened(&self) -> Vec<Loosened> {
                 let mut loosened = Vec::new();
                 $( if let Some(value) = self.$sfield
@@ -201,11 +201,11 @@ pub(super) struct Bounds {
 }
 
 static PROCESS: RwLock<Limits> = RwLock::new(Limits::NONE);
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 static REPOSITORY: RwLock<Limits> = RwLock::new(Limits::NONE);
 
 /// Set the process-wide default, which a call's
-/// [`Input::limits`](super::Input::limits) beats, and with `input-yaml` a
+/// [`Input::limits`](super::Input::limits) beats, and with `yaml` a
 /// repository's `.ctl/input.yaml` too.
 pub fn set_default_limits(limits: Limits) {
     *PROCESS.write().unwrap_or_else(PoisonError::into_inner) = limits;
@@ -224,7 +224,7 @@ pub fn set_default_limits(limits: Limits) {
 ///
 /// An [`InputError`] when the file cannot be read, is not YAML, or names a
 /// field [`Limits`] does not have.
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
     let path = root.join(REPO_FILE);
     let limits = match fs::read_to_string(&path) {
@@ -248,7 +248,7 @@ pub fn use_repo_limits(root: &Path) -> Result<Vec<Loosened>, InputError> {
 }
 
 /// A limit a repository's [`REPO_FILE`] raises above its default.
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Loosened {
     /// The [`Limits`] field.
@@ -260,7 +260,7 @@ pub struct Loosened {
     pub default: String,
 }
 
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 impl fmt::Display for Loosened {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -272,7 +272,7 @@ impl fmt::Display for Loosened {
 }
 
 /// The shape of [`REPO_FILE`].
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RepoFile {
@@ -283,11 +283,11 @@ struct RepoFile {
 /// What a parse with `call` uses, field by field.
 pub(super) fn effective(call: &Limits) -> Limits {
     let process = PROCESS.read().unwrap_or_else(PoisonError::into_inner);
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     let call = call
         .clone()
         .or(&REPOSITORY.read().unwrap_or_else(PoisonError::into_inner));
-    #[cfg(not(feature = "input-yaml"))]
+    #[cfg(not(feature = "yaml"))]
     let call = call.clone();
     call.or(&process)
 }
@@ -296,24 +296,24 @@ pub(super) fn effective(call: &Limits) -> Limits {
 #[derive(Clone, Copy)]
 pub(super) enum Raise {
     /// In the repository's [`REPO_FILE`].
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     InRepository,
     /// In the tool's process default, for [`REPO_FILE`] itself, which is
     /// read before any repository override applies.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     InProcess,
-    /// Nowhere the user can reach: a build without `input-yaml` reads no
+    /// Nowhere the user can reach: a build without `yaml` reads no
     /// repository file, so only the tool sets limits.
-    #[cfg(not(feature = "input-yaml"))]
+    #[cfg(not(feature = "yaml"))]
     InTool,
 }
 
 impl Raise {
     /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     pub(super) const FOR_TEXT: Self = Self::InRepository;
     /// Where a limit hit by a CLI's own text is raised.
-    #[cfg(not(feature = "input-yaml"))]
+    #[cfg(not(feature = "yaml"))]
     pub(super) const FOR_TEXT: Self = Self::InTool;
 }
 
@@ -341,7 +341,7 @@ impl Exceeded {
     /// The field serde-saphyr reports as breached, with its value in `budget`.
     /// `None` for a breach this version does not know, which keeps
     /// serde-saphyr's own wording.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     #[expect(
         clippy::wildcard_enum_match_arm,
         reason = "BudgetBreach is non_exhaustive: a variant added later keeps serde-saphyr's wording"
@@ -407,23 +407,23 @@ impl fmt::Display for Exceeded {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "exceeds {} ({}); ", self.field, self.limit)?;
         match self.raise {
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Raise::InRepository => {
                 write!(formatter, "raise limits.{} in {REPO_FILE}", self.field)
             }
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Raise::InProcess => write!(
                 formatter,
                 "raise {} in the tool's process default, which reads {REPO_FILE}",
                 self.field
             ),
-            #[cfg(not(feature = "input-yaml"))]
+            #[cfg(not(feature = "yaml"))]
             Raise::InTool => write!(formatter, "the tool sets this limit"),
         }
     }
 }
 
-#[cfg(all(test, feature = "input-yaml"))]
+#[cfg(all(test, feature = "yaml"))]
 mod tests {
     use serde_saphyr::Budget;
 

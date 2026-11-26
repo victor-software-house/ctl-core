@@ -9,9 +9,9 @@
 
 use std::ops::Range;
 
-#[cfg(feature = "input-toml")]
+#[cfg(feature = "toml")]
 use super::toml_entries;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 use super::yaml_entries;
 use super::{Format, Input, InputError};
 
@@ -81,9 +81,9 @@ impl Input {
     /// document that [`Input::place`] keeps.
     ///
     /// ```
-    /// # #[cfg(feature = "input-yaml")]
+    /// # #[cfg(feature = "yaml")]
     /// # {
-    /// use ctl_core::input::Input;
+    /// use ctl_input::Input;
     ///
     /// let input = Input::new("page.yaml", "title: A page\nyear: 2026\n");
     /// let entries = input.top_level()?;
@@ -93,7 +93,7 @@ impl Input {
     /// assert_eq!(title.string.as_deref(), Some("A page"));
     /// assert_eq!(entries[1].string, None);
     /// # }
-    /// # Ok::<(), ctl_core::input::InputError>(())
+    /// # Ok::<(), ctl_input::InputError>(())
     /// ```
     ///
     /// # Errors
@@ -103,9 +103,9 @@ impl Input {
     /// a limit.
     pub fn top_level(&self) -> Result<Vec<Entry>, InputError> {
         match self.format {
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Format::Yaml => yaml_entries::entries(self),
-            #[cfg(feature = "input-toml")]
+            #[cfg(feature = "toml")]
             Format::Toml => toml_entries::entries(self),
         }
     }

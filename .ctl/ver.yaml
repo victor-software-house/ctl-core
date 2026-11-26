@@ -11,10 +11,14 @@ packages:
     prerelease: rc
 
 # The workspace crates release together at one version, and ctl-core requires
-# ctl-layout, ctl-term, and ctl-text at exactly that version. `prepare`
-# rewrites each requirement onto the Version PR commit, so the tagged tree
-# packages with the version it publishes.
+# ctl-input, ctl-layout, ctl-term, and ctl-text at exactly that version.
+# `prepare` rewrites each requirement onto the Version PR commit, so the tagged
+# tree packages with the version it publishes.
 patterns:
+  ctl-input-requirement:
+    match: 'ctl-input = { path = "ctl-input", version = "={version}" }'
+    occurrences: once
+    whole_line: true
   ctl-layout-requirement:
     match: 'ctl-layout = { path = "ctl-layout", version = "={version}" }'
     occurrences: once
@@ -31,7 +35,7 @@ patterns:
 pins:
   - file: Cargo.toml
     package: ctl-core
-    patterns: [ctl-layout-requirement, ctl-term-requirement, ctl-text-requirement]
+    patterns: [ctl-input-requirement, ctl-layout-requirement, ctl-term-requirement, ctl-text-requirement]
 
 # Maintainers and Apps a changelog never credits (verctl 0.4.0).
 changelog:

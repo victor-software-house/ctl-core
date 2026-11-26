@@ -79,9 +79,10 @@
 //! - [`Envelope`] and [`ErrorBody`] are the JSON error shape. A handler returns
 //!   a [`CommandError`] to give a failure its own exit code and a `kind` value
 //!   a script can match on.
-//! - [`input::Input`] loads a CLI's declared config from YAML or TOML, and
-//!   reports every problem on its file and line. [`input::FieldPath`] and
-//!   [`input::Input::place`] place a problem of the CLI's own the same way.
+//! - [`input::Input`], from the `ctl-input` crate, loads a CLI's declared
+//!   config from YAML or TOML, and reports every problem on its file and line.
+//!   [`input::FieldPath`] and [`input::Input::place`] place a problem of the
+//!   CLI's own the same way.
 //!
 //! ## How output flows
 //!
@@ -134,9 +135,10 @@
 //! on `ctl-term`'s `detect` feature, which reads the stream's width and
 //! decides colour for it.
 //!
-//! Declared input takes one feature per format. `input-yaml` reads YAML and
-//! `input-toml` reads TOML; neither links the other's parser. `validate`
-//! adds garde validation, and `input` is `input-yaml` with `validate`.
+//! Declared input lives in the `ctl-input` crate, re-exported as `input`, and
+//! takes one feature per format. `input-yaml` reads YAML and `input-toml`
+//! reads TOML; neither links the other's parser. `validate` adds garde
+//! validation, and `input` is `input-yaml` with `validate`.
 #![cfg_attr(
     not(feature = "app"),
     doc = "",
@@ -217,8 +219,6 @@ pub mod fixture;
 pub mod flags;
 #[cfg(feature = "help")]
 pub mod help;
-#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
-pub mod input;
 #[cfg(feature = "cli")]
 pub mod parser;
 pub mod prelude;
@@ -238,6 +238,8 @@ mod theme;
 pub mod usage;
 #[cfg(feature = "validate")]
 pub mod validate;
+#[cfg(any(feature = "input-yaml", feature = "input-toml"))]
+pub use ctl_input as input;
 #[cfg(feature = "render")]
 pub use ctl_layout as layout;
 #[cfg(any(feature = "view", feature = "help"))]

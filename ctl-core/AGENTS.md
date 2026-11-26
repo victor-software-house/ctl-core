@@ -36,9 +36,10 @@ This guide covers this crate only; the repository's root [`AGENTS.md`](../AGENTS
 - Clap-derived `Surface` (`surface-model` feature): binary and mounted names, recursive commands, aliases, visibility, arguments, flags, Usage KDL, and optional audience notes.
   `surface-serde` adds serialization without a template engine; `surface-templates` adds shared MiniJinja fragments; `surface` remains the compatibility aggregate enabling all three.
 - Declared input (`validate`, `input-yaml`, `input-toml`, `input` features): shared garde rules, and one loader for YAML or TOML.
+  The loader lives in the `ctl-input` crate, which ctl-core re-exports as `input`.
   It validates once with `validate`, and places every problem on its file and line.
   - A public `FieldPath` names a field by its steps, and `Input::place` and `Input::problem_at` place it, for garde's problems and for a CLI's own.
-  - `InputError::try_new(name, problems)`, `None` for an empty list, and `InputError::whole(name, message)` build a CLI's own refusal; the I/O failure stays private, so only ctl-core builds an unread file's error.
+  - `InputError::try_new(name, problems)`, `None` for an empty list, and `InputError::whole(name, message)` build a CLI's own refusal; the I/O failure stays private, so only ctl-input builds an unread file's error.
   - `Input::top_level` lists the root's entries with each value's byte range, style and string. A YAML input types them through serde-saphyr and takes the spans from the yamled document that `place` keeps, and a TOML input reads the root of the `toml` tree. It reads under its own serde-saphyr options, so a repeated key, a merge key and a `.inf` or `.NaN` are entries where `parse` refuses them. A key that is a number, a boolean or a null is listed by its text as written.
     `FieldPath::from(&garde::Path)` reads garde's path parts and never its printed string, so a key that holds a `.` is one step.
   - garde is pinned exactly in the root `Cargo.toml`, because that conversion calls the doc-hidden `Path::__iter`.
@@ -276,6 +277,8 @@ The migration is tracked as `CTC-010` here and `QCTL-008` in qctl.
 
 ## Declared input
 
+The code lives in [`ctl-input`](../ctl-input/AGENTS.md), and `ctl_core::input` is that crate re-exported, so every path under it is unchanged.
+ctl-core's `input-yaml`, `input-toml`, and `validate` turn on `ctl-input`'s `yaml`, `toml`, and `validate`.
 Each format is its own feature, and validation is a third:
 
 | Feature | Adds | Links |

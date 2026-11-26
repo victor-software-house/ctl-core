@@ -93,21 +93,23 @@ served = [
 ]
 
 ## Garde rules every declared schema shares (`validate`).
-validate = ["dep:garde"]
+validate = ["dep:garde", "ctl-input?/validate"]
 
 ## Declared input from YAML, validated once with garde: `input-yaml` and
 ## `validate`.
 input = ["input-yaml", "validate"]
 
-## Declared input from YAML: parse with serde-saphyr and place every problem
-## on its file and line through yamled. Adds the YAML-only `Limits` fields and
-## the repository's `.ctl/input.yaml`. Needs no garde without `validate`.
-input-yaml = ["dep:serde", "dep:serde-saphyr", "dep:yamled"]
+## Declared input from YAML, through the `ctl-input` crate: parse with
+## serde-saphyr and place every problem on its file and line through yamled.
+## Adds the YAML-only `Limits` fields and the repository's `.ctl/input.yaml`.
+## Needs no garde without `validate`.
+input-yaml = ["dep:ctl-input", "ctl-input/yaml"]
 
-## Declared input from TOML: `Input::open` reads `.toml` files, and the `toml`
-## crate's span-carrying tree places each problem on its line and column.
-## Needs no YAML crate, and no garde without `validate`.
-input-toml = ["dep:serde", "dep:toml"]
+## Declared input from TOML, through the `ctl-input` crate: `Input::open`
+## reads `.toml` files, and the `toml` crate's span-carrying tree places each
+## problem on its line and column. Needs no YAML crate, and no garde without
+## `validate`.
+input-toml = ["dep:ctl-input", "ctl-input/toml"]
 
 ## Temporary file trees for integration tests: `Suite`, its scenarios,
 ## and one call per file.
@@ -141,10 +143,8 @@ minijinja = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-serde-saphyr = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
-toml = { workspace = true, optional = true }
-yamled = { workspace = true, optional = true }
+ctl-input = { workspace = true, optional = true }
 ctl-layout = { workspace = true, optional = true }
 ctl-term = { workspace = true, optional = true }
 ctl-text = { workspace = true, optional = true }
@@ -155,6 +155,7 @@ garde = { workspace = true, features = ["derive"] }
 indoc.workspace = true
 kdl.workspace = true
 pty-process.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 
 [[example]]

@@ -1,12 +1,12 @@
 //! Declared input: read a file, parse it, validate it once, and report every
 //! problem on its file and line.
 //!
-//! Each format is its own feature. `input-yaml` parses YAML with
-//! `serde-saphyr`, and `input-toml` parses TOML with the `toml` crate; neither
-//! needs the other. `validate` adds `Input::check` and `Input::load`, which
-//! validate with garde, and `input` is `input-yaml` with `validate`. This is
-//! the one boundary where a CLI's config enters. Downstream code keeps the
-//! validated type and never checks it again.
+//! Each format is its own feature. `yaml` parses YAML with `serde-saphyr`,
+//! and `toml` parses TOML with the `toml` crate; neither needs the other.
+//! `validate` adds `Input::check` and `Input::load`, which validate with
+//! garde. This is the one boundary where a CLI's config enters. Downstream
+//! code keeps the validated type and never checks it again. With no format
+//! feature the crate is empty.
 //!
 //! A check that runs after the read, such as one that needs a file the config
 //! names, places its problem with a [`FieldPath`] and [`Input::problem_at`],
@@ -14,12 +14,12 @@
 //!
 //! A text's [`Format`] is chosen, never guessed. [`Input::open`] reads it from
 //! the file's extension, and [`Input::new_with_format`] takes it for text in
-//! memory. With `input-yaml`, `Input::new` and `Input::read` are YAML.
+//! memory. With `yaml`, `Input::new` and `Input::read` are YAML.
 //!
 //! ```
-//! # #[cfg(feature = "input")]
+//! # #[cfg(all(feature = "yaml", feature = "validate"))]
 //! # {
-//! use ctl_core::input::Input;
+//! use ctl_input::Input;
 //! use serde::Deserialize;
 //!
 //! #[derive(Debug, Deserialize)]
@@ -35,8 +35,22 @@
 //!     .unwrap_err();
 //! assert!(error.to_string().starts_with("toy.yaml"));
 //! # }
-//! # Ok::<(), ctl_core::input::InputError>(())
+//! # Ok::<(), ctl_input::InputError>(())
 //! ```
+//!
+//! ## Cargo features
+#![cfg_attr(
+    not(any(feature = "yaml", feature = "toml")),
+    doc = "",
+    doc = "[`FieldPath`]: crate#cargo-features",
+    doc = "[`Input::problem_at`]: crate#cargo-features",
+    doc = "[`Format`]: crate#cargo-features",
+    doc = "[`Input::open`]: crate#cargo-features",
+    doc = "[`Input::new_with_format`]: crate#cargo-features"
+)]
+#![doc = document_features::document_features!()]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg(any(feature = "yaml", feature = "toml"))]
 
 use std::error::Error;
 use std::path::Path;
@@ -49,26 +63,26 @@ use serde::de::DeserializeOwned;
 mod entries;
 mod field_path;
 mod limits;
-#[cfg(feature = "input-toml")]
+#[cfg(feature = "toml")]
 mod toml_entries;
-#[cfg(feature = "input-toml")]
+#[cfg(feature = "toml")]
 mod toml_text;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 mod yaml_entries;
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 mod yaml_text;
 
 pub use entries::{Entry, Written};
 pub use field_path::{FieldPath, Place, Step};
 use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};
 /// A value and the YAML tag written on its node, such as `!override` in
 /// `code_span_size: !override 0`: `Tagged(0, Some("!override".into()))`.
 /// A node with no tag reads as `Tagged(value, None)`, and an untagged enum
 /// inside reads the plain value of a tagged node.
-#[cfg(feature = "input-yaml")]
+#[cfg(feature = "yaml")]
 pub use serde_saphyr::Tagged;
 
 /// What a placing answers with for a key of the path: where its value starts,
@@ -88,10 +102,10 @@ enum At {
 #[non_exhaustive]
 pub enum Format {
     /// YAML, read by serde-saphyr and placed by yamled.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     Yaml,
     /// TOML, read and placed by the `toml` crate.
-    #[cfg(feature = "input-toml")]
+    #[cfg(feature = "toml")]
     Toml,
 }
 
@@ -110,16 +124,16 @@ impl Format {
             .extension()
             .map(|extension| extension.to_string_lossy().to_ascii_lowercase());
         match extension.as_deref() {
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Some("yaml" | "yml") => Ok(Self::Yaml),
-            #[cfg(not(feature = "input-yaml"))]
+            #[cfg(not(feature = "yaml"))]
             Some(yaml @ ("yaml" | "yml")) => Err(InputError::whole(
                 name,
                 format!("`.{yaml}` needs ctl-core's input-yaml feature; {ACCEPTED}"),
             )),
-            #[cfg(feature = "input-toml")]
+            #[cfg(feature = "toml")]
             Some("toml") => Ok(Self::Toml),
-            #[cfg(not(feature = "input-toml"))]
+            #[cfg(not(feature = "toml"))]
             Some("toml") => Err(InputError::whole(
                 name,
                 format!("`.toml` needs ctl-core's input-toml feature; {ACCEPTED}"),
@@ -138,18 +152,18 @@ impl Format {
 
 /// What a refusal tells a person to name the file: the extensions this build
 /// reads.
-#[cfg(all(feature = "input-yaml", feature = "input-toml"))]
+#[cfg(all(feature = "yaml", feature = "toml"))]
 const ACCEPTED: &str = "name the file *.toml, *.yaml, or *.yml";
-#[cfg(all(feature = "input-yaml", not(feature = "input-toml")))]
+#[cfg(all(feature = "yaml", not(feature = "toml")))]
 const ACCEPTED: &str = "name the file *.yaml or *.yml";
-#[cfg(all(feature = "input-toml", not(feature = "input-yaml")))]
+#[cfg(all(feature = "toml", not(feature = "yaml")))]
 const ACCEPTED: &str = "name the file *.toml";
 
 /// A named text, ready to parse and validate.
 ///
 /// The name is usually the file's path, and appears in every problem. Build
 /// one with [`Input::new_with_format`] for text in memory, or [`Input::open`]
-/// for a file. With `input-yaml`, `Input::new` and `Input::read` build a YAML
+/// for a file. With `yaml`, `Input::new` and `Input::read` build a YAML
 /// one.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Input {
@@ -163,7 +177,7 @@ pub struct Input {
     #[cfg(feature = "validate")]
     flattened: Vec<FieldPath>,
     /// The YAML document that placing reads, built on first use.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     yaml_document: yaml_text::Located,
 }
 
@@ -204,7 +218,7 @@ pub struct Problem {
 impl Input {
     /// A YAML input from text already in memory, whatever the extension of
     /// `name`. Set another format with [`Input::format`].
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     #[must_use]
     pub fn new(name: impl Into<String>, text: impl Into<String>) -> Self {
         Self::new_with_format(name, text, Format::Yaml)
@@ -227,7 +241,7 @@ impl Input {
             format,
             #[cfg(feature = "validate")]
             flattened: Vec::new(),
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             yaml_document: yaml_text::Located::default(),
         }
     }
@@ -237,7 +251,7 @@ impl Input {
     /// # Errors
     ///
     /// An [`InputError`] with the I/O failure.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     pub fn read(path: &Path) -> Result<Self, InputError> {
         let (name, text) = read_text(path)?;
         Ok(Self::new(name, text))
@@ -282,7 +296,7 @@ impl Input {
     /// it keep the line numbers of the whole file. The second item is the body
     /// after the closing line. Returns `None` when the text does not start with
     /// a `---` line, or never closes it.
-    #[cfg(feature = "input-yaml")]
+    #[cfg(feature = "yaml")]
     #[must_use]
     pub fn frontmatter(&self) -> Option<(Self, &str)> {
         let text = self.text.strip_prefix('\u{feff}').unwrap_or(&self.text);
@@ -338,12 +352,11 @@ impl Input {
     /// `assets.targets.linux-x64.files` and sits on the line below `assets:`.
     ///
     /// ```
-    /// # #[cfg(feature = "input")]
+    /// # #[cfg(all(feature = "yaml", feature = "validate"))]
     /// # {
     /// use std::collections::BTreeMap;
     ///
-    /// use ctl_core::input::{FieldPath, Input};
-    /// use ctl_core::validate::at_least_one;
+    /// use ctl_input::{FieldPath, Input};
     /// use garde::Validate;
     /// use serde::Deserialize;
     ///
@@ -362,8 +375,15 @@ impl Input {
     ///
     /// #[derive(Debug, Deserialize, Validate)]
     /// struct Target {
-    ///     #[garde(custom(at_least_one("file")))]
+    ///     #[garde(custom(at_least_one_file))]
     ///     files: Vec<String>,
+    /// }
+    ///
+    /// fn at_least_one_file(files: &[String], _: &()) -> garde::Result {
+    ///     if files.is_empty() {
+    ///         return Err(garde::Error::new("must declare at least one file"));
+    ///     }
+    ///     Ok(())
     /// }
     ///
     /// let error = Input::new("ver.yaml", "assets:\n  linux-x64:\n    files: []\n")
@@ -411,7 +431,7 @@ impl Input {
     ///
     /// An [`InputError`] with the parser's problem and its line. A limit
     /// problem names the limit, its value, and where to raise it, or, without
-    /// `input-yaml`, that the tool sets it.
+    /// `yaml`, that the tool sets it.
     pub fn parse<T: DeserializeOwned>(&self) -> Result<T, InputError> {
         self.parse_within(&limits::effective(&self.limits), Raise::FOR_TEXT)
     }
@@ -424,9 +444,9 @@ impl Input {
     ) -> Result<T, InputError> {
         self.fits(limits, raise)?;
         match self.format {
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Format::Yaml => yaml_text::parse(self, &limits.budget(), raise),
-            #[cfg(feature = "input-toml")]
+            #[cfg(feature = "toml")]
             Format::Toml => toml_text::parse(self, limits.bounds(), raise),
         }
     }
@@ -514,9 +534,9 @@ impl Input {
     /// input parses its text on each call.
     ///
     /// ```
-    /// # #[cfg(feature = "input-yaml")]
+    /// # #[cfg(feature = "yaml")]
     /// # {
-    /// use ctl_core::input::{FieldPath, Input};
+    /// use ctl_input::{FieldPath, Input};
     ///
     /// let input = Input::new("app.yaml", "files:\n  'docs/**/*.md':\n    label: ''\n");
     /// let path = FieldPath::root()
@@ -549,9 +569,9 @@ impl Input {
     /// and a YAML document is built once and shared with [`Input::place`].
     ///
     /// ```
-    /// # #[cfg(feature = "input-yaml")]
+    /// # #[cfg(feature = "yaml")]
     /// # {
-    /// use ctl_core::input::{FieldPath, Input};
+    /// use ctl_input::{FieldPath, Input};
     ///
     /// let input = Input::new("app.yaml", "files:\n  'docs/**/*.md':\n    label: ''\n");
     /// let glob = FieldPath::root().key("files").key("docs/**/*.md");
@@ -589,9 +609,9 @@ impl Input {
             return vec![None; paths.len()];
         }
         let found = match self.format {
-            #[cfg(feature = "input-yaml")]
+            #[cfg(feature = "yaml")]
             Format::Yaml => yaml_text::places(self, &limits, paths, at),
-            #[cfg(feature = "input-toml")]
+            #[cfg(feature = "toml")]
             Format::Toml => toml_text::places(&self.text, paths, at),
         };
         found
@@ -639,7 +659,7 @@ impl InputError {
     /// # Examples
     ///
     /// ```
-    /// use ctl_core::input::{InputError, Problem};
+    /// use ctl_input::{InputError, Problem};
     ///
     /// let refused = InputError::try_new(
     ///     "compose.yaml",
@@ -675,7 +695,7 @@ impl InputError {
     /// # Examples
     ///
     /// ```
-    /// use ctl_core::input::InputError;
+    /// use ctl_input::InputError;
     ///
     /// let error = InputError::whole("compose.yaml", "the file names no service");
     /// assert_eq!(error.to_string(), "compose.yaml: the file names no service");
