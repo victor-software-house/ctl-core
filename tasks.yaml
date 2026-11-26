@@ -131,6 +131,21 @@ queue:
       - 2026-11-24, wrap, then stack is the default rule for every table (operator, 2026-11-24).
       - 2026-11-25, PR 324 merged column floors and stacking by fit, and every task of the table-fit change is done; the row stays queued until the maintainer releases the candidate.
 
+  - id: CTC-065
+    title: "Open the input layer: formats any CLI adds or replaces"
+    scope: src/input.rs, src/input/
+    outcome: >-
+      A CLI reads declared input and its argument document through an open set of
+      input formats, with yaml, json and toml built in.
+    blocked_by: []
+    acceptance:
+      - input::Format is a public trait, and a CLI registers its own format beside the built-ins without changing ctl-core.
+      - Config loading and the argument document read through the same registry, and every problem keeps its file and line.
+    notes:
+      - 2026-11-25, split from CTC-043 when the operator chose an open set of input formats (operator, 2026-11-25).
+      - 2026-11-26, this row also carries out CTC-038, the move of declared input into a ctl-input leaf crate (operator, 2026-11-26).
+    plan: openspec/changes/open-input/proposal.md
+
   - id: CTC-043
     title: >-
       Take every command's input as JSON or YAML, from a file or stdin, as output
@@ -138,7 +153,7 @@ queue:
     scope: src/input.rs, the App chassis
     outcome: >-
       Any ctl CLI accepts a command's arguments as one structured document, with the same choice of formats its output offers.
-    blocked_by: []
+    blocked_by: [CTC-065]
     acceptance:
       - A command built on ctl-core reads its arguments from --input FILE or --input -, in JSON or YAML chosen by --input-format or the file extension, validated by the same rules as its flags.
       - Flags and an input document combine by one stated precedence, and an unknown field fails naming it, as the output side reports errors.
@@ -148,6 +163,12 @@ queue:
       - CTC-008 owns the declared-input layer for config files; this row extends input to command arguments.
       - 2026-11-09, it ships as a patch after 0.7.0 (operator).
       - 2026-11-24, this row ships in the 0.8.0 candidate right after the open output layer (operator, 2026-11-24).
+      - 2026-11-25, the input document's top-level keys are the selected command's long flag and positional names, fed to clap below the command line, so clap's own parsers and rules check them; an unknown key fails with its file and line (operator, 2026-11-25).
+      - 2026-11-25, precedence is flag, then variable, then the input document, then the default (operator, 2026-11-25).
+      - 2026-11-25, the flags are --input FILE or - and --input-format, with no short forms, read from <PREFIX>_INPUT and <PREFIX>_INPUT_FORMAT (operator, 2026-11-25).
+      - 2026-11-25, App adds the input flags to every command, as it adds --format, and a CLI removes them with one builder call (operator, 2026-11-25).
+      - 2026-11-25, input formats are an open set a CLI can extend, as output formats are, with yaml, json and toml built in; this breaks input::Format, so it ships in the 0.8.0 candidates (operator, 2026-11-25).
+      - 2026-11-25, App adds --input only when app and an input format feature are both on, so the app tier keeps its size (operator, 2026-11-25).
 
   - id: CTC-047
     title: Run the prose check in CI
@@ -390,6 +411,7 @@ horizon:
       measured build gain.
     notes:
       - From decision 2 of openspec/changes/archive/2026-11-10-terminal-render-engine/design.md.
+      - 2026-11-26, CTC-065 carries out this move as part of opening the input formats.
 
   - id: CTC-039
     title: Move served files and the operator surface to a ctl-surface leaf
