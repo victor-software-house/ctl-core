@@ -74,6 +74,45 @@ fn a_missing_field_of_the_root_sits_at_the_start_of_the_text() {
     assert_eq!(refusal.span(), Some(0..0));
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum Shape {
+    Rect {
+        #[expect(dead_code, reason = "only the refusal is read")]
+        w: u8,
+        #[expect(dead_code, reason = "only the refusal is read")]
+        h: u8,
+    },
+}
+
+#[derive(Debug, Deserialize)]
+struct Drawing {
+    #[expect(dead_code, reason = "only the refusal is read")]
+    shape: Shape,
+}
+
+#[test]
+fn a_missing_field_found_after_serde_buffered_the_value_sits_where_a_direct_one_does() {
+    let text = "shape:\n  type: rect\n  w: 1\n";
+    let refusal = refused::<Drawing>(&YAML, text);
+    assert_eq!(refusal.fault(), &Fault::MissingField { field: "h" });
+    assert_eq!(at(text, &refusal), "shape");
+    assert_eq!(refusal.span().map(|span| span.start), Some(0));
+    let refusal = refused::<Shape>(&YAML, "# c\ntype: rect\nw: 1\n");
+    assert_eq!(refusal.fault(), &Fault::MissingField { field: "h" });
+    assert_eq!(refusal.span(), Some(0..0));
+}
+
+#[test]
+fn a_missing_field_of_a_replayed_mapping_sits_on_its_key_and_names_the_definition() {
+    let text = "base: &s {host: h}\nserver: *s\n";
+    let refusal = refused::<Doc>(&YAML, text);
+    assert_eq!(refusal.fault(), &Fault::MissingField { field: "port" });
+    assert_eq!(at(text, &refusal), "server");
+    let defined = refusal.defined_at().unwrap();
+    assert_eq!(&text[defined], "{host: h}");
+}
+
 #[test]
 fn a_missing_field_of_a_sequence_item_sits_on_the_item() {
     let text = "servers:\n  - host: h\n    port: 1\n  - host: g\n";

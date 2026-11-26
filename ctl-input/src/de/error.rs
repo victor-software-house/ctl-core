@@ -26,6 +26,18 @@ impl Place {
         }
     }
 
+    /// This place, naming where `mapping` is defined when an alias replayed
+    /// it.
+    pub(super) fn defining(self, mapping: &Node) -> Self {
+        match mapping.used_at() {
+            Some(_) => Self {
+                defined_at: Some(mapping.span()),
+                ..self
+            },
+            None => self,
+        }
+    }
+
     /// Where a fault of `node` sits: its own bytes, or the alias that
     /// replayed it, with the bytes it is defined at.
     pub(super) fn of(node: &Node) -> Self {

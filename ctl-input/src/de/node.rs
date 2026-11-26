@@ -54,12 +54,13 @@ impl<'de> NodeDe<'de> {
     }
 
     /// Where a missing field of the mapping this node is sits: on the key
-    /// that holds it, on the start of the text for the root, or on the node.
+    /// that holds it, naming where the mapping is defined when an alias
+    /// replayed it, on the start of the text for the root, or on the node.
     fn place_of_missing(&self) -> Place {
         match self.parent {
             Parent::Root => Place::start(),
             Parent::Item => self.place(),
-            Parent::Key(key) => Place::of(key),
+            Parent::Key(key) => Place::of(key).defining(self.node),
         }
     }
 
@@ -85,9 +86,20 @@ impl<'de> NodeDe<'de> {
     }
 
     /// `read` on this node, with an error it raises placed at the node unless
-    /// a node inside already placed it.
+    /// a node inside already placed it. A missing field is raised by the
+    /// mapping's own `Deserialize`, after it read every entry, so it goes where
+    /// a missing field of this node sits.
     fn located<T>(self, read: impl FnOnce(Self) -> Result<T, Error>) -> Result<T, Error> {
-        read(self).map_err(|error| error.at(|| self.place()))
+        read(self).map_err(|error| {
+            let missing = matches!(error.fault(), Fault::MissingField { .. });
+            error.at(|| {
+                if missing {
+                    self.place_of_missing()
+                } else {
+                    self.place()
+                }
+            })
+        })
     }
 
     /// `seed` read from this node, with an error its own `Deserialize` raises
@@ -163,15 +175,11 @@ impl<'de> NodeDe<'de> {
             .map_err(|error| self.claim(error, &access))
     }
 
-    /// Places an error the visitor raised on the whole mapping where it
-    /// belongs: a missing field on the key that holds the mapping, and a
-    /// field written twice on the key that repeats it.
+    /// Places a field written twice, which the visitor raised on the whole
+    /// mapping, on the key that repeats it.
     fn claim(&self, error: Error, access: &Entries<'de>) -> Error {
         if error.is_placed() {
             return error;
-        }
-        if matches!(error.fault(), Fault::MissingField { .. }) {
-            return error.at(|| self.place_of_missing());
         }
         let repeated = matches!(error.fault(), Fault::DuplicateKey { .. });
         match access.last_key() {
