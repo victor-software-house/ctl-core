@@ -625,12 +625,12 @@ fn two_unknown_keys_are_reported_together() {
 fn a_value_clap_refuses() {
     ran!(
         out = case(
-            &[("task.yaml", "title: x\npriority: high\n")],
+            &[("task.yaml", "title: x\nlabel: a\npriority: high\n")],
             &["add", "--input", "@task.yaml"],
         )
         .code(2)
     );
-    has(&out.stderr, "task.yaml:2:11: priority:");
+    has(&out.stderr, "task.yaml:3:11: priority:");
     has(&out.stderr, "invalid digit");
 }
 
@@ -765,6 +765,31 @@ fn a_false_flag_with_no_negation_gives_nothing() {
         )
     );
     has(&out.stdout, "Sync { force: false }");
+}
+
+#[test]
+fn a_global_key_fills_the_flag_of_the_root() {
+    ran!(
+        out = case(
+            &[("task.yaml", "quiet: true\n")],
+            &["add", "--input", "@task.yaml"]
+        )
+    );
+    has(&out.stdout, "quiet: true");
+}
+
+#[test]
+fn a_global_key_loses_to_the_same_flag_before_the_subcommand() {
+    ran!(
+        out = case(
+            &[("task.yaml", "quiet: true\n")],
+            &["--quiet", "add", "--input", "@task.yaml"]
+        )
+        .vars(&[(FAIL, "1")])
+        .code(2)
+    );
+    has(&out.stderr, "task.yaml:1:1: quiet:");
+    has(&out.stderr, "--quiet");
 }
 
 #[test]
