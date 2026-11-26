@@ -20,6 +20,8 @@
   Verify: every existing input test passes with only the wording the message set changes, each changed line listed in the pull request.
 - [ ] 2.4 Place a problem in a replayed node at its alias, and a missing field on the key that holds its mapping.
   Verify: tests for the alias and missing-field scenarios pass.
+- [ ] 2.5 Add the fork's three replay limits to `Limits`, pass them to the fork's options, report them in `Loosened`, and name them in `Exceeded`.
+  Verify: a test raises `max_total_replayed_events` in `.ctl/input.yaml` and sees the warning, and the nested-alias scenario names the field.
 
 ## 3. ctl-core
 

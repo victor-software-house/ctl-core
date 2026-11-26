@@ -72,11 +72,9 @@ A TOML string fills only a string field, and a TOML number only a number field.
 ### Requirement: An alias expands in the format's reader
 
 A format with aliases SHALL expand each alias while it reads, under its own limits, so the tree SHALL hold no alias node.
-Every replayed node SHALL count against the reader's replay limit as it is read.
 
 A replayed node SHALL keep the span of the node it copies.
 It SHALL also keep the span of the outermost alias that brought it, and every node beneath it SHALL inherit that span.
-
 A problem in a replayed node SHALL sit at the alias and name where its value is defined.
 
 #### Scenario: An alias past the limit
@@ -84,15 +82,20 @@ A problem in a replayed node SHALL sit at the alias and name where its value is 
 - **WHEN** a YAML text holds three aliases and `max_aliases` is 2
 - **THEN** reading it fails with one problem that names `max_aliases`
 
-#### Scenario: Nested aliases
-
-- **WHEN** a YAML text of 2 KB defines nine anchors, each a list of ten aliases of the one before, under the default limits
-- **THEN** reading it fails with one limit problem before the expanded tree is built
-
 #### Scenario: A bad value through an alias
 
 - **WHEN** a YAML text defines `&port x` on line 1 and uses `*port` on line 4 for a `u16` field
 - **THEN** loading fails with one problem on line 4 that names line 1 as where the value is defined
+
+### Requirement: Replayed nodes count against the replay limits
+
+Every node an alias replays SHALL count against the reader's replay limits as it is read.
+The YAML replay limits SHALL be the `Limits` fields `max_total_replayed_events`, `max_replay_stack_depth` and `max_alias_expansions_per_anchor`, set through the same tiers as every other limit.
+
+#### Scenario: Nested aliases
+
+- **WHEN** a YAML text of 2 KB defines nine anchors, each a list of ten aliases of the one before, under the default limits
+- **THEN** reading it fails with one problem that names `max_total_replayed_events`, before the expanded tree is built
 
 ### Requirement: Tagged reads a tag beside its value
 

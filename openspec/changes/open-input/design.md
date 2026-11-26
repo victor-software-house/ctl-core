@@ -134,6 +134,12 @@ A problem in a replayed node sits at `used_at` and names where its value is defi
 The fork's event pipeline already replays aliases under `max_aliases`, `max_events`, the recorded-anchor limits and its replay limits, and refuses an alias inside its own anchor.
 
 Every replayed node counts against the replay limit as it is read, so nested aliases fail before the expanded tree exists.
+
+`Limits` gains the fork's three replay limits under the fork's names: `max_total_replayed_events`, `max_replay_stack_depth` and `max_alias_expansions_per_anchor`.
+
+They follow the same tiers as every other limit, `.ctl/input.yaml` included, and `Loosened` reports a raised one.
+A breach names its field and where to raise it, as every limit problem does.
+
 So the YAML limits keep their meaning, and ctl-input counts no aliases of its own.
 The alternative, alias nodes that the Deserializer replays, lost: it puts a second set of alias limits in ctl-input.
 
