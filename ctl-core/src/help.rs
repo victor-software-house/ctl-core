@@ -23,6 +23,8 @@
 use std::ffi::OsString;
 use std::{env, io};
 
+#[cfg(feature = "app")]
+use clap::ArgMatches;
 use clap::{Command, CommandFactory};
 use ctl_term::Stream;
 
@@ -180,6 +182,27 @@ pub(crate) fn emit_selected_to_stderr(
     let (command, is_root) = help_command(declared, args);
     let groups = if is_root { groups } else { &[] };
     options.print_for(Stream::Stderr, &render(command, Detail::Short, groups))
+}
+
+/// The usage line of the command `selected` reached, without its `Usage:`
+/// label and with no styling, as the usage line of the help shows it.
+/// `selected` is a lenient read of the arguments: its subcommand path picks the
+/// command, and the root's usage line comes back when it names none.
+#[cfg(feature = "app")]
+pub(crate) fn usage_line(declared: &Command, selected: Option<&ArgMatches>) -> String {
+    let mut root = parser::with_help(declared.clone());
+    root.build();
+    let mut command = &root;
+    let mut matches = selected;
+    while let Some((name, below)) = matches.and_then(ArgMatches::subcommand) {
+        let Some(next) = command.find_subcommand(name) else {
+            break;
+        };
+        command = next;
+        matches = Some(below);
+    }
+    let usage = command.clone().render_usage().to_string();
+    usage.trim().trim_prefix("Usage: ").to_owned()
 }
 
 /// A heading over some of the root's commands in help, in the order the

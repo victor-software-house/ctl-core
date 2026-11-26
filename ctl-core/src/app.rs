@@ -64,6 +64,7 @@ use crate::view::{self, JsonLayout, Respond, View};
 use crate::{flags, help, parser};
 
 mod command_error;
+mod error_body;
 
 pub use command_error::CommandError;
 
@@ -440,10 +441,11 @@ where
     /// Run against the process argv and return the exit code for `main`.
     ///
     /// The handler `execute` gets the parsed CLI. An `Err` from it is written
-    /// to stderr as an error (`bin: message`, or a JSON envelope). Its
-    /// message includes the whole `anyhow` chain. It exits 1, or with the
-    /// exit code of the first [`CommandError`] in the chain, whose `kind`
-    /// value the envelope carries.
+    /// to stderr as an error (`bin: message`, or a JSON envelope). The message
+    /// is its outermost error, and the rest of the `anyhow` chain is the
+    /// envelope's `causes`; an input's problems are its `problems`. It exits 1,
+    /// or with the exit code of the first [`CommandError`] in the chain, whose
+    /// `kind` value the envelope carries.
     ///
     /// # Panics
     ///
@@ -530,21 +532,22 @@ where
         }
 
         let error_view = self.parse_error_view(&raw, &raw_request, parsed.color);
+        let selected = parsed.matches.as_ref();
         let parse = match flags::env_under_flags(parser::apply_defaults(command.clone()), &raw) {
             Ok(parse) => parse,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
         };
         let matches = match parse.try_get_matches_from(&raw) {
             Ok(matches) => matches,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
         };
         let requested = match requested_format(&command, &matches, &self.formats) {
             Ok(requested) => requested,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
         };
         let cli = match C::from_arg_matches(&matches) {
             Ok(cli) => cli,
-            Err(error) => return self.clap_error(&error, &error_view, &words, &command),
+            Err(error) => return self.clap_error(&error, &error_view, &words, &command, selected),
         };
         let view = self.configured_view((self.select_view)(&cli).with_request(requested));
         if view.is_stream()
@@ -554,7 +557,7 @@ where
             let error =
                 unknown_stream_default(self.formats.stream_name(), &mut self.formats.names())
                     .format(&mut command.clone());
-            return self.clap_error(&error, &error_view, &words, &command);
+            return self.clap_error(&error, &error_view, &words, &command, selected);
         }
         let view = match self.resolve(&view) {
             Ok(view) => view,
@@ -581,7 +584,7 @@ where
     /// `kind` value the JSON envelope carries. A handler error and the error
     /// of a stream of records both end here.
     fn failed(&self, view: &View, error: &anyhow::Error) -> ExitCode {
-        let mut body = ErrorBody::new(&self.bin, format!("{error:#}"));
+        let mut body = error_body::handler_error(&self.bin, error);
         let mut code = ExitCode::FAILURE;
         if let Some(failure) = CommandError::find(error) {
             code = ExitCode::from(failure.code().get());
@@ -601,19 +604,20 @@ where
     /// Report a parse error, or print the help or version Clap stopped for.
     /// Help always comes from ctl-core's renderer, so it needs none of Clap's
     /// `help` or `color` features. `command` is the one `App` augmented with
-    /// the registered formats.
+    /// the registered formats. `selected` is the lenient read of the
+    /// arguments, which picks the command whose usage line the error carries.
     fn clap_error(
         &self,
         error: &clap::Error,
         view: &View,
         args: &[String],
         command: &Command,
+        selected: Option<&ArgMatches>,
     ) -> ExitCode {
         let code = exit_code(error.exit_code());
         let kind = error.kind();
         if !is_clap_display(kind) {
-            let rendered = error.to_string();
-            let mut body = ErrorBody::new(&self.bin, parse_error_message(&rendered));
+            let mut body = error_body::parse_error(&self.bin, error, command, selected);
             if error.exit_code() == 2 {
                 body = body.kind(USAGE_KIND);
             }
@@ -798,12 +802,6 @@ fn requested_format(
     Ok(None)
 }
 
-/// Clap's rendered error without its leading `error: `, so a parse error reads
-/// `bin: message` like every other error.
-fn parse_error_message(rendered: &str) -> &str {
-    rendered.trim().trim_prefix("error: ")
-}
-
 fn is_clap_display(kind: ErrorKind) -> bool {
     matches!(
         kind,
@@ -829,7 +827,7 @@ mod tests {
     use ctl_text::anstyle::Effects;
     use serde::Serialize;
 
-    use super::{App, BrokenPipe, is_clap_display, parse_error_message, requested_format};
+    use super::{App, BrokenPipe, is_clap_display, requested_format};
     use crate::document::{Document, Fields};
     use crate::format::{FormatName, Formats, JSON, PRETTY};
     use crate::render::{RecordStyle, RenderOptions};
@@ -972,15 +970,6 @@ mod tests {
             FormatName::PRETTY,
             "a later --format pretty undoes the pre-parse's JSON"
         );
-    }
-
-    #[test]
-    fn a_parse_error_drops_claps_error_prefix() {
-        assert_eq!(
-            parse_error_message("error: unexpected argument found\n"),
-            "unexpected argument found"
-        );
-        assert_eq!(parse_error_message("no prefix\n"), "no prefix");
     }
 
     #[test]
