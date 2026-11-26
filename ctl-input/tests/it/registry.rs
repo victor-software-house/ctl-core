@@ -1,6 +1,7 @@
 //! The registry: its order, its builders, how it finds a format for a file,
 //! and a format written outside the crate.
 
+use std::borrow::Cow;
 use std::path::Path;
 
 use ctl_input::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, TOML, Wanted, YAML};
@@ -57,7 +58,7 @@ impl Format for Kv {
     ) -> Result<Resolved<'a>, Mismatch> {
         let text = scalar.value();
         match wanted {
-            Wanted::Any | Wanted::Str => Ok(Resolved::Str(text)),
+            Wanted::Any | Wanted::Str => Ok(Resolved::Str(Cow::Borrowed(text))),
             Wanted::Int => text
                 .parse()
                 .map(Resolved::Int)

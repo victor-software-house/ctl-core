@@ -6,7 +6,18 @@
 //! [`Formats`](crate::Formats) registry. [`Format::read`] turns text into the
 //! [located tree](crate::tree), and [`Format::resolve`] gives each scalar its
 //! meaning, so every format keeps its own scalar rules.
+#![cfg_attr(
+    not(feature = "yaml"),
+    doc = "",
+    doc = "[`YAML`]: crate#cargo-features"
+)]
+#![cfg_attr(
+    not(feature = "toml"),
+    doc = "",
+    doc = "[`TOML`]: crate#cargo-features"
+)]
 
+use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -58,6 +69,11 @@ pub trait Format: Sync {
     /// Read one `scalar`, with the `tag` its node carries, as the type a
     /// field `wanted`.
     ///
+    /// This applies the rules of a [`Reading::Strict`] read, whichever
+    /// reading built the tree: YAML, for one, refuses `.inf` and `.nan` for
+    /// [`Wanted::Any`]. A listing asks of each value only whether it is text,
+    /// with [`Wanted::Str`].
+    ///
     /// # Errors
     ///
     /// A [`Mismatch`] when the scalar cannot be read as `wanted`.
@@ -100,7 +116,7 @@ pub enum Wanted {
 }
 
 /// A scalar read for the type a field needs.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Resolved<'a> {
     /// A null.
@@ -113,8 +129,9 @@ pub enum Resolved<'a> {
     Uint(u128),
     /// A floating-point number.
     Float(f64),
-    /// A string, borrowed from the scalar.
-    Str(&'a str),
+    /// A string, borrowed from the scalar, or owned when the format decodes
+    /// it, as YAML decodes a `!!binary` scalar.
+    Str(Cow<'a, str>),
 }
 
 /// A scalar the format cannot read as the type a field wanted.
@@ -139,7 +156,14 @@ impl Mismatch {
 
 impl fmt::Display for Mismatch {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "the scalar is not a {:?}", self.wanted)
+        formatter.write_str(match self.wanted {
+            Wanted::Any => "expected a value",
+            Wanted::Bool => "expected true or false",
+            Wanted::Int => "expected an integer",
+            Wanted::Float => "expected a float",
+            Wanted::Str => "expected text",
+            Wanted::Null => "expected null",
+        })
     }
 }
 
@@ -229,6 +253,26 @@ impl fmt::Display for Fault {
             Self::DuplicateKey { key } => write!(formatter, "duplicate key `{key}`"),
             Self::MergeKey => formatter.write_str("merge keys are not allowed"),
             Self::Limit { name, value } => write!(formatter, "exceeds {name} ({value})"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Mismatch, Wanted};
+
+    #[test]
+    fn a_mismatch_says_what_was_expected() {
+        let expected = [
+            (Wanted::Any, "expected a value"),
+            (Wanted::Bool, "expected true or false"),
+            (Wanted::Int, "expected an integer"),
+            (Wanted::Float, "expected a float"),
+            (Wanted::Str, "expected text"),
+            (Wanted::Null, "expected null"),
+        ];
+        for (wanted, message) in expected {
+            assert_eq!(Mismatch::new(wanted).to_string(), message);
         }
     }
 }

@@ -1,8 +1,12 @@
 //! YAML scalars resolve by the rules vsh-serde-saphyr applies: one row per
 //! line of the scalar table in the open-input research notes.
 
+use std::borrow::Cow;
+
 use ctl_input::format::{Format, Mismatch, Resolved, Wanted, YAML};
-use ctl_input::tree::{Scalar, ScalarStyle, Tag};
+use ctl_input::tree::{NodeKind, Scalar, ScalarStyle, Tag};
+
+use crate::common::{borrowed, get, read};
 
 const STR_TAG: &str = "tag:yaml.org,2002:str";
 
@@ -42,7 +46,7 @@ fn a_float_with_a_trailing_zero_is_not_an_integer_or_a_bool() {
             None,
             None,
             Some(Resolved::Float(1.1)),
-            Some(Resolved::Str("1.10")),
+            Some(borrowed("1.10")),
             None,
         ]
     );
@@ -58,7 +62,7 @@ fn a_leading_zero_is_a_float_and_never_an_integer() {
             None,
             None,
             Some(Resolved::Float(10.0)),
-            Some(Resolved::Str("010")),
+            Some(borrowed("010")),
             None,
         ]
     );
@@ -77,7 +81,7 @@ fn the_three_radixes_are_integers() {
         let found = row(&scalar, None);
         assert_eq!(found[0], Some(Resolved::Int(number)), "{text}");
         assert_eq!(found[2], Some(Resolved::Int(number)), "{text}");
-        assert_eq!(found[4], Some(Resolved::Str(text)), "{text}");
+        assert_eq!(found[4], Some(borrowed(text)), "{text}");
         assert_eq!(found[1], None, "{text}");
         assert_eq!(found[5], None, "{text}");
     }
@@ -104,7 +108,7 @@ fn infinity_and_not_a_number_fill_a_float_but_not_a_typeless_read() {
         );
         assert_eq!(
             resolve(&scalar, None, Wanted::Str),
-            Ok(Resolved::Str(text)),
+            Ok(borrowed(text)),
             "{text}"
         );
         assert_eq!(
@@ -139,14 +143,14 @@ fn only_the_six_yaml_1_2_spellings_fill_a_bool() {
         let found = row(&scalar, None);
         assert_eq!(found[0], Some(Resolved::Bool(truth)), "{text}");
         assert_eq!(found[1], Some(Resolved::Bool(truth)), "{text}");
-        assert_eq!(found[4], Some(Resolved::Str(text)), "{text}");
+        assert_eq!(found[4], Some(borrowed(text)), "{text}");
     }
     for text in ["no", "yes", "on", "off", "y", "n"] {
         let scalar = plain(text);
         let found = row(&scalar, None);
-        assert_eq!(found[0], Some(Resolved::Str(text)), "{text}");
+        assert_eq!(found[0], Some(borrowed(text)), "{text}");
         assert_eq!(found[1], None, "{text}");
-        assert_eq!(found[4], Some(Resolved::Str(text)), "{text}");
+        assert_eq!(found[4], Some(borrowed(text)), "{text}");
     }
 }
 
@@ -173,18 +177,18 @@ fn a_plain_null_fills_only_a_null() {
 fn a_quoted_scalar_is_a_string_for_any_and_still_fills_a_typed_field() {
     let number = Scalar::new("8", ScalarStyle::DoubleQuoted);
     let found = row(&number, None);
-    assert_eq!(found[0], Some(Resolved::Str("8")));
+    assert_eq!(found[0], Some(borrowed("8")));
     assert_eq!(found[2], Some(Resolved::Int(8)));
-    assert_eq!(found[4], Some(Resolved::Str("8")));
+    assert_eq!(found[4], Some(borrowed("8")));
     let truth = Scalar::new("true", ScalarStyle::SingleQuoted);
     let found = row(&truth, None);
-    assert_eq!(found[0], Some(Resolved::Str("true")));
+    assert_eq!(found[0], Some(borrowed("true")));
     assert_eq!(found[1], Some(Resolved::Bool(true)));
     let empty = Scalar::new("", ScalarStyle::DoubleQuoted);
     let found = row(&empty, None);
     assert_eq!(
         found[4],
-        Some(Resolved::Str("")),
+        Some(borrowed("")),
         "a quoted empty string is a string"
     );
     assert_eq!(found[5], None);
@@ -194,12 +198,16 @@ fn a_quoted_scalar_is_a_string_for_any_and_still_fills_a_typed_field() {
 fn a_string_tag_makes_the_scalar_text() {
     let scalar = plain("1");
     let found = row(&scalar, Some(STR_TAG));
-    assert_eq!(found[0], Some(Resolved::Str("1")));
-    assert_eq!(found[4], Some(Resolved::Str("1")));
+    assert_eq!(found[0], Some(borrowed("1")));
+    assert_eq!(found[4], Some(borrowed("1")));
+    assert!(
+        found[1..4].iter().all(Option::is_none),
+        "a string tag refuses a typed field, as the fork's validate_tag does: {found:?}"
+    );
     let null = plain("~");
     assert_eq!(
         resolve(&null, Some(STR_TAG), Wanted::Str),
-        Ok(Resolved::Str("~")),
+        Ok(borrowed("~")),
         "a string tag keeps a null spelling a string"
     );
 }
@@ -211,4 +219,29 @@ fn a_local_tag_does_not_change_how_the_scalar_reads() {
         resolve(&scalar, Some("!override"), Wanted::Int),
         Ok(Resolved::Int(0))
     );
+}
+
+#[test]
+fn a_binary_scalar_resolves_to_its_decoded_text_as_owned() {
+    let text = "x: !!binary aGVsbG8=\n";
+    let root = read(&YAML, text);
+    let node = get(&root, "x");
+    let NodeKind::Scalar(scalar) = node.kind() else {
+        panic!("not a scalar");
+    };
+    let resolved = YAML.resolve(scalar, node.tag(), Wanted::Any);
+    assert_eq!(resolved, Ok(borrowed("hello")));
+    assert!(
+        matches!(resolved, Ok(Resolved::Str(Cow::Owned(_)))),
+        "{resolved:?}"
+    );
+}
+
+#[test]
+fn a_plain_string_resolves_borrowed_from_the_scalar() {
+    let scalar = plain("demo");
+    assert!(matches!(
+        resolve(&scalar, None, Wanted::Any),
+        Ok(Resolved::Str(Cow::Borrowed("demo")))
+    ));
 }

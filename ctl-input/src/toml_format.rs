@@ -1,23 +1,24 @@
 //! The TOML [`Format`]: the `toml` crate's span-carrying tree becomes the
-//! located tree, and each scalar resolves by how it is written.
+//! located tree, each scalar carrying the type its syntax gave it, and each
+//! scalar resolves by that type.
 
+use std::borrow::Cow;
 use std::ops::Range;
 
 use toml::Spanned;
-use toml::de::{DeString, DeTable, DeValue};
+use toml::de::{DeInteger, DeString, DeTable, DeValue};
 
 use super::exceeded::{Exceeded, Raise};
 use super::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, Wanted};
 use super::limits::Limits;
 use super::toml_text::Measure;
-use super::tree::{Node, Scalar, ScalarStyle, Tag};
+use super::tree::{Node, Scalar, ScalarStyle, ScalarSyntax, Tag};
 
 /// TOML, read by the `toml` crate. Its extension is `toml`.
 #[derive(Clone, Copy, Debug)]
 pub struct Toml;
 
-/// The TOML format, for [`Formats::add`](crate::Formats::add) and
-/// [`Input::new_with_format`](crate::Input::new_with_format).
+/// The TOML format, for [`Formats::add`](crate::Formats::add).
 pub static TOML: Toml = Toml;
 
 impl Format for Toml {
@@ -53,63 +54,41 @@ impl Format for Toml {
         _tag: Option<&Tag>,
         wanted: Wanted,
     ) -> Result<Resolved<'a>, Mismatch> {
-        let mismatch = Mismatch::new(wanted);
         let text = scalar.value();
-        let spelling = match scalar.style() {
-            ScalarStyle::Plain => Plain::of(text),
-            ScalarStyle::SingleQuoted
-            | ScalarStyle::DoubleQuoted
-            | ScalarStyle::Literal
-            | ScalarStyle::Folded
-            | ScalarStyle::MultilineBasic
-            | ScalarStyle::MultilineLiteral => Plain::Quoted,
-        };
-        let resolved = match (wanted, spelling) {
-            (Wanted::Any | Wanted::Bool, Plain::Bool(value)) => Some(Resolved::Bool(value)),
-            (Wanted::Any | Wanted::Int, Plain::Int(value)) => Some(Resolved::Int(value)),
-            (Wanted::Any | Wanted::Float, Plain::Float(value)) => Some(Resolved::Float(value)),
-            (Wanted::Float, Plain::Int(_)) => float(text).map(Resolved::Float),
-            (Wanted::Any | Wanted::Str, Plain::Quoted | Plain::Datetime) => {
-                Some(Resolved::Str(text))
+        let resolved = match (scalar.syntax().unwrap_or(ScalarSyntax::Text), wanted) {
+            (ScalarSyntax::Text | ScalarSyntax::Datetime, Wanted::Any | Wanted::Str) => {
+                Some(Resolved::Str(Cow::Borrowed(text)))
             }
+            (ScalarSyntax::Boolean, Wanted::Any | Wanted::Bool) => {
+                Some(Resolved::Bool(text == "true"))
+            }
+            (ScalarSyntax::Integer, Wanted::Any | Wanted::Int) => integer(text),
+            (ScalarSyntax::Integer, Wanted::Float) => {
+                integer(text).and_then(|_| text.parse().ok().map(Resolved::Float))
+            }
+            (ScalarSyntax::Float, Wanted::Any | Wanted::Float) => float(text),
             _ => None,
         };
-        resolved.ok_or(mismatch)
+        resolved.ok_or(Mismatch::new(wanted))
     }
 }
 
-/// How a scalar reads from its syntax alone: a quoted style is a string, and a
-/// plain one is a boolean, an integer, a float, or else a datetime.
-#[derive(Clone, Copy)]
-enum Plain {
-    Quoted,
-    Bool(bool),
-    Int(i128),
-    Float(f64),
-    Datetime,
+/// The integer a canonical integer text spells: an `i128`, or a `u128` above
+/// it. A text no `u128` holds is no integer.
+fn integer(text: &str) -> Option<Resolved<'static>> {
+    text.parse()
+        .map(Resolved::Int)
+        .or_else(|_| text.parse().map(Resolved::Uint))
+        .ok()
 }
 
-impl Plain {
-    /// The reading of a plain scalar's canonical text, which `read` wrote from
-    /// the `toml` crate's own parse, so no TOML number syntax is read here.
-    fn of(text: &str) -> Self {
-        match text {
-            "true" => Self::Bool(true),
-            "false" => Self::Bool(false),
-            _ => text.parse::<i128>().map_or_else(
-                |_| float(text).map_or(Self::Datetime, Self::Float),
-                Self::Int,
-            ),
-        }
-    }
-}
-
-/// The float a canonical integer or float text spells. An overflow to infinity
-/// is refused unless the text spells infinity, as the `toml` crate refuses it.
-fn float(text: &str) -> Option<f64> {
+/// The float a float's text spells. An overflow to infinity is refused unless
+/// the text spells infinity, as the `toml` crate refuses it.
+fn float(text: &str) -> Option<Resolved<'static>> {
     text.parse::<f64>()
         .ok()
         .filter(|value| !value.is_infinite() || text.contains("inf"))
+        .map(Resolved::Float)
 }
 
 /// The mapping for `table`, its entries in the order written: a parsed table
@@ -130,34 +109,46 @@ fn table(text: &str, span: Range<usize>, table: &DeTable<'_>) -> Node {
 fn key_node(text: &str, key: &Spanned<DeString<'_>>) -> Node {
     let span = key.span();
     let style = style(text, &span);
-    Node::scalar(span, Scalar::new(key.get_ref().to_string(), style))
+    let scalar = Scalar::new(key.get_ref().to_string(), style).with_syntax(ScalarSyntax::Text);
+    Node::scalar(span, scalar)
 }
 
-/// The node for a value. A number is its canonical decimal text, so a hex
-/// `0xff` is `255`, and one the `i128` cannot hold keeps the digits as
-/// written, which no integer field reads. A datetime is its text.
+/// The node for a value, with the type its syntax gave it. An integer is its
+/// canonical decimal text, so a hex `0xff` is `255`; one no `u128` holds keeps
+/// its written digits and radix prefix, which no integer reads. A datetime is
+/// its text.
 fn value_node(text: &str, value: &Spanned<DeValue<'_>>) -> Node {
     let span = value.span();
-    let plain =
-        |written: String| Node::scalar(span.clone(), Scalar::new(written, ScalarStyle::Plain));
+    let plain = |written: String, syntax: ScalarSyntax| {
+        let scalar = Scalar::new(written, ScalarStyle::Plain).with_syntax(syntax);
+        Node::scalar(span.clone(), scalar)
+    };
     match value.get_ref() {
         DeValue::Table(entries) => table(text, span.clone(), entries),
         DeValue::Array(items) => Node::sequence(
             span.clone(),
             items.iter().map(|item| value_node(text, item)).collect(),
         ),
-        DeValue::String(string) => Node::scalar(
-            span.clone(),
-            Scalar::new(string.to_string(), style(text, &span)),
-        ),
-        DeValue::Integer(integer) => plain(
-            i128::from_str_radix(integer.as_str(), integer.radix())
-                .map_or_else(|_| integer.as_str().to_owned(), |number| number.to_string()),
-        ),
-        DeValue::Float(number) => plain(number.as_str().to_owned()),
-        DeValue::Boolean(boolean) => plain(boolean.to_string()),
-        DeValue::Datetime(datetime) => plain(datetime.to_string()),
+        DeValue::String(string) => {
+            let scalar =
+                Scalar::new(string.to_string(), style(text, &span)).with_syntax(ScalarSyntax::Text);
+            Node::scalar(span.clone(), scalar)
+        }
+        DeValue::Integer(integer) => plain(canonical(integer), ScalarSyntax::Integer),
+        DeValue::Float(number) => plain(number.as_str().to_owned(), ScalarSyntax::Float),
+        DeValue::Boolean(boolean) => plain(boolean.to_string(), ScalarSyntax::Boolean),
+        DeValue::Datetime(datetime) => plain(datetime.to_string(), ScalarSyntax::Datetime),
     }
+}
+
+/// The decimal text of an integer, from an `i128` or else a `u128`, or its
+/// written digits with their radix prefix when no `u128` holds it.
+fn canonical(integer: &DeInteger<'_>) -> String {
+    let (digits, radix) = (integer.as_str(), integer.radix());
+    i128::from_str_radix(digits, radix)
+        .map(|number| number.to_string())
+        .or_else(|_| u128::from_str_radix(digits, radix).map(|number| number.to_string()))
+        .unwrap_or_else(|_| integer.to_string())
 }
 
 /// How the string or key written at `span` is quoted, from its first bytes.

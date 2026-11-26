@@ -22,8 +22,7 @@ use super::yaml_text::{self, Unplaced};
 #[derive(Clone, Copy, Debug)]
 pub struct Yaml;
 
-/// The YAML format, for [`Formats::add`](crate::Formats::add) and
-/// [`Input::new_with_format`](crate::Input::new_with_format).
+/// The YAML format, for [`Formats::add`](crate::Formats::add).
 pub static YAML: Yaml = Yaml;
 
 impl Format for Yaml {
@@ -41,9 +40,9 @@ impl Format for Yaml {
             let exceeded = Exceeded::input_bytes(bounds.input_bytes, Raise::FOR_TEXT);
             return Err(Refusal::new(exceeded.fault(), None, None));
         }
-        located::read(text, yaml_text::options(limits, reading))
-            .map(|node| convert(&node))
-            .map_err(|error| refusal(text, limits, &error))
+        let node = located::read(text, yaml_text::options(limits, reading))
+            .map_err(|error| refusal(text, limits, &error))?;
+        convert(&node)
     }
 
     fn resolve<'a>(
@@ -67,8 +66,10 @@ impl Format for Yaml {
                 Inferred::Signed(value) => Ok(Resolved::Int(i128::from(value))),
                 Inferred::Unsigned(value) => Ok(Resolved::Int(i128::from(value))),
                 Inferred::Float(value) => Ok(Resolved::Float(value)),
-                Inferred::String(Cow::Borrowed(_)) => Ok(Resolved::Str(scalar.value())),
-                Inferred::String(Cow::Owned(_)) => Err(mismatch),
+                Inferred::String(Cow::Owned(text)) => Ok(Resolved::Str(Cow::Owned(text))),
+                Inferred::String(Cow::Borrowed(_)) => {
+                    Ok(Resolved::Str(Cow::Borrowed(scalar.value())))
+                }
             },
             Wanted::Bool => rules
                 .boolean(&spelled, at)
@@ -93,7 +94,7 @@ impl Format for Yaml {
                 if rules.is_null(&spelled) {
                     Err(mismatch)
                 } else {
-                    Ok(Resolved::Str(scalar.value()))
+                    Ok(Resolved::Str(Cow::Borrowed(scalar.value())))
                 }
             }
         }
@@ -128,26 +129,32 @@ fn style(written: Written) -> ScalarStyle {
     }
 }
 
-/// The bytes of the text at `location`, or an empty range at its start when
-/// the parser gave no byte offsets, as for an empty text.
-fn bytes(location: Location) -> Range<usize> {
+/// The bytes of the text at `location`, when the parser gave byte offsets.
+fn bytes(location: Location) -> Option<Range<usize>> {
     let span = location.span();
-    let start = span
-        .byte_offset()
-        .and_then(|offset| usize::try_from(offset).ok())
-        .unwrap_or_default();
-    let length = span
-        .byte_len()
-        .and_then(|length| usize::try_from(length).ok())
-        .unwrap_or_default();
-    start..start.saturating_add(length)
+    let start = usize::try_from(span.byte_offset()?).ok()?;
+    let length = usize::try_from(span.byte_len()?).ok()?;
+    Some(start..start.saturating_add(length))
+}
+
+/// The bytes a node is written at, or the refusal for a location the parser
+/// gave no byte offsets for.
+fn placed(location: Location) -> Result<Range<usize>, Refusal> {
+    bytes(location).ok_or_else(|| {
+        let detail = format!(
+            "the parser gave no byte position for the node at line {}, column {}",
+            location.line(),
+            location.column()
+        );
+        Refusal::new(Fault::Syntax { detail }, None, None)
+    })
 }
 
 /// The tree for a located node, with each replayed node marked by the alias
 /// that brought it.
-fn convert(node: &located::Node) -> Node {
+fn convert(node: &located::Node) -> Result<Node, Refusal> {
     let locations = node.locations();
-    let span = bytes(locations.defined_location);
+    let span = placed(locations.defined_location)?;
     let built = match node {
         located::Node::Scalar(ScalarNode {
             value,
@@ -155,14 +162,14 @@ fn convert(node: &located::Node) -> Node {
             ..
         }) => Node::scalar(span, Scalar::new(value.as_str(), style(*written))),
         located::Node::Sequence(SequenceNode { items, .. }) => {
-            Node::sequence(span, items.iter().map(convert).collect())
+            Node::sequence(span, items.iter().map(convert).collect::<Result<_, _>>()?)
         }
         located::Node::Mapping(MappingNode { entries, .. }) => Node::mapping(
             span,
             entries
                 .iter()
-                .map(|(key, value)| (convert(key), convert(value)))
-                .collect(),
+                .map(|(key, value)| Ok((convert(key)?, convert(value)?)))
+                .collect::<Result<_, Refusal>>()?,
         ),
     };
     let built = match node.tag() {
@@ -170,9 +177,9 @@ fn convert(node: &located::Node) -> Node {
         None => built,
     };
     if locations.reference_location == locations.defined_location {
-        built
+        Ok(built)
     } else {
-        built.with_used_at(bytes(locations.reference_location))
+        Ok(built.with_used_at(placed(locations.reference_location)?))
     }
 }
 
@@ -193,7 +200,7 @@ fn refusal(text: &str, limits: &Limits, error: &Error) -> Refusal {
         let span = error
             .location()
             .filter(|at| *at != Location::UNKNOWN)
-            .map(bytes);
+            .and_then(bytes);
         return Refusal::new(fault(text, limits, error), span, None);
     };
     let mut failing = inner.as_ref();
@@ -206,8 +213,8 @@ fn refusal(text: &str, limits: &Limits, error: &Error) -> Refusal {
         .unwrap_or(locations.defined_location);
     Refusal::new(
         fault(text, limits, failing),
-        Some(bytes(locations.reference_location)),
-        Some(bytes(defined)),
+        bytes(locations.reference_location),
+        bytes(defined),
     )
 }
 
@@ -220,9 +227,12 @@ fn refusal(text: &str, limits: &Limits, error: &Error) -> Refusal {
 fn fault(text: &str, limits: &Limits, error: &Error) -> Fault {
     match error {
         Error::DuplicateMappingKey { key, location } => Fault::DuplicateKey {
-            key: key
-                .clone()
-                .unwrap_or_else(|| text.get(bytes(*location)).unwrap_or_default().to_owned()),
+            key: key.clone().unwrap_or_else(|| {
+                bytes(*location)
+                    .and_then(|range| text.get(range))
+                    .unwrap_or_default()
+                    .to_owned()
+            }),
         },
         Error::MergeKeyNotAllowed { .. } => Fault::MergeKey,
         _ => Exceeded::of(

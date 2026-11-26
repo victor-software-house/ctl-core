@@ -3,7 +3,7 @@ ctl-core: patch
 ---
 
 `ctl_core::input` gains the located tree, the input format trait and its registry, beside the code that reads input today.
-`input::tree` holds `Node`, `NodeKind`, `Scalar`, `ScalarStyle` and `Tag`: each node keeps its byte span, each scalar its processed value and style, and each mapping its key and value nodes in source order.
+`input::tree` holds `Node`, `NodeKind`, `Scalar`, `ScalarStyle`, `ScalarSyntax` and `Tag`: each node keeps its byte span, each scalar its processed value, its style and, for TOML, the type its syntax gave it, and each mapping its key and value nodes in source order.
 `input::format` holds the `Format` trait with its `read` and `resolve`, `Reading`, `Wanted`, `Resolved`, `Mismatch`, `Refusal` and `Fault`, and the two built-in formats `YAML` and `TOML`.
 `input::Formats` is the registry of formats, found by extension through `Formats::of`, and `input::set_default_formats` sets the process default.
 

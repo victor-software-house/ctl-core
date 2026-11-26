@@ -55,7 +55,7 @@ fn a_strict_reading_refuses_a_merge_key() {
     let refusal = strict(&YAML, text, &Limits::NONE).unwrap_err();
     assert_eq!(refusal.fault(), &Fault::MergeKey);
     let span = refusal.span().unwrap();
-    assert!(span.start >= 16, "{span:?}");
+    assert_eq!(&text[span], "<<");
 }
 
 #[test]
@@ -74,8 +74,16 @@ fn a_syntax_error_is_a_syntax_fault_with_a_span() {
     for text in ["a: [\n", "a: 1\n---\nb: 2\n"] {
         let refusal = strict(&YAML, text, &Limits::NONE).unwrap_err();
         assert!(matches!(refusal.fault(), Fault::Syntax { .. }), "{text:?}");
-        assert!(refusal.span().is_some(), "{text:?}");
     }
+    let second = "a: 1\n---\nb: 2\n";
+    let refusal = strict(&YAML, second, &Limits::NONE).unwrap_err();
+    assert_eq!(refusal.span(), Some(9..9));
+    let unclosed = strict(&YAML, "a: [\n", &Limits::NONE).unwrap_err();
+    assert_eq!(
+        unclosed.span(),
+        None,
+        "the parser gives a scanner error a line and column but no byte offsets"
+    );
     let refusal = strict(&TOML, "a = \n", &Limits::NONE).unwrap_err();
     assert!(matches!(refusal.fault(), Fault::Syntax { .. }));
     assert!(refusal.span().is_some());

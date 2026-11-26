@@ -51,6 +51,7 @@ pub enum NodeKind {
 pub struct Scalar {
     value: String,
     style: ScalarStyle,
+    syntax: Option<ScalarSyntax>,
 }
 
 /// How a scalar is written.
@@ -76,6 +77,26 @@ pub enum ScalarStyle {
     MultilineBasic,
     /// A TOML multi-line literal string, `'''…'''`.
     MultilineLiteral,
+}
+
+/// The type a format's syntax gave a scalar, for a format that types a value by
+/// how it is written, such as TOML.
+///
+/// A format whose scalar rules read the text, such as YAML, sets none, and
+/// [`Scalar::syntax`] is `None`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ScalarSyntax {
+    /// Text: a string, or a key.
+    Text,
+    /// An integer, as its canonical decimal text.
+    Integer,
+    /// A floating-point number.
+    Float,
+    /// A boolean, as `true` or `false`.
+    Boolean,
+    /// A date, a time or both, as its text.
+    Datetime,
 }
 
 /// The tag written on a node, in the spelling of serde-saphyr's `Tagged`:
@@ -131,6 +152,10 @@ impl Node {
     /// The bytes of the node in the text, quotes and block indicators
     /// included, so `text[node.span()]` is its source. A node an alias
     /// replayed has the span of the node it copies.
+    ///
+    /// Two nodes have a span that is not their own source. A TOML table opened
+    /// by a `[header]` or by a dotted key spans that header or key, and a YAML
+    /// empty value, as in `b:`, has an empty span and the value `~`.
     #[must_use]
     pub fn span(&self) -> Range<usize> {
         self.span.clone()
@@ -200,13 +225,22 @@ impl Node {
 }
 
 impl Scalar {
-    /// A scalar with its processed `value`, written in `style`.
+    /// A scalar with its processed `value`, written in `style`, with no
+    /// syntax type.
     #[must_use]
     pub fn new(value: impl Into<String>, style: ScalarStyle) -> Self {
         Self {
             value: value.into(),
             style,
+            syntax: None,
         }
+    }
+
+    /// This scalar with the type its format's syntax gave it.
+    #[must_use]
+    pub fn with_syntax(mut self, syntax: ScalarSyntax) -> Self {
+        self.syntax = Some(syntax);
+        self
     }
 
     /// The processed value.
@@ -219,6 +253,13 @@ impl Scalar {
     #[must_use]
     pub fn style(&self) -> ScalarStyle {
         self.style
+    }
+
+    /// The type the format's syntax gave the scalar, if the format types a
+    /// value that way.
+    #[must_use]
+    pub fn syntax(&self) -> Option<ScalarSyntax> {
+        self.syntax
     }
 }
 

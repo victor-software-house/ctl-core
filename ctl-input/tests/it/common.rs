@@ -1,7 +1,9 @@
 //! Helpers the integration tests share.
 
+use std::borrow::Cow;
+
 use ctl_input::Limits;
-use ctl_input::format::{Format, Reading};
+use ctl_input::format::{Format, Reading, Resolved};
 use ctl_input::tree::{Node, NodeKind};
 
 /// `text` read strictly under the default limits.
@@ -9,6 +11,11 @@ pub(crate) fn read(format: &dyn Format, text: &str) -> Node {
     format
         .read(text, &Limits::NONE, Reading::Strict)
         .unwrap_or_else(|refusal| panic!("{refusal}"))
+}
+
+/// A string borrowed from the scalar it was read from.
+pub(crate) fn borrowed(text: &str) -> Resolved<'_> {
+    Resolved::Str(Cow::Borrowed(text))
 }
 
 /// The bytes of `text` that `node` spans.
