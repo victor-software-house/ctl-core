@@ -2,8 +2,9 @@
 //! tree, with an explicit stack of the arrays and objects still open.
 //!
 //! The loop checks `max_depth` when a container opens and `max_nodes` when a
-//! node is added, so a refusal comes before the next allocation, and it never
-//! recurses, so a deep text costs heap and no call stack.
+//! node is added, so a refusal comes before the next allocation. It never
+//! recurses, so the reader keeps no call stack while it reads. A deep tree
+//! still recurses when it is dropped or deserialized, which `max_depth` bounds.
 
 mod scan;
 
