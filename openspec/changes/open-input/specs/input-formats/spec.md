@@ -72,7 +72,10 @@ A TOML string fills only a string field, and a TOML number only a number field.
 ### Requirement: An alias expands in the format's reader
 
 A format with aliases SHALL expand each alias while it reads, under its own limits, so the tree SHALL hold no alias node.
-A replayed node SHALL keep the span of the node it copies and the span of the alias that brought it.
+Every replayed node SHALL count against the reader's replay limit as it is read.
+
+A replayed node SHALL keep the span of the node it copies.
+It SHALL also keep the span of the outermost alias that brought it, and every node beneath it SHALL inherit that span.
 
 A problem in a replayed node SHALL sit at the alias and name where its value is defined.
 
@@ -80,6 +83,11 @@ A problem in a replayed node SHALL sit at the alias and name where its value is 
 
 - **WHEN** a YAML text holds three aliases and `max_aliases` is 2
 - **THEN** reading it fails with one problem that names `max_aliases`
+
+#### Scenario: Nested aliases
+
+- **WHEN** a YAML text of 2 KB defines nine anchors, each a list of ten aliases of the one before, under the default limits
+- **THEN** reading it fails with one limit problem before the expanded tree is built
 
 #### Scenario: A bad value through an alias
 

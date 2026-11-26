@@ -52,7 +52,8 @@ pub struct Scalar { value: String, style: ScalarStyle }
 3. `ScalarStyle` is `Plain`, `SingleQuoted`, `DoubleQuoted`, `Literal` or `Folded`; a TOML basic string is double quoted, a literal string single quoted, and a TOML number, boolean or datetime plain.
 4. A mapping keeps its entries in source order, key node and value node.
    So a key's place and its value's place are both known.
-5. `used_at` holds the alias span of a node an alias replayed, and is `None` elsewhere (decision 7).
+5. `used_at` holds the span of the outermost alias that replayed a node, the one written where the value is used.
+   Every node beneath a replayed node inherits it, and it is `None` elsewhere (decision 7).
 
 The types are public, read-only, and `#[non_exhaustive]`, so a format outside ctl-input builds them through constructors.
 
@@ -126,11 +127,13 @@ The patch is generic serde-saphyr functionality, released as a fork version befo
 
 A format with aliases expands each one while it reads, under its own limits, so the tree holds no alias node.
 A replayed node keeps the span of the anchored node it copies.
-`used_at` holds the span of the alias that brought it.
+`used_at` holds the span of the outermost alias that brought it, and every node beneath it inherits that span.
 
 A problem in a replayed node sits at `used_at` and names where its value is defined, as today's alias problems do.
 
-The fork's event pipeline already replays aliases under `max_aliases`, `max_events` and the recorded-anchor limits, and refuses an alias inside its own anchor.
+The fork's event pipeline already replays aliases under `max_aliases`, `max_events`, the recorded-anchor limits and its replay limits, and refuses an alias inside its own anchor.
+
+Every replayed node counts against the replay limit as it is read, so nested aliases fail before the expanded tree exists.
 So the YAML limits keep their meaning, and ctl-input counts no aliases of its own.
 The alternative, alias nodes that the Deserializer replays, lost: it puts a second set of alias limits in ctl-input.
 
