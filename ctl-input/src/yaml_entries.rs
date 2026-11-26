@@ -11,7 +11,7 @@ use serde_saphyr::{Location, Spanned};
 use yamled::Style;
 
 use super::entries::{Entry, Written};
-use super::limits::Raise;
+use super::exceeded::Raise;
 use super::{Input, InputError, limits, yaml_text};
 
 /// What the parser reads a value or a key as: a string, a number, a boolean or

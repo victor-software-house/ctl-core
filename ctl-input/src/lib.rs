@@ -71,6 +71,7 @@ use garde::Validate;
 use serde::de::DeserializeOwned;
 
 mod entries;
+mod exceeded;
 mod field_path;
 pub mod format;
 mod formats;
@@ -90,9 +91,9 @@ mod yaml_format;
 mod yaml_text;
 
 pub use entries::{Entry, Written};
+use exceeded::{Exceeded, Raise};
 pub use field_path::{FieldPath, Place, Step};
 pub use formats::{Formats, set_default_formats};
-use limits::{Exceeded, Raise};
 pub use limits::{Limits, set_default_limits};
 #[cfg(feature = "yaml")]
 pub use limits::{Loosened, REPO_FILE, use_repo_limits};

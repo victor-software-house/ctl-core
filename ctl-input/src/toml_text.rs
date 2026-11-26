@@ -11,7 +11,8 @@ use serde::de::DeserializeOwned;
 use toml::Spanned;
 use toml::de::{DeTable, DeValue, Deserializer};
 
-use super::limits::{Bounds, Exceeded, Raise};
+use super::exceeded::{Exceeded, Raise};
+use super::limits::Bounds;
 use super::tree::position;
 use super::{At, FieldPath, Input, InputError, Problem, Step};
 

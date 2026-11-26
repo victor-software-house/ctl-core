@@ -6,8 +6,9 @@ use std::ops::Range;
 use toml::Spanned;
 use toml::de::{DeString, DeTable, DeValue};
 
+use super::exceeded::{Exceeded, Raise};
 use super::format::{Fault, Format, Mismatch, Reading, Refusal, Resolved, Wanted};
-use super::limits::{Exceeded, Limits, Raise};
+use super::limits::Limits;
 use super::toml_text::Measure;
 use super::tree::{Node, Scalar, ScalarStyle, Tag};
 
