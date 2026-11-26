@@ -253,12 +253,7 @@ const EXPLAINED: &[(&str, &str, &str)] = &[
     (
         "block-scalars.yaml",
         "Flags",
-        "a block scalar's span starts at its indicator, and today's error at its first line",
-    ),
-    (
-        "bom.yaml",
-        "Flags",
-        "today's parse error leaves the byte order mark out of the column, as today's place does not",
+        "a block scalar's span starts at its indicator, as today's place puts it, and today's parse error at its first line",
     ),
     (
         "dotted-inline.toml",

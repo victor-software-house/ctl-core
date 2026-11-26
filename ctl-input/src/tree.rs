@@ -279,6 +279,8 @@ impl Tag {
 
 /// The 1-based line and column, counted in characters, of byte `offset` in
 /// `text`. An offset past the end, as at an unclosed array, is the end.
+///
+/// A leading byte order mark (U+FEFF) is no column, as the YAML parser counts.
 #[cfg_attr(
     not(any(test, feature = "toml")),
     expect(
@@ -287,6 +289,10 @@ impl Tag {
     )
 )]
 pub(crate) fn position(text: &str, offset: usize) -> (usize, usize) {
+    let (text, offset) = match text.strip_prefix('\u{feff}') {
+        Some(rest) => (rest, offset.saturating_sub('\u{feff}'.len_utf8())),
+        None => (text, offset),
+    };
     let before = String::from_utf8_lossy(&text.as_bytes()[..offset.min(text.len())]);
     let line = before.split('\n').count();
     let column = 1 + before
@@ -333,5 +339,14 @@ mod tests {
     fn a_position_counts_characters() {
         assert_eq!(position("é: 1\nb", 6), (2, 1));
         assert_eq!(position("é: 1\nb", 3), (1, 3));
+    }
+
+    #[test]
+    fn a_leading_byte_order_mark_is_no_column() {
+        let text = "\u{feff}a: 1\nb";
+        assert_eq!(position(text, 0), (1, 1));
+        assert_eq!(position(text, 3), (1, 1));
+        assert_eq!(position(text, 6), (1, 4));
+        assert_eq!(position(text, 8), (2, 1));
     }
 }
