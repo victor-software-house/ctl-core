@@ -331,6 +331,10 @@ impl Fault {
     /// memory: where a person raises it is the same as for the built-in
     /// formats.
     #[must_use]
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "a caller hands over the number or text it has, as it would to Into"
+    )]
     pub fn limit(name: &'static str, value: impl ToString) -> Self {
         Self::Limit {
             name,

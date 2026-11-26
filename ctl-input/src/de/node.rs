@@ -177,12 +177,12 @@ impl<'de> NodeDe<'de> {
         let mut access = Entries::new(entries, self.format);
         visitor
             .visit_map(&mut access)
-            .map_err(|error| self.claim(error, &access))
+            .map_err(|error| Self::claim(error, &access))
     }
 
     /// Places a field written twice, which the visitor raised on the whole
     /// mapping, on the key that repeats it.
-    fn claim(&self, error: Error, access: &Entries<'de>) -> Error {
+    fn claim(error: Error, access: &Entries<'de>) -> Error {
         if error.is_placed() {
             return error;
         }
