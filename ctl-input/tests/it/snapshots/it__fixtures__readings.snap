@@ -38,24 +38,24 @@ block-scalars.yaml as Tags: refused 1:1: missing field `styles`
 block-scalars.yaml as Config: refused 1:1: missing field `name`
 block-scalars.yaml as TomlConfig: refused 1:1: missing field `name`
 block-scalars.yaml as Dated: value Dated { when: "", date: "" }
-bom-scanner-error.yaml as IgnoredAny: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Json: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Ledger: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Port: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Strict: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Moded: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Copied: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Nested: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Flags: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Ports: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Names: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Anythings: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Globs: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Shipped: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Tags: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Config: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as TomlConfig: refused 1:5: unexpected character: `@'
-bom-scanner-error.yaml as Dated: refused 1:5: unexpected character: `@'
+bom-scanner-error.yaml as IgnoredAny: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Json: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Ledger: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Port: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Strict: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Moded: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Copied: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Nested: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Flags: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Ports: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Names: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Anythings: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Globs: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Shipped: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Tags: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Config: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as TomlConfig: refused 1:4: unexpected character: `@'
+bom-scanner-error.yaml as Dated: refused 1:4: unexpected character: `@'
 bom.toml as IgnoredAny: value IgnoredAny
 bom.toml as Json: value {"name":"release"}
 bom.toml as Ledger: refused 1:1: missing field `schema_version`
@@ -64,8 +64,8 @@ bom.toml as Strict: value Strict { name: "release" }
 bom.toml as Moded: refused 1:1: missing field `mode`
 bom.toml as Copied: refused 1:1: missing field `base`
 bom.toml as Nested: refused 1:1: missing field `base`
-bom.toml as Flags: refused 1:9: expected true or false
-bom.toml as Ports: refused 1:9: expected an integer
+bom.toml as Flags: refused 1:8: expected true or false
+bom.toml as Ports: refused 1:8: expected an integer
 bom.toml as Names: value {"name": "release"}
 bom.toml as Anythings: value {"name": Text("release")}
 bom.toml as Globs: refused 1:1: missing field `files`
@@ -82,8 +82,8 @@ bom.yaml as Strict: refused 2:1: unknown field `labels`, expected one of `name`
 bom.yaml as Moded: refused 1:1: missing field `mode`
 bom.yaml as Copied: refused 1:1: missing field `base`
 bom.yaml as Nested: refused 1:1: missing field `base`
-bom.yaml as Flags: refused 1:8: expected true or false
-bom.yaml as Ports: refused 1:8: expected an integer
+bom.yaml as Flags: refused 1:7: expected true or false
+bom.yaml as Ports: refused 1:7: expected an integer
 bom.yaml as Names: refused 2:9: expected a string, found a sequence
 bom.yaml as Anythings: refused 2:9: data did not match any variant of untagged enum Anything
 bom.yaml as Globs: refused 1:1: missing field `files`
@@ -272,42 +272,42 @@ input-07.yaml as Tags: refused 4:3: merge key `<<` is not allowed
 input-07.yaml as Config: refused 4:3: merge key `<<` is not allowed
 input-07.yaml as TomlConfig: refused 4:3: merge key `<<` is not allowed
 input-07.yaml as Dated: refused 4:3: merge key `<<` is not allowed
-input-08.yaml as IgnoredAny: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Json: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Ledger: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Port: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Strict: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Moded: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Copied: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Nested: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Flags: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Ports: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Names: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Anythings: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Globs: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Shipped: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Tags: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Config: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as TomlConfig: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-08.yaml as Dated: refused 5:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as IgnoredAny: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Json: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Ledger: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Port: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Strict: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Moded: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Copied: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Nested: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Flags: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Ports: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Names: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Anythings: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Globs: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Shipped: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Tags: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Config: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as TomlConfig: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-09.yaml as Dated: refused 3:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-08.yaml as IgnoredAny: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Json: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Ledger: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Port: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Strict: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Moded: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Copied: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Nested: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Flags: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Ports: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Names: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Anythings: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Globs: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Shipped: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Tags: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Config: refused 5:1: the text holds more than one YAML document
+input-08.yaml as TomlConfig: refused 5:1: the text holds more than one YAML document
+input-08.yaml as Dated: refused 5:1: the text holds more than one YAML document
+input-09.yaml as IgnoredAny: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Json: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Ledger: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Port: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Strict: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Moded: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Copied: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Nested: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Flags: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Ports: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Names: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Anythings: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Globs: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Shipped: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Tags: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Config: refused 3:4: the text holds more than one YAML document
+input-09.yaml as TomlConfig: refused 3:4: the text holds more than one YAML document
+input-09.yaml as Dated: refused 3:4: the text holds more than one YAML document
 input-10.yaml as IgnoredAny: value IgnoredAny
 input-10.yaml as Json: value "No frontmatter here."
 input-10.yaml as Ledger: refused 1:1: expected a mapping, found a scalar
@@ -326,42 +326,42 @@ input-10.yaml as Tags: refused 1:1: expected a mapping, found a scalar
 input-10.yaml as Config: refused 1:1: expected a mapping, found a scalar
 input-10.yaml as TomlConfig: refused 1:1: expected a mapping, found a scalar
 input-10.yaml as Dated: refused 1:1: expected a mapping, found a scalar
-input-11.yaml as IgnoredAny: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Json: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Ledger: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Port: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Strict: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Moded: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Copied: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Nested: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Flags: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Ports: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Names: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Anythings: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Globs: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Shipped: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Tags: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Config: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as TomlConfig: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-11.yaml as Dated: refused 5:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as IgnoredAny: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Json: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Ledger: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Port: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Strict: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Moded: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Copied: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Nested: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Flags: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Ports: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Names: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Anythings: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Globs: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Shipped: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Tags: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Config: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as TomlConfig: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-12.yaml as Dated: refused 7:4: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-11.yaml as IgnoredAny: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Json: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Ledger: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Port: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Strict: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Moded: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Copied: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Nested: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Flags: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Ports: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Names: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Anythings: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Globs: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Shipped: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Tags: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Config: refused 5:4: the text holds more than one YAML document
+input-11.yaml as TomlConfig: refused 5:4: the text holds more than one YAML document
+input-11.yaml as Dated: refused 5:4: the text holds more than one YAML document
+input-12.yaml as IgnoredAny: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Json: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Ledger: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Port: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Strict: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Moded: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Copied: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Nested: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Flags: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Ports: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Names: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Anythings: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Globs: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Shipped: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Tags: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Config: refused 7:4: the text holds more than one YAML document
+input-12.yaml as TomlConfig: refused 7:4: the text holds more than one YAML document
+input-12.yaml as Dated: refused 7:4: the text holds more than one YAML document
 input-13.yaml as IgnoredAny: refused 3:1: duplicate key `prefix`
 input-13.yaml as Json: refused 3:1: duplicate key `prefix`
 input-13.yaml as Ledger: refused 3:1: duplicate key `prefix`
@@ -422,8 +422,8 @@ input-16.yaml as Ledger: refused 1:1: missing field `schema_version`
 input-16.yaml as Port: refused 1:1: missing field `port`
 input-16.yaml as Strict: refused 1:1: unknown field `base`, expected one of `name`
 input-16.yaml as Moded: refused 1:1: missing field `mode`
-input-16.yaml as Copied: refused 3:7: expected an integer
-input-16.yaml as Nested: refused 3:1: missing field `nested`
+input-16.yaml as Copied: refused 3:7: expected an integer (defined at line 2, column 9)
+input-16.yaml as Nested: refused 3:1: missing field `nested` (defined at line 2, column 3)
 input-16.yaml as Flags: refused 2:3: expected a boolean, found a mapping
 input-16.yaml as Ports: refused 2:3: expected u16, found a mapping
 input-16.yaml as Names: refused 2:3: expected a string, found a mapping
@@ -507,7 +507,7 @@ input-20.yaml as Config: refused 1:1: missing field `name`
 input-20.yaml as TomlConfig: refused 1:1: missing field `name`
 input-20.yaml as Dated: value Dated { when: "", date: "" }
 input-21.yaml as IgnoredAny: value IgnoredAny
-input-21.yaml as Json: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-21.yaml as Json: refused 1:5: non-finite float `.inf` is not allowed
 input-21.yaml as Ledger: refused 1:1: missing field `schema_version`
 input-21.yaml as Port: refused 1:1: missing field `port`
 input-21.yaml as Strict: refused 1:1: unknown field `up`, expected one of `name`
@@ -517,7 +517,7 @@ input-21.yaml as Nested: refused 1:1: missing field `base`
 input-21.yaml as Flags: refused 1:5: expected true or false
 input-21.yaml as Ports: refused 1:5: expected an integer
 input-21.yaml as Names: value {"after": "text", "down": "-.inf", "none": ".NaN", "up": ".inf"}
-input-21.yaml as Anythings: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-21.yaml as Anythings: refused 1:5: non-finite float `.inf` is not allowed
 input-21.yaml as Globs: refused 1:1: missing field `files`
 input-21.yaml as Shipped: refused 1:1: missing field `assets`
 input-21.yaml as Tags: refused 1:1: missing field `styles`
@@ -636,7 +636,7 @@ input-28.yaml as IgnoredAny: value IgnoredAny
 input-28.yaml as Json: value {"ex tra":"b","name":"a"}
 input-28.yaml as Ledger: refused 1:1: missing field `schema_version`
 input-28.yaml as Port: refused 1:1: missing field `port`
-input-28.yaml as Strict: refused 2:1: unknown field `ex tra`, expected one of `name`
+input-28.yaml as Strict: refused 2:1: unknown field `ex\u{2028}tra`, expected one of `name`
 input-28.yaml as Moded: refused 1:1: missing field `mode`
 input-28.yaml as Copied: refused 1:1: missing field `base`
 input-28.yaml as Nested: refused 1:1: missing field `base`
@@ -655,7 +655,7 @@ input-29.yaml as Json: value {"mode":"sl\u0007ow"}
 input-29.yaml as Ledger: refused 1:1: missing field `schema_version`
 input-29.yaml as Port: refused 1:1: missing field `port`
 input-29.yaml as Strict: refused 1:1: unknown field `mode`, expected one of `name`
-input-29.yaml as Moded: refused 1:7: unknown variant `slow`, expected one of `fast`
+input-29.yaml as Moded: refused 1:7: unknown variant `sl\u{7}ow`, expected one of `fast`
 input-29.yaml as Copied: refused 1:1: missing field `base`
 input-29.yaml as Nested: refused 1:1: missing field `base`
 input-29.yaml as Flags: refused 1:7: expected true or false
@@ -704,24 +704,24 @@ input-31.yaml as Tags: refused 1:8: unclosed bracket '['
 input-31.yaml as Config: refused 1:8: unclosed bracket '['
 input-31.yaml as TomlConfig: refused 1:8: unclosed bracket '['
 input-31.yaml as Dated: refused 1:8: unclosed bracket '['
-input-32.yaml as IgnoredAny: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Json: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Ledger: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Port: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Strict: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Moded: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Copied: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Nested: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Flags: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Ports: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Names: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Anythings: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Globs: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Shipped: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Tags: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Config: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as TomlConfig: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-32.yaml as Dated: refused 6:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-32.yaml as IgnoredAny: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Json: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Ledger: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Port: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Strict: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Moded: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Copied: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Nested: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Flags: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Ports: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Names: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Anythings: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Globs: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Shipped: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Tags: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Config: refused 6:1: the text holds more than one YAML document
+input-32.yaml as TomlConfig: refused 6:1: the text holds more than one YAML document
+input-32.yaml as Dated: refused 6:1: the text holds more than one YAML document
 input-33.yaml as IgnoredAny: value IgnoredAny
 input-33.yaml as Json: value {"x":1,"y":2,"z":3}
 input-33.yaml as Ledger: refused 1:1: missing field `schema_version`
@@ -741,7 +741,7 @@ input-33.yaml as Config: refused 1:1: missing field `name`
 input-33.yaml as TomlConfig: refused 1:1: missing field `name`
 input-33.yaml as Dated: value Dated { when: "", date: "" }
 input-34.yaml as IgnoredAny: value IgnoredAny
-input-34.yaml as Json: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-34.yaml as Json: refused 1:5: non-finite float `.inf` is not allowed
 input-34.yaml as Ledger: refused 1:1: missing field `schema_version`
 input-34.yaml as Port: refused 1:1: missing field `port`
 input-34.yaml as Strict: refused 1:1: unknown field `up`, expected one of `name`
@@ -751,7 +751,7 @@ input-34.yaml as Nested: refused 1:1: missing field `base`
 input-34.yaml as Flags: refused 1:5: expected true or false
 input-34.yaml as Ports: refused 1:5: expected an integer
 input-34.yaml as Names: value {"up": ".inf"}
-input-34.yaml as Anythings: refused 1:5: non-finite float `.inf` rejected by the configured policy
+input-34.yaml as Anythings: refused 1:5: non-finite float `.inf` is not allowed
 input-34.yaml as Globs: refused 1:1: missing field `files`
 input-34.yaml as Shipped: refused 1:1: missing field `assets`
 input-34.yaml as Tags: refused 1:1: missing field `styles`
@@ -812,24 +812,24 @@ input-37.yaml as Tags: refused 1:1: missing field `styles`
 input-37.yaml as Config: refused 1:1: missing field `name`
 input-37.yaml as TomlConfig: refused 1:1: missing field `name`
 input-37.yaml as Dated: value Dated { when: "", date: "" }
-input-38.yaml as IgnoredAny: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Json: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Ledger: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Port: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Strict: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Moded: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Copied: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Nested: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Flags: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Ports: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Names: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Anythings: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Globs: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Shipped: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Tags: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Config: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as TomlConfig: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
-input-38.yaml as Dated: refused 4:1: multiple YAML documents detected; use from_str_multiple or from_str_multiple_with_options
+input-38.yaml as IgnoredAny: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Json: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Ledger: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Port: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Strict: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Moded: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Copied: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Nested: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Flags: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Ports: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Names: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Anythings: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Globs: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Shipped: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Tags: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Config: refused 4:1: the text holds more than one YAML document
+input-38.yaml as TomlConfig: refused 4:1: the text holds more than one YAML document
+input-38.yaml as Dated: refused 4:1: the text holds more than one YAML document
 input_limits-01.yaml as IgnoredAny: value IgnoredAny
 input_limits-01.yaml as Json: value {"limits":{"max_depth":8}}
 input_limits-01.yaml as Ledger: refused 1:1: missing field `schema_version`
@@ -1064,24 +1064,24 @@ input_toml-07.toml as Tags: refused 1:1: missing field `styles`
 input_toml-07.toml as Config: refused 1:1: missing field `name`
 input_toml-07.toml as TomlConfig: refused 1:1: missing field `name`
 input_toml-07.toml as Dated: value Dated { when: "", date: "" }
-input_toml-08.toml as IgnoredAny: refused 2:1: duplicate key
-input_toml-08.toml as Json: refused 2:1: duplicate key
-input_toml-08.toml as Ledger: refused 2:1: duplicate key
-input_toml-08.toml as Port: refused 2:1: duplicate key
-input_toml-08.toml as Strict: refused 2:1: duplicate key
-input_toml-08.toml as Moded: refused 2:1: duplicate key
-input_toml-08.toml as Copied: refused 2:1: duplicate key
-input_toml-08.toml as Nested: refused 2:1: duplicate key
-input_toml-08.toml as Flags: refused 2:1: duplicate key
-input_toml-08.toml as Ports: refused 2:1: duplicate key
-input_toml-08.toml as Names: refused 2:1: duplicate key
-input_toml-08.toml as Anythings: refused 2:1: duplicate key
-input_toml-08.toml as Globs: refused 2:1: duplicate key
-input_toml-08.toml as Shipped: refused 2:1: duplicate key
-input_toml-08.toml as Tags: refused 2:1: duplicate key
-input_toml-08.toml as Config: refused 2:1: duplicate key
-input_toml-08.toml as TomlConfig: refused 2:1: duplicate key
-input_toml-08.toml as Dated: refused 2:1: duplicate key
+input_toml-08.toml as IgnoredAny: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Json: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Ledger: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Port: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Strict: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Moded: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Copied: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Nested: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Flags: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Ports: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Names: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Anythings: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Globs: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Shipped: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Tags: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Config: refused 2:1: duplicate key `flag`
+input_toml-08.toml as TomlConfig: refused 2:1: duplicate key `flag`
+input_toml-08.toml as Dated: refused 2:1: duplicate key `flag`
 input_toml-09.toml as IgnoredAny: value IgnoredAny
 input_toml-09.toml as Json: value {"name":"release"}
 input_toml-09.toml as Ledger: refused 1:1: missing field `schema_version`

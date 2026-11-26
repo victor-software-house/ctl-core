@@ -13,7 +13,7 @@ use std::fmt::{self, Debug};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ctl_input::de::{Tagged, deserialize};
+use ctl_input::de::Tagged;
 use ctl_input::format::Reading;
 use ctl_input::tree::{Node, NodeKind};
 use ctl_input::{FieldPath, Format, Formats, Input, Limits};
@@ -221,31 +221,18 @@ fn named(file: &Path) -> Option<(String, String)> {
     Some((name, text))
 }
 
-/// What reading `text` as `T` gave: the value, or the refusal with its place.
+/// What reading `text` as `T` gave through an input: the value, or the
+/// problem with the line and column it reports.
 fn outcome<T: DeserializeOwned + Debug>(name: &str, text: &str) -> String {
-    let format = format_of(name);
-    let read = format
-        .read(text, &Limits::NONE, Reading::Strict)
-        .and_then(|tree| deserialize::<T>(&tree, format));
-    match read {
+    match input(name, text).parse::<T>() {
         Ok(value) => format!("value {value:?}"),
-        Err(refusal) => {
-            let place = refusal.span().map_or_else(
-                || "nowhere".to_owned(),
-                |span| {
-                    let before = &text[..span.start.min(text.len())];
-                    let line = before.matches('\n').count() + 1;
-                    let column = before
-                        .rsplit('\n')
-                        .next()
-                        .unwrap_or_default()
-                        .chars()
-                        .count()
-                        + 1;
-                    format!("{line}:{column}")
-                },
-            );
-            format!("refused {place}: {refusal}")
+        Err(error) => {
+            let problem = &error.problems[0];
+            let place = match (problem.line, problem.column) {
+                (Some(line), Some(column)) => format!("{line}:{column}"),
+                _ => "nowhere".to_owned(),
+            };
+            format!("refused {place}: {}", problem.message)
         }
     }
 }
