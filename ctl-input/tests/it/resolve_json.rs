@@ -77,7 +77,8 @@ fn an_integer_fills_an_integer_or_a_float_field() {
 
 #[test]
 fn minus_zero_keeps_its_sign_as_a_float() {
-    let resolved = resolve(&scalar("-0"), Wanted::Float);
+    let minus_zero = scalar("-0");
+    let resolved = resolve(&minus_zero, Wanted::Float);
     assert!(
         matches!(resolved, Ok(Resolved::Float(number)) if number == 0.0 && number.is_sign_negative()),
         "{resolved:?}"
