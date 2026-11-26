@@ -98,7 +98,7 @@ fn float(text: &str) -> Option<Resolved<'static>> {
 /// iterates by key, not by position.
 fn table(text: &str, span: Range<usize>, table: &DeTable<'_>) -> Node {
     let mut entries: Vec<_> = table.iter().collect();
-    entries.sort_by_key(|(key, _)| key.span().start);
+    entries.sort_unstable_by_key(|(key, _)| key.span().start);
     Node::mapping(
         span,
         entries
