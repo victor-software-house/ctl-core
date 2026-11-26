@@ -44,9 +44,9 @@ impl Format for Toml {
         let root = DeTable::parse(text).map_err(|error| {
             let span = error.span();
             let fault = if error.message() == REPEATED_KEY {
-                let key = span.clone().and_then(|at| text.get(at)).unwrap_or_default();
+                let written = span.clone().and_then(|at| text.get(at)).unwrap_or_default();
                 Fault::DuplicateKey {
-                    key: key.to_owned(),
+                    key: key_name(written),
                 }
             } else {
                 Fault::Syntax {
@@ -88,6 +88,26 @@ impl Format for Toml {
         };
         resolved.ok_or(Mismatch::new(wanted))
     }
+}
+
+/// The name of the key written as `written`, as TOML reads it, without quotes
+/// or escapes: the last key of the dotted path the `toml` crate builds from
+/// `written = 0`. Text that reads as no key is returned as written.
+fn key_name(written: &str) -> String {
+    let entry = format!("{written} = 0");
+    let Ok(root) = DeTable::parse(&entry) else {
+        return written.to_owned();
+    };
+    let mut name = None;
+    let mut level = root.get_ref();
+    while let Some((key, value)) = level.iter().next() {
+        name = Some(key.get_ref().to_string());
+        let DeValue::Table(inner) = value.get_ref() else {
+            break;
+        };
+        level = inner;
+    }
+    name.unwrap_or_else(|| written.to_owned())
 }
 
 /// The integer a canonical integer text spells: an `i128`, or a `u128` above

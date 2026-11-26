@@ -121,6 +121,32 @@ fn toml_has_no_duplicate_or_merge_keys_so_both_readings_agree() {
     assert_eq!(refusal.span().map(|span| &text[span]), Some("a"));
 }
 
+#[test]
+fn toml_names_a_duplicate_key_as_it_reads_and_spans_the_key_as_written() {
+    let cases = [
+        ("\"prefix\" = 1\n\"prefix\" = 2\n", "prefix", "\"prefix\""),
+        ("'lit' = 1\n'lit' = 2\n", "lit", "'lit'"),
+        ("\"a\\u0062\" = 1\nab = 2\n", "ab", "ab"),
+        ("a.b = 1\na.b = 2\n", "b", "b"),
+        ("t = { x = 1, x = 2 }\n", "x", "x"),
+    ];
+    for (text, key, written) in cases {
+        let refusal = strict(&TOML, text, &Limits::NONE).unwrap_err();
+        assert_eq!(
+            refusal.fault(),
+            &Fault::DuplicateKey {
+                key: key.to_owned()
+            },
+            "{text:?}"
+        );
+        assert_eq!(
+            refusal.span().map(|span| &text[span]),
+            Some(written),
+            "{text:?}"
+        );
+    }
+}
+
 fn limit(name: &'static str, value: &str) -> Fault {
     Fault::Limit {
         name,
