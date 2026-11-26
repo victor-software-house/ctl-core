@@ -146,6 +146,22 @@ queue:
       - 2026-11-26, this row also carries out CTC-038, the move of declared input into a ctl-input leaf crate (operator, 2026-11-26).
     plan: openspec/changes/open-input/proposal.md
 
+  - id: CTC-067
+    title: Report each part of a failure as its own JSON field
+    scope: ctl-core/src/model.rs, ctl-core/src/app.rs, ctl-core/src/format/interface.rs
+    outcome: >-
+      A caller reads a parse error, a refused input or a handler error from the JSON
+      envelope field by field, never by parsing one message.
+    blocked_by: []
+    acceptance:
+      - A JSON parse error carries parse.reason and usage, and with error-context the argument, value, suggestions and tips, each in its own field.
+      - A refused input carries one problems object per problem, with its input, line, column, field and message.
+      - A handler error carries its outermost message and its causes as a list.
+      - pretty renders the same parts as before.
+    plan: openspec/changes/structured-errors/proposal.md
+    notes:
+      - 2026-11-26, JSON output keeps a field per part and never flattens parts into one message (operator, 2026-11-26).
+
   - id: CTC-043
     title: >-
       Take every command's input as JSON or YAML, from a file or stdin, as output
@@ -153,7 +169,7 @@ queue:
     scope: src/input.rs, the App chassis
     outcome: >-
       Any ctl CLI accepts a command's arguments as one structured document, with the same choice of formats its output offers.
-    blocked_by: [CTC-065]
+    blocked_by: [CTC-065, CTC-067]
     acceptance:
       - A command built on ctl-core reads its arguments from --input FILE or --input -, in JSON or YAML chosen by --input-format or the file extension, validated by the same rules as its flags.
       - Flags and an input document combine by one stated precedence, and an unknown field fails naming it, as the output side reports errors.
@@ -170,6 +186,7 @@ queue:
       - 2026-11-25, input formats are an open set a CLI can extend, as output formats are, with yaml, json and toml built in; this breaks input::Format, so it ships in the 0.8.0 candidates (operator, 2026-11-25).
       - 2026-11-25, App adds --input only when app and an input format feature are both on, so the app tier keeps its size (operator, 2026-11-25).
       - 2026-11-26, the document joins clap as synthesized arguments after the selected subcommand, a key that loses to a higher layer is dropped unless the CLI asks to fail, the input features turn on clap error-context, and the document supplies positionals only when the command line gives none (operator, 2026-11-26).
+      - 2026-11-26, the flags move behind an opt-in input-document feature with its own size tier, since the document code and error-context measured about 45 KB over input (operator, 2026-11-26).
     plan: openspec/changes/input-document/proposal.md
 
   - id: CTC-047

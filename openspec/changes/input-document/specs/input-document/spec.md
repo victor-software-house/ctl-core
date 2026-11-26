@@ -2,13 +2,13 @@
 
 ### Requirement: Every command takes an input document
 
-When ctl-core's `app` feature and an `input-*` feature are both on, `App` SHALL add `--input <FILE>` and `--input-format <NAME>` to every command, with no short forms.
+When ctl-core's `app` and `input-document` features are both on, `App` SHALL add `--input <FILE>` and `--input-format <NAME>` to every command, with no short forms.
 When the command binds `--format` to `<PREFIX>_FORMAT`, the two flags SHALL read `<PREFIX>_INPUT` and `<PREFIX>_INPUT_FORMAT`.
 `App::without_input()` SHALL remove both.
 
 #### Scenario: The flags are there
 
-- **WHEN** a CLI with `env_prefix = "QCTL"`, built with `app` and `input`, prints `qctl add --help`
+- **WHEN** a CLI with `env_prefix = "QCTL"`, built with `app`, `input` and `input-document`, prints `qctl add --help`
 - **THEN** the help lists `--input <FILE>` and `--input-format <NAME>` under "Input", reading `QCTL_INPUT` and `QCTL_INPUT_FORMAT`
 
 #### Scenario: A CLI removes them
@@ -98,7 +98,7 @@ Positional values SHALL follow the positionals' index order whatever the documen
 
 An unknown key, a value no argument can take, and a key refused by policy SHALL each be a problem with the document's file, line and column, all reported together.
 A clap error caused by a document value SHALL be placed on that key, or on its value for an invalid value.
-Each `input-*` feature SHALL turn on clap's `error-context` when `cli` is on, and `app` and `usage` without an input feature SHALL not.
+`input-document` SHALL turn on clap's `error-context`, and `app`, `usage` and the `input-*` features without it SHALL not.
 
 #### Scenario: An unknown key
 
