@@ -57,10 +57,7 @@ pub use clap::{Args, Parser, Subcommand};
 #[doc(no_inline)]
 pub use indoc::{concatdoc, eprintdoc, formatdoc, indoc, printdoc, writedoc};
 
-#[cfg(all(
-    feature = "app",
-    any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
-))]
+#[cfg(feature = "input-document")]
 pub use crate::app::InputConflicts;
 #[cfg(feature = "app")]
 pub use crate::app::{App, BrokenPipe, CommandError};

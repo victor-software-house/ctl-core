@@ -11,7 +11,7 @@
     reason = "an integration test crate has no public API to document"
 )]
 #![cfg(all(
-    feature = "app",
+    feature = "input-document",
     feature = "fixture",
     feature = "input-yaml",
     feature = "input-json",

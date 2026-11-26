@@ -80,10 +80,7 @@ pub use pretty::{PRETTY, Pretty};
 pub use registry::Formats;
 #[cfg(feature = "view")]
 pub(crate) use registry::unregistered;
-#[cfg(all(
-    feature = "app",
-    any(feature = "input-yaml", feature = "input-json", feature = "input-toml")
-))]
+#[cfg(feature = "input-document")]
 pub(crate) use registry::{declares, format_prefix};
 #[cfg(feature = "view")]
 pub use stream::RecordWriter;

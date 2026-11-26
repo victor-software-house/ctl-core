@@ -10,9 +10,9 @@
 # -h/--help flag and help subcommand, so the cli feature leaves clap's help
 # feature off. The usage feature turns on clap's usage feature, which renders
 # the spec's usage line. With app, usage, and input, nothing turns on clap's
-# defaults or the features they hold, except error-context: each input feature
-# turns it on, so a bad value in an input document is placed on its key (CTC-043).
-# Without an input feature, app and usage leave it off.
+# defaults or the features they hold. Only input-document turns on error-context,
+# through ctl-core's own feature of that name, so a bad value in an input
+# document is placed on its key (CTC-043).
 #
 # input-toml alone reads TOML with no YAML parser and no garde
 # (split-input-formats, decision 6). input-yaml alone reads YAML with no TOML
@@ -75,19 +75,22 @@ if ! grep -q 'clap_builder feature "usage"' <<<"${usage}"; then
   status=1
 fi
 consumer="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features app,usage,input --target all --invert clap_builder --prefix none)"
-for feature in default color help suggestions; do
+for feature in default color help error-context suggestions; do
   if grep -q "clap_builder feature \"${feature}\"" <<<"${consumer}"; then
     echo "ctl-core with app, usage, and input turns on clap's ${feature} feature" >&2
     status=1
   fi
 done
-if ! grep -q 'clap_builder feature "error-context"' <<<"${consumer}"; then
-  echo "ctl-core with app, usage, and input does not turn on clap's error-context feature" >&2
+documented="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features app,input,input-document --target all --invert clap_builder --prefix none)"
+if ! grep -q 'clap_builder feature "error-context"' <<<"${documented}"; then
+  echo "ctl-core with app, input, and input-document does not turn on clap's error-context feature" >&2
   status=1
 fi
-plain="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features app,usage --target all --invert clap_builder --prefix none)"
-if grep -q 'clap_builder feature "error-context"' <<<"${plain}"; then
-  echo "ctl-core with app and usage turns on clap's error-context feature" >&2
-  status=1
-fi
+for features in app,input-toml app,input-json; do
+  undocumented="$(cargo tree --locked --package ctl-core --edges features --no-default-features --features "${features}" --target all --invert clap_builder --prefix none)"
+  if grep -q 'clap_builder feature "error-context"' <<<"${undocumented}"; then
+    echo "ctl-core with ${features} turns on clap's error-context feature" >&2
+    status=1
+  fi
+done
 exit "${status}"
